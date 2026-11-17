@@ -4,6 +4,8 @@
 --   member.wounds : forme sauvegardée des plaies (texte de Wounds.pack, LK_WoundsForm.lua ; absent = aucune plaie ;
 --                   même validation que le registre des corps, LK_Groups.validGroup) ;
 --   member.health : santé, fraction de la santé de naissance ]0, 1[ (absent = pleine santé), gardée au millionième.
+-- Virus de Knox (LK21-T04) : porté par la liste de plaies (list.virus, LK_Virus.lua) et sauvegardé avec elle ; un
+-- membre hors écran meurt à son échéance (Virus.isDue, même règle que le corps, LK_Infection), sans relevé.
 -- Les plaies d'un membre incarné sont celles de son corps (LK_Health) : ce module les lit là (Mh.state) et ne change
 -- jamais un membre incarné. Passage incarné <-> hors écran : LK_Materialize (plaies passées telles quelles).
 --
@@ -20,6 +22,7 @@ require "LivingKnox/LK_WoundsForm"
 require "LivingKnox/LK_WoundsHealth"
 require "LivingKnox/LK_WoundSources"
 require "LivingKnox/LK_WoundContext"
+require "LivingKnox/LK_Virus"
 
 local Wounds = LivingKnox.Wounds
 
@@ -79,7 +82,7 @@ end
 -- ---------------------------------------------------------------- écriture (membre hors écran)
 
 local function save(m, list, health)
-    if #list > 0 then m.wounds = Wounds.pack(list) else m.wounds = nil end
+    if #list > 0 or list.virus ~= nil then m.wounds = Wounds.pack(list) else m.wounds = nil end
     health = round6(health)
     if health >= 1 then m.health = nil else m.health = health end
 end
@@ -107,15 +110,20 @@ end
 
 -- minutes de jeu hors écran pour le membre m : plaies et santé par la formule du corps (Wounds.healthStep) ; loss
 -- (fraction, facultative) retirée d'abord sans régénération (faim). Rend vrai si le membre est encore en vie (santé
--- > 0 ; sinon ses plaies sont effacées et la mort reste à appliquer par l'appelant).
+-- > 0 ; sinon ses plaies sont effacées et la mort reste à appliquer par l'appelant) ; mort : faux et la cause
+-- ("infection" : virus de Knox à échéance à l'heure ctx.worldHours, LK21-T04 ; "wounds" sinon).
 function Mh.pass(m, minutes, ctx, loss)
     if m.wounds == nil and m.health == nil and (loss or 0) <= 0 then return true end
     local list = Mh.wounds(m)
+    if LivingKnox.Virus.isDue(list.virus, ctx ~= nil and ctx.worldHours or nil) then
+        m.wounds, m.health = nil, nil
+        return false, "infection"
+    end
     local health = Mh.health(m) - math.max(0, loss or 0)
     health = Wounds.healthStep(list, health, minutes, ctx, (loss or 0) <= 0)
     if health <= 0 then
         m.wounds, m.health = nil, nil
-        return false
+        return false, "wounds"
     end
     save(m, list, math.max(1e-6, health))
     return true

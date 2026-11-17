@@ -154,6 +154,14 @@ class AtelierServerTests(unittest.TestCase):
         self.assertEqual((status, payload["code"]), (200, "voice_saved"))
         self.assertEqual(self.voices()["rosa"]["name"], "Rosa")
 
+    def test_write_keeps_the_recipe_help_and_the_other_sections(self):
+        """E27-T02: a voice saved with its recipe help ([help]) beside other sections is read back unchanged."""
+        text = ("format=1\nid=rosa\nname=Rosa\nradio=any_talkie\n\n[trade]\nlanding=dock\n\n[note]\ntext=%1\n\n"
+                "[help]\njobs=cooking,medical\nfrom=good\ndelay=hour\n\n[prompt]\nYou are Rosa.\n")
+        self.assertEqual(self.request("PUT", "/api/voices/rosa", text)[0], 201)
+        status, body, _ = self.request("GET", "/api/voices/rosa")
+        self.assertEqual((status, body.decode("utf-8")), (200, text))
+
     def test_write_creates_the_missing_working_folder(self):
         for p in self.working.iterdir():
             p.unlink()

@@ -33198,6 +33198,7 @@
   ],
   "places": {
     "choices": {},
+    "defaults": {},
     "hasId": true,
     "keys": [
       "area",
@@ -33311,6 +33312,7 @@
   "sections": {
     "category": {
       "choices": {},
+      "defaults": {},
       "hasId": true,
       "keys": [
         "item"
@@ -33321,6 +33323,49 @@
       ],
       "required": [
         "item"
+      ]
+    },
+    "help": {
+      "choices": {
+        "delay": [
+          "now",
+          "hour",
+          "half_day",
+          "day"
+        ],
+        "from": [
+          "all",
+          "neutral",
+          "good"
+        ],
+        "jobs": [
+          "carpentry",
+          "cooking",
+          "electrical",
+          "farming",
+          "makeshift",
+          "mechanics",
+          "medical",
+          "pottery",
+          "smithing",
+          "tailoring",
+          "weapons"
+        ]
+      },
+      "defaults": {
+        "delay": "now",
+        "from": "neutral"
+      },
+      "hasId": false,
+      "keys": [
+        "delay",
+        "from",
+        "jobs"
+      ],
+      "rank": 7,
+      "repeatable": [],
+      "required": [
+        "jobs"
       ]
     },
     "mission": {
@@ -33343,6 +33388,7 @@
           "team"
         ]
       },
+      "defaults": {},
       "hasId": true,
       "keys": [
         "after",
@@ -33363,6 +33409,7 @@
     },
     "note": {
       "choices": {},
+      "defaults": {},
       "hasId": false,
       "keys": [
         "glovebox",
@@ -33381,6 +33428,7 @@
     },
     "rewards": {
       "choices": {},
+      "defaults": {},
       "hasId": false,
       "keys": [
         "cache_place",
@@ -33400,6 +33448,7 @@
           "road"
         ]
       },
+      "defaults": {},
       "hasId": false,
       "keys": [
         "accept",

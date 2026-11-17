@@ -4,7 +4,7 @@
 --   dégâts de partie 2.1875 à nu (:158-160) ; saignement 7.5-15 (generateBleeding :1800-1802) ; plaie infectée dès la
 --   morsure (:608) ; hors de la porte des tirages d'infection (:219) ; douleur 50 à nu, 30 bandée (:911-913).
 -- virusChance : la morsure transmet le virus de Knox sauf option de transmission 4 (:616-623) ; le virus lui-même,
--- son délai et le relevé en zombie sont LK21-T04.
+-- son délai et le relevé en zombie : LK_Virus.lua et server/LivingKnox/LK_Infection.lua (LK21-T04).
 -- Sang visible : addBlood d'une morsure, 20 tirages (J/characters/IsoGameCharacter.java:12218-12220).
 require "LivingKnox/LK_Wounds"
 
@@ -17,6 +17,7 @@ LivingKnox.Wounds.registerKind("bite", {
     bleed = { { 7.5, 15 } },
     infectedOnAdd = true,
     virusChance = 100,
+    virusRoute = "saliva",     -- transmise sauf option « aucune » (:616-619, LK_Virus)
     bandage = true,
     pain = { open = 50, bandaged = 30 },
     blood = 1,

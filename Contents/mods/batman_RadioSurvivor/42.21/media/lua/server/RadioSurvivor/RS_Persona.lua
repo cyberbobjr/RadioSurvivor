@@ -1,11 +1,12 @@
 -- Radio Survivor : fiches des voix radio (E05-T01), lecture et validation stricte cote serveur.
 -- Format : docs/specifications-techniques/persona-format.md. Le serveur est le seul lecteur complet (E20-T03, ADR D03) :
--- tete (lignes cle=valeur), sections [mission <id>], [rewards], [category <id>], [trade], [note], puis [prompt].
+-- tete (lignes cle=valeur), sections [mission <id>], [rewards], [category <id>], [trade], [note], [help], puis [prompt].
 -- E25-T01 (ADR lieux communs) : les lieux vivent dans le fichier commun personas/_places.txt (Persona.parsePlaces :
 -- sections [place <id>], un point at= ou une zone area=) ; une fiche nomme ceux dont elle se sert (marks= de la tete,
 -- target=, drops= et points= de [mission], landing= de [trade], cache_place= de [rewards]).
 -- bridge/persona_store.py lit la tete (marks= compris), le fichier des lieux et le prompt avec les memes regles et les
--- memes messages (« line N: raison », en anglais) et saute les sections ; tests/radiosurvivor/test_personas.py compare
+-- memes messages (« line N: raison », en anglais), lit aussi [help] (E27-T02) et saute les autres sections ;
+-- tests/radiosurvivor/test_personas.py compare
 -- les deux lecteurs, tests/radiosurvivor/test_persona_sections.py couvre ce que seul le serveur valide.
 -- Regles injectees (RS_Personas.rules, racine de composition) : template(nom) -> gabarit de mission donne par une
 -- voix (CA_Missions.voiceTemplate, schema `params` declare par le gabarit), rewards (natures de recompense de
@@ -933,8 +934,54 @@ local function noteClose(sec, ctx)
     ctx.note = note
 end
 
+-- [help] (E27-T02, ADR recettes-radio D02 a D04, D06) : la voix aide a trouver une recette de ses metiers (jobs,
+-- identifiants de RS_RecipeJobs), a partir d'un palier de reputation (from), tout de suite ou apres une recherche de
+-- 1, 12 ou 24 heures de jeu (delay). Lue aussi par le pont (persona_store.HelpSection), memes regles et messages.
+-- RS_RecipeJobs n'est requis qu'a la lecture d'une [help] ou par la grammaire : le banc Kahlua lit des fiches sans
+-- charger les modules des recettes.
+local HELP_FROM_LIST = { "all", "neutral", "good" }
+local HELP_DELAY_LIST = { "now", "hour", "half_day", "day" }
+local HELP_DEFAULTS = { from = "neutral", delay = "now" }
+
+local function jobIds()
+    return require("RadioSurvivor/RS_RecipeJobs").ids()
+end
+
+local function helpOpen(sec)
+    sec.help = { jobs = {}, from = HELP_DEFAULTS.from, delay = HELP_DEFAULTS.delay }
+end
+
+local function helpJobs(help, _, value, line)
+    local known = jobIds()
+    for _, job in ipairs(splitList(value)) do
+        if not contains(known, job) then
+            fail(line, "unknown job '" .. job .. "' (expected " .. table.concat(known, ", ") .. ")")
+        end
+        if contains(help.jobs, job) then fail(line, "duplicate job '" .. job .. "'") end
+        help.jobs[#help.jobs + 1] = job
+    end
+end
+
+local function helpFrom(help, key, value, line) help.from = choice(value, key, HELP_FROM_LIST, line) end
+local function helpDelay(help, key, value, line) help.delay = choice(value, key, HELP_DELAY_LIST, line) end
+
+local HELP_KEYS = { jobs = helpJobs, from = helpFrom, delay = helpDelay }
+local HELP_REQUIRED = { "jobs" }
+
+local function helpKey(sec, key, value, line)
+    local reader = HELP_KEYS[key]
+    if not reader then unknownKey(sec, key, line) end
+    reader(sec.help, key, value, line)
+end
+
+local function helpClose(sec, ctx)
+    requireKeys(sec, HELP_REQUIRED)
+    ctx.help = sec.help
+end
+
 -- keys, required, choices (listes fermees de valeurs par cle) et ruleChoices (cle -> champ des regles dont les noms
--- sont les valeurs admises) ne servent qu'a Persona.grammar (E22-T01) : les memes tables que les lecteurs ci-dessus.
+-- sont les valeurs admises), choiceLists (cle -> fonction qui rend les valeurs admises) et defaults (cle -> valeur
+-- d'une cle absente) ne servent qu'a Persona.grammar (E22-T01) : les memes tables que les lecteurs ci-dessus.
 local SECTIONS = {
     place = { rank = 1, example = "mill", open = placeOpen, key = placeKey, close = placeClose,
         keys = PLACE_KEYS, required = PLACE_REQUIRED },
@@ -950,6 +997,9 @@ local SECTIONS = {
         ruleChoices = { arrival = "arrivals" } },
     note = { rank = 6, repeatable = { loot = true, glovebox = true, text = true }, open = noteOpen, key = noteKey,
         close = noteClose, keys = NOTE_KEYS, required = NOTE_REQUIRED },
+    help = { rank = 7, open = helpOpen, key = helpKey, close = helpClose, keys = HELP_KEYS, required = HELP_REQUIRED,
+        choices = { from = HELP_FROM_LIST, delay = HELP_DELAY_LIST }, choiceLists = { jobs = jobIds },
+        defaults = HELP_DEFAULTS },
 }
 
 -- Noms de SECTIONS (ou d'un sous-ensemble) dans l'ordre de leur rang.
@@ -1057,7 +1107,7 @@ local function checkRaw(raw, number)
 end
 
 -- E25-T01 : plus de [place] dans une fiche (fichier commun _places.txt, parsePlaces).
-local SHEET_SECTIONS = { mission = true, rewards = true, category = true, trade = true, note = true }
+local SHEET_SECTIONS = { mission = true, rewards = true, category = true, trade = true, note = true, help = true }
 local SHEET_EXPECTED = (function()
     local names = {}
     for name in pairs(SHEET_SECTIONS) do names[#names + 1] = name end
@@ -1184,6 +1234,8 @@ local function parse(lines, expectedId, rules)
         shares = values.shares or {},
         missions = ctx.missions, rewards = ctx.rewards, categories = ctx.ownCategories, trade = ctx.trade,
         note = ctx.note,
+        -- E27-T02 : aide aux recettes ({ jobs, from, delay }), nil sans section [help].
+        help = ctx.help,
     }
 end
 
@@ -1327,8 +1379,11 @@ end
 local function sectionGrammar(s, rules)
     local choices = copyChoices(s.choices)
     for key, field in pairs(s.ruleChoices or {}) do choices[key] = ruleNames(rules[field]) end
+    for key, list in pairs(s.choiceLists or {}) do choices[key] = list() end
+    local defaults = {}
+    for key, value in pairs(s.defaults or {}) do defaults[key] = value end
     return { rank = s.rank, hasId = s.example ~= nil, keys = sortedKeys(s.keys), required = copyList(s.required),
-        repeatable = sortedKeys(s.repeatable), choices = choices }
+        repeatable = sortedKeys(s.repeatable), choices = choices, defaults = defaults }
 end
 
 -- E25-T01 : sections : celles d'une fiche ; places : le fichier commun des lieux (tete format=, sections [place],

@@ -1323,7 +1323,9 @@ HOURLY_MODULES = 'require "LivingKnox/LK_Raids" require "LivingKnox/LK_Fortify"'
 # boucle codée en dur, cinq événements tirés par applyEvent). LK21-T03 : relevées de nouveau (la blessure abstraite
 # wound devient des plaies et une santé : tirages des plaies dans le flux de l'heure, champs wounds et health des membres).
 FROZEN_SIM = {
-    'events': '367e98c7c0646407475355c0e9ad561af6a78501c2078553d6d5ae4160ecab53',
+    # LK21-T04 : une griffure ou une coupure de zombie (incident d'expédition, source « zombie ») tire la chance de
+    # transmission du virus (Rand.Next(100), BodyPart.java:706) : un tirage de plus décale le flux des expéditions.
+    'events': 'c9b7daf44dce8b01a30c7a35cbd1308204fa56715a3d1d4b5f1a5f148b4628e9',
     'catchup': '35a785855c1fc084d00af4f6eca0d8a93e280ef81dfaeebbe0e65a11af2b9bf7',
 }
 

@@ -7,8 +7,8 @@
 Format: docs/specifications-techniques/persona-format.md. The server reads the same files with
 Contents/mods/batman_RadioSurvivor/42.21/media/lua/server/RadioSurvivor/RS_Persona.lua, the only full validator (ADR
 D03, E20-T03). This reader takes the head (marks= included), the shared places file and the prompt with the same rules
-and messages ("line N: reason"), checked by tests/radiosurvivor/test_personas.py; it skips the [mission], [rewards], [category],
-[trade] and [note] sections without reading them. Lines are split like Java's BufferedReader.readLine (the game's getFileReader): "\\r\\n", "\\r"
+and messages ("line N: reason"), checked by tests/radiosurvivor/test_personas.py; it reads [help] (E27-T02) the same
+way and skips the [mission], [rewards], [category], [trade] and [note] sections without reading them. Lines are split like Java's BufferedReader.readLine (the game's getFileReader): "\\r\\n", "\\r"
 or "\\n". Invalid UTF-8 is decoded as U+FFFD, as Java's InputStreamReader does, then refused. Standard library only.
 """
 from __future__ import annotations
@@ -49,6 +49,13 @@ MAX_PLACES = 500
 MAX_PLACE_LABEL_BYTES = 48
 MAX_AREA_SIDE = 1500
 MAX_MARKS = 12
+# [help] (E27-T02, ADR recettes-radio D02 to D04, D06): jobs of RS_RecipeJobs.lua, sorted (Jobs.ids(); the same list,
+# checked by tests/radiosurvivor/test_recipe_index.py), the reputation level from which the voice helps and how long
+# she searches first (now, or 1, 12, 24 game hours).
+JOBS = ('carpentry', 'cooking', 'electrical', 'farming', 'makeshift', 'mechanics', 'medical', 'pottery', 'smithing',
+        'tailoring', 'weapons')
+HELP_FROM = ('all', 'neutral', 'good')
+HELP_DELAYS = ('now', 'hour', 'half_day', 'day')
 
 ID_RE = re.compile(r'[a-z][a-z0-9_]{0,31}')
 SECTION_ID_RE = re.compile(r'[a-z0-9_]{1,32}')
@@ -89,6 +96,15 @@ class Place:
         return self.area is not None
 
 
+@dataclass(frozen=True)
+class Help:
+    """[help] of a voice (E27-T02): the jobs she helps with (file order), the reputation level from which she helps
+    and how long she searches before answering."""
+    jobs: tuple[str, ...]
+    from_: str = 'neutral'
+    delay: str = 'now'
+
+
 @dataclass
 class Persona:
     format: str
@@ -111,6 +127,7 @@ class Persona:
     shares: list[str] = field(default_factory=list)
     state: str = 'active'
     trade_accepts: list[str] = field(default_factory=list)   # [trade] accept= values, in file order (E23-T06)
+    help: Help | None = None                   # [help] (E27-T02); None: the voice never helps with recipes
 
 
 def split_lines(text: str) -> list[str]:
@@ -292,6 +309,7 @@ class Section:
     lines: dict[str, int] = field(default_factory=dict)
     values: dict[str, object] = field(default_factory=dict)
     accepts: list[str] = field(default_factory=list)
+    result: object | None = None      # what the section gives the sheet once closed ([help]: a Help)
 
     @property
     def title(self) -> str:
@@ -306,6 +324,21 @@ def _key_value(text: str, line: int, dotted: bool, separator: str = SEPARATOR) -
     if not (DOTTED_KEY_RE if dotted else KEY_RE).fullmatch(key):
         raise PersonaError(line, f"bad key '{key}'")
     return key, value
+
+
+def _section_entry(sec: Section, text: str, number: int, keys: dict, separator: str = SEPARATOR) -> tuple[Callable, str]:
+    """A key=value line of a section, checked in the order of sectionLine of RS_Persona.lua: syntax, repeated key,
+    empty value, then unknown key. Returns the reader of the key and the value."""
+    key, value = _key_value(text, number, dotted=False, separator=separator)
+    if key in sec.lines:
+        raise PersonaError(number, f"duplicate key '{key}' in {sec.title} (first set on line {sec.lines[key]})")
+    if value == '':
+        raise PersonaError(number, f"empty value for key '{key}'")
+    sec.lines[key] = number
+    reader = keys.get(key)
+    if reader is None:
+        raise PersonaError(number, f"unknown key '{key}' in {sec.title}")
+    return reader, value
 
 
 def _place_where(sec: Section, key: str, line: int) -> None:
@@ -362,15 +395,7 @@ class PlaceSection:
             raise PersonaError(sec.line, f'too many places ({MAX_PLACES} at most)')
 
     def line(self, sec: Section, text: str, number: int) -> None:
-        key, value = _key_value(text, number, dotted=False, separator=PLACES_SEPARATOR)
-        if key in sec.lines:
-            raise PersonaError(number, f"duplicate key '{key}' in {sec.title} (first set on line {sec.lines[key]})")
-        if value == '':
-            raise PersonaError(number, f"empty value for key '{key}'")
-        sec.lines[key] = number
-        reader = self.KEYS.get(key)
-        if reader is None:
-            raise PersonaError(number, f"unknown key '{key}' in {sec.title}")
+        reader, value = _section_entry(sec, text, number, self.KEYS, PLACES_SEPARATOR)
         reader(sec, value, number)
 
     def close(self, sec: Section, places: dict[str, Place]) -> None:
@@ -409,11 +434,46 @@ class TradeSection(SkippedSection):
                 sec.accepts.append(trim(value))
 
 
+def _help_jobs(sec: Section, value: str, line: int) -> None:
+    jobs: list[str] = []
+    for job in _list(value):
+        if job not in JOBS:
+            raise PersonaError(line, f"unknown job '{job}' (expected {', '.join(JOBS)})")
+        if job in jobs:
+            raise PersonaError(line, f"duplicate job '{job}'")
+        jobs.append(job)
+    sec.values['jobs'] = tuple(jobs)
+
+
+def _help_from(sec: Section, value: str, line: int) -> None:
+    sec.values['from_'] = _choice(value, 'from', HELP_FROM, line)
+
+
+def _help_delay(sec: Section, value: str, line: int) -> None:
+    sec.values['delay'] = _choice(value, 'delay', HELP_DELAYS, line)
+
+
+class HelpSection(SkippedSection):
+    """[help] (E27-T02): read by both readers with the same rules and messages as helpKey / helpClose of
+    RS_Persona.lua: jobs= (required), from=, delay=; its Help is the section's result."""
+    KEYS: dict[str, Callable[[Section, str, int], None]] = {'jobs': _help_jobs, 'from': _help_from,
+                                                           'delay': _help_delay}
+
+    def line(self, sec: Section, text: str, number: int) -> None:
+        reader, value = _section_entry(sec, text, number, self.KEYS)
+        reader(sec, value, number)
+
+    def close(self, sec: Section, places: dict[str, Place]) -> None:
+        if 'jobs' not in sec.lines:
+            raise PersonaError(sec.line, f"missing key 'jobs' in {sec.title}")
+        sec.result = Help(**sec.values)
+
+
 # Sections of a sheet, in the order of the Lua reader's messages; example None = section without id. E25-T01: no
 # [place] in a sheet (shared places file, PLACES_SECTIONS).
 SECTIONS: dict[str, SkippedSection] = {
     'mission': SkippedSection('meds'), 'rewards': SkippedSection(None), 'category': SkippedSection('snacks'),
-    'trade': TradeSection(None), 'note': SkippedSection(None),
+    'trade': TradeSection(None), 'note': SkippedSection(None), 'help': HelpSection(None),
 }
 SECTIONS_EXPECTED = ', '.join(SECTIONS) + ' or prompt'
 PLACES_SECTIONS: dict[str, PlaceSection] = {'place': PlaceSection()}
@@ -482,8 +542,10 @@ class _Head:
 def parse_lines(lines: list[str], expected_id: str | None = None, places: dict[str, Place] | None = None) -> Persona:
     """Validate a sheet given as lines; raise PersonaError on the first error. expected_id = file name stem; places =
     the shared places it may name (E25-T01; None: none)."""
-    head = _Head(places or {})
+    places = places or {}
+    head = _Head(places)
     accepts: list[str] = []
+    results: dict[str, object] = {}   # section name -> result of its last closed section ([help]: Help)
     first_lines: dict[tuple[str, str], int] = {}
     current: Section | None = None
     separator = 0
@@ -496,8 +558,10 @@ def parse_lines(lines: list[str], expected_id: str | None = None, places: dict[s
             continue
         header = HEADER_RE.fullmatch(text)
         if header:
-            if current is not None:
+            if current is not None:   # closed at the next header or [prompt], as closeSection of the Lua reader
+                SECTIONS[current.name].close(current, places)
                 accepts += current.accepts
+                results[current.name] = current.result
             current = None
             if header.group(1) == 'prompt' and not header.group(2):
                 separator = number
@@ -545,7 +609,8 @@ def parse_lines(lines: list[str], expected_id: str | None = None, places: dict[s
     for action, number in head.budget_lines:
         if action not in actions:
             raise PersonaError(number, f"budget.{action} set but action '{action}' is not in actions")
-    return Persona(prompt='\n'.join(body), budgets=head.budgets, trade_accepts=accepts, **fields)
+    return Persona(prompt='\n'.join(body), budgets=head.budgets, trade_accepts=accepts, help=results.get('help'),
+                   **fields)
 
 
 def parse_places_lines(lines: list[str]) -> dict[str, Place]:

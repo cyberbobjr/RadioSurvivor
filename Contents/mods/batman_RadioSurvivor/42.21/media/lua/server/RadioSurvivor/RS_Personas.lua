@@ -70,7 +70,8 @@ Personas.PLACES = "_places.txt"
 -- reconnaissent une fiche non modifiée installée avant le fichier d'empreintes (E05-T02 à E05-T10). Versions des
 -- commits 09d7474 et 24832ea (fréquences fixes ; Walt identique dans les deux), 486b21e (plages, E05-T07), puis
 -- E05-T10, E05-T05, E20-T03, E20-T07, E20-T10, E20-T11 ([note] des fiches), E22-T12 (stock sans poids), E22-T14 (sans
--- knows, ignores ni secret), E23-T06, E24-T01 (radio=<niveau> a la place des plages), E25-T01 (lieux communs). Toute
+-- knows, ignores ni secret), E23-T06, E24-T01 (radio=<niveau> a la place des plages), E25-T01 (lieux communs),
+-- E27-T02 ([help]). Toute
 -- nouvelle version livrée d'une fiche ajoute ici son empreinte (banc tests/radiosurvivor/test_personas_server.py) ; une fiche
 -- livrée après E05-T11 (marchands des villes, E20-T11 ; lieux communs _places.txt, E25-T01) n'a jamais été installée
 -- sans le fichier d'empreintes : aucune entrée.
@@ -82,12 +83,14 @@ Personas.KNOWN_DELIVERED = {
         "1182033778", "674887514", "2957274911", "3572312285",   -- E22-T14 : sans knows, ignores ni secret
         "3580043489",   -- E24-T01 : radio=<niveau>
         "1476664509",   -- E24-T03 : socle commun des notes, sans corpse=
-        "1469846348" },   -- E25-T01 : lieux communs (marks=, cache_place=)
+        "1469846348",   -- E25-T01 : lieux communs (marks=, cache_place=)
+        "536756451" },   -- E27-T02 : aide aux recettes [help]
     cody = { "3131466986", "673421833", "4032160620", "318842949", "1196981398",
         "1976566616", "1464760889", "2238673311",   -- E22-T14 : sans knows, ignores ni secret
         "3427747601",   -- E24-T01 : radio=<niveau>
         "69681901",   -- E24-T03 : socle commun des notes, sans corpse=
-        "2025292335" },   -- E25-T01 : lieux communs (marks=, drops=, cache_place=)
+        "2025292335",   -- E25-T01 : lieux communs (marks=, drops=, cache_place=)
+        "2033170993" },   -- E27-T02 : aide aux recettes [help]
     whitaker = { "4044533006", "3352221633", "2075828338", "1570277033",   -- E22-T14
         "3237976040" },   -- E24-T01 : radio=<niveau>
     nightowl = { "4175146858", "225312038", "1263236001", "326850688",   -- E22-T14

@@ -10,9 +10,12 @@ The pure ES modules run in node (skipped when node is missing):
   sentence kept in the personality text where the AI reads it;
 - the voice-type cards of a new voice (presets.js): the actions they tick and the steps they fold;
 - the paquets of a trader (group=): an id made from the name typed, its items kept with it when renamed.
+- the recipe help of a voice (E27-T02, recipehelp.js): [help] written from the ticked jobs and cards, read back,
+  removed when no job is ticked, the other sections kept.
 """
 from __future__ import annotations
 
+import json
 import sys
 import unittest
 from pathlib import Path
@@ -20,11 +23,14 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'commun'))  # tests/commun (E26)
 import bench_paths  # noqa: E402,F401  (tests/commun and tests/coreai on sys.path)
-from test_atelier_ui import NODE, module_url, node_prelude, run_node  # noqa: E402
+from test_atelier_ui import (NODE, SHIPPED, bridge_reads, game_reads, module_url, node_prelude,  # noqa: E402
+                             run_node)
+import persona_store  # noqa: E402  (bridge/, put on sys.path by test_atelier_ui)
 
 
 def prelude() -> str:
-    return node_prelude() + (f"import * as scales from '{module_url('scales.js')}';\n"
+    return node_prelude() + (f"import * as recipehelp from '{module_url('recipehelp.js')}';\n"
+                             f"import * as scales from '{module_url('scales.js')}';\n"
                              f"import * as story from '{module_url('story.js')}';\n"
                              f"import * as presets from '{module_url('presets.js')}';\n"
                              f"import * as paquets from '{module_url('paquets.js')}';\n")
@@ -167,6 +173,41 @@ console.log(JSON.stringify({ seeds, again, renamed, groups: sheet.values(trade, 
         self.assertEqual(got['list'], [['medicaments', 'Medicaments', ['Base.CarrotSeed', 'Base.TomatoSeed']],
                                        ['graines_2', 'Graines 2', []]])
         self.assertEqual(got['loose'], ['Base.Rice'])
+
+    def test_recipe_help_round_trip_keeps_the_other_sections(self):
+        """E27-T02: the "Recipe help" block writes [help] (jobs ticked, from= and delay= only when not the reader's
+        default), reads it back, removes it when no job is ticked; a trader's other sections stay as they were and the
+        sheet is accepted by the game reader and the bridge reader."""
+        got = run_node(prelude() + f"""
+const text = sheet.normalizeText(fs.readFileSync({json.dumps(str(SHIPPED / 'gus.txt'))}, 'utf8'));
+const grammar = catalog.section('help');
+const model = sheet.parse(text);
+const empty = recipehelp.readHelp(model, grammar);
+recipehelp.writeHelp(model, {{ jobs: ['mechanics', 'cooking'], from: 'good', delay: 'hour' }}, grammar);
+const written = sheet.serialize(model);
+const back = recipehelp.readHelp(sheet.parse(written), grammar);
+recipehelp.writeHelp(model, {{ jobs: ['farming'], from: 'neutral', delay: 'now' }}, grammar);
+const defaults = sheet.serialize(model);
+recipehelp.writeHelp(model, {{ jobs: [], from: 'good', delay: 'day' }}, grammar);
+console.log(JSON.stringify({{ empty, written, back, defaults, removed: sheet.serialize(model) === text,
+  checks: check(sheet.parse(written), catalog, 'gus', places.list(places.parsePlaces(
+    fs.readFileSync({json.dumps(str(SHIPPED / '_places.txt'))}, 'utf8')))) }}));
+""")
+        self.assertEqual(got['empty'], {'jobs': [], 'from': 'neutral', 'delay': 'now'})
+        self.assertEqual(got['back'], {'jobs': ['mechanics', 'cooking'], 'from': 'good', 'delay': 'hour'})
+        self.assertIn('\n[help]\njobs=mechanics,cooking\nfrom=good\ndelay=hour\n\n[prompt]\n', got['written'])
+        self.assertIn('\n[help]\njobs=farming\n\n[prompt]\n', got['defaults'])
+        self.assertTrue(got['removed'], 'no job ticked: the [help] section is gone, the sheet as it was')
+        self.assertEqual(got['checks'], [])
+        original = (SHIPPED / 'gus.txt').read_text(encoding='utf-8')
+        self.assertEqual(got['written'].replace('\n\n[help]\njobs=mechanics,cooking\nfrom=good\ndelay=hour', ''),
+                         original.replace('\r\n', '\n'))
+        status, detail = game_reads(got['written'], 'gus', (SHIPPED / '_places.txt').read_text(encoding='utf-8'))
+        self.assertEqual(status, 'OK', detail)
+        read = bridge_reads(got['written'], 'gus', (SHIPPED / '_places.txt').read_text(encoding='utf-8'))
+        self.assertEqual(read.help, persona_store.Help(('mechanics', 'cooking'), 'good', 'hour'))
+        self.assertEqual(len(read.trade_accepts), len(bridge_reads(original, 'gus', (SHIPPED / '_places.txt')
+                                                                   .read_text(encoding='utf-8')).trade_accepts))
 
 
 if __name__ == '__main__':

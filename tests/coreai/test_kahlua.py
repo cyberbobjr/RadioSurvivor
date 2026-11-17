@@ -133,9 +133,9 @@ LUA_FILES = [
     # LK16-T01 : socle commun des registres (requis par LK_GroupTypes, LK_Decisions, LK_Routines).
     ('LivingKnox/LK_Registry', LK_LUA / 'shared' / 'LivingKnox' / 'LK_Registry.lua'),
     # LK21-T01 : modèle pur des plaies, soins demandés, forme sauvegardée, puis un fichier par type (Wounds/), triés
-    # par nom comme au chargement du jeu.
+    # par nom comme au chargement du jeu. LK21-T04 : virus de Knox (requis par la forme sauvegardée et la source zombie).
     *[(f'LivingKnox/{name}', LK_LUA / 'shared' / 'LivingKnox' / f'{name}.lua')
-      for name in ('LK_Wounds', 'LK_WoundsNeeds', 'LK_WoundsForm', 'LK_WoundsHealth')],
+      for name in ('LK_Wounds', 'LK_WoundsNeeds', 'LK_Virus', 'LK_WoundsForm', 'LK_WoundsHealth')],
     *[(f'LivingKnox/Wounds/{p.stem}', p)
       for p in sorted((LK_LUA / 'shared' / 'LivingKnox' / 'Wounds').glob('*.lua'), key=lambda p: p.name.lower())],
     # LK21-T02 : sources de blessure (registre, contexte du jeu, un fichier par source sous server/LivingKnox/Wounds/),

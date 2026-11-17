@@ -16,6 +16,7 @@ LivingKnox.Wounds.registerKind("laceration", {
     bleed = { { 0.7, 1.0, perTime = true } },
     infect = 25000,
     virusChance = 25,
+    virusRoute = "blood",      -- jamais en transmission « salive seule » (:710-712, LK_Virus)
     bandage = true,
     pain = { perTime = 2.5 },
     blood = 0.25,

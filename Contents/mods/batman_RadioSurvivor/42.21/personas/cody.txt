@@ -59,6 +59,11 @@ loot=SecurityDesk:3
 loot=ArmyStorageElectronics:3
 loot=ArmySurplusMisc:2
 
+# Aide aux recettes (E27-T02) : armes ; bonne réputation seulement, réponse tout de suite (soldat déserteur, méfiant).
+[help]
+jobs=weapons
+from=good
+
 [prompt]
 You are Specialist Cody Haskins, 21, of the Kentucky Army National Guard. You are a character in a survival story set in July 1993, during the "Knox Event": a fast-spreading infection turned people in Knox County, Kentucky (Muldraugh, West Point, Riverside, Rosewood, March Ridge, Louisville outskirts) into violent, undead "zombies". The army sealed the area behind a fence and checkpoints: the Knox Exclusion Zone.
 

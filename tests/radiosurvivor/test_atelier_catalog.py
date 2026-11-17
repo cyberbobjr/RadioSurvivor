@@ -63,6 +63,19 @@ class AtelierCatalogTests(unittest.TestCase):
         self.assertTrue(catalog['rewardKinds']['cache']['place'])
         self.assertFalse(catalog['rewardKinds']['lesson']['place'])
 
+    def test_recipe_help_grammar(self):
+        """E27-T02: what the "Recipe help" block offers: the jobs of RS_RecipeJobs, the reputation levels and the
+        delays of [help], with the reader's defaults for an absent from= or delay=."""
+        catalog = gen.build(gen.load_mod(), gen.previous())
+        help_ = catalog['sections']['help']
+        jobs = gen.strings(gen.require(gen.load_mod(), 'RadioSurvivor/RS_RecipeJobs').ids())
+        self.assertEqual((help_['keys'], help_['required'], help_['hasId']), (['delay', 'from', 'jobs'], ['jobs'], False))
+        self.assertEqual(help_['choices'], {'jobs': jobs, 'from': ['all', 'neutral', 'good'],
+                                            'delay': ['now', 'hour', 'half_day', 'day']})
+        self.assertEqual(len(jobs), 11)
+        self.assertEqual(help_['defaults'], {'from': 'neutral', 'delay': 'now'})
+        self.assertEqual(catalog['sections']['trade']['defaults'], {})
+
     def test_render_is_deterministic(self):
         catalog = gen.build(gen.load_mod(), gen.previous())
         text = gen.render(catalog)

@@ -29,10 +29,7 @@ local byCategory = nil
 local function index()
     if byCategory then return byCategory end
     byCategory = {}
-    local ids = {}
-    for id in pairs(Jobs.JOBS) do ids[#ids + 1] = id end
-    table.sort(ids)
-    for _, id in ipairs(ids) do
+    for _, id in ipairs(Jobs.ids()) do
         for _, category in ipairs(Jobs.JOBS[id]) do
             local key = string.lower(category)
             if byCategory[key] and byCategory[key] ~= id then
@@ -50,6 +47,15 @@ end
 function Jobs.of(category)
     if type(category) ~= 'string' then return Jobs.DEFAULT end
     return index()[string.lower(category)] or Jobs.DEFAULT
+end
+
+-- Job ids, sorted (E27-T02: jobs= of a voice's [help], RS_Persona; the bridge reader keeps the same list,
+-- persona_store.JOBS, checked by tests/radiosurvivor/test_recipe_index.py).
+function Jobs.ids()
+    local ids = {}
+    for id in pairs(Jobs.JOBS) do ids[#ids + 1] = id end
+    table.sort(ids)
+    return ids
 end
 
 -- Forget the reverse table (tests that change JOBS).

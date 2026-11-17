@@ -72,8 +72,10 @@ getSandboxOptions = function()
         return { getValue = function() return v end }
     end }
 end
-MPD = 90
-getGameTime = function() return { getMinutesPerDay = function() return MPD end } end
+MPD, AGE = 90, 30.5
+getGameTime = function()
+    return { getMinutesPerDay = function() return MPD end, getWorldAgeHours = function() return AGE end }
+end
 -- seq(t) : tirages déterministes, rejoués en boucle ; lcg() : suite pseudo-aléatoire reproductible.
 function seq(t) local i = 0 return function() i = i % #t + 1 return t[i] end end
 function lcg(seed) local s = seed return function() s = (s * 1103515245 + 12345) % 2147483648 return s / 2147483648 end end
@@ -259,6 +261,16 @@ class WoundSourceTests(unittest.TestCase):
         self.assertEqual(self.ev('LivingKnox.WoundContext.current().severity'), 2)
         self.run_lua('LivingKnox.WoundContext.rnd = function() return 0.125 end')
         self.assertEqual(self.ev('LivingKnox.WoundContext.current().rnd()'), 0.125)
+
+    def test_context_reads_the_virus_options_clock_and_test_delay(self):
+        # LK21-T04 : options ZombieLore.Transmission et ZombieLore.Mortality (SandboxOptions.java:1908-1909), âge du
+        # monde, délai imposé des essais (Config.INFECTION.DELAY_HOURS).
+        c = self.ev('LivingKnox.WoundContext.current()')
+        self.assertEqual((c.transmission, c.mortality, c.worldHours, c.virusDelay), (None, None, 30.5, None))
+        self.run_lua('OPTIONS["ZombieLore.Transmission"] = 4; OPTIONS["ZombieLore.Mortality"] = 2; AGE = 100; '
+                     'LivingKnox.Config.INFECTION.DELAY_HOURS = 0.25')
+        c = self.ev('LivingKnox.WoundContext.current()')
+        self.assertEqual((c.transmission, c.mortality, c.worldHours, c.virusDelay), (4, 2, 100, 0.25))
 
     def test_add_time_override_is_checked(self):
         self.assertEqual(self.ev(f'(select(2, {W}.add({{}}, "Hand_L", "scratch", {{ rnd = seq({{ 0.5 }}) }}, '

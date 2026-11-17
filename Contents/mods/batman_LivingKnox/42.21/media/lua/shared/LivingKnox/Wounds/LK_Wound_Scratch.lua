@@ -19,6 +19,7 @@ LivingKnox.Wounds.registerKind("scratch", {
     bleedOnAdd = false,
     infect = 20000,
     virusChance = 7,
+    virusRoute = "blood",      -- jamais en transmission « salive seule » (:710-712, LK_Virus)
     bandage = true,
     pain = { perTime = 1.7 },
     blood = 0.25,

@@ -7,7 +7,8 @@ mod's folder is only read), opens the page with the locale fr-FR then en-US, che
 a row per voice, the trade filter, an empty filter cleared, a row opening its voice), creates a voice through the assistant with
 nothing technical typed (E24-T02): its name only (the id made from the first name, a tooltip at most), the voice type
 "mission giver" (its action ticked, "Talk" locked), hours from the cards then custom, the spontaneous call as a named
-step with the frequency put in by its button, the personality language French (the starter text follows), a map mark
+step with the frequency put in by its button, the personality language French (the starter text follows), the recipe
+help (E27-T02: two trades ticked by their words, then the level and the delay as cards, no id on screen), a map mark
 made with "New place…" without leaving the voice (E25-T03: a shared place, its square typed, user decision), a
 deliver mission whose quantity is two steppers and whose dead drop is made the same way (points only), a barricade
 mission after it aimed at the mark's place, with a story state written as a sentence, a scout mission "further away"
@@ -250,6 +251,7 @@ def create_voice(page, t: dict, voice_id: str, name: str) -> None:
     expect(page.locator('.check', has_text=t['action.say']).locator('input')).to_be_disabled()
     page.locator('label.choice-card[data-value="fr"]').click()             # the personality written in French
     expect(page.locator('textarea.prompt')).to_have_value(re.compile('^Tu es '))
+    check_recipe_help(page, t)
 
     next_button.click()                                                    # 4: map marks and missions
     lang = voice_id.removeprefix('smoke')                                  # place names of this run, unique
@@ -293,6 +295,25 @@ def create_voice(page, t: dict, voice_id: str, name: str) -> None:
     expect(page.locator('.toast')).to_contain_text(t['code.voice_created'])
 
 
+def check_recipe_help(page, t: dict) -> None:
+    """E27-T02: the "Recipe help" block of the personality step: the trades as boxes in plain words (no id on screen),
+    the level and the delay as cards once a trade is ticked."""
+    block = page.locator('section.recipe-help')
+    expect(block).to_contain_text(t['recipehelp.title'])
+    expect(block.locator('label.check[data-value="makeshift"]')).to_contain_text(t['recipehelp.jobs.makeshift'])
+    if block.locator('label.choice-card').count():
+        raise AssertionError('the recipe help asks from when and how fast before a trade is ticked')
+    block.locator('label.check[data-value="cooking"] input').check()
+    block.locator('label.check[data-value="medical"] input').check()
+    block.locator('label.choice-card[data-value="good"]').click()
+    block.locator('label.choice-card[data-value="hour"]').click()
+    expect(block.locator('label.choice-card[data-value="hour"] input')).to_be_checked()
+    shown = block.inner_text()
+    for word in ('makeshift', 'half_day', 'jobs', 'neutral'):
+        if re.search(rf'\b{word}\b', shown):
+            raise AssertionError(f'the recipe help shows the id {word!r}')
+
+
 def check_simple_sheet(text: str, lang: str, failures: list[str]) -> None:
     """What the simple controls wrote: steppers, named steps, the frequency mark, the story state and its line, the
     language of the personality (E24-T02)."""
@@ -300,7 +321,8 @@ def check_simple_sheet(text: str, lang: str, failures: list[str]) -> None:
               'Story state: when your story state is le_moulin_est_barricade, Le moulin est barricadé',
               '\nlanguage=fr\n', '\nactions=say,start_mission\n', f'\nmarks=old_mill_{lang}\n',
               f'\ndrops=dumpster_behind_the_mill_{lang}\n', f'\ntarget=old_mill_{lang}\n',
-              '\ntarget=far\nbuilding=church\n', f'\ncache_place=dumpster_behind_the_mill_{lang}\n')
+              '\ntarget=far\nbuilding=church\n', f'\ncache_place=dumpster_behind_the_mill_{lang}\n',
+              '\n[help]\njobs=cooking,medical\nfrom=good\ndelay=hour\n')
     missing = [w for w in wanted if w not in text]
     print(f'{lang}: simple controls written: {"all" if not missing else missing}')
     if missing:

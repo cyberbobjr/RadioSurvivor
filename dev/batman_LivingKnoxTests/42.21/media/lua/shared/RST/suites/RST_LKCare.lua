@@ -1,24 +1,28 @@
 --[[
-lk.care - bleeding and care of Living Knox npcs (LK07-T03, server/LivingKnox/LK_Health.lua section "bleeding",
-server/LivingKnox/LK_Care.lua): a wounded member bleeds (reference health lowered every game minute by the authority);
-the medic of its group walks to a container of the home, faces it, rummages, takes ONE bandage (removed from the
-container and from the clients, removed from the stock reference in the same registry write), walks to the wounded
-member, kneels, then the bleeding stops and the health rises once.
+lk.care - bleeding and care of Living Knox npcs (LK07-T03, LK21-T05: server/LivingKnox/LK_Health.lua section "bleeding",
+server/LivingKnox/LK_Care.lua, the registered treatments server/LivingKnox/Care/LK_Treat_<Id>.lua): a wounded member
+bleeds (reference health lowered every game minute by the authority); the medic of its group treats the most urgent
+need first: it walks to a container of the home, faces it, rummages, takes the material of the treatment (removed from
+the container and from the clients, removed from the stock reference in the same registry write, put in its own
+inventory), walks to the wounded member, kneels for the time of the vanilla action, then the treatment changes the
+wound once.
 Tags "world" and "server": the authority only, on a save named rstest*, with a target player (t.ctx.player) standing
 INSIDE a house that has at least one container near the player (the test group gets its home on the player's square,
 no furnishing: LivingKnox.Homes.skip). Solo: RST.run({ suite = "lk.care", tags = "world" }). Asynchronous run only
-(about 1 to 3 minutes). Multiplayer: final session.
+(about 1 to 4 minutes). Multiplayer: campaign "mp".
 
 What is done:
     - a test group "settlers" (a fighter, a worker, the doctor) is created with its home on the player's square; the
       clock is moved to 6:59 first when it is night or late evening (by day, no sleep);
-    - fixture: two bandages (Base.Bandage) are put in the first container of the home (sorted key), marked explored;
-      the stock reference is read (LivingKnox.Stock.check);
-    - the members get bodies near the player; member m-1 gets a wound of 30 % of its full health (Health.applyHit, the
-      path of the hits; LK21-T02: blunt wound source, fixed draw 0.2 = a laceration of the chest, which bleeds): its
-      reference health drops over a few game minutes;
-    - the doctor treats it: one bandage less in the home containers, its id gone from the reference, bleeding 0,
-      health raised, journal entry "care"; a stock check finds no missing item (no loss, no theft).
+    - fixture: one suture needle (Base.SutureNeedle) and two bandages (Base.Bandage) are put in the first container of
+      the home (sorted key), marked explored; the stock reference is read (LivingKnox.Stock.check);
+    - the members get bodies near the player; member m-1 gets a hit of 20 % of its full health (Health.applyHit, the
+      path of the hits; blade wound source, fixed draw 0.1 = a deep wound of the chest, which bleeds): its reference
+      health drops over a few game minutes;
+    - the doctor stitches the deep wound first (the suture needle leaves the home containers and is used up: in no
+      container, not in the doctor's inventory), then bandages it (one bandage less in the home containers, its id gone
+      from the reference, bleeding 0, the wound carries a Base.Bandage); two journal entries "care"; a stock check
+      finds no missing item (no loss, no theft).
 Every phase prints "[LKC] measure ..." lines; the user checks the gestures (rummage, kneel) on screen. Cleanup
 (t:defer): fixture items still in place removed, stock reference erased, bodies removed, test group removed. The clock
 is not set back.
@@ -34,7 +38,7 @@ local measure = K.measurer("[LKC]")
 
 local BODIES_MS = 60000     -- materialization of the three members
 local BLEED_MS = 60000      -- the wounded member loses health by bleeding
-local CARE_MS = 240000      -- the doctor fetches a bandage and treats the wounded member
+local CARE_MS = 240000      -- the doctor fetches the material and gives one treatment
 
 local function LK() return LivingKnox end
 local function S() return LivingKnox.Stock end
@@ -70,20 +74,34 @@ local function homeContainers(gid, home)
     return S().containers(gid, home, style, def ~= nil and def:getIDString() or nil)
 end
 
--- Bandages (items vanilla accepts for bandaging) in the home containers: set of ids and count.
-local function careIds(gid, home)
+-- Items of type t in the home containers: set of ids and count.
+local function idsOf(gid, home, t)
     local out, n = {}, 0
     for _, ct in ipairs(homeContainers(gid, home) or {}) do
         local items = ct.container:getItems()
         for j = 0, items:size() - 1 do
             local it = items:get(j)
-            if LK().Care.isCareItem(it) then
-                out[it:getID()] = it:getFullType()
+            if it:getFullType() == t then
+                out[it:getID()] = true
                 n = n + 1
             end
         end
     end
     return out, n
+end
+
+-- Id of an item of before missing from after, or nil.
+local function goneId(before, after)
+    for id in pairs(before) do
+        if after[id] == nil then return id end
+    end
+    return nil
+end
+
+-- First wound of the npc (live list of the model), or nil.
+local function firstWound(npc)
+    local list = LK().Health.wounds(npc)
+    return list ~= nil and list[1] or nil
 end
 
 local function careLog(gid)
@@ -96,11 +114,12 @@ local function careLog(gid)
 end
 
 RST.suite("lk.care", { tags = { "world", "server" }, testTimeoutMs = 600000, timeoutMs = 900000 }, function(s)
-    s.test("doctor treats a bleeding member with one real bandage", function(t)
+    s.test("doctor stitches then bandages a deep wound with real material", function(t)
         if type(isClient) == "function" and isClient() then t:skip("authority only (not on an MP client)") end
         local E = LK()
-        t:ok(E ~= nil and E.Care ~= nil and E.Care.apply ~= nil and E.Health ~= nil and E.Health.bleedPass ~= nil
-            and E.Stock ~= nil and E.Homes ~= nil, "LivingKnox care (Care, Health, Stock, Homes) is not loaded")
+        t:ok(E ~= nil and E.Care ~= nil and E.Care.apply ~= nil and E.Care.treatmentById.stitch ~= nil
+            and E.Care.treatmentById.bandage ~= nil and E.Health ~= nil and E.Health.bleedPass ~= nil
+            and E.Stock ~= nil and E.Homes ~= nil, "LivingKnox care (Care, treatments, Health, Stock, Homes) not loaded")
         t:ok(E.Groups.ensure(), "group registry not ready")
         local p = RST.Fixtures.player(t)
         t:ok(p ~= nil, "no target player (t.ctx.player)")
@@ -135,18 +154,19 @@ RST.suite("lk.care", { tags = { "world", "server" }, testTimeoutMs = 600000, tim
         if cts == nil or #cts == 0 then t:skip("no container in the house around the player") end
         fixtureBox = cts[1].container
         if not fixtureBox:isExplored() then fixtureBox:setExplored(true) end
-        for _ = 1, 2 do
-            local it = instanceItem("Base.Bandage")
-            t:ok(it ~= nil, "item Base.Bandage not created")
+        for _, ft in ipairs({ "Base.SutureNeedle", "Base.Bandage", "Base.Bandage" }) do
+            local it = instanceItem(ft)
+            t:ok(it ~= nil, "item " .. ft .. " not created")
             fixtureBox:AddItem(it)
             if isServer() then sendAddItemToContainer(fixtureBox, it) end
             fixture[#fixture + 1] = it
         end
         local r, why = S().check(gid, { force = true })
         t:ok(type(r) == "table", "stock not checked: " .. tostring(why))
-        local _, nStock = careIds(gid, home)
-        measure(string.format("stock of %s: %d bandage(s), %d medical item(s), container %s", gid, nStock,
-            r.totals.medical, cts[1].key))
+        local _, nStock = idsOf(gid, home, "Base.Bandage")
+        local _, nNeedle = idsOf(gid, home, "Base.SutureNeedle")
+        measure(string.format("stock of %s: %d bandage(s), %d suture needle(s), %d medical item(s), container %s", gid,
+            nStock, nNeedle, r.totals.medical, cts[1].key))
 
         for _, spec in ipairs({ { "fighter", "guard" }, { "worker", "farmer" }, { "medic", "doctor" } }) do
             assert(G.addMember(gid, { role = spec[1], profile = spec[2], female = false, day = G.today() }))
@@ -168,50 +188,55 @@ RST.suite("lk.care", { tags = { "world", "server" }, testTimeoutMs = 600000, tim
             local full = E.Health.get(npc).max
             local WC = E.WoundContext
             local rnd = WC.rnd
-            WC.rnd = function() return 0.2 end
-            local hp = E.Health.applyHit(npc, z, full * 0.3, "Torso_Upper", nil, nil, { source = "blunt" })
+            WC.rnd = function() return 0.1 end
+            local hp = E.Health.applyHit(npc, z, full * 0.2, "Torso_Upper", nil, nil, { source = "blade" })
             WC.rnd = rnd
             local bleed = E.Health.bleeding(npc)
-            measure(string.format("wounded: m-1 %s health %.3f of %.3f, bleeding %.4f per hour, doctor %s", npc,
-                hp or -1, full, bleed, tostring(npcs["m-3"])))
-            t2:ok(bleed > 0, "the wound does not bleed")
+            local w = firstWound(npc)
+            measure(string.format("wounded: m-1 %s health %.3f of %.3f, bleeding %.4f per hour, wound %s on %s, doctor %s",
+                npc, hp or -1, full, bleed, w and w.kind or "none", w and w.part or "-", tostring(npcs["m-3"])))
+            t2:ok(bleed > 0 and w ~= nil and w.kind == "deep", "no bleeding deep wound")
             t2:waitUntil(function()
                 local h = E.Health.get(npc)
                 return h ~= nil and h.hp < hp - 0.0005
             end, BLEED_MS, function(t3)
                 measure(string.format("bleeding: health %.3f (was %.3f)", E.Health.get(npc).hp, hp))
-                local before, nBefore = careIds(gid, home)
+                local needles = idsOf(gid, home, "Base.SutureNeedle")
+                local bandages, nBefore = idsOf(gid, home, "Base.Bandage")
+                local medic = E.Bodies.find(npcs["m-3"])
                 local treated = E.Care.stats.treated
-                local low = E.Health.get(npc).hp
-                t3:waitUntil(function()
-                    local h = E.Health.get(npc)
-                    if h ~= nil and h.hp < low then low = h.hp end
-                    return E.Care.stats.treated > treated
-                end, CARE_MS, function(t4)
-                    local h = E.Health.get(npc)
-                    local after, nAfter = careIds(gid, home)
-                    local log = careLog(gid)
-                    measure(string.format("treated: health %.3f -> %.3f, bleeding %.4f, bandages %d -> %d, journal %s",
-                        low, h.hp, h.bleed, nBefore, nAfter, tostring(log[#log])))
-                    t4:eq(0, h.bleed, "bleeding after the care")
-                    t4:ok(h.hp > low, "health not raised by the care")
-                    t4:eq(nBefore - 1, nAfter, "bandages after the care (exactly one used, none created)")
-                    local gone
-                    for id in pairs(before) do
-                        if after[id] == nil then gone = id end
-                    end
-                    t4:ok(gone ~= nil, "no bandage left the home containers")
-                    for _, e in ipairs(S().reference(gid).items) do
-                        t4:ok(e.i ~= gone, "used bandage still in the stock reference")
-                    end
-                    t4:ok(S().holderOf(gone) == nil, "a player holds the used bandage")
-                    t4:ok(#log == 1, "one care entry in the group journal")
-                    local c = S().check(gid, { force = true })
-                    t4:ok(type(c) == "table", "stock not checked after the care")
-                    t4:eq(0, c.missing, "missing items at the check after the care")
-                    t4:eq(0, c.lost, "items counted as lost")
-                    t4:eq(0, #c.thefts, "thefts counted")
-                end, "the wounded member was not treated")
+                t3:waitUntil(function() return E.Care.stats.treated >= treated + 1 end, CARE_MS, function(t4)
+                    local sw = firstWound(npc)
+                    local gone = goneId(needles, (idsOf(gid, home, "Base.SutureNeedle")))
+                    measure(string.format("stitched: stitch %s, bleeding %.4f, needle %s, journal %s",
+                        tostring(sw and sw.stitch), E.Health.bleeding(npc), tostring(gone), tostring(careLog(gid)[1])))
+                    t4:ok(sw ~= nil and sw.stitch ~= nil, "the deep wound is not stitched")
+                    t4:eq(0, E.Health.bleeding(npc), "bleeding after the stitches")
+                    t4:ok(gone ~= nil, "no suture needle left the home containers")
+                    t4:ok(medic == nil or not medic:getInventory():containsID(gone), "suture needle not used up")
+                    t4:waitUntil(function() return E.Care.stats.treated >= treated + 2 end, CARE_MS, function(t5)
+                        local bw = firstWound(npc)
+                        local b = bw ~= nil and bw.bandage or nil
+                        local after, nAfter = idsOf(gid, home, "Base.Bandage")
+                        local log = careLog(gid)
+                        local used = goneId(bandages, after)
+                        measure(string.format("bandaged: bandage %s life %s, bandages %d -> %d, journal %s",
+                            tostring(b and b.item), tostring(b and b.life), nBefore, nAfter, tostring(log[#log])))
+                        t5:ok(b ~= nil and b.item == "Base.Bandage", "wound not bandaged with the bandage")
+                        t5:eq(nBefore - 1, nAfter, "bandages after the care (exactly one used, none created)")
+                        t5:ok(used ~= nil, "no bandage left the home containers")
+                        for _, e in ipairs(S().reference(gid).items) do
+                            t5:ok(e.i ~= used and e.i ~= gone, "used item still in the stock reference")
+                        end
+                        t5:ok(S().holderOf(used) == nil, "a player holds the used bandage")
+                        t5:ok(#log == 2, "two care entries in the group journal")
+                        local c = S().check(gid, { force = true })
+                        t5:ok(type(c) == "table", "stock not checked after the care")
+                        t5:eq(0, c.missing, "missing items at the check after the care")
+                        t5:eq(0, c.lost, "items counted as lost")
+                        t5:eq(0, #c.thefts, "thefts counted")
+                    end, "the stitched wound was not bandaged")
+                end, "the wounded member was not stitched")
             end, "no health lost by bleeding")
         end, "group members not materialized and standing")
     end)

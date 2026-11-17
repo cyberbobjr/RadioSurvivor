@@ -185,6 +185,13 @@ Config.BLEEDING = Config.BLEEDING or {
     BANDAGE_LIFE = { 0.5, 1.0 },   -- vie tirée d'un bandage posé, plus BandagePower (ISApplyBandage.lua:112, soin 0)
 }
 
+-- Virus de Knox (LK21-T04 ; règles LK_Virus.lua, adaptateur server/LivingKnox/LK_Infection.lua).
+Config.INFECTION = Config.INFECTION or {
+    DELAY_HOURS = nil,        -- essais seulement : délai imposé avant la mort (heures) ; nil : table du vanilla
+    CORPSE_EVERY = 10,        -- images entre deux recherches du cadavre d'un PNJ qui doit se relever
+    CORPSE_WAIT_MS = 30000,   -- cadavre attendu au plus (création du cadavre par le moteur), puis abandon signalé
+}
+
 -- LK06-T14 : option de portée d'engagement des zombies de chaque rôle (Config.GROUP_ROLES) ; un rôle inconnu (autre
 -- mod, rôle absent) prend celle de fighter (Config.zombieEngageOption).
 Config.ZOMBIE_ENGAGE = { deputy = "ZombieEngageDeputy", fighter = "ZombieEngageFighter", scout = "ZombieEngageScout",

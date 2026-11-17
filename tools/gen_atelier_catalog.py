@@ -14,7 +14,8 @@ declaration table:
 - paramKinds: RS_PersonaParams.kinds(); rewardKinds and skills: RS_Rewards.KINDS and SKILLS (rules);
 - categories: personas/_categories.txt read by RS_Persona.parseCatalogue (rules.categories);
 - header and sections: RS_Persona.grammar(rules) (trade arrival modes: RS_TradeArrivals.NAMES, building kinds of a
-  drawn objective: CA_Sites.KINDS); places (E25-T01): the grammar of the shared places file personas/_places.txt (one
+  drawn objective: CA_Sites.KINDS; jobs of [help]: RS_RecipeJobs.ids(), E27-T02; defaults: value of an absent key);
+  places (E25-T01): the grammar of the shared places file personas/_places.txt (one
   of at= or area=, zone side and label limits), distances: the drawn objectives of target= (near, far, very_far),
   sheet.maxPlaces and sheet.maxMarks; rewardKinds[*].place: the kind needs the voice's cache_place=;
 - radioLevels (E24-T01): RS_RadioLevels.LIST, weakest first, {id, minKhz, maxKhz, zones: [[low, high]...]} kHz, and
@@ -157,7 +158,7 @@ def categories(rules) -> dict:
 
 def section_grammar(s) -> dict:
     return {'rank': int(s.rank), 'hasId': bool(s.hasId), 'keys': strings(s['keys']), 'required': strings(s.required),
-            'repeatable': strings(s.repeatable), 'choices': choices(s.choices)}
+            'repeatable': strings(s.repeatable), 'choices': choices(s.choices), 'defaults': string_map(s.defaults)}
 
 
 def grammar(lua: LuaPersona) -> dict:

@@ -512,8 +512,10 @@ function Simulation.resolveExpedition(g, gid, hour, s, erand, day)
         else
             survivors = survivors + 1
             if r < risk then
-                Simulation.hit(g.members[mid], s.source, s.hitMin, s.hitMax, erand)
+                local added = Simulation.hit(g.members[mid], s.source, s.hitMin, s.hitMax, erand)
                 result.wounded[#result.wounded + 1] = mid
+                -- LK21-T04 : membre contaminé par le virus de Knox (source « zombie »), noté au journal.
+                if LivingKnox.Virus.carried(added) then G.appendLog(g, "infected", mid, day) end
             end
         end
     end
@@ -618,11 +620,13 @@ end
 
 -- 4. Blessures (LK21-T03) : pour chaque membre au foyer hors écran (un membre incarné garde la santé de son corps,
 -- LK09-T03), blessure au hasard (Simulation.hit, entrée « wounded » au journal), bandages si la réserve de soins n'est
--- pas vide, heure d'évolution (MemberHealth.pass ; faim : STARVING_LOSS sans régénération). Soins consommés : bandages
--- réellement posés x MEDICAL_PER_BANDAGE. Rend les membres morts (appliqués après tous les tirages de l'heure).
-local function woundsHour(g, home, task, day, rnd)
+-- pas vide, heure d'évolution (MemberHealth.pass ; faim : STARVING_LOSS sans régénération ; virus de Knox à échéance à
+-- la fin de l'heure simulée hour, LK21-T04). Soins consommés : bandages réellement posés x MEDICAL_PER_BANDAGE. Rend les
+-- membres morts (appliqués après tous les tirages de l'heure).
+local function woundsHour(g, home, task, day, rnd, hour)
     local c, Mh = cfg(), LivingKnox.MemberHealth
     local ctx = Mh.context(rnd)
+    ctx.worldHours = hour   -- LK21-T04 : fin de l'heure simulée (âge du monde), échéance du virus de Knox
     local chance = c.WOUND_CHANCE
     if task == "scavenge" then chance = c.WOUND_CHANCE_SCAVENGE end
     local starving = nil
@@ -636,7 +640,13 @@ local function woundsHour(g, home, task, day, rnd)
                 LivingKnox.Groups.appendLog(g, "wounded", mid, day)
             end
             if g.needs.medical > 0 then bandages = bandages + Mh.care(m, ctx) end
-            if not Mh.pass(m, 60, ctx, starving) then deaths[#deaths + 1] = mid end
+            local alive, cause = Mh.pass(m, 60, ctx, starving)
+            if not alive then
+                deaths[#deaths + 1] = mid
+                if cause == "infection" then
+                    LivingKnox.Log.info("group %s member %s died of the Knox virus offscreen", tostring(g.id), mid)
+                end
+            end
         end
     end
     if bandages > 0 then
@@ -713,7 +723,7 @@ function Simulation.simulateHour(g, gid, hour, base, exp)
     local task
     task, home = pickTask(g, gid, hour, day, living, home, night, exp, erand)
     consume(g, task, #home, rnd)
-    local deaths = woundsHour(g, home, task, day, rnd)
+    local deaths = woundsHour(g, home, task, day, rnd, hour)
     restHour(g, task, night)
     g.morale = clampLevel(buryHour(g, gid, hour, day, deaths, moraleHour(g, rnd)))
     return task

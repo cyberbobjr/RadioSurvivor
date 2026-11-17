@@ -150,9 +150,10 @@ end
 
 -- Applique un état nouveau (fresh) ou en cours : geste retiré (sauf comportement qui garde le sien), vigilance
 -- (perception de l'autorité et consigne courante, champ vg, MP), sorties de la routine et des autres extensions, puis
--- l'extension qui mène le comportement (LK16-T06) ; sans elle, ou après le soin et la routine pour une extension
--- overlay : soin (LK07-T03, comportement calme au foyer), routine (LK05-T03 : guet au poste, ronde, sommeil, corvées,
--- repas, au foyer), puis repli du moteur : retour au foyer s'il est loin, sinon fin de sa propre marche.
+-- l'extension qui mène le comportement (LK16-T06) ; sans elle, ou après le recouvrement et la routine pour une extension
+-- overlay : extensions de recouvrement (champ cover, LK21-T05 : le soin de LK_Care), routine (LK05-T03 : guet au poste,
+-- ronde, sommeil, corvées, repas, au foyer), puis repli du moteur : retour au foyer s'il est loin, sinon fin de sa
+-- propre marche.
 function Decisions.apply(id, st, ctx, fresh)
     local D = LivingKnox.Directives
     local S = LivingKnox.Senses
@@ -174,8 +175,9 @@ function Decisions.apply(id, st, ctx, fresh)
         return
     end
     if lead == nil and def.owned then return end
-    local Ca = LivingKnox.Care   -- LK07-T03 : soin (médecin ou blessé seul) mené pendant un comportement calme au foyer
-    if Ca ~= nil and Ca.apply ~= nil and Ca.apply(id, st, ctx, fresh) then return end
+    for _, x in ipairs(Decisions.extensions) do
+        if x.cover ~= nil and x.cover(id, st, ctx, fresh) then return end
+    end
     if routine then
         R.apply(id, st, ctx, fresh)
         return

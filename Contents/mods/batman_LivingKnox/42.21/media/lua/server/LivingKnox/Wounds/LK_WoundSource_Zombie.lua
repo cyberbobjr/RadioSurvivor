@@ -10,9 +10,13 @@
 --     au-delà de 70 sur 100 (attaque de face), partie retirée de Hand_L à Torso_Lower (:1191-1204) ;
 --   - partie, zombie rampant (:1208-1209) : 1 fois sur 10 de Groin à Foot_R, sinon de UpperLeg_L à Foot_R. Le vanilla
 --     rate une fois sur 2 (:1210-1211) : le coup est déjà décidé par LK_Zombies, ce tirage n'est pas refait.
+-- Virus de Knox (LK21-T04) : chaque plaie du coup peut le transmettre selon son type et les options du jeu
+-- (LivingKnox.Virus.fromWounds, shared/LivingKnox/LK_Virus.lua ; SetBitten :616-623, generateZombieInfection
+-- J/characters/BodyDamage/BodyPart.java:705-717).
 -- Écarts : côté (dos, flanc), nombre d'attaquants pour le cou et défense des vêtements non repris (un PNJ n'a pas
 -- de BodyDamage ni de défense de vêtements par partie).
 require "LivingKnox/LK_WoundSources"
+require "LivingKnox/LK_Virus"
 
 local Wounds = LivingKnox.Wounds
 
@@ -57,5 +61,8 @@ Wounds.registerSource("zombie", {
         local crawling = isZombie(hit.attacker) and hit.attacker:isCrawling()
         local part = crawling and crawlingPart(ctx) or standingPart(ctx)
         return { { part = part, kind = kind } }
+    end,
+    after = function(list, added, _, ctx)
+        LivingKnox.Virus.fromWounds(list, added, ctx)
     end,
 })

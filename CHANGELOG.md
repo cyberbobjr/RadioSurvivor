@@ -80,6 +80,8 @@
 - Survivors get wounds like a player: a zombie scratches, lacerates or bites a precise body part, a knife cuts, a bat bruises, a bullet lodges, fire burns, and broken glass cuts a hand or forearm. Each wound bleeds and heals at the game's own pace, and a survivor's health follows its wounds (it also slowly comes back on its own, like a player's).
 - Survivors living away from you keep the same real wounds: a member bitten on a trip comes back with the bite, bleeds if the group has no medical supplies, gets bandaged if it has some, and a survivor who meets you shows the wounds it got while you were away.
 - Survivors clear the broken glass out of a smashed window before climbing through it; one who is fleeing or fighting climbs straight through and can be cut by the glass, like a player.
+- Survivors bitten (or sometimes scratched) by zombies catch the Knox infection according to your sandbox settings: they die after the usual delay and rise as ordinary zombies, and their group mourns them and notes the infection in its journal. Infected wounds follow the game's rules.
+- A group's medic treats wounds like a player, most urgent first: cleans with alcohol, bandages, changes dirty bandages, stitches, splints and pulls out glass or bullets, using real items from their own pockets, the patient's or the home stock.
 
 ### Fixes
 

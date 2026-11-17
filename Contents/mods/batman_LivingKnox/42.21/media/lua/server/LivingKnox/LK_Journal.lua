@@ -48,7 +48,7 @@ Journal.UNKNOWN_ROLE = "member"
 Journal.KINDS = {
     founded = {}, settled = {}, moved = {},
     leader = { "role" }, leaderless = {},
-    died = { "role" }, killed = { "role" },
+    died = { "role" }, killed = { "role" }, infected = { "role" },
     left = { "role" }, deserted = { "role" }, recruit = { "role" },
     expedition = { "count", "place" }, trip = { "count" }, returned = { "count" }, noneBack = {},
     encounter = { "count" },
@@ -229,6 +229,12 @@ TECH.died = function(g, mid, day)
     Journal.state.killed[slot] = nil
     Journal.add(g, killed and "killed" or "died", { m and m.role or Journal.UNKNOWN_ROLE }, day,
         { member = mid, npc = m and m.npc or nil })
+end
+
+-- Membre infecté par le virus de Knox (LK21-T04, LK_Infection : morsure ou griffure d'un zombie qui le transmet).
+TECH.infected = function(g, mid, day)
+    local m = memberOf(g, mid)
+    Journal.add(g, "infected", { m and m.role or Journal.UNKNOWN_ROLE }, day, { member = mid, npc = m and m.npc or nil })
 end
 
 -- Départ : rôle complété par le fait memberLeft qui suit (le membre est déjà retiré) ; un départ hors écran

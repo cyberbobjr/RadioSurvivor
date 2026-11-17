@@ -29,9 +29,14 @@
 --     bandage, infection) et la santé baisse de hpLoss x hpMax ; les plaies guéries sont retirées. À 0 : mort par le
 --     chemin de Health.kill, cause « bleeding » (sans arme ni attaquant).
 --   - Saignement lu : Health.bleeding = Wounds.bleeding (fraction de hpMax perdue par heure de jeu).
---   - Soins : Health.stopBleeding (adaptateur provisoire de LK_Care jusqu'à LK21-T05 : bande les plaies qui
---     saignent) ; les soins de LK21-T05 changeront les plaies par Health.wounds puis Health.woundsChanged.
---   - PNJ virtuel (corps retiré) : plaies suspendues, reprises à la prochaine incarnation. Mort : plaies effacées.
+--   - Soins : les soins inscrits (LK_CareTreatments.lua, LK21-T05) changent les plaies par Health.wounds puis
+--     Health.woundsChanged. Health.stopBleeding (bande d'un coup les plaies qui saignent) reste un point d'accès
+--     des suites en jeu (lk.defense : blessé stabilisé).
+--   - PNJ virtuel (corps retiré) : plaies suspendues, reprises à la prochaine incarnation. Mort : plaies effacées à la
+--     mort du corps (Health.onBodyDied), après les abonnés de "bodyDying" qui les lisent.
+--   - Virus de Knox (LK21-T04) : porté par la liste de plaies (list.virus, LK_Virus.lua, transmis par la source
+--     « zombie ») et sauvegardé avec elle ; échéance, mort (cause « infection », par Health.kill) et relevé du cadavre :
+--     server/LivingKnox/LK_Infection.lua.
 --   - Membre de groupe (LK21-T03, LK_Materialize) : ses plaies passent telles quelles au corps à la naissance
 --     (Health.setBirth) et lui reviennent au retrait (Health.handOver) ; la simulation hors écran les fait évoluer
 --     par la même formule (Wounds.healthStep, shared/LivingKnox/LK_WoundsHealth.lua).
@@ -259,10 +264,10 @@ local function woundsOf(npc)
     return list
 end
 
--- Forme sauvegardée des plaies list du PNJ npc (absente sans plaie) et cache à jour.
+-- Forme sauvegardée des plaies list du PNJ npc (absente sans plaie ni infection, LK21-T04) et cache à jour.
 local function saveWounds(npc, list)
     local text = nil
-    if #list > 0 then text = Wounds.pack(list) end
+    if #list > 0 or list.virus ~= nil then text = Wounds.pack(list) end
     npc.wounds = text
     Health.woundCache[npc.id] = { text = text, list = list }
 end
@@ -335,20 +340,23 @@ function Health.bleeding(id)
 end
 
 -- État de santé du PNJ id (copie) : { hp, max, dead, wounds = { { p = partie, kind, bleed (fraction par heure),
--- bandaged, infected, foreign }, ... }, bleed (0 : aucun saignement) }, ou nil.
+-- bandaged, infected, foreign }, ... }, bleed (0 : aucun saignement), virus (vrai : porteur du virus de Knox, qu'il
+-- connaît, LK21-T04) }, ou nil.
 function Health.get(id)
     local npc = npcOf(id)
     if npc == nil or not LivingKnox.Identity.validHealth(npc.hp) then return nil end
     local wounds, ctx = {}, wctx()
-    for i, w in ipairs(woundsOf(npc)) do
+    local list = woundsOf(npc)
+    for i, w in ipairs(list) do
         wounds[i] = { p = w.part, kind = w.kind, bleed = Wounds.woundBleeding(w, ctx), bandaged = w.bandage ~= nil,
             infected = w.infected == true, foreign = w.foreign == true }
     end
     return { hp = npc.hp, max = npc.hpMax, dead = npc.state == LivingKnox.Identity.STATE_DEAD, wounds = wounds,
-        bleed = Health.bleeding(id) }
+        bleed = Health.bleeding(id), virus = list.virus ~= nil }
 end
 
--- Plaies du coup hit (Wounds.fromHit) sur le PNJ npc, coup non mortel. Rend les plaies ajoutées.
+-- Plaies du coup hit (Wounds.fromHit) sur le PNJ npc, coup non mortel. Fait « npcWounded » publié (LK21-T04 :
+-- { npc, wounds = plaies ajoutées, source = id de la source }, écouté par LK_Infection). Rend les plaies ajoutées.
 local function woundFrom(id, npc, hit)
     local list = woundsOf(npc)
     local added, source = Wounds.fromHit(list, hit, wctx())
@@ -360,6 +368,7 @@ local function woundFrom(id, npc, hit)
         LivingKnox.Log.info("npc %s wounded (%s): %s on %s%s", id, tostring(source), w.kind, w.part,
             w.bleed > 0 and ", bleeding" or "")
     end
+    LivingKnox.publish("npcWounded", { npc = id, wounds = added, source = source })
     return added
 end
 
@@ -672,7 +681,8 @@ function Health.kill(id, z, wielder, weapon, cause)
     Health.decided[id] = true
     Health.causes[id] = cause
     npc.hp = 0
-    clearWounds(npc)
+    -- Plaies (et infection, LK21-T04) gardées jusqu'à la mort du corps : lues par les abonnés de "bodyDying" avant
+    -- Health.onBodyDied, qui les efface.
     touch(id)
     Health.stats.deaths = Health.stats.deaths + 1
     if isServer() then Health.flush(id, z) end   -- santé nulle aux destinataires avant le paquet de mort

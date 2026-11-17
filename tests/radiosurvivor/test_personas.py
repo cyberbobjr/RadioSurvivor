@@ -214,6 +214,16 @@ class PersonaFormatTests(unittest.TestCase):
                          ('en', 'any_talkie', [], 'none', None, ['say'], 0, {}, 0, '', 'active', []))
         self.assertIsNone(p.frequency)
 
+    def test_help_section_content(self):
+        # E27-T02 : métiers dans l'ordre de la fiche, palier et délai, défauts neutral et now ; sans section : rien.
+        p = store.load_file(self.write_case(HEAD + '[help]\njobs=medical, cooking\ndelay=day\n' + PROMPT))
+        self.assertEqual(p.help, store.Help(jobs=('medical', 'cooking'), from_='neutral', delay='day'))
+        sheet = self.lua.read('case.txt')
+        self.assertEqual((lua_items(sheet.help.jobs), sheet.help['from'], sheet.help.delay),
+                         (['medical', 'cooking'], 'neutral', 'day'))
+        self.assertIsNone(store.load_file(self.write_case(HEAD + PROMPT)).help)
+        self.assertIsNone(self.lua.read('case.txt').help)
+
     def test_server_derives_the_radio_of_a_fixed_frequency(self):
         # E24-T01 : radio nécessaire d'une fréquence fixe = niveau le plus faible qui la capte (RS_RadioLevels.levelOf).
         for mhz, level in (('145.0', 'any_talkie'), ('150.2', 'good_talkie'), ('25.0', 'pro_talkie'),

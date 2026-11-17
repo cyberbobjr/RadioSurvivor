@@ -1,11 +1,13 @@
 // Step 3, personality: what the voice can do (action cards, "Talk" always on), the voices she may pass on, the language
 // her personality is written in (language=, E24-T02 user decision: English by default, French allowed, the AI that
 // plays her reads both; the text is kept as written) and the personality text itself ([prompt], the only place of her
-// character and past), which the bridge's AI can write from a few sentences (E22-T06, ai.js).
+// character and past), which the bridge's AI can write from a few sentences (E22-T06, ai.js). E27-T02: the recipe help
+// block ([help], recipehelpform.js) after the actions: the jobs she knows, from which reputation and when she answers.
 
 import { personalityPanel } from '../ai.js';
 import { h } from '../dom.js';
 import { hint } from '../help.js';
+import { recipeHelpBlock } from '../recipehelpform.js';
 import * as sheet from '../sheet.js';
 import * as story from '../story.js';
 import { formatList, parseList } from '../values.js';
@@ -39,7 +41,7 @@ function languageCards({ model, t, changed, rerender }, id) {
 export default {
   id: 'personality',
   fields: ['actions', 'shares', 'budget', 'language'],
-  blocks: ['prompt'],
+  blocks: ['prompt', 'help'],
   render(ctx) {
     const { model, catalog, t, voiceId, voices, ai, changed, rerender } = ctx;
     const head = model.head;
@@ -69,6 +71,7 @@ export default {
       }, { class: 'checks cols action-cards' }), t('personality.actions_help'),
       hint(t, 'help.head.actions', { label: t('personality.actions') })),
       extras,
+      recipeHelpBlock(ctx),
       row(t('personality.language'), (id) => languageCards(ctx, id), t('personality.language_help'),
         hint(t, 'help.head.language', { label: t('personality.language') })),
       row(t('personality.prompt'), (id) => h('div', { class: 'stack' },

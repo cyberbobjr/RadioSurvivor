@@ -236,6 +236,8 @@ REMOVED |= {'IGUI_RS_FreqDebug_Col_ranges', 'IGUI_RS_FreqDebug_Radio_any', 'IGUI
 RENAMED.update({'IGUI_LK_Admin_Wound': 'IGUI_LK_Admin_Health', 'IGUI_LK_Debug_Wound': 'IGUI_LK_Debug_Wounds',
                 'IGUI_LK_Sheet_Field_wound': 'IGUI_LK_Sheet_Field_offhealth'})
 ADDED |= {'IGUI_LK_Sheet_OffscreenCell'}
+# LK21-T04: story journal entry of a member infected by the Knox virus.
+ADDED |= {'IGUI_LK_Journal_infected'}
 
 
 class TranslationSplitTests(unittest.TestCase):

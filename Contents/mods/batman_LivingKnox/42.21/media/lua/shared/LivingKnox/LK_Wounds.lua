@@ -24,6 +24,9 @@
 --   foreign  : corps étranger dans la plaie (balle, éclat) ; infected : plaie infectée ; level : niveau d'infection
 --              (woundInfectionLevel, -2..10) ; alcohol : désinfectant sur la plaie (alcoholLevel)
 --   harm     : dégâts déjà faits à la partie (0..100) par cette plaie
+--   virus    : vrai si la plaie a transmis le virus de Knox (BodyPart.isInfected de sa partie, LK21-T04, LK_Virus.lua) :
+--              aucun tirage d'infection de plaie (:221), niveau d'infection +2e-4 par tick (:282-283)
+-- La liste peut porter l'infection du corps (list.virus, LK_Virus.lua), sauvegardée avec elle.
 -- Les soins (LK_Care, LK21-T05) changent une plaie par les transitions du vanilla rangées ici (Wounds.bandage, stitch,
 -- splint, disinfect, extract) ; le choix du soin, du matériel et du soignant n'est pas ici.
 --
@@ -67,7 +70,8 @@ Wounds.STITCH = { open = 2e-4, bandaged = 5e-4, max = 50, wear = 1e-4,   -- Body
     openChance = 20000, bandagedChance = 80000 }
 Wounds.INFECTION = { base = 40000, open = 10000, dirty = 35000, dirtyClothes = 20000, bloodyClothes = 24000,
     floor = 5000,                        -- BodyPart.java:221-257
-    grow = 1e-5, alcohol = 2e-4, alcoholBandage = 6e-4, wear = 2e-4, max = 10, min = -2 }   -- :258-305, :1192-1198
+    grow = 1e-5, alcohol = 2e-4, alcoholBandage = 6e-4, wear = 2e-4, max = 10, min = -2,   -- :258-305, :1192-1198
+    virus = 2e-4 }                       -- partie porteuse du virus de Knox (:282-283, LK21-T04)
 -- Tirages d'infection par tick : Rand.Next(Rand.AdjustForFramerate(n)) == 0 à chaque image, n x fps / 30
 -- (RandInterface.java:29) : 30 tirages de 1 / n par seconde réelle, pour 48 ticks.
 Wounds.ROLLS_PER_TICK = 30 / 48
@@ -116,7 +120,9 @@ for _, p in ipairs(Wounds.PARTS) do Wounds.PART[p.id] = p end
 --   infect      : retrait de la base 40000 de la chance d'infection ; nil : jamais tirée (hors de la porte :219)
 --   foreignInfect : retrait de plus avec corps étranger ; infectGrowth : aggravation par tick avec corps étranger
 --   infectedOnAdd : plaie infectée dès la blessure (morsure)
---   virusChance : pour cent de transmission du virus de Knox quand un zombie fait la plaie (LK21-T04, donnée seule)
+--   virusChance : pour cent de transmission du virus de Knox quand un zombie fait la plaie (LK21-T04, LK_Virus.lua)
+--   virusRoute  : voie de transmission, "saliva" (morsure) ou "blood" (défaut), ouverte ou non par l'option
+--                 ZombieLore.Transmission (LK_Virus.TRANSMISSION)
 --   foreign     : corps étranger { becomes = type après retrait, time = { min, max } nouvelle durée (facultatif) }
 --   stitch, splint, bandage : la plaie se recoud, s'attelle, se bande (soins demandés, Wounds.needs, LK_WoundsNeeds.lua)
 --   pain        : douleur { perTime, open, bandaged, foreign, splinted (x pendant l'attelle) } (BodyPart.getPain :903-937)
@@ -169,6 +175,7 @@ local function kindProblem(spec)
         if spec[field] ~= nil and type(spec[field]) ~= "boolean" then return spec.id .. "." .. field .. " must be a boolean" end
     end
     if spec.blood ~= nil and not (nonNegative(spec.blood) and spec.blood <= 1) then return spec.id .. ".blood must be 0..1" end
+    if spec.virusRoute ~= nil and type(spec.virusRoute) ~= "string" then return spec.id .. ".virusRoute must be a name" end
     if spec.bleed ~= nil then
         if type(spec.bleed) ~= "table" then return spec.id .. ".bleed must be a list" end
         for _, term in ipairs(spec.bleed) do
@@ -374,7 +381,7 @@ end
 -- Chance d'infection de la plaie par tick (BodyPart.java:219-257 et points :375, :381).
 function Wounds.infectionChance(w, ctx)
     local spec = Wounds.kindById[w.kind]
-    if spec == nil or w.infected or (w.alcohol or 0) > 0 or (w.level or 0) < 0 then return 0 end
+    if spec == nil or w.infected or w.virus or (w.alcohol or 0) > 0 or (w.level or 0) < 0 then return 0 end
     local I, S = Wounds.INFECTION, Wounds.STITCH
     local bandaged = w.bandage ~= nil
     local life = bandaged and w.bandage.life or 0
@@ -480,6 +487,7 @@ local function levelRate(w, spec)
     local I = Wounds.INFECTION
     local r
     if w.alcohol > 0 then r = -I.alcohol
+    elseif w.virus then r = I.virus
     elseif w.foreign and spec.infectGrowth ~= nil then r = spec.infectGrowth
     else r = I.grow end
     if w.bandage ~= nil and w.bandage.alcohol and w.bandage.life > 0 then r = r - I.alcoholBandage end

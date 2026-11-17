@@ -38,7 +38,7 @@ import bench_paths  # noqa: E402,F401  (tests/commun and tests/coreai on sys.pat
 ROOT = Path(__file__).resolve().parents[2]
 LK_SHARED = ROOT / 'Contents' / 'mods' / 'batman_LivingKnox' / '42.21' / 'media' / 'lua' / 'shared'
 ENGINE = LK_SHARED / 'LivingKnox' / 'LK_Wounds.lua'
-MODULES = ['LK_Wounds', 'LK_WoundsNeeds', 'LK_WoundsForm']   # modèle, soins demandés, forme sauvegardée
+MODULES = ['LK_Wounds', 'LK_WoundsNeeds', 'LK_WoundsForm', 'LK_Virus']   # modèle, soins, forme, virus (LK21-T04)
 KIND_DIR = LK_SHARED / 'LivingKnox' / 'Wounds'
 W = 'LivingKnox.Wounds'
 
@@ -352,6 +352,37 @@ class WoundsTests(unittest.TestCase):
         self.run_lua(f'{W}.advance(L, 60, C)')
         self.assertFalse(self.ev('w1.infected'))
         self.assertAlmostEqual(self.ev('w1.alcohol'), 3 - 2e-4 * 61 * TPM, places=6)
+
+    def test_infected_wound_bleeds_the_same_wears_its_bandage_and_keeps_healing(self):
+        # LK21-T04 (ADR D04, précisé le 2026-11-17) : l'infection de plaie ne fait pas saigner plus (aucun terme dans
+        # le saignement, BodyPart.java:161-168, :202-217) ; elle use le bandage de 2e-4 de plus par tick (:300-305) ;
+        # la durée de guérison court comme sans infection (:306-376) et l'infection disparaît avec la plaie (:424).
+        losses = []
+        for infected in ('false', 'true'):
+            self.wound('laceration', 'Hand_L')
+            self.run_lua(f'w1.infected = {infected}')
+            losses.append(self.ev(f'{W}.advance(L, 30, C).bled'))
+        self.assertAlmostEqual(losses[0], losses[1], places=12)
+        lives = []
+        for infected in ('false', 'true'):
+            self.wound('laceration', 'Hand_L')
+            self.run_lua(f'{W}.bandage(w1, 3, false); w1.infected = {infected}; w1.bleed = 0')
+            self.run_lua(f'{W}.advance(L, 10, C)')
+            lives.append(self.ev('w1.bandage.life'))
+        self.assertAlmostEqual(lives[0] - lives[1], 2e-4 * 10 * TPM, places=9)
+        self.wound('scratch', 'Hand_L')
+        self.run_lua(f'w1.infected = true; {W}.bandage(w1, 100, false); {W}.advance(L, 11 / 1.5e-4 / {TPM} + 1, C)')
+        self.assertEqual(self.ev('#L'), 0)                                   # guérie, infection comprise
+
+    def test_infected_wound_costs_health_only_with_the_sandbox_factor(self):
+        # Malus « malade » de niveau 4 (BodyDamage.java:1957, :2774-2790), option WoundInfectionFactor seulement.
+        for factor, expected in ((None, 0), (0, 0), (10, 1)):
+            with self.subTest(factor=factor):
+                extra = '' if factor is None else f', woundInfectionFactor = {factor}'
+                self.wound('laceration', 'Hand_L', ctx_extra=extra)
+                self.run_lua(f'w1.infected = true; w1.level = 9.5')
+                r = self.ev(f'{W}.advance(L, 10, C)')
+                self.assertAlmostEqual(r['sick'], expected * 0.0165 * 10 * TPM, places=9)
 
     # ------------------------------------------------------------------ retrait d'un corps étranger
     def test_extracting_a_bullet_leaves_a_deep_wound(self):

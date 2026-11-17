@@ -62,12 +62,13 @@ export function createCatalog(data) {
     }),
     headerChoices: (key) => (header.choices ?? {})[key] ?? null,
 
-    // Grammar of a section kind: keys, required, repeatable, closed choices, id or not.
+    // Grammar of a section kind: keys, required, repeatable, closed choices, values of an absent key (defaults), id
+    // or not.
     section: (kind) => {
       const s = sections[kind];
       return s ? {
         kind, keys: s.keys ?? [], required: s.required ?? [], repeatable: s.repeatable ?? [],
-        choices: s.choices ?? {}, hasId: Boolean(s.hasId), rank: s.rank ?? 99,
+        choices: s.choices ?? {}, defaults: s.defaults ?? {}, hasId: Boolean(s.hasId), rank: s.rank ?? 99,
       } : null;
     },
     sectionKinds: () => Object.keys(sections),

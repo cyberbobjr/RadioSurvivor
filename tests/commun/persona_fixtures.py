@@ -48,6 +48,9 @@ BOTH = 'radio and frequency cannot be used together (a radio level to draw a fre
 LEVELS = ('any_talkie', 'good_talkie', 'pro_talkie', 'tactical', 'military')
 PROMPT = '[prompt]\nYou are a test voice.\n'
 PLACES_HEAD = 'format=1\n'
+# E27-T02 : fin du message d'un métier inconnu de [help] (métiers de RS_RecipeJobs, triés).
+JOBS_HINT = ('(expected carpentry, cooking, electrical, farming, makeshift, mechanics, medical, pottery, smithing, '
+             'tailoring, weapons)')
 
 
 def place(ident: str, at: str = '1,2,0', label: str = 'Place', area: str | None = None) -> str:
@@ -203,13 +206,13 @@ CASES: list[tuple[str, str | bytes, tuple[int, str] | None]] = [
     ('thirteen marks', HEAD + 'marks=' + ','.join(f'p{i}' for i in range(13)) + '\n' + PROMPT,
      (5, 'too many marks (12 at most)')),
     ('place section in a voice', HEAD + place('mill') + PROMPT,
-     (5, "unknown section 'place' (expected mission, rewards, category, trade, note or prompt)")),
+     (5, "unknown section 'place' (expected mission, rewards, category, trade, note, help or prompt)")),
     ('mission section without id', HEAD + '[mission]\ntype=scout\n' + PROMPT,
      (5, 'section [mission] needs an id, e.g. [mission meds]')),
     ('rewards section with an id', HEAD + '[rewards main]\npool=frequency:1\n' + PROMPT,
      (5, 'section [rewards] takes no id')),
     ('unknown section', HEAD + '[shop gus]\nstock=food\n' + PROMPT,
-     (5, "unknown section 'shop' (expected mission, rewards, category, trade, note or prompt)")),
+     (5, "unknown section 'shop' (expected mission, rewards, category, trade, note, help or prompt)")),
     ('mission id upper case', HEAD + '[mission Meds]\ntype=scout\n' + PROMPT,
      (5, "bad mission id 'Meds' (a to z, 0 to 9 and _, 32 characters at most)")),
     ('duplicate mission section', HEAD + '[mission a]\ntype=scout\n[mission a]\ntype=clear\n' + PROMPT,
@@ -221,6 +224,29 @@ CASES: list[tuple[str, str | bytes, tuple[int, str] | None]] = [
      + '[mission look]\ntype=scout\ntarget=town\nbuilding=church\n'
      + '[category snacks]\nitem=Base.Crisps:1-2\n[rewards]\npool=cache:snacks:2, frequency:1\ncache_place=mill\n'
      + PROMPT, None),
+    # E27-T02 : [help], lue par les deux lecteurs (métiers de RS_RecipeJobs, palier, délai), lignes 5 et suivantes.
+    ('help', HEAD + '[help]\njobs=cooking, medical\nfrom=good\ndelay=half_day\n' + PROMPT, None),
+    ('help defaults', HEAD + '[help]\njobs=farming\n' + PROMPT, None),
+    ('help every level and delay', HEAD + '[help]\njobs=makeshift\nfrom=all\ndelay=day\n' + PROMPT, None),
+    ('help without jobs', HEAD + '[help]\nfrom=all\n' + PROMPT, (5, "missing key 'jobs' in [help]")),
+    ('help without jobs before a section', HEAD + '[help]\ndelay=hour\n[rewards]\npool=stashmap:1\n' + PROMPT,
+     (5, "missing key 'jobs' in [help]")),
+    ('help unknown job', HEAD + '[help]\njobs=cooking,baking\n' + PROMPT, (6, f"unknown job 'baking' {JOBS_HINT}")),
+    ('help empty job entry', HEAD + '[help]\njobs=cooking,\n' + PROMPT, (6, f"unknown job '' {JOBS_HINT}")),
+    ('help duplicate job', HEAD + '[help]\njobs=cooking, cooking\n' + PROMPT, (6, "duplicate job 'cooking'")),
+    ('help unknown level', HEAD + '[help]\njobs=cooking\nfrom=friends\n' + PROMPT,
+     (7, "bad from 'friends' (expected all, neutral, good)")),
+    ('help unknown delay', HEAD + '[help]\njobs=cooking\ndelay=week\n' + PROMPT,
+     (7, "bad delay 'week' (expected now, hour, half_day, day)")),
+    ('help unknown key', HEAD + '[help]\njobs=cooking\ncolour=red\n' + PROMPT, (7, "unknown key 'colour' in [help]")),
+    ('help duplicate key', HEAD + '[help]\njobs=cooking\njobs=medical\n' + PROMPT,
+     (7, "duplicate key 'jobs' in [help] (first set on line 6)")),
+    ('help empty value', HEAD + '[help]\njobs=cooking\nfrom=\n' + PROMPT, (7, "empty value for key 'from'")),
+    ('help bad key', HEAD + '[help]\nJobs=cooking\n' + PROMPT, (6, "bad key 'Jobs'")),
+    ('help line without equal sign', HEAD + '[help]\ncooking\n' + PROMPT, (6, 'expected key=value or [prompt]')),
+    ('help with an id', HEAD + '[help cook]\njobs=cooking\n' + PROMPT, (5, 'section [help] takes no id')),
+    ('help twice', HEAD + '[help]\njobs=cooking\n[help]\njobs=medical\n' + PROMPT,
+     (7, 'duplicate section [help] (first set on line 5)')),
 ]
 
 # E25-T01 : fichier commun des lieux _places.txt, lu par les deux lecteurs (mêmes règles, mêmes messages). Un point
@@ -296,6 +322,7 @@ PLACES_CASES: list[tuple[str, str | bytes, tuple[int, str] | None]] = [
 
 # Résumé canonique d'une fiche, identique en Python et en Lua (comparaison des deux lecteurs).
 # E24-T01 : le pont garde la radio écrite (None avec frequency=) ; le serveur déduit celle d'une fréquence fixe.
+# E27-T02 : [help] en dernier, « métiers/palier/délai » ou « - » sans section.
 # Pas de commentaire dans LUA_CANONICAL : tests/coreai/test_kahlua.py le met sur une seule ligne.
 LUA_PLACE = r'''
 local function place(l)
@@ -322,7 +349,8 @@ return function(p)
         p.coords and (tostring(p.coords.x) .. "," .. tostring(p.coords.y) .. "," .. tostring(p.coords.z)) or "-",
         join(p.marks, ";", function(l) return place(l) end), join(p.actions, ","),
         tostring(p.budget), table.concat(budgets, ","), tostring(p.call_one_in), p.call_text, p.call, p.state, p.prompt,
-        join(p.shares, ",") }, "|")
+        join(p.shares, ","),
+        p.help and (join(p.help.jobs, ",") .. "/" .. p.help.from .. "/" .. p.help.delay) or "-" }, "|")
 end
 '''
 
@@ -358,7 +386,8 @@ def canonical(p: store.Persona) -> str:
                      ';'.join(place_canonical(q) for q in p.marks), ','.join(p.actions),
                      str(p.budget),
                      ','.join(f'{k}={v}' for k, v in sorted(p.budgets.items())), str(p.call_one_in), p.call_text, p.call,
-                     p.state, p.prompt, ','.join(p.shares)])
+                     p.state, p.prompt, ','.join(p.shares),
+                     f"{','.join(p.help.jobs)}/{p.help.from_}/{p.help.delay}" if p.help else '-'])
 
 
 def lua_items(t) -> list:

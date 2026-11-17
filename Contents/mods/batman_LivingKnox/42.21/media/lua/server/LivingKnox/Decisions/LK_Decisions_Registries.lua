@@ -25,11 +25,15 @@ local P = Decisions._   -- fonctions privées partagées entre les fichiers de D
 --   gesture : vrai, ou function(ctx, st) -> vrai, quand le comportement pose et garde lui-même son geste
 --     (Decisions.setAlertGesture) ; sinon le moteur retire, avant d'appliquer, le geste posé par un comportement
 --     précédent ;
---   overlay : vrai si l'application passe après le soin (LK_Care) et la routine du comportement (LK_Routines) ; sans
---     lui, l'extension mène seule, avant eux ;
+--   overlay : vrai si l'application passe après les extensions de recouvrement (cover, ci-dessous : le soin) et la
+--     routine du comportement (LK_Routines) ; sans lui, l'extension mène seule, avant eux ;
 --   keeps = { id, ... } : extensions dont l'état du membre est gardé pendant ce comportement (leur leave n'est pas
 --     appelé) ;
 --   forget(id) : membre oublié (mort, corps parti) ; sans forget, leave.
+-- LK21-T05 (ADR adr-blessures-soins.md D06) : extension de recouvrement, sans comportement propre :
+--   cover(id, st, ctx, fresh) -> vrai : essayée (ordre du registre) pour tout comportement sans meneur, ou dont le meneur
+--     est overlay, avant la routine et le meneur ; vrai : elle tient le membre pour ce passage (le soin, LK_Care). Elle
+--     sort d'elle-même quand le comportement ne lui convient plus ; pas de leave (appelé à chaque passage).
 Decisions.extensions = Decisions.extensions or {}
 
 local function validRules(rules)
@@ -46,7 +50,7 @@ end
 local function wellFormed(spec)
     if type(spec) ~= "table" or type(spec.id) ~= "string" or type(spec.order) ~= "number" then return false end
     if not validRules(spec.rules) then return false end
-    for _, f in ipairs({ "apply", "leave", "input", "observe", "aim", "forget" }) do
+    for _, f in ipairs({ "apply", "leave", "input", "observe", "aim", "forget", "cover" }) do
         if spec[f] ~= nil and type(spec[f]) ~= "function" then return false end
     end
     if spec.gesture ~= nil and spec.gesture ~= true and type(spec.gesture) ~= "function" then return false end

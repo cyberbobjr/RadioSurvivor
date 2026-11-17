@@ -21,7 +21,9 @@
 --                   champ facultatif, même règle ; ]0..Identity.HP_MAX]),
 --           wounds = plaies localisées du corps (LK_Health, LK21-T02 : forme compacte de Wounds.pack,
 --                    shared/LivingKnox/LK_WoundsForm.lua ; champ facultatif, même règle ; absent = aucune plaie ;
---                    forme fausse : registre refusé) }
+--                    forme fausse : registre refusé),
+--           rises = vrai si le cadavre du PNJ mort doit se relever en zombie ordinaire (LK_Infection, LK21-T04 ; champ
+--                   facultatif, même règle ; le PNJ quitte le registre quand son cadavre se relève) }
 -- Schéma 1 (LK02-T02, profile = { female, outfit, preset }) : relu puis migré (Identity.upgrade) ; sexe et tenue
 -- gardés, le reste tiré avec le numéro du PNJ. Un corps déjà présent garde son ancienne apparence jusqu'à sa
 -- prochaine incarnation.
@@ -100,9 +102,10 @@ function Identity.isItemType(v)
     return type(v) == "string" and #v <= 128 and string.match(v, "^[%w_]+%.[%w_]+$") ~= nil
 end
 
--- zombie, bleeding : LK07-T04 (attaquant zombie vanilla ; perte de sang, LK07-T03), sans tueur.
+-- zombie, bleeding : LK07-T04 (attaquant zombie vanilla ; perte de sang, LK07-T03), sans tueur. infection : virus de
+-- Knox arrivé à échéance (LK21-T04, LK_Infection).
 Identity.DEATH_CAUSES = { melee = true, firearm = true, fire = true, vehicle = true, other = true, unknown = true,
-    zombie = true, bleeding = true }
+    zombie = true, bleeding = true, infection = true }
 
 -- Cause de mort relue (champ npc.death) : vrai, ou faux et une raison.
 function Identity.validDeath(d)

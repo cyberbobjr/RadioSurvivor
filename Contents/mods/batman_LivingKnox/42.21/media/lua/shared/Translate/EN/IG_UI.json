@@ -270,6 +270,7 @@
     "IGUI_LK_Journal_leaderless": "The group is left without a leader.",
     "IGUI_LK_Journal_died": "Death of a member (%1).",
     "IGUI_LK_Journal_killed": "A member (%1) was killed by a survivor.",
+    "IGUI_LK_Journal_infected": "A member (%1) caught the infection from a zombie.",
     "IGUI_LK_Journal_left": "A member (%1) left the group.",
     "IGUI_LK_Journal_deserted": "Discouraged, a member (%1) left the group.",
     "IGUI_LK_Journal_recruit": "A newcomer (%1) joined the group.",

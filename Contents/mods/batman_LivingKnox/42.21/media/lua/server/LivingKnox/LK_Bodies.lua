@@ -595,6 +595,12 @@ function Bodies.isDragged(z)
     return z:isReanimatedForGrappleOnly()
 end
 
+-- LK21-T04 : relevé voulu du cadavre d'un PNJ mort (virus de Knox). Bodies.onRisen, posé par LK_Infection :
+-- fn(z, id, npc) -> vrai si le zombie z reste debout (zombie ordinaire, PNJ retiré du registre). Rend vrai si pris.
+local function claimedRisen(z, id, npc)
+    return Bodies.onRisen ~= nil and Bodies.onRisen(z, id, npc) == true
+end
+
 -- Zombie ordinaire (pas un joueur réanimé) étiqueté d'un PNJ mort : cadavre faux mort relevé, remis à terre.
 local function examineRisen(z)
     if not z:hasModData() then return nil end
@@ -603,6 +609,7 @@ local function examineRisen(z)
     if not id then return nil end
     local _, npc = I.classify(LivingKnox.Store.data(), id, generation)
     if npc == nil or npc.state ~= I.STATE_DEAD or Bodies.isDragged(z) then return nil end
+    if claimedRisen(z, id, npc) then return "risen" end
     if not risenReady(z) then return "rising" end
     Bodies.layDown(z, id, "fake dead corpse")
     return "laid down"
@@ -610,7 +617,7 @@ end
 
 -- Examine un zombie de la liste (voir l'en-tête). Rend l'action : nil (ignoré), "seen", "bound", "duplicate",
 -- "orphan", "laid down" (LK07-T04 : zombie refait du cadavre d'un PNJ mort), "rising" (le même, remis à terre à un
--- balayage suivant : serveur MP, RISEN_DELAY_MS).
+-- balayage suivant : serveur MP, RISEN_DELAY_MS), "risen" (LK21-T04 : relevé voulu, laissé debout, Bodies.onRisen).
 function Bodies.examine(z)
     if z == nil or z:isDead() then return nil end
     if not z:isReanimatedPlayer() then return examineRisen(z) end
@@ -621,6 +628,7 @@ function Bodies.examine(z)
     local class, npc = I.classify(LivingKnox.Store.data(), id, generation)
     if class ~= I.CURRENT and Bodies.isDragged(z) then return nil end   -- cadavre traîné : rendu par le moteur
     if class ~= I.CURRENT and npc ~= nil and npc.state == I.STATE_DEAD then
+        if claimedRisen(z, id, npc) then return "risen" end
         if not risenReady(z) then return "rising" end
         Bodies.layDown(z, id, "reanimated corpse")
         return "laid down"

@@ -9,9 +9,9 @@
 | ☐ | LK21-T01 | Modèle pur des plaies et registre des types | `testé hors jeu` | MP | — |
 | ☐ | LK21-T02 | Les coups font des plaies ; la santé suit les plaies | `testé hors jeu` | MP | LK21-T01 |
 | ☐ | LK21-T03 | La simulation hors écran utilise les mêmes plaies | `testé hors jeu` | MP | LK21-T02 |
-| ☐ | LK21-T04 | Infection de plaie et virus de Knox | `à faire` | MP | LK21-T02 |
+| ☐ | LK21-T04 | Infection de plaie et virus de Knox | `testé hors jeu` | MP | LK21-T02 |
 | ☐ | LK21-T12 | Retirer le verre brisé avant d'enjamber | `testé hors jeu` | MP | LK21-T02 |
-| ☐ | LK21-T05 | Registre des soins, branchement par extension | `à faire` | MP | LK21-T02 |
+| ☐ | LK21-T05 | Registre des soins, branchement par extension | `testé hors jeu` | MP | LK21-T02 |
 | ☐ | LK21-T06 | Trousse de soins du soignant | `à faire` | MP | LK21-T05 |
 | ☐ | LK21-T07 | Tâches du soignant : déchirer, laver, stériliser, attelle, remplir | `à faire` | MP | LK21-T06 |
 | ☐ | LK21-T08 | Soins en expédition | `à faire` | MP | LK21-T06 |
@@ -77,13 +77,15 @@ sang se voit. Un soignant de groupe fabrique son matériel, porte une trousse et
   - Reste : campagnes de fin de phase.
 
 - [ ] **LK21-T04** — Infection de plaie et virus de Knox
-  - État : `à faire`
+  - État : `testé hors jeu`
   - Cible : `MP`
   - Dépend de : LK21-T02
   - Fichiers : `shared/LivingKnox/LK_Wounds.lua` (infection), nouveau `server/LivingKnox/LK_Infection.lua`, `LK_Health.lua`, `LK_Bodies.lua` (relevé en zombie ordinaire)
   - Faire : D04 de l'ADR. L'infection de plaie suit les chances du vanilla : une plaie infectée saigne plus et demande d'être désinfectée. Le virus est transmis par une morsure selon l'option sandbox de transmission ; le délai est tiré dans la table du vanilla. À la mort, le PNJ se relève en zombie ordinaire, il quitte le registre et la mort est observée par le groupe. Le journal note la morsure.
   - Accepté si : au banc, morsure, transmission, délai, mort et relevé ; option « pas de transmission » respectée ; en jeu, suite `lk.wounds` : un PNJ mordu, avec un délai réduit pour le test, se relève en zombie ordinaire.
   - Tests : `test_lk_infection` (rouge d'abord) ; suite `lk.wounds`.
+  - Preuve : 2026-11-17, rouge d'abord : nouveau banc `tests/livingknox/test_lk_infection.py` `Ran 19 tests FAILED (errors=19)` (module `LivingKnox/LK_Virus` absent), puis `Ran 22 tests OK`. Règles pures `shared/LivingKnox/LK_Virus.lua` : transmission selon `ZombieLore.Transmission` 1 à 4 (`SandboxOptions.java:1908`, `BodyPart.java:616-619`, `:705-717`), délai tiré par `pickMortalityDuration` (`BodyDamage.java:1789-1807`, mortalité 7 « jamais »), relevé selon `shouldBecomeZombieAfterDeath` (`IsoGameCharacter.java:10523-10540`). Le virus est porté par la liste de plaies (en-tête facultatif de la forme sauvegardée), survit à la guérison de la morsure et suit le membre hors écran. Plaie porteuse : aucun tirage d'infection de plaie, aggravation 2e-4 par tick. `server/LivingKnox/LK_Infection.lua` : journal « infected », échéance -> `Health.kill` cause « infection », cadavre -> `IsoDeadBody.reanimateLater` (relevé vanilla d'un joueur infecté, `IsoPlayer.java:7791-7794`), `Bodies.onRisen` -> étiquette retirée et `Identity.forget` (zombie ordinaire). Membre hors écran : `MemberHealth.pass` meurt à l'échéance, sans relevé. Infection de plaie conforme au vanilla (`test_lk_wounds` : ni saignement en plus ni arrêt de la guérison, perte de santé seulement si `WoundInfectionFactor` > 0 ; ADR D04 corrigé). Valeur gelée `events` de `test_lk_simulation` changée : tirage vanilla de transmission de chaque griffure ou coupure de zombie (vérifié en coupant le crochet : ancienne valeur retrouvée). Suite `lk.wounds` (délai réduit `Config.INFECTION.DELAY_HOURS`) ajoutée aux campagnes `solo-lk` et `mp`..
+  - Reste : suite `lk.wounds` en solo et en MP (relevé vu par les clients) ; option « tout le monde est infecté » à voir en jeu ; baisse progressive de la santé maximale de l'infecté (`BodyDamage.java:2027-2034`) non reproduite.
 
 - [ ] **LK21-T12** — Retirer le verre brisé avant d'enjamber
   - État : `testé hors jeu`
@@ -99,13 +101,15 @@ sang se voit. Un soignant de groupe fabrique son matériel, porte une trousse et
 ## Phase 2 — Soins et soignant
 
 - [ ] **LK21-T05** — Registre des soins, branchement par extension
-  - État : `à faire`
+  - État : `testé hors jeu`
   - Cible : `MP`
   - Dépend de : LK21-T02
   - Fichiers : `server/LivingKnox/LK_Care.lua` (choix du blessé, du soignant et du soin), nouveaux `server/LivingKnox/Care/LK_Treat_<Id>.lua` (désinfecter, bander, changer un bandage, recoudre, attelle, retirer éclats ou balle), `Decisions/LK_Decisions_Apply.lua`
   - Faire : D05 et D06 de l'ADR. `Care.registerTreatment` : plaies traitées, matériel par fonction vanilla, durée, geste, effet. Le soin le plus urgent passe d'abord. L'appel direct de `Care.apply` devient une extension inscrite.
   - Accepté si : au banc, chaque soin consomme son vrai matériel et produit son effet sur la plaie ; aucune règle de soin dans `LK_Care` ; `lk.care` verte et ajoutée aux campagnes.
   - Tests : `test_lk_care` (réécrit, rouge d'abord) ; suite `lk.care`.
+  - Preuve : 2026-11-17, rouge d'abord : `tests/livingknox/test_lk_care.py` réécrit, `Ran 25 tests FAILED (failures=35)` sur l'ancien `LK_Care`, puis `Ran 25 tests OK`. Registre `Care.registerTreatment` (`server/LivingKnox/LK_CareTreatments.lua` : soin faisable le plus urgent, par plaie, ordre des besoins, ordre du soin, options) ; sept soins `Care/LK_Treat_{Bandage,ChangeBandage,Disinfect,Stitch,Splint,RemoveGlass,RemoveBullet}.lua` (matériel, durée et effet de `ISApplyBandage`, `ISDisinfect`, `ISStitch`, `ISSplint`, `ISRemoveGlass`, `ISRemoveBullet` 42.22). Sources de matériel inscrites `Care.registerSupplySource` (`LK_CareSupplies.lua` : soignant, blessé, stock ; la trousse de T06 s'inscrit avant). Matériel réel : objet retiré, `InventoryItem.Use`, outil gardé ; bandage sale rendu au changement. `LK_Care` : blessé, soignant, phases, durée vanilla, sans règle de soin. D06 : extension de recouvrement `cover` des Decisions (id `care`), empreinte `FROZEN_APPLY_FULL` inchangée. Suite `lk.care` (recoudre puis bander une plaie profonde) ajoutée aux campagnes `solo-lk` et `mp`. Niveau de soin simulé `Care.CFG.LEVEL` (soignant 3, autres 0) en attendant T07..
+  - Reste : suite `lk.care` en solo et en MP (gestes, objets retirés vus par les clients) ; hors écran, `LK_MemberHealth.care` n'utilise pas encore les soins inscrits.
 
 - [ ] **LK21-T06** — Trousse de soins du soignant
   - État : `à faire`

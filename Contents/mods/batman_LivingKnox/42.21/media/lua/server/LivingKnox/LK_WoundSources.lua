@@ -9,6 +9,8 @@
 --   match  : facultatif, fn(hit) -> vrai si la source prend ce coup ; sans match, la source n'est appelée que par son
 --            nom (hit.source : verre brisé, feu)
 --   wounds : fn(hit, ctx) -> { { part = <Wounds.PARTS>, kind = <type inscrit>, opts = <opts de Wounds.add> }, ... }
+--   after  : facultatif, fn(list, added, hit, ctx) appelée après l'ajout des plaies du coup (LK21-T04 : virus de Knox
+--            transmis par la source « zombie », LivingKnox.Virus.fromWounds)
 -- hit : { attacker, weapon, damage (santé retirée), part (partie indiquée par le moteur, OnHitZombie, ou nil),
 --         source (nom imposé, ou nil), issue (issue déjà décidée, ex. attaque de zombie de LK_Zombies) }.
 -- ctx : celui de Wounds.add (ctx.rnd exigé ; LK_WoundContext.lua pour le jeu).
@@ -32,6 +34,7 @@ local sourceRegistry = LivingKnox.Registry.new("LivingKnox.Wounds.registerSource
         if type(spec) ~= "table" or type(spec.id) ~= "string" then return false, "source needs an id" end
         if type(spec.wounds) ~= "function" then return false, spec.id .. " needs wounds" end
         if spec.match ~= nil and type(spec.match) ~= "function" then return false, spec.id .. ".match must be a function" end
+        if spec.after ~= nil and type(spec.after) ~= "function" then return false, spec.id .. ".after must be a function" end
         return true
     end,
     items = Wounds.sourceList, byKey = Wounds.sourceById })
@@ -56,8 +59,8 @@ function Wounds.classify(hit)
     return nil
 end
 
--- Plaies faites par le coup hit, ajoutées à list. Rend les plaies ajoutées (liste vide : aucune source, ou source
--- sans plaie pour ce coup) et l'id de la source.
+-- Plaies faites par le coup hit, ajoutées à list, puis suite propre à la source (spec.after). Rend les plaies ajoutées
+-- (liste vide : aucune source, ou source sans plaie pour ce coup) et l'id de la source.
 function Wounds.fromHit(list, hit, ctx)
     local added = {}
     local spec = Wounds.classify(hit)
@@ -66,6 +69,7 @@ function Wounds.fromHit(list, hit, ctx)
         local w = Wounds.add(list, e.part, e.kind, ctx, e.opts)
         if w ~= nil then added[#added + 1] = w end
     end
+    if spec.after ~= nil and #added > 0 then spec.after(list, added, hit, ctx) end
     return added, spec.id
 end
 

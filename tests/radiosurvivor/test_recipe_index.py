@@ -16,6 +16,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'commun'))  # tests
 import bench_paths  # noqa: E402,F401  (tests/commun and tests/coreai on sys.path)
 from harness import Harness
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / 'bridge'))
+
 # Game doubles: items, input/output lines, recipes, skills, ScriptManager, Translator (static), Language.
 DOUBLES = r"""
 local H = HARNESS
@@ -308,6 +310,13 @@ class RecipeJobsTests(unittest.TestCase):
                               ('Miscellaneous', 'makeshift'), ('Packing', 'makeshift'), ('Unheard', 'makeshift')]:
             self.assertEqual(self.h.eval('solo', f"Jobs.of('{category}')"), job, category)
         self.assertEqual(self.h.eval('solo', "Jobs.of(nil)"), 'makeshift')
+
+    def test_bridge_reader_knows_the_same_jobs(self):
+        # E27-T02: jobs= of a voice's [help] is read by both readers; the bridge's list is persona_store.JOBS.
+        import persona_store
+        ids = self.h.eval('solo', "table.concat(Jobs.ids(), ',')").split(',')
+        self.assertEqual(ids, sorted(ids))
+        self.assertEqual(tuple(ids), persona_store.JOBS)
 
     def test_a_job_is_added_by_data(self):
         self.h.load('solo', "Jobs.JOBS.brewing = { 'Brewing' }; Jobs.reset()")

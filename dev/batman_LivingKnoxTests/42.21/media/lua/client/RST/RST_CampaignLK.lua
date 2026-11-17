@@ -13,6 +13,7 @@ RST.Campaigns.add({ "solo-lk", "solo" }, 20, {
     "lk.fitness",       -- LK05-T16
     "lk.teamneeds",     -- LK05-T15
     "lk.health",        -- LK07-T06
+    "lk.wounds",        -- LK21-T04 (Knox virus: bitten npc rises as an ordinary zombie)
     "lk.loot",          -- LK07-T07
     "lk.equipment",     -- LK02-T13
     "lk.appearance",    -- LK02-T12 (two runs across a restart)
@@ -49,6 +50,7 @@ RST.Campaigns.add({ "solo-lk", "solo" }, 20, {
     "lk.expedition",    -- LK05-T05 (2026-10-15: solo proof)
     "lk.meals",         -- LK05-T07 (2026-10-15: solo proof)
     "lk.provisions",    -- LK05-T20 (provisions carried, canteen, replaced at home)
+    "lk.care",          -- LK07-T03, LK21-T05 (registered treatments; clock to 6:59 at night)
     "lk.zombies",       -- LK06-T04 (2026-10-15: solo proof)
     "lk.admin",         -- LK13-T01 (2026-10-15: solo window by the debug menu button)
     "lk.npcsheet",      -- LK13-T13 (2026-10-15: solo sheet by the right-click menu)
@@ -69,7 +71,7 @@ RST.Campaigns.add("solo-retry", 20, {
 
 -- Dedicated server (RST.server, see RST_Campaign.lua). Suites whose check is drawn by a client (lk.equipment,
 -- lk.speech, lk.ranged) ask the requester client through RST.Steps. Suites that move the game clock: lk.expedition,
--- lk.forage (9:00), lk.meals, lk.provisions, lk.repair (6:59 at night), and lk.routines (23:00 then dawn) LAST.
+-- lk.forage (9:00), lk.meals, lk.provisions, lk.care, lk.repair (6:59 at night), and lk.routines (23:00 then dawn) LAST.
 RST.Campaigns.add("mp", 20, {
     "lk.load",          -- LK13-T02
     "lk.fitness",       -- LK05-T16
@@ -85,6 +87,7 @@ RST.Campaigns.add("mp", 20, {
     "rst.fixtures.npc", -- E01-T10, E01-T18 (test API on the server started in debug mode)
     "lk.health",        -- LK07-T02, LK07-T06
     "lk.death",         -- LK07-T04
+    "lk.wounds",        -- LK21-T04 (Knox virus: death at the due hour, rise, out of the registry)
     "lk.loot",          -- LK07-T05
     "lk.melee",         -- LK06-T02, LK06-T11, LK06-T13
     "lk.deathswing",    -- LK06-T13 (client 2 hears no swing after the death)
@@ -145,6 +148,7 @@ RST.Campaigns.add("mp", 20, {
     "lk.chores",        -- LK05-T04
     "lk.meals",         -- LK05-T07 (E01-T19; clock to 6:59 at night)
     "lk.provisions",    -- LK05-T20 (clock to 6:59 at night)
+    "lk.care",          -- LK07-T03, LK21-T05 (registered treatments; clock to 6:59 at night)
     "lk.repair",        -- LK14-T06 (E01-T19; clock to 6:59 at night)
     "lk.expedition",    -- LK05-T05 (E01-T19; clock to 9:00 outside 7 h - 16 h)
     "lk.forage",        -- LK05-T11 (E01-T19; clock to 9:00 outside 7 h - 15 h)
