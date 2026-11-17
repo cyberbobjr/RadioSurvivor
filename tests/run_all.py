@@ -1,10 +1,15 @@
 """Repository checks of RadioSurvivor in one command (LK01-T05).
 
-    python RadioSurvivor/tests/run_all.py [--keep-going] [--only NAME ...] [--luacheck-baseline N]
+    python RadioSurvivor/tests/run_all.py [--mod radiosurvivor|livingknox] [--keep-going] [--only NAME ...]
+                                          [--luacheck-baseline N]
+
+--mod radiosurvivor: only the checks of Radio Survivor and the common mod (steps that test Living Knox alone are left
+out, luacheck reads batman_CoreAI and batman_RadioSurvivor only). --mod livingknox: the opposite (Living Knox and the
+common mod). Without --mod: every step of the repository.
 
 Runs, in order, and stops at the first failure (unless --keep-going):
     protocol, bridge_guards, rs_injection_suite, carnet, mission_retrieve, mission_clear, mission_recover, mission_signal, rs_signal_client_suite, harness, lk_core, lk_essai, lk_bodies, lk_appearance, lk_guard, lk_anim, lk_equipment,
-    lk_directives, lk_num_geo, lk_wounds, lk_frame_queue, lk_client_request, lk_obstacles, lk_movement, lk_relay, lk_reports, lk_senses, lk_decisions, lk_needs, lk_routines, lk_chores, lk_alert, lk_health, lk_care, lk_death, lk_loot, lk_weapon_swap, lk_groups, lk_group_types, lk_simulation, lk_materialize, lk_stories, lk_journal, lk_traces, lk_milestone, gen_animsets, check_case, rst, rs_suites, autoclient, persist_suites, rs_state_persist_suite, rst_steps, peer_checks2, lk_places, lk_spawn_area, fake_llm, obs_clear_suites, e09_suites, death_suites, personas, personas_server,
+    lk_directives, lk_num_geo, lk_frame_queue, lk_client_request, lk_obstacles, lk_movement, lk_relay, lk_reports, lk_senses, lk_decisions, lk_needs, lk_routines, lk_chores, lk_alert, lk_health, lk_wound_sources, lk_care, lk_death, lk_loot, lk_weapon_swap, lk_groups, lk_group_types, lk_simulation, lk_materialize, lk_stories, lk_journal, lk_traces, lk_milestone, gen_animsets, check_case, rst, rs_suites, autoclient, persist_suites, rs_state_persist_suite, rst_steps, peer_checks2, lk_places, lk_spawn_area, fake_llm, obs_clear_suites, e09_suites, death_suites, personas, personas_server,
     notes, radio_module, radio_history, rs_notebook_voices_suite, rs_share_suite, belt_radio, rescue, rescue_visit, rescue_scene, rescue_lost, lk_sites, lk_sites_near, lk_homes, lk_stock, lk_meals, lk_provisions, lk_upkeep, lk_expeditions, lk_food, lk_garden, lk_api, lk_apitest, lk_population, lk_relief, lk_hostility, lk_combat, lk_surrender, lk_zombies, lk_hearing, lk_window_lure, lk_floor_strike, lk_defense, lk_fight_all, lk_speech, lk_encounters, lk_aid, lk_revenge, lk_raids, lk_trade, lk_thresholds, lk_fitness, lk_fortify, lk_barricade, lk_walls, lk_repair, lk_fortify_offscreen, lk_admin, lk_npcsheet, lk_debugview, lk_load, lk_store, lk_spread, lk_peaks, observations, initiatives, conversations, group_radio, text_cut, lk_speech_pieces,
     factions, lk_contest, lk_leave, facts, bulletin, memorial, rs_e14_e16_suites, rs_mission_clock_suite, lifelog, lastpages_corpse, last_pages, outside_news, rs_trade, rs_trade_run, rs_trade_exchange, reputation, npc_reply
                        Python / lupa tests
@@ -41,10 +46,22 @@ LUACHECK_CONFIG = ROOT / '.luacheckrc'
 TAIL_LINES = 20
 
 PYTHON_TESTS = ['plan', 'pz_api', 'doubles_api', 'mod_calls_api', 'core_mod', 'core_tools', 'core_identity', 'core_bridge', 'core_missions', 'core_notebook', 'core_npc_provider', 'core_mission_views', 'core_map_zones', 'core_notebook_store', 'core_admin_access', 'core_group_facts', 'rs_state', 'lk_mod', 'suite_mods', 'core_history', 'core_reputation', 'lk_personal_relation', 'lk_notebook_provider', 'lk_speech_single_path', 'lk_agreements', 'notebook_lk_removed', 'translations_split', 'mission_rewards', 'voice_delivery', 'lk_mission_rewards', 'rs_e11_voice_npc_suites', 'protocol', 'bridge_guards', 'atelier_server', 'atelier_auth', 'atelier_catalog', 'atelier_ui', 'atelier_log', 'atelier_ai', 'atelier_help', 'atelier_surveys', 'wiki_voice_examples', 'rs_place_survey', 'rs_injection_suite', 'carnet', 'mission_retrieve', 'rs_net_disorder', 'mission_clear', 'mission_recover', 'mission_signal', 'mission_registry', 'rs_signal_client_suite', 'harness', 'lk_core', 'lk_essai', 'lk_bodies', 'lk_appearance', 'lk_guard', 'lk_stand',
-                'lk_anim', 'lk_equipment', 'lk_directives', 'lk_obstacles', 'lk_detour', 'site_replay', 'lk_movement', 'lk_edges', 'lk_relay', 'lk_reports', 'lk_peer_suites', 'lk_senses', 'lk_registry', 'lk_num_geo', 'lk_wounds', 'lk_frame_queue', 'lk_client_request', 'lk_passage', 'lk_step_aside', 'lk_stop_place', 'lk_decisions', 'lk_decision_context', 'lk_needs', 'lk_routines', 'lk_chores', 'lk_alert', 'lk_health', 'lk_care', 'lk_death', 'lk_loot', 'lk_weapon_swap', 'lk_groups', 'lk_group_types', 'lk_simulation', 'lk_materialize', 'lk_stories', 'lk_journal', 'lk_traces', 'lk_milestone', 'gen_animsets', 'check_case',
+                'lk_anim', 'lk_equipment', 'lk_directives', 'lk_obstacles', 'lk_detour', 'site_replay', 'lk_movement', 'lk_edges', 'lk_relay', 'lk_reports', 'lk_peer_suites', 'lk_senses', 'lk_registry', 'lk_num_geo', 'lk_wounds', 'lk_wound_sources', 'lk_frame_queue', 'lk_client_request', 'lk_passage', 'lk_step_aside', 'lk_stop_place', 'lk_decisions', 'lk_decision_context', 'lk_needs', 'lk_routines', 'lk_chores', 'lk_alert', 'lk_health', 'lk_care', 'lk_death', 'lk_loot', 'lk_weapon_swap', 'lk_groups', 'lk_group_types', 'lk_simulation', 'lk_materialize', 'lk_stories', 'lk_journal', 'lk_traces', 'lk_milestone', 'gen_animsets', 'check_case',
                 'rst', 'rs_suites', 'rs_mp_suites', 'autoclient', 'persist_suites', 'map_persist', 'rs_state_persist_suite', 'rst_steps', 'peer_checks2', 'lk_places', 'lk_spawn_area', 'fake_llm', 'obs_clear_suites', 'e09_suites', 'death_suites', 'personas', 'personas_server', 'radio_levels', 'notes', 'radio_module', 'radio_history', 'rs_notebook_voices_suite', 'rs_share_suite', 'belt_radio',
                 'rescue', 'rescue_visit', 'rescue_scene', 'rescue_lost', 'lk_sites', 'lk_sites_near', 'lk_homes', 'lk_stock', 'lk_meals', 'lk_provisions', 'lk_upkeep', 'lk_expeditions', 'lk_food', 'lk_expedition_kinds', 'lk_vanilla_farming', 'lk_garden', 'lk_api', 'lk_group_facts_feed', 'lk_apitest', 'lk_population', 'lk_relief', 'lk_hostility', 'lk_combat', 'lk_surrender', 'lk_zombies', 'lk_hearing', 'lk_window_lure', 'lk_floor_strike', 'lk_defense', 'lk_fight_all', 'lk_speech', 'lk_encounters', 'lk_aid', 'lk_revenge', 'lk_raids', 'lk_trade', 'lk_thresholds', 'lk_fitness', 'lk_fortify', 'lk_fortify_kinds', 'lk_barricade', 'lk_walls', 'lk_repair', 'lk_fortify_offscreen', 'lk_admin', 'lk_npcsheet', 'lk_debugview', 'lk_load', 'lk_store', 'lk_spread', 'lk_peaks', 'observations', 'initiatives', 'conversations', 'group_radio', 'text_cut', 'lk_speech_pieces', 'factions', 'agreements', 'incidents', 'relations', 'relation_panel', 'lk_contest', 'lk_leave', 'facts', 'bulletin', 'memorial', 'rs_e14_e16_suites', 'lifelog', 'lastpages_corpse', 'last_pages', 'outside_news', 'rs_trade', 'rs_trade_run', 'rs_trade_exchange', 'reputation', 'rs_freqdebug', 'comfort', 'rs_comfort_suite', 'rs_mission_clock_suite', 'voice_bonds', 'npc_reply', 'notebook_visual', 'server_guards', 'kahlua']
 LUACHECK_STEPS = {'luacheck-contents': 'Contents', 'luacheck-dev': 'dev'}
+# ADR adr-coreai-separation D06: Radio Survivor and Living Knox are tested apart. Steps that test Living Knox alone
+# (its engine, NPC talk, groups, factions and their in-game suites); every other step tests Radio Survivor or the
+# common mod and runs in both scopes.
+LK_ONLY = {s for s in PYTHON_TESTS if s.startswith('lk_')} | {
+    'observations', 'initiatives', 'conversations', 'factions', 'agreements', 'incidents', 'relations', 'e09_suites'}
+# Folders read by luacheck per scope (under Contents/mods and dev); None = the whole folder.
+MOD_FOLDERS = {
+    'radiosurvivor': {'Contents': ['mods/batman_CoreAI', 'mods/batman_RadioSurvivor'],
+                      'dev': ['batman_CoreAITests', 'batman_RadioSurvivorTests']},
+    'livingknox': {'Contents': ['mods/batman_CoreAI', 'mods/batman_LivingKnox'],
+                   'dev': ['batman_CoreAITests', 'batman_LivingKnoxTests', 'batman_LivingKnoxTestClothes']},
+}
 STEPS = PYTHON_TESTS + ['case'] + list(LUACHECK_STEPS) + ['plan-check']
 
 
@@ -111,7 +128,7 @@ def step_python(name: str) -> Result:
     return Result(name, status, seconds, summary, command, code, output)
 
 
-def step_luacheck(name: str, baselines: dict[str, int], override: int | None) -> Result:
+def step_luacheck(name: str, baselines: dict[str, int], override: int | None, mod: str | None = None) -> Result:
     started = time.monotonic()
     folder = LUACHECK_STEPS[name]
     exe = shutil.which('luacheck')
@@ -120,7 +137,9 @@ def step_luacheck(name: str, baselines: dict[str, int], override: int | None) ->
     limit = override if (override is not None and folder == 'Contents') else baselines.get(folder)
     if limit is None:
         return Result(name, 'FAIL', time.monotonic() - started, f'no baseline for {folder} in {BASELINE_FILE.name}')
-    command = [exe, str(ROOT / folder), '--config', str(LUACHECK_CONFIG)]
+    parts = MOD_FOLDERS[mod][folder] if mod else None
+    paths = [str(ROOT / folder / part) for part in parts if (ROOT / folder / part).is_dir()] if parts else [str(ROOT / folder)]
+    command = [exe, *paths, '--config', str(LUACHECK_CONFIG)]
     code, output = run(command)
     seconds = time.monotonic() - started
     match = re.search(r'Total: (\d+) warnings? / (\d+) errors?', output)
@@ -183,6 +202,8 @@ def report_failure(result: Result) -> None:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description='RadioSurvivor repository checks.')
+    parser.add_argument('--mod', choices=sorted(MOD_FOLDERS),
+                        help='only the checks of this mod and the common mod (default: the whole repository)')
     parser.add_argument('--keep-going', action='store_true', help='run every step, then summarize')
     parser.add_argument('--only', action='append', choices=STEPS, metavar='NAME',
                         help='run only this step (repeatable): ' + ', '.join(STEPS))
@@ -193,6 +214,10 @@ def main(argv: list[str] | None = None) -> int:
         sys.stdout.reconfigure(encoding='utf-8', errors='replace')
 
     selected = [s for s in STEPS if not args.only or s in args.only]
+    if args.mod == 'radiosurvivor':
+        selected = [s for s in selected if s not in LK_ONLY]
+    elif args.mod == 'livingknox':
+        selected = [s for s in selected if s in LK_ONLY or s not in PYTHON_TESTS]
     baselines = read_baselines()
     results: list[Result] = []
     stopped = False
@@ -203,7 +228,7 @@ def main(argv: list[str] | None = None) -> int:
         elif name == 'case':
             result = step_case()
         elif name in LUACHECK_STEPS:
-            result = step_luacheck(name, baselines, args.luacheck_baseline)
+            result = step_luacheck(name, baselines, args.luacheck_baseline, args.mod)
         else:
             result = step_plan()
         results.append(result)

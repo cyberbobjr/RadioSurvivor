@@ -82,7 +82,7 @@ autoritaire, adaptateurs d'exécution, fournisseur de PNJ. Vue détaillée :
   [`annexes/tests/ecarts-banc-jeu.md`](annexes/tests/ecarts-banc-jeu.md) avec sa catégorie, puis un test rouge au banc
   quand la catégorie le permet, puis la correction.
 - Avant de déclarer une tâche testée : `tests/test_protocol.py`, `tests/test_carnet.py`, luacheck (sans nouvel
-  avertissement) et `python tools/plan.py check`. La suite complète est `python tests/run_all.py`.
+  avertissement) et `python tools/plan.py check`. La suite complète se lance **pour le mod sur lequel on travaille** (ADR `adr-coreai-separation` D06) : `python tests/run_all.py --mod radiosurvivor` pour RadioSurvivor, `--mod livingknox` pour Living Knox ; chacune garde les tests du mod commun. Sans `--mod`, tout le dépôt, seulement si le travail touche les deux.
 - Tests en jeu ([méthode](annexes/tests/tests-en-jeu.md)) : `python tools/autoclient/autoclient.py --campaign
   solo-lk|solo-rs|solo --bridge on --llm fake --wait-idle 3600` (`solo-lk` : Living Knox seul, sans RadioSurvivor ;
   `solo-rs` : RadioSurvivor seul ; `solo` : les deux) et la campagne `mp` (serveur dédié et deux clients). Rapports
