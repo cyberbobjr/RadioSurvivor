@@ -61,6 +61,10 @@ Le relevé du 2026-11-15 montre que la séparation de E18 reste incomplète :
 
   Un module qui ne sert qu'à un mod va dans ce mod. Les gabarits de mission restent communs : les deux donneurs de
   missions s'en servent (D04 de l'ADR de 2026-11-05).
+  - *Mise à jour du 2026-11-17 (utilisateur) :* les cinq gabarits que seules les voix de RadioSurvivor donnent
+    aujourd'hui (barricade, objet, relais, itinéraire, surveillance) restent eux aussi dans `batman_CoreAI` : les PNJ
+    de Living Knox pourront les donner plus tard. Un gabarit de mission n'est jamais rangé selon son seul donneur
+    actuel.
 - **D03 — Nommage du mod commun (confirmé par défaut).** Mod pas encore publié : aucune reprise de données.
 
   | Élément | Nouvelle valeur |
