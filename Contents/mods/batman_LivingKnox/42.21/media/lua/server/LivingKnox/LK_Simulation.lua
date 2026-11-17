@@ -7,17 +7,21 @@
 --      (nuit ou fatigue), fouiller (une réserve sous NEED_TARGET), sinon se reposer ; journalisée quand elle change ;
 --   2. consommation de nourriture et de munitions selon l'effectif vivant ;
 --   3. fouille : petit gain borné (0..SCAVENGE_MAX) sur la réserve la plus basse ;
---   4. blessures abstraites par membre (wound 0..100) : nouvelles blessures au hasard, guérison avec les soins
---      (medical consommé), aggravation sans, faim ; mort à WOUND_DEATH (Groups.applyDeath, comme markDead), le chef
---      mort est remplacé aussitôt par le successeur de la règle de succession (Groups.pickSuccessor) ;
+--   4. blessures (LK21-T03, LivingKnox.MemberHealth) : plaies et santé de chaque membre au foyer, mêmes règles que le
+--      corps incarné : blessure au hasard (coup de la source WOUND_SOURCE), bandage des plaies qui saignent avec la
+--      réserve de soins (medical consommé par bandage posé), évolution d'une heure (Wounds.healthStep), faim ; mort
+--      quand la santé atteint 0 (Groups.applyDeath, comme markDead), le chef mort est remplacé aussitôt par le
+--      successeur de la règle de succession (Groups.pickSuccessor) ;
 --   5. repos (rest 0..100) selon la tâche et le rythme jour/nuit ;
 --   6. moral : baisse si réserves basses, fatigue, faim ou mort ; remonte avec le repos et des réserves correctes.
 -- Expéditions abstraites (LK09-T02) : une fouille de jour devient une expédition quand la réserve la plus basse est
--- sous EXPEDITIONS.NEED_TRIGGER et que l'effectif le permet : équipe (TEAM_MIN..TEAM_MAX membres sains, hors chef,
+-- sous EXPEDITIONS.NEED_TRIGGER et que l'effectif le permet : équipe (TEAM_MIN..TEAM_MAX membres qui ne sont pas
+-- gravement blessés, MemberHealth.seriouslyWounded, hors chef,
 -- MIN_HOME restant au foyer) vers un type de lieu de la liste fermée EXPEDITIONS.PLACES (durée, risque, rendement,
 -- recrue), absente du foyer jusqu'au retour (ni consommation, ni repos, ni blessure au foyer). Au retour : pertes
--- (Groups.applyDeath), blessés (wound), gains de réserves, recrue éventuelle (Groups.applyMember, profil tiré du
--- type, bornée par size.max et MAX_MEMBERS), moral ; journal du groupe (kinds expedition, return, loss, recruit).
+-- (Groups.applyDeath), blessés (plaies de la source SOURCE, LK21-T03), gains de réserves, recrue éventuelle
+-- (Groups.applyMember, profil tiré du type, bornée par size.max et MAX_MEMBERS), moral ; journal du groupe (kinds
+-- expedition, return, loss, recruit).
 -- Tirages des expéditions : flux séparé (EXPEDITION_SALT) de la même heure, le flux principal reste inchangé.
 -- Événements de groupe (LK09-T05) : inscrits par Simulation.registerEvent, un fichier par événement sous SimEvents/
 -- (LK16-T09 : departure, recruit, conflict, illness, clash), un tirage par groupe et par jour à l'heure du jour
@@ -30,7 +34,7 @@
 -- Membres incarnés (LK09-T03 : PNJ lié à l'état "embodied" au registre des corps, LK_Materialize) : présents au foyer
 -- et comptés dans la consommation, mais leur santé est celle de leur corps : ni blessure, ni guérison, ni mort
 -- horaire, jamais envoyés en expédition ; un groupe qui a un membre incarné ne tire aucun événement et n'est la cible
--- d'aucun combat. Le retrait du corps (LK03-T04) rend au membre sa blessure (LK_Materialize.onReleased).
+-- d'aucun combat. Le retrait du corps (LK03-T04) rend au membre ses plaies et sa santé (LK_Materialize.onReleased).
 -- Passes horaires (LK16-T09) : chaque heure de chaque groupe passe par les modules inscrits par
 -- Simulation.registerHourly (vengeance, raid, règles du groupe, besoins, repas du stock, chantiers), sans les nommer.
 -- Stock réel hors écran (LK09-T06, LK_Stock) : passe horaire du repas abstrait quotidien pris dans l'inventaire de
@@ -62,6 +66,7 @@ require "LivingKnox/LK_Config"
 require "LivingKnox/LK_Log"
 require "LivingKnox/LK_Store"
 require "LivingKnox/LK_Groups"
+require "LivingKnox/LK_MemberHealth"
 
 local Simulation = LivingKnox.Simulation or {}
 LivingKnox.Simulation = Simulation
@@ -185,12 +190,13 @@ function Simulation.isNight(hourOfDay)
     return hourOfDay >= c.NIGHT_START or hourOfDay < c.NIGHT_END
 end
 
--- Tâche hors écran (I1.6) par priorités : rend la tâche et sa raison (anglais).
+-- Tâche hors écran (I1.6) par priorités : rend la tâche et sa raison (anglais). Soigner : un membre gravement blessé
+-- (MemberHealth.seriouslyWounded) et des soins en réserve.
 function Simulation.chooseTask(g, living, night)
     local c = cfg()
     if g.needs.medical > 0 then
         for _, mid in ipairs(living) do
-            if (g.members[mid].wound or 0) >= c.WOUND_SERIOUS then return "heal", "wounded" end
+            if LivingKnox.MemberHealth.seriouslyWounded(g.members[mid]) then return "heal", "wounded" end
         end
     end
     if night then return "rest", "night" end
@@ -198,6 +204,15 @@ function Simulation.chooseTask(g, living, night)
     local key = lowestNeed(g)
     if g.needs[key] < c.NEED_TARGET then return "scavenge", key end
     return "rest", "idle"
+end
+
+-- Coup hors écran sur le membre m (LK21-T03 ; expéditions, blessure de l'heure, événements) : santé perdue tirée de lo
+-- à hi % (entiers, premier tirage de rnd), puis plaies de la source source (registre des sources, tirages suivants de
+-- rnd ; nil ou inconnue : aucune plaie). Jamais mortel sur le coup (MemberHealth.hurt). Rend les plaies ajoutées.
+function Simulation.hit(m, source, lo, hi, rnd)
+    local loss = (lo + math.floor(rnd() * (hi - lo + 1))) / 100
+    local Mh = LivingKnox.MemberHealth
+    return Mh.hurt(m, source ~= nil and { source = source } or nil, loss, Mh.context(rnd))
 end
 
 -- Expéditions (LK09-T02) ---------------------------------------------------------------------------------------------
@@ -272,13 +287,14 @@ function Simulation.expeditionSettings()
         safetyMax = num(raw.SAFETY_MAX, 0, 1),
         yieldBonusMax = num(raw.YIELD_BONUS_MAX, 0, 10),
         deathShare = num(raw.DEATH_SHARE, 0, 1),
-        woundMin = int(raw.WOUND_MIN, 0, 99),
-        woundMax = int(raw.WOUND_MAX, 0, 99),
+        hitMin = int(raw.HIT_MIN, 0, 99),
+        hitMax = int(raw.HIT_MAX, 0, 99),
+        source = type(raw.SOURCE) == "string" and raw.SOURCE or nil,
         moraleReturn = num(raw.MORALE_RETURN, 0, 100),
         roleSafety = {}, roleYield = {}, roleRank = {}, places = {},
     }
     if s.teamMax < s.teamMin then s.teamMax = s.teamMin end
-    if s.woundMax < s.woundMin then s.woundMax = s.woundMin end
+    if s.hitMax < s.hitMin then s.hitMax = s.hitMin end
     for _, role in ipairs(LivingKnox.Config.GROUP_ROLES) do
         s.roleSafety[role] = num(field(raw.ROLE_SAFETY, role) or 0, 0, 1)
         s.roleYield[role] = num(field(raw.ROLE_YIELD, role) or 0, 0, 10)
@@ -358,13 +374,13 @@ local function homeMembers(g, living)
 end
 Simulation.homeMembers = homeMembers
 
--- Candidats d'une équipe : au foyer, hors chef et membres incarnés (LK09-T03), blessure sous WOUND_MINOR ; triés
--- par TEAM_ROLES puis ancienneté.
+-- Candidats d'une équipe : au foyer, hors chef et membres incarnés (LK09-T03), pas gravement blessés
+-- (MemberHealth.seriouslyWounded) ; triés par TEAM_ROLES puis ancienneté.
 function Simulation.teamCandidates(g, home, s)
-    local c, G = cfg(), LivingKnox.Groups
+    local G = LivingKnox.Groups
     local out = {}
     for _, mid in ipairs(home) do
-        if mid ~= g.leader and (g.members[mid].wound or 0) < c.WOUND_MINOR
+        if mid ~= g.leader and not LivingKnox.MemberHealth.seriouslyWounded(g.members[mid])
             and not Simulation.isEmbodied(g.members[mid]) then
             out[#out + 1] = mid
         end
@@ -460,10 +476,10 @@ end
 
 -- Retour d'une expédition (heure >= returns) : par membre de l'équipe encore vivant, un tirage d'incident (chance =
 -- risque effectif) dont la part DEATH_SHARE est mortelle (Groups.applyDeath, succession si c'était le chef) et le
--- reste une blessure WOUND_MIN..WOUND_MAX ; gains par réserve (moyenne yield x survivants x (1 + bonus), tirage
--- uniforme de 0 au double de la moyenne, arrondi reproductible) ; une recrue au plus (chance recruit, s'il reste un
--- survivant) ; moral. Journal dans l'ordre : return, loss, died..., recruit, joined. Rend le bilan
--- { place, team, back, lost, wounded, gains, recruit }.
+-- reste un coup de la source SOURCE (plaies, HIT_MIN..HIT_MAX % de santé, jamais mortel sur le coup : Simulation.hit) ;
+-- gains par réserve (moyenne yield x survivants x (1 + bonus), tirage uniforme de 0 au double de la moyenne, arrondi
+-- reproductible) ; une recrue au plus (chance recruit, s'il reste un survivant) ; moral. Journal dans l'ordre : return,
+-- loss, died..., recruit, joined. Rend le bilan { place, team, back, lost, wounded, gains, recruit }.
 function Simulation.resolveExpedition(g, gid, hour, s, erand, day)
     local c, G = cfg(), LivingKnox.Groups
     local e = g.expedition
@@ -496,10 +512,7 @@ function Simulation.resolveExpedition(g, gid, hour, s, erand, day)
         else
             survivors = survivors + 1
             if r < risk then
-                local m = g.members[mid]
-                local w = (m.wound or 0) + s.woundMin + math.floor(erand() * (s.woundMax - s.woundMin + 1))
-                m.wound = clampLevel(math.min(w, c.WOUND_DEATH - 1))
-                if m.wound <= 0 then m.wound = nil end
+                Simulation.hit(g.members[mid], s.source, s.hitMin, s.hitMax, erand)
                 result.wounded[#result.wounded + 1] = mid
             end
         end
@@ -549,41 +562,24 @@ function Simulation.resolveExpedition(g, gid, hour, s, erand, day)
     return result
 end
 
--- Une heure de jeu pour un groupe (registre vivant, sans sauvegarde). Rend la tâche choisie, ou nil (aucun vivant).
--- exp : réglages des expéditions (Simulation.expeditionSettings, lus une fois par pas ; défaut : relus ici).
-function Simulation.simulateHour(g, gid, hour, base, exp)
-    local living = livingMembers(g)
-    if #living == 0 then return nil end
-    local c, G = cfg(), LivingKnox.Groups
-    exp = exp or Simulation.expeditionSettings()
-    local rnd = Simulation.stream(base, G.idNumber(gid) or 0, hour)
-    local erandFn
-    local function erand()
-        erandFn = erandFn or Simulation.stream(base, G.idNumber(gid) or 0, hour, Simulation.EXPEDITION_SALT)
-        return erandFn()
-    end
-    local hourOfDay = (hour + 6) % 24
-    local night = Simulation.isNight(hourOfDay)
-    local day = math.floor(hour / 24) + 1
-    local needs = g.needs
-    if g.rest == nil then g.rest = G.DEFAULT_LEVEL end
+-- Étapes d'une heure de groupe (Simulation.simulateHour) -------------------------------------------------------------
 
-    -- 0. Retour d'expédition (au début de l'heure de retour, ou de la première heure simulée après elle).
-    if g.expedition and hour >= g.expedition.returns then
-        if not publishReturn(g, gid, hour, day, erand) then   -- LK16-T04 : retour fait par le module de l'expédition
-            local res = Simulation.resolveExpedition(g, gid, hour, exp, erand, day)
-            local S = LivingKnox.Stock   -- LK09-T06 : butin abstrait ajouté au stock de référence (écarts en attente)
-            if S ~= nil and S.offscreenLoot ~= nil then S.offscreenLoot(g, gid, res.gains, day) end
-        end
-        living = livingMembers(g)
-        if #living == 0 then return nil end
+-- 0. Retour d'expédition (au début de l'heure de retour, ou de la première heure simulée après elle). Rend les membres
+-- vivants après le retour, ou nil (aucun retour cette heure).
+local function expeditionReturn(g, gid, hour, day, exp, erand)
+    if not (g.expedition and hour >= g.expedition.returns) then return nil end
+    if not publishReturn(g, gid, hour, day, erand) then   -- LK16-T04 : retour fait par le module de l'expédition
+        local res = Simulation.resolveExpedition(g, gid, hour, exp, erand, day)
+        local S = LivingKnox.Stock   -- LK09-T06 : butin abstrait ajouté au stock de référence (écarts en attente)
+        if S ~= nil and S.offscreenLoot ~= nil then S.offscreenLoot(g, gid, res.gains, day) end
     end
-    -- Membres en expédition : absents du foyer (ni consommation, ni repos, ni blessure au foyer ; leurs vivres sont
-    -- comptés dans le rendement net de l'expédition). Personne au foyer : rien d'autre cette heure.
-    local home = homeMembers(g, living)
-    if #home == 0 then return "expedition" end
+    return livingMembers(g)
+end
 
-    -- 1. Tâche ; une fouille devient une expédition (en route, ou départ tiré maintenant).
+-- 1. Tâche ; une fouille devient une expédition (en route, ou départ tiré maintenant). Rend la tâche et les membres
+-- au foyer.
+local function pickTask(g, gid, hour, day, living, home, night, exp, erand)
+    local G = LivingKnox.Groups
     local task, why = Simulation.chooseTask(g, home, night)
     local departure
     if task == "scavenge" then
@@ -606,57 +602,52 @@ function Simulation.simulateHour(g, gid, hour, base, exp)
         G.appendLog(g, "expedition", departure, day)
         LivingKnox.Log.debug("simulation: group %s expedition %s at hour %s", gid, departure, tostring(hour))
     end
+    return task, home
+end
 
-    -- 2. Consommation (membres au foyer).
-    local n = #home
+-- 2. Consommation (membres au foyer) et 3. fouille.
+local function consume(g, task, n, rnd)
+    local c, needs = cfg(), g.needs
     needs.food = clampLevel(needs.food - amount(c.FOOD_PER_MEMBER * n, rnd))
     needs.ammo = clampLevel(needs.ammo - amount(c.AMMO_PER_MEMBER * n, rnd))
-
-    -- 3. Fouille.
     if task == "scavenge" then
         local key = lowestNeed(g)
         needs[key] = clampLevel(needs[key] + math.floor(rnd() * (c.SCAVENGE_MAX + 1)))
     end
+end
 
-    -- 4. Blessures.
-    local starving = needs.food <= 0
-    local healing = needs.medical > 0
-    local medicalUse, deaths = 0, {}
+-- 4. Blessures (LK21-T03) : pour chaque membre au foyer hors écran (un membre incarné garde la santé de son corps,
+-- LK09-T03), blessure au hasard (Simulation.hit, entrée « wounded » au journal), bandages si la réserve de soins n'est
+-- pas vide, heure d'évolution (MemberHealth.pass ; faim : STARVING_LOSS sans régénération). Soins consommés : bandages
+-- réellement posés x MEDICAL_PER_BANDAGE. Rend les membres morts (appliqués après tous les tirages de l'heure).
+local function woundsHour(g, home, task, day, rnd)
+    local c, Mh = cfg(), LivingKnox.MemberHealth
+    local ctx = Mh.context(rnd)
     local chance = c.WOUND_CHANCE
     if task == "scavenge" then chance = c.WOUND_CHANCE_SCAVENGE end
+    local starving = nil
+    if g.needs.food <= 0 then starving = c.STARVING_LOSS end
+    local bandages, deaths = 0, {}
     for _, mid in ipairs(home) do
         local m = g.members[mid]
-        if not Simulation.isEmbodied(m) then   -- membre incarné : santé de son corps (LK09-T03)
-            local w = m.wound or 0
+        if not Simulation.isEmbodied(m) then
             if rnd() < chance then
-                w = w + c.WOUND_MIN + math.floor(rnd() * (c.WOUND_MAX - c.WOUND_MIN + 1))
-                G.appendLog(g, "wounded", mid, day)
+                Simulation.hit(m, c.WOUND_SOURCE, c.HIT_MIN, c.HIT_MAX, rnd)
+                LivingKnox.Groups.appendLog(g, "wounded", mid, day)
             end
-            local delta = 0
-            if w >= c.WOUND_MINOR then
-                if healing then
-                    delta = c.WOUND_HEAL
-                    if task == "heal" then delta = delta * 2 end
-                    medicalUse = medicalUse + c.MEDICAL_PER_HEAL
-                else
-                    delta = c.WOUND_WORSEN
-                end
-            elseif w > 0 then
-                delta = c.WOUND_SELF_HEAL
-            end
-            if starving then delta = delta + c.WOUND_STARVING end
-            if delta ~= 0 then w = w + amount(delta, rnd) end
-            if w >= c.WOUND_DEATH then
-                w = 100
-                deaths[#deaths + 1] = mid
-            end
-            w = clampLevel(w)
-            if w > 0 then m.wound = w else m.wound = nil end
+            if g.needs.medical > 0 then bandages = bandages + Mh.care(m, ctx) end
+            if not Mh.pass(m, 60, ctx, starving) then deaths[#deaths + 1] = mid end
         end
     end
-    if medicalUse > 0 then needs.medical = clampLevel(needs.medical - amount(medicalUse, rnd)) end
+    if bandages > 0 then
+        g.needs.medical = clampLevel(g.needs.medical - amount(bandages * c.MEDICAL_PER_BANDAGE, rnd))
+    end
+    return deaths
+end
 
-    -- 5. Repos.
+-- 5. Repos.
+local function restHour(g, task, night)
+    local c = cfg()
     local rest = g.rest
     if task == "rest" then
         rest = rest + c.REST_GAIN
@@ -666,19 +657,25 @@ function Simulation.simulateHour(g, gid, hour, base, exp)
         rest = rest + c.REST_DAY_LOSS
     end
     g.rest = clampLevel(rest)
+end
 
-    -- 6. Moral.
+-- 6. Moral de l'heure, avant les morts : rend la nouvelle valeur (non bornée).
+local function moraleHour(g, rnd)
+    local c, needs = cfg(), g.needs
     local mood, allOk = 0, g.rest >= c.REST_OK
-    for _, key in ipairs(G.NEEDS) do
+    for _, key in ipairs(LivingKnox.Groups.NEEDS) do
         if needs[key] < c.NEED_LOW then mood = mood + c.MORALE_LOW_NEED end
         if needs[key] < c.NEED_OK then allOk = false end
     end
     if g.rest < c.REST_LOW then mood = mood + c.MORALE_TIRED end
-    if starving then mood = mood + c.MORALE_STARVING end
+    if needs.food <= 0 then mood = mood + c.MORALE_STARVING end
     if allOk then mood = mood + c.MORALE_GOOD end
-    local morale = g.morale + amount(mood, rnd)
+    return g.morale + amount(mood, rnd)
+end
 
-    -- Morts (après tous les tirages de l'heure).
+-- Morts de l'heure (après tous les tirages) : moral, Groups.applyDeath, succession du chef. Rend le moral.
+local function buryHour(g, gid, hour, day, deaths, morale)
+    local c, G = cfg(), LivingKnox.Groups
     for _, mid in ipairs(deaths) do
         morale = morale + c.MORALE_DEATH
         local wasLeader = G.applyDeath(g, mid, day)
@@ -688,7 +685,37 @@ function Simulation.simulateHour(g, gid, hour, base, exp)
             if successor then G.applyLeader(g, successor, day) end
         end
     end
-    g.morale = clampLevel(morale)
+    return morale
+end
+
+-- Une heure de jeu pour un groupe (registre vivant, sans sauvegarde). Rend la tâche choisie, ou nil (aucun vivant).
+-- exp : réglages des expéditions (Simulation.expeditionSettings, lus une fois par pas ; défaut : relus ici).
+function Simulation.simulateHour(g, gid, hour, base, exp)
+    local living = livingMembers(g)
+    if #living == 0 then return nil end
+    local G = LivingKnox.Groups
+    exp = exp or Simulation.expeditionSettings()
+    local rnd = Simulation.stream(base, G.idNumber(gid) or 0, hour)
+    local erandFn
+    local function erand()
+        erandFn = erandFn or Simulation.stream(base, G.idNumber(gid) or 0, hour, Simulation.EXPEDITION_SALT)
+        return erandFn()
+    end
+    local night = Simulation.isNight((hour + 6) % 24)
+    local day = math.floor(hour / 24) + 1
+    if g.rest == nil then g.rest = G.DEFAULT_LEVEL end
+    living = expeditionReturn(g, gid, hour, day, exp, erand) or living
+    if #living == 0 then return nil end
+    -- Membres en expédition : absents du foyer (ni consommation, ni repos, ni blessure au foyer ; leurs vivres sont
+    -- comptés dans le rendement net de l'expédition). Personne au foyer : rien d'autre cette heure.
+    local home = homeMembers(g, living)
+    if #home == 0 then return "expedition" end
+    local task
+    task, home = pickTask(g, gid, hour, day, living, home, night, exp, erand)
+    consume(g, task, #home, rnd)
+    local deaths = woundsHour(g, home, task, day, rnd)
+    restHour(g, task, night)
+    g.morale = clampLevel(buryHour(g, gid, hour, day, deaths, moraleHour(g, rnd)))
     return task
 end
 
@@ -756,7 +783,8 @@ function Simulation.eventSettings()
         if type(t) == "table" then
             local e = {}
             for name, range in pairs(ev.bounds) do e[name] = bounded(t[name], range) end
-            if e.WOUND_MAX and e.WOUND_MAX < e.WOUND_MIN then e.WOUND_MAX = e.WOUND_MIN end
+            if e.HIT_MAX and e.HIT_MAX < e.HIT_MIN then e.HIT_MAX = e.HIT_MIN end
+            if type(t.SOURCE) == "string" then e.SOURCE = t.SOURCE end   -- LK21-T03 : source des coups de l'événement
             if ev.prepare ~= nil then ev.prepare(e, t) end
             s[ev.id] = e
         end
@@ -771,13 +799,6 @@ local function pick(list, rnd)
     return list[i]
 end
 
--- Blessure abstraite ajoutée (lo..hi), bornée à WOUND_DEATH - 1 : un événement ne tue que par un tirage de perte.
-local function hurt(m, lo, hi, rnd)
-    local w = (m.wound or 0) + lo + math.floor(rnd() * (hi - lo + 1))
-    m.wound = clampLevel(math.min(w, cfg().WOUND_DEATH - 1))
-    if m.wound <= 0 then m.wound = nil end
-end
-
 local function lowNeedCount(g)
     local n, low = 0, cfg().NEED_LOW
     for _, key in ipairs(LivingKnox.Groups.NEEDS) do
@@ -788,7 +809,7 @@ end
 
 -- Outils des fichiers d'événements (SimEvents/) : mêmes règles que le moteur.
 Simulation.eventKit = {
-    pick = pick, hurt = hurt, cut = cut, clamp = clampLevel, living = livingMembers, home = homeMembers,
+    pick = pick, hit = Simulation.hit, cut = cut, clamp = clampLevel, living = livingMembers, home = homeMembers,
     logRecruit = logRecruit,
 }
 

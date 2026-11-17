@@ -4,6 +4,7 @@
 if isClient() then return end
 
 require "LivingKnox/Decisions/LK_Decisions_Common"
+require "LivingKnox/LK_MemberHealth"   -- LK21-T03 : santé des membres hors écran
 
 local Decisions = LivingKnox.Decisions
 local P = Decisions._   -- fonctions privées partagées entre les fichiers de Decisions/ (LK_Decisions_Common.lua)
@@ -40,15 +41,10 @@ function Decisions.fortifyWorkOf(gid)
     return nil
 end
 
--- Santé d'un membre (0..1) : référence du corps (LK_Health) pour un membre incarné, sinon blessure abstraite.
+-- Santé d'un membre (0..1) : référence du corps (LK_Health) pour un membre incarné, sinon santé hors écran
+-- (LK21-T03, LivingKnox.MemberHealth.state).
 function Decisions.healthOf(m)
-    local H = LivingKnox.Health
-    if m.npc ~= nil and H ~= nil and H.get ~= nil then
-        local h = H.get(m.npc)
-        if h ~= nil and LivingKnox.Num.finite(h.hp) and LivingKnox.Num.finite(h.max)
-            and h.max > 0 then return LivingKnox.Num.clamp(h.hp / h.max, 0, 1) end
-    end
-    return LivingKnox.Num.clamp(1 - (m.wound or 0) / 100, 0, 1)
+    return (LivingKnox.MemberHealth.state(m))
 end
 
 local function isEmbodied(m, registry)

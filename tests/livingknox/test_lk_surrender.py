@@ -48,7 +48,7 @@ class SurrenderStackTests(tlc.DefenceStackTests):
         if self.mode != 'solo':
             self.h.move_player('B', 109.5, 106.5)            # second client proche : reçoit aussi le geste
         self.run_lua(f'SEE_PLAYER("{worker}", "A", 108, 104, 2)')
-        self.update(gid, 'g.members["m-2"].wound = 50')
+        self.update(gid, 'g.members["m-2"].health = 0.5')
         self.assertTrue(self.hit_by(worker))
         self.dpass(3)
         self.assertEqual(self.st(worker)[:2], ('threat', 'surrender'))
@@ -131,7 +131,7 @@ class SurrenderStackTests(tlc.DefenceStackTests):
                               '{ key = what.key } return nil, "nobody hears" end }')
         self.place(worker, 106.5, 104.5)
         self.run_lua(f'SEE_PLAYER("{worker}", "A", 108, 104, 2)')
-        self.update(gid, 'g.members["m-2"].wound = 50')
+        self.update(gid, 'g.members["m-2"].health = 0.5')
         self.assertTrue(self.hit_by(worker))
         self.dpass(6)
         self.assertEqual(self.st(worker)[1], 'surrender')

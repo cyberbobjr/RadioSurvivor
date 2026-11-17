@@ -8,7 +8,7 @@
 |---|---|---|---|---|---|
 | ☐ | LK21-T01 | Modèle pur des plaies et registre des types | `testé hors jeu` | MP | — |
 | ☐ | LK21-T02 | Les coups font des plaies ; la santé suit les plaies | `testé hors jeu` | MP | LK21-T01 |
-| ☐ | LK21-T03 | La simulation hors écran utilise les mêmes plaies | `à faire` | MP | LK21-T02 |
+| ☐ | LK21-T03 | La simulation hors écran utilise les mêmes plaies | `testé hors jeu` | MP | LK21-T02 |
 | ☐ | LK21-T04 | Infection de plaie et virus de Knox | `à faire` | MP | LK21-T02 |
 | ☐ | LK21-T12 | Retirer le verre brisé avant d'enjamber | `à faire` | MP | LK21-T02 |
 | ☐ | LK21-T05 | Registre des soins, branchement par extension | `à faire` | MP | LK21-T02 |
@@ -66,13 +66,15 @@ sang se voit. Un soignant de groupe fabrique son matériel, porte une trousse et
   - Reste : campagnes de fin de phase (`lk.health`, `lk.death`, `lk.killer`).
 
 - [ ] **LK21-T03** — La simulation hors écran utilise les mêmes plaies
-  - État : `à faire`
+  - État : `testé hors jeu`
   - Cible : `MP`
   - Dépend de : LK21-T02
-  - Fichiers : `server/LivingKnox/LK_Simulation.lua`, `shared/LivingKnox/LK_Config.lua` (réglages `WOUND_*` abstraits retirés)
+  - Fichiers : `server/LivingKnox/LK_Simulation.lua`, `shared/LivingKnox/LK_Config.lua` (réglages `WOUND_*` abstraits retirés) ; nouveaux `shared/LivingKnox/LK_WoundsHealth.lua` (formule de santé commune, `Wounds.healthStep`) et `server/LivingKnox/LK_MemberHealth.lua` (plaies et santé d'un membre hors écran, critère « gravement blessé »)
   - Faire : D01 de l'ADR. La blessure abstraite `wound` 0..100 disparaît. Les événements hors écran créent des plaies par une source, et l'heure hors écran les fait évoluer par `Wounds.advance`. La consommation de soins hors écran est déduite des soins appliqués.
   - Accepté si : bancs de la simulation verts avec les nouveaux attendus justifiés ; un membre blessé hors écran revient avec ses plaies.
   - Tests : `test_lk_simulation`, `test_lk_wounds` ; campagnes.
+  - Preuve : 2026-11-17. Rouge d'abord : nouveaux attendus de `tests/livingknox/test_lk_simulation.py` lancés sur une copie du code d'avant (`git archive HEAD`) : `Ran 56 tests` `FAILED (failures=7, errors=29)` (`attempt to index field 'MemberHealth' (a nil value)`) ; `test_lk_materialize.py WoundsRoundTripTests` : `FAILED (errors=1)`. Vert : `test_lk_simulation` `Ran 56 tests OK`, `test_lk_materialize` `Ran 17 tests OK`, tous les bancs `tests/livingknox/test_lk_*.py` lancés un par un (sauf `test_lk_obstacles`, LK21-T12 en cours) verts : 103 bancs, 1993 tests, 0 échec ; `tests/coreai/test_kahlua.py` `Ran 44 tests OK` (`KR-SIM`, `KR-EVT` : mêmes valeurs sous Kahlua et lupa), `test_doubles_api.py` `Ran 17 tests OK`, `test_mod_calls_api.py` `Ran 16 tests OK` ; `luacheck Contents dev --config .luacheckrc` : `0 warnings / 0 errors`. Membre hors écran : `member.wounds` (forme `Wounds.pack`, validée par `LK_Groups.validGroup` comme le registre des corps) et `member.health` (fraction, absente = pleine). Coups hors écran par `Wounds.fromHit` avec une source imposée par les données (`WOUND_SOURCE` « blunt », expéditions `SOURCE` « zombie », conflit « blunt », combat « blade » ; la maladie ne fait que perdre de la santé) ; l'heure applique `Wounds.healthStep`, la formule que `LK_Health` appelle aussi (une seule copie) ; mort à santé 0. Soins : bandage des plaies qui saignent (`Wounds.bandageBleeding`, commun avec `Health.stopBleeding`), `MEDICAL_PER_BANDAGE` par bandage posé. Critère unique `MemberHealth.seriouslyWounded` (santé sous l'option WoundedHealth, ou plaie qui saigne) pour la tâche `heal`, les équipes d'expédition, les raids, la vengeance et la force au combat ; seuil lu une fois (`Config.woundedRatio`, aussi pour `Decisions.woundRatio`). Passage incarné <-> hors écran : plaies passées telles quelles (`Health.setBirth(id, hp, wounds)`, `Health.handOver`). Vues : santé et nombre de plaies (fiche : champ réglable `offhealth`). Attendus changés et pourquoi : empreintes figées de `test_lk_simulation` (événements, rattrapage), `test_lk_raids`, `test_lk_revenge`, `test_lk_fortify_offscreen` et valeurs `KR-SIM`/`KR-EVT` (tirages des plaies dans le flux de l'heure, état des membres) ; empreintes de `test_lk_decision_context` (seul le champ de membre `wound` renommé `health` dans les tables relevées : relevés d'avant et d'après identiques champ ôté) ; `setup_world` : nourriture 30 (sous `NEED_TRIGGER`, l'expédition attendue part dans les 24 h : la blessure grave se soigne maintenant en une heure) ; équipe du test de départ : le blessé grave fait soigner le groupe au lieu de fouiller, exclusion vérifiée par `teamCandidates`.
+  - Reste : campagnes de fin de phase.
 
 - [ ] **LK21-T04** — Infection de plaie et virus de Knox
   - État : `à faire`

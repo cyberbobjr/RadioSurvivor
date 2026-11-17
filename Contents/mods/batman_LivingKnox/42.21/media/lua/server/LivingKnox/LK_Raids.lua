@@ -50,6 +50,7 @@ require "LivingKnox/LK_Groups"
 require "LivingKnox/LK_Hostility"
 require "LivingKnox/LK_Relations"
 require "LivingKnox/LK_Simulation"   -- LK16-T09 : passe horaire (registerHourly)
+require "LivingKnox/LK_MemberHealth"   -- LK21-T03 : partants pas gravement blessés
 
 local Raids = LivingKnox.Raids or {}
 LivingKnox.Raids = Raids
@@ -75,7 +76,6 @@ Raids.CFG = Raids.CFG or {
     TEAM_MIN = 2,
     TEAM_MAX = 6,
     MIN_HOME = 1,             -- vivants qui restent au foyer
-    WOUND_MAX = 20,           -- blessure abstraite au plus d'un partant
     ATTACK_HOURS = 3,         -- heures à la base
     ATTACK_RADIUS = 2,        -- cases : ronde serrée autour du centre de la base
     SPEED = 300,              -- cases par heure de jeu (trajet abstrait)
@@ -214,9 +214,9 @@ local function memberEmbodied(m)
     return Si ~= nil and Si.isEmbodied ~= nil and Si.isEmbodied(m)
 end
 
--- Partants possibles (pur, registre vivant) : vivants au foyer (hors expédition), hors chef, rôle "raid", blessure
--- abstraite au plus WOUND_MAX, sans corps ; scouting = rôle "scout" d'abord ; puis par numéro. Rend la liste et le
--- nombre de vivants au foyer.
+-- Partants possibles (pur, registre vivant) : vivants au foyer (hors expédition), hors chef, rôle "raid", pas
+-- gravement blessés (MemberHealth.seriouslyWounded, LK21-T03), sans corps ; scouting = rôle "scout" d'abord ; puis
+-- par numéro. Rend la liste et le nombre de vivants au foyer.
 function Raids.candidates(g, scouting)
     local away = {}
     if type(g.expedition) == "table" and type(g.expedition.team) == "table" then
@@ -226,7 +226,7 @@ function Raids.candidates(g, scouting)
     for mid, m in pairs(g.members) do
         if m.alive and not away[mid] then
             present = present + 1
-            if mid ~= g.leader and Raids.roleHas(g.type, m.role, "raid") and (m.wound or 0) <= cfg().WOUND_MAX
+            if mid ~= g.leader and Raids.roleHas(g.type, m.role, "raid") and not LivingKnox.MemberHealth.seriouslyWounded(m)
                 and not memberEmbodied(m) then
                 out[#out + 1] = mid
                 scout[mid] = scouting == true and Raids.roleHas(g.type, m.role, "scout")

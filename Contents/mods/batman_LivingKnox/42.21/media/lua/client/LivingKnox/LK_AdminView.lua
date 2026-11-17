@@ -244,7 +244,9 @@ function View.detailText(d)
             .. "  " .. (m.alive and tr("IsAlive") or tr("IsDead"))
         if m.npc ~= nil then s = s .. "  " .. m.npc end
         if m.duty ~= nil then s = s .. "  " .. tr("Duty", m.duty) end
-        if (m.wound or 0) > 0 then s = s .. "  " .. tr("Wound", m.wound) end
+        if m.alive and ((m.hp or 100) < 100 or (m.wounds or 0) > 0) then
+            s = s .. "  " .. tr("Health", tostring(m.hp), tostring(m.wounds or 0))   -- LK21-T03
+        end
         if m.embodied then s = s .. "  " .. tr("Present") end
         line(s)
     end

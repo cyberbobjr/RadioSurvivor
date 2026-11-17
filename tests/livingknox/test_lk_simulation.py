@@ -20,6 +20,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'commun'))  # tests/commun (E26)
 import bench_paths  # noqa: E402,F401  (tests/commun and tests/coreai on sys.path)
 from harness import Harness, sim_event_files  # noqa: E402  (LK16-T09)
+from test_lk_health import wound_files  # noqa: E402  (LK21-T03 : types de plaie et sources de blessure)
 
 ROOT = Path(__file__).resolve().parents[2]
 SIM_FILE = (ROOT / 'Contents' / 'mods' / 'batman_LivingKnox' / '42.21' / 'media' / 'lua' / 'server' / 'LivingKnox'
@@ -35,6 +36,17 @@ getWorld = function()
     return { getWorld = function() return WORLD_NAME end, getGameMode = function() return setmetatable({}, {__tostring = function() return GAME_MODE end}) end }
 end
 '''
+
+
+
+def hurt(target, health=None, kind=None, part='ForeArm_L'):
+    """Code Lua (LK21-T03) : membre hors écran target (expression Lua) à la santé health (fraction ; None = pleine) avec,
+    en plus de ses plaies, une plaie kind sur part (tirages fixes 0.5)."""
+    add = f'LivingKnox.Wounds.add(L, "{part}", "{kind}", {{ rnd = function() return 0.5 end }}) ' if kind else ''
+    value = 'nil' if health is None or health >= 1 else repr(health)
+    return (f'do local m = {target} local L = LivingKnox.MemberHealth.wounds(m) {add}'
+            f'if #L > 0 then m.wounds = LivingKnox.Wounds.pack(L) else m.wounds = nil end m.health = {value} end ')
+
 
 CANON = ('require("CoreAI/CA_Codec").hexBytes(require("CoreAI/CA_Codec").encodeBytes('
          'LivingKnox.Groups.state.data))')
@@ -63,6 +75,8 @@ class Base(unittest.TestCase):
             for path in SHARED:
                 h.load(m, path)
             h.load(m, SERVER)
+            for path in wound_files():       # LK21-T03 : types de plaie et sources, chargés par le jeu
+                h.load(m, path)
             for path in sim_event_files():   # LK16-T09 : événements de groupe, un par fichier (SimEvents/)
                 h.load(m, path)
         return h
@@ -103,14 +117,12 @@ class Base(unittest.TestCase):
             for _, role in ipairs({{ "fighter", "fighter", "breaker", "scout" }}) do G.addMember(b, {{ role = role }}) end
             G.setLeader(a, "m-1", 1)
             G.setLeader(b, "m-1", 1)
-            G.setNeed(a, "food", 35)
+            G.setNeed(a, "food", 30)   -- LK21-T03 : sous NEED_TRIGGER, une expedition part dans les 24 h
             G.setNeed(b, "medical", 5)
             local d = G.state.data
-            d.groups[a].members["m-2"].wound = 45
-            d.groups[a].members["m-4"].wound = 12
-            d.groups[b].members["m-2"].wound = 70
-            G.save()
-        ''')
+        ''' + hurt('d.groups[a].members["m-2"]', 0.55, 'laceration')
+            + hurt('d.groups[a].members["m-4"]', 0.88, 'scratch', 'Hand_L')
+            + hurt('d.groups[b].members["m-2"]', 0.3, 'laceration', 'Torso_Upper') + 'G.save()')
         self.assertEqual(self.ev(f'{SIM}.step()'), 0)   # premier pas : départ sans rattrapage
         self.assertEqual(self.ev('LivingKnox.Groups.state.data.simHour'), self.hour())
 
@@ -169,11 +181,11 @@ class ReproducibilityTests(Base):
         # Consommation : 6 membres x 0.08 x 24 h ~ 11.5 de nourriture ; la fouille en rend une partie.
         self.assertLess(a.needs.ammo, 50)
         self.assertTrue(0 <= a.needs.food <= 100 and 0 <= a.morale <= 100 and 0 <= a.rest <= 100)
-        # Blessé grave avec des soins : il guérit, les soins baissent.
-        self.assertLess(a.members['m-2'].wound or 0, 45)
+        # LK21-T03 : blessé grave (coupure qui saigne) avec des soins : bandé, sa santé remonte, les soins baissent.
+        self.assertGreater(a.members['m-2'].health or 1, 0.55)
         self.assertLess(a.needs.medical, 50)
-        # Petite blessure : guérit seule.
-        self.assertLess(a.members['m-4'].wound or 0, 12)
+        # Petite blessure (griffure) : la santé remonte seule (régénération du vanilla).
+        self.assertGreater(a.members['m-4'].health or 1, 0.88)
         # Tâches journalisées quand elles changent, avec leur raison.
         tasks = [e.text for e in a.log.values() if e.kind == 'task']
         self.assertTrue(tasks)
@@ -278,14 +290,15 @@ class CatchUpTests(Base):
         self.assertEqual(self.run_lua(f'return {SIM}.step()'), (None, 'group registry not ready'))
 
 
-class RulesTests(Base):
+class RulesBase(Base):
     def group(self, members, **fields):
-        """Groupe neuf grp-1 dans un registre vide ; members = liste de (rôle, blessure)."""
+        """Groupe neuf grp-1 dans un registre vide ; members = liste de (rôle, santé) ou (rôle, santé, plaie, partie) :
+        santé hors écran (fraction, None = pleine) et plaie facultative (LK21-T03)."""
         self.h.fire(self.srv, 'OnInitGlobalModData', True)
         self.run_lua(f'{G}.create({{ type = "settlers", name = "S", day = 1 }})')
-        for role, wound in members:
+        for role, *wound in members:
             self.run_lua(f'local mid = {G}.addMember("grp-1", {{ role = "{role}" }}) '
-                         f'{G}.state.data.groups["grp-1"].members[mid].wound = {wound or "nil"}')
+                         + hurt(f'{G}.state.data.groups["grp-1"].members[mid]', *wound))
         for key, value in fields.items():
             if key in ('food', 'medical', 'ammo'):
                 self.run_lua(f'{G}.state.data.groups["grp-1"].needs.{key} = {value}')
@@ -300,8 +313,10 @@ class RulesTests(Base):
                             f'table.sort(living) return {SIM}.chooseTask(g, living, '
                             f'{SIM}.isNight(({k} + 6) % 24))')
 
+
+class RulesTests(RulesBase):
     def test_task_priorities(self):
-        self.group([('worker', None), ('fighter', 50)], medical=10, food=80, ammo=80, rest=60)
+        self.group([('worker', None), ('fighter', 0.4)], medical=10, food=80, ammo=80, rest=60)
         self.assertEqual(self.task(14), ('heal', 'wounded'))
         self.run_lua(f'{G}.state.data.groups["grp-1"].needs.medical = 0')
         self.assertEqual(self.task(14), ('scavenge', 'medical'))   # blessé sans soins : aller en chercher
@@ -311,13 +326,20 @@ class RulesTests(Base):
         self.assertEqual(self.task(14), ('rest', 'tired'))
         self.run_lua(f'local g = {G}.state.data.groups["grp-1"] g.rest = 60 g.needs.medical = 70')
         self.assertEqual(self.task(14), ('heal', 'wounded'))
-        self.run_lua(f'{G}.state.data.groups["grp-1"].members["m-2"].wound = 10')
+        self.run_lua(hurt(f'{G}.state.data.groups["grp-1"].members["m-2"]', 0.9))
+        self.assertEqual(self.task(14), ('rest', 'idle'))
+        # LK21-T03 : une plaie qui saigne suffit (santé encore haute) ; une griffure sans saignement, non.
+        self.run_lua(hurt(f'{G}.state.data.groups["grp-1"].members["m-2"]', 0.9, 'laceration'))
+        self.assertEqual(self.task(14), ('heal', 'wounded'))
+        self.run_lua(f'{G}.state.data.groups["grp-1"].members["m-2"].wounds = nil '
+                     + hurt(f'{G}.state.data.groups["grp-1"].members["m-2"]', 0.9, 'scratch'))
         self.assertEqual(self.task(14), ('rest', 'idle'))
         self.run_lua(f'{G}.state.data.groups["grp-1"].needs.ammo = 30')
         self.assertEqual(self.task(14), ('scavenge', 'ammo'))
 
     def test_wound_without_care_kills_and_leader_succession(self):
-        self.group([('fighter', 95), ('worker', None), ('deputy', None)], medical=0, food=80, ammo=80)
+        # LK21-T03 : plaie profonde au cou, sans soins : le saignement (x5 au cou) tue hors écran.
+        self.group([('fighter', 0.3, 'deep', 'Neck'), ('worker', None), ('deputy', None)], medical=0, food=80, ammo=80)
         # Sans soins : aucune fouille ne rapporte de quoi soigner.
         self.run_lua(f'{G}.state.data.groups["grp-1"].leader = "m-1" {G}.state.data.simHour = 0 '
                      'LivingKnox.Config.SIMULATION.SCAVENGE_MAX = 0')
@@ -336,13 +358,17 @@ class RulesTests(Base):
                                       'return ok, why'), (True, None))
 
     def test_care_heals_and_consumes_medical(self):
-        self.group([('worker', 60)], medical=80, food=90, ammo=90, rest=80)
-        self.run_lua(f'{G}.state.data.simHour = 0')
+        # LK21-T03 : soins hors écran = un bandage par plaie qui saigne ; la réserve baisse des bandages posés.
+        self.group([('worker', 0.6, 'laceration'), ('worker', 0.7, 'scratch', 'Hand_L')], medical=80, food=90, ammo=90,
+                   rest=80)
+        self.run_lua(f'{G}.state.data.simHour = 0 LivingKnox.Config.SIMULATION.WOUND_CHANCE = 0')
         self.run_lua(f'{SIM}.advance({G}.state.data, 10)')
         g = self.ev(f'{G}.get("grp-1")')
-        self.assertLess(g.members['m-1'].wound, 60)
-        self.assertGreaterEqual(g.members['m-1'].wound, 60 - 2 * 10 - 1)
-        self.assertLess(g.needs.medical, 80)
+        self.assertGreater(g.members['m-1'].health or 1, 0.6)
+        self.assertEqual(g.needs.medical, 80 - 1)               # un seul bandage : la griffure ne saigne pas
+        bandaged = self.run_lua(f'local L = LivingKnox.MemberHealth.wounds({G}.state.data.groups["grp-1"].members["m-1"]) '
+                                'return #L, L[1].bandage ~= nil, LivingKnox.Wounds.bleeding(L)')
+        self.assertEqual(bandaged, (1, True, 0))
 
     def test_starvation_lowers_morale_and_wounds(self):
         self.group([('worker', None), ('worker', None)], food=0, medical=0, ammo=50, morale=60, rest=60)
@@ -351,7 +377,7 @@ class RulesTests(Base):
         self.run_lua('LivingKnox.Config.SIMULATION.SCAVENGE_MAX = 3')
         g = self.ev(f'{G}.get("grp-1")')
         self.assertLess(g.morale, 60)
-        self.assertGreater(g.members['m-1'].wound or 0, 0)
+        self.assertLess(g.members['m-1'].health or 1, 1)        # LK21-T03 : faim, santé perdue sans régénération
 
     def test_dead_group_is_untouched(self):
         self.group([('worker', None)])
@@ -370,17 +396,77 @@ class RulesTests(Base):
         self.assertEqual(self.run_lua(f'return {SIM}.amount(-2, {SIM}.stream(7, 1, 1))'), -2)
 
 
+class OffscreenWoundsTests(RulesBase):
+    """LK21-T03 : plaies et santé des membres hors écran (LK_MemberHealth), mêmes règles que le corps incarné."""
+
+    def member_wounds(self, mid):
+        return self.run_lua(f'local L = LivingKnox.MemberHealth.wounds({G}.state.data.groups["grp-1"].members["{mid}"]) '
+                            'local out = {} for i, w in ipairs(L) do out[i] = w.kind end return table.concat(out, " ")')
+
+    def test_hourly_wound_is_made_by_its_source(self):
+        self.group([('worker', None), ('worker', None)], medical=0, food=80, ammo=80, rest=80)
+        self.run_lua(f'{G}.state.data.simHour = 0 local c = LivingKnox.Config.SIMULATION '
+                     'c.WOUND_CHANCE, c.WOUND_CHANCE_SCAVENGE, c.WOUND_SOURCE = 1, 1, "blade"')
+        self.run_lua(f'{SIM}.advance({G}.state.data, 1)')
+        g = self.ev(f'{G}.get("grp-1")')
+        self.assertEqual(sorted(e.text for e in g.log.values() if e.kind == 'wounded'), ['m-1', 'm-2'])
+        for mid in ('m-1', 'm-2'):
+            self.assertIn(self.member_wounds(mid), ('scratch', 'laceration', 'deep'))   # plaies de la source « blade »
+            self.assertLess(g.members[mid].health, 1)
+        # Source inconnue : la santé baisse, aucune plaie.
+        self.run_lua('LivingKnox.Config.SIMULATION.WOUND_SOURCE = "nothing" '
+                     f'for _, m in pairs({G}.state.data.groups["grp-1"].members) do m.wounds, m.health = nil, nil end')
+        self.run_lua(f'{SIM}.advance({G}.state.data, 2)')
+        g = self.ev(f'{G}.get("grp-1")')
+        self.assertEqual(self.member_wounds('m-1'), '')
+        self.assertLess(g.members['m-1'].health, 1)
+        self.assertEqual(self.h.errors(self.srv), [])
+
+    def test_hour_uses_the_formula_of_the_embodied_body(self):
+        out = self.run_lua('''
+            local W, Mh = LivingKnox.Wounds, LivingKnox.MemberHealth
+            local m = {}
+        ''' + hurt('m', 0.8, 'deep', 'Torso_Upper') + '''
+            local list, health = Mh.wounds(m), Mh.health(m)
+            local expected = W.healthStep(list, health, 60, Mh.context(function() return 0.5 end))
+            local alive = Mh.pass(m, 60, Mh.context(function() return 0.5 end))
+            return alive, math.abs(Mh.health(m) - expected) < 1e-6, W.pack(list) == m.wounds, Mh.health(m) < 0.8
+        ''')
+        self.assertEqual(out, (True, True, True, True))
+
+    def test_medical_is_spent_per_bandage_actually_applied(self):
+        self.group([('worker', 0.8, 'laceration'), ('worker', 0.8, 'laceration'), ('worker', 0.9, 'scratch', 'Hand_L')],
+                   medical=50, food=90, ammo=90, rest=80)
+        self.run_lua(hurt(f'{G}.state.data.groups["grp-1"].members["m-1"]', 0.8, 'laceration', 'Hand_R'))
+        self.run_lua(f'{G}.state.data.simHour = 0 local c = LivingKnox.Config.SIMULATION '
+                     'c.WOUND_CHANCE, c.SCAVENGE_MAX = 0, 0')   # ni blessure nouvelle, ni fouille de soins
+        self.run_lua(f'{SIM}.advance({G}.state.data, 1)')
+        self.assertEqual(self.ev(f'{G}.state.data.groups["grp-1"].needs.medical'), 50 - 3)   # trois plaies qui saignent
+        self.run_lua(f'{SIM}.advance({G}.state.data, 5)')
+        self.assertEqual(self.ev(f'{G}.state.data.groups["grp-1"].needs.medical'), 50 - 3)   # plus rien ne saigne
+
+    def test_wounds_and_health_are_validated_with_the_group(self):
+        self.group([('worker', 0.5, 'deep', 'Torso_Upper'), ('worker', None)])
+        check = f'local g = {G}.copy({G}.state.data.groups["grp-1"]) %s return {G}.validGroup(g, "grp-1", 2)'
+        self.assertEqual(self.run_lua(check % ''), True)
+        for change, why in (('g.members["m-1"].wounds = "zz"', 'member m-1: bad wounds (malformed wound)'),
+                            ('g.members["m-1"].wounds = 4', 'member m-1: bad wounds (not a string)'),
+                            ('g.members["m-2"].health = 1', 'member m-2: bad health'),
+                            ('g.members["m-2"].health = 0', 'member m-2: bad health')):
+            self.assertEqual(self.run_lua(check % change), (False, why), change)
+
+
 class SchemaTests(Base):
     def test_invalid_new_fields_are_refused_or_forgotten(self):
         self.setup_world()
         self.every_hour(2)
-        self.run_lua(f'local d = {G}.state.data d.groups["grp-1"].members["m-1"].wound = 140 '
+        self.run_lua(f'local d = {G}.state.data d.groups["grp-1"].members["m-1"].health = 1.4 '
                      'd.groups["grp-2"].rest = 2.5 d.simHour = -4 ' + f'{G}.save()')
         self.restart()
         self.h.fire(self.srv, 'OnInitGlobalModData', False)
         self.assertEqual(self.ev(f'#{G}.list()'), 0)
         lines = self.lk()
-        self.assertTrue(any('group grp-1 dropped at load' in line and 'bad wound' in line for line in lines))
+        self.assertTrue(any('group grp-1 dropped at load' in line and 'bad health' in line for line in lines))
         self.assertTrue(any('group grp-2 dropped at load' in line and 'bad rest' in line for line in lines))
         self.assertIsNone(self.ev(f'{G}.state.data.simHour'))
 
@@ -446,7 +532,7 @@ local s = S.expeditionSettings()
 s.places = { %(place)s }
 s.deathShare = %(share)s
 local proto = G.state.data.groups["grp-1"]
-local N, dead, wounded, recruits, survivors, food, maxWound, members = %(n)s, 0, 0, 0, 0, 0, 0, 0
+local N, dead, wounded, recruits, survivors, food, minHealth, members = %(n)s, 0, 0, 0, 0, 0, 1, 0
 local team = { %(team)s }
 for i = 1, N do
     local g = G.copy(proto)
@@ -457,8 +543,8 @@ for i = 1, N do
     if r.recruit then recruits = recruits + 1 end
     food = food + r.gains.food
     for _, mid in ipairs(team) do
-        local w = g.members[mid].wound or 0
-        if g.members[mid].alive and w > maxWound then maxWound = w end
+        local h = LivingKnox.MemberHealth.health(g.members[mid])
+        if g.members[mid].alive and h < minHealth then minHealth = h end
     end
     local n = 0
     for _ in pairs(g.members) do n = n + 1 end
@@ -467,7 +553,7 @@ for i = 1, N do
 end
 local per = 0
 if survivors > 0 then per = food / survivors end
-return dead / (#team * N), wounded / (#team * N), recruits / N, per, maxWound, members
+return dead / (#team * N), wounded / (#team * N), recruits / N, per, minHealth, members
 '''
 
 
@@ -496,13 +582,19 @@ class ExpeditionTests(Base):
 
     def test_departure_when_reserve_low_and_team_available(self):
         self.group(['worker', 'fighter', 'medic', 'scout', 'worker', 'deputy'], food=20)
-        self.run_lua(f'{EXP}.DEPART_CHANCE = 1 {G}.state.data.groups["grp-1"].members["m-2"].wound = 30')
+        self.run_lua(f'{EXP}.DEPART_CHANCE = 1')
+        # LK21-T03 : un membre gravement blessé (MemberHealth.seriouslyWounded) n'est jamais candidat. (Avec des soins
+        # en réserve, son groupe soigne au lieu de fouiller : départ vérifié ci-dessous sans blessé.)
+        cands = self.run_lua(f'local g = {G}.copy({G}.state.data.groups["grp-1"]) g.members["m-2"].health = 0.4 '
+                             f'local out = {SIM}.teamCandidates(g, {{ "m-1", "m-2", "m-3", "m-4", "m-5", "m-6" }}, '
+                             f'{SIM}.expeditionSettings()) return table.concat(out, " ")')
+        self.assertEqual(cands, 'm-4 m-5 m-3 m-6')
         start = len(self.g().log)
         self.run_lua(f'{SIM}.advance({G}.state.data, 1)')     # heure 1 = 7 h - 8 h, de jour
         g = self.g()
         e = g.expedition
-        # Équipe : TEAM_MAX = 4, ni le chef m-1 ni le blessé m-2 ; ordre scout, fighter, worker, ..., medic, deputy.
-        self.assertEqual(list(e.team.values()), ['m-4', 'm-5', 'm-3', 'm-6'])
+        # Équipe : TEAM_MAX = 4, jamais le chef m-1 ; ordre scout, fighter, worker, ..., medic, deputy.
+        self.assertEqual(list(e.team.values()), ['m-4', 'm-2', 'm-5', 'm-3'])
         self.assertEqual(e.departed, 1)
         places = {p.id: p for p in self.ev(f'{SIM}.expeditionSettings()').places.values()}
         p = places[e.place]
@@ -512,7 +604,7 @@ class ExpeditionTests(Base):
         tail = self.log_tail(start)
         self.assertEqual(tail[-2], ('task', 'expedition: food'))
         self.assertEqual(tail[-1][0], 'expedition')
-        self.assertRegex(tail[-1][1], r'^' + e.place + r': m-4 m-5 m-3 m-6, \d+ h$')
+        self.assertRegex(tail[-1][1], r'^' + e.place + r': m-4 m-2 m-5 m-3, \d+ h$')
 
     def test_no_departure_when_reserves_fine_or_group_small_or_chance_zero(self):
         self.group(['worker', 'fighter', 'scout', 'worker', 'worker', 'worker'], food=50)
@@ -568,13 +660,13 @@ class ExpeditionTests(Base):
         self.group(['worker', 'worker', 'scout', 'scout', 'fighter', 'fighter'], food=90)
         self.run_lua('local c = LivingKnox.Config.SIMULATION c.FOOD_PER_MEMBER = 1 c.AMMO_PER_MEMBER = 0 '
                      'c.WOUND_CHANCE = 0 '
-                     f'local g = {G}.state.data.groups["grp-1"] g.members["m-3"].wound = 10 '
+                     f'local g = {G}.state.data.groups["grp-1"] g.members["m-3"].health = 0.9 '
                      'g.expedition = { place = "houses", team = { "m-3", "m-4", "m-5", "m-6" }, departed = 0, '
                      'returns = 100 }')
         self.run_lua(f'{SIM}.advance({G}.state.data, 10)')
         g = self.g()
         self.assertEqual(g.needs.food, 90 - 2 * 10)          # deux membres au foyer, 1 par heure chacun
-        self.assertEqual(g.members['m-3'].wound, 10)         # blessure figée pendant l'absence
+        self.assertEqual(g.members['m-3'].health, 0.9)       # santé figée pendant l'absence (LK21-T03)
         self.assertIsNotNone(g.expedition)
         # Tout le monde dehors : rien ne bouge au foyer.
         self.run_lua(f'local g = {G}.state.data.groups["grp-1"] g.expedition.team = '
@@ -657,13 +749,13 @@ class ExpeditionTests(Base):
         self.group(['worker', 'medic', 'medic', 'medic', 'medic'])
         place = ('{ id = "test", hoursMin = 1, hoursMax = 1, risk = 0.3, recruit = 0.2, '
                  'yield = { food = 5, medical = 0, ammo = 0 } }')
-        dead, wounded, recruit, per, max_wound, members = self.run_lua(DIST % {
+        dead, wounded, recruit, per, min_health, members = self.run_lua(DIST % {
             'place': place, 'share': 0.25, 'team': '"m-2", "m-3", "m-4", "m-5"', 'n': 2000})
         self.assertAlmostEqual(dead, 0.3 * 0.25, delta=0.012)
         self.assertAlmostEqual(wounded, 0.3 * 0.75, delta=0.02)
         self.assertAlmostEqual(recruit, 0.2, delta=0.03)
         self.assertAlmostEqual(per, 5, delta=0.4)            # gain moyen par survivant = yield (aucun bonus)
-        self.assertLessEqual(max_wound, 99)
+        self.assertGreaterEqual(min_health, 0.01)              # un coup ne tue jamais sur le coup
         self.assertLessEqual(members, 6)                     # une recrue au plus par retour
 
     def test_extreme_settings(self):
@@ -679,18 +771,18 @@ class ExpeditionTests(Base):
                                           'yield = { food = 9, medical = 0, ammo = 0 } }',
                                  'share': 1, 'team': team, 'n': 300})
         self.assertEqual(r[:4], (1, 0, 0, 0))
-        # Risque 1 et DEATH_SHARE 0 : tous blessés, jamais tués ; blessure bornée à WOUND_DEATH - 1.
-        self.run_lua(f'for _, m in pairs({G}.state.data.groups["grp-1"].members) do m.wound = 18 end')
+        # Risque 1 et DEATH_SHARE 0 : tous blessés, jamais tués ; santé jamais sous 1 % (LK21-T03).
+        self.run_lua(f'for _, m in pairs({G}.state.data.groups["grp-1"].members) do m.health = 0.82 end')
         r = self.run_lua(DIST % {'place': '{ id = "rough", hoursMin = 1, hoursMax = 1, risk = 1, recruit = 0, '
                                           'yield = { food = 1, medical = 0, ammo = 0 } }',
                                  'share': 0, 'team': team, 'n': 300})
         self.assertEqual(r[:3], (0, 1, 0))
-        self.assertLessEqual(r[4], 99)
-        self.run_lua(f'for _, m in pairs({G}.state.data.groups["grp-1"].members) do m.wound = 90 end')
+        self.assertGreaterEqual(r[4], 0.01)
+        self.run_lua(f'for _, m in pairs({G}.state.data.groups["grp-1"].members) do m.health = 0.1 end')
         r = self.run_lua(DIST % {'place': '{ id = "rough", hoursMin = 1, hoursMax = 1, risk = 1, recruit = 0, '
                                           'yield = { food = 1, medical = 0, ammo = 0 } }',
                                  'share': 0, 'team': team, 'n': 50})
-        self.assertEqual((r[0], r[4]), (0, 99))
+        self.assertEqual((r[0], r[4]), (0, 0.01))
         # Groupe plein (size.max du type = 8 vivants) : aucune recrue même à 1.
         for _ in range(3):
             self.run_lua(f'{G}.addMember("grp-1", {{ role = "worker" }})')
@@ -717,14 +809,14 @@ class ExpeditionTests(Base):
         self.run_lua(f'''
             local E = {EXP}
             E.DEPART_CHANCE, E.NEED_TRIGGER, E.TEAM_MIN, E.TEAM_MAX, E.MIN_HOME = 5, "x", 6, 2, -3
-            E.DEATH_SHARE, E.SAFETY_MAX, E.WOUND_MIN, E.WOUND_MAX = -1, 9, 50, 10
+            E.DEATH_SHARE, E.SAFETY_MAX, E.HIT_MIN, E.HIT_MAX, E.SOURCE = -1, 9, 50, 10, 5
             E.ROLE_SAFETY = {{ fighter = 4 }}
             E.PLACES = {{ {{ id = "Bad Id" }}, {{ id = "ok", hoursMin = 0, hoursMax = 500, risk = 3, recruit = -2,
                 yield = {{ food = 400, ammo = "y" }} }}, {{ id = "ok" }}, "nope" }}
         ''')
         s = self.ev(f'{SIM}.expeditionSettings()')
         self.assertEqual((s.departChance, s.needTrigger, s.teamMin, s.teamMax, s.minHome), (1, 0, 6, 6, 1))
-        self.assertEqual((s.deathShare, s.safetyMax, s.woundMin, s.woundMax), (0, 1, 50, 50))
+        self.assertEqual((s.deathShare, s.safetyMax, s.hitMin, s.hitMax, s.source), (0, 1, 50, 50, None))
         self.assertEqual(s.roleSafety.fighter, 1)
         self.assertEqual(len(s.places), 1)
         p = s.places[1]
@@ -933,8 +1025,10 @@ class EventTests(EventWorld):
                 end
                 if r.wounded then
                     wounded = wounded + 1
-                    local w = g.members[r.wounded].wound or 0
-                    if w < 5 or w > 15 then return "wound " .. seed .. " " .. w end
+                    local m = g.members[r.wounded]
+                    local h = LivingKnox.MemberHealth.health(m)
+                    if h < 0.85 - 1e-9 or h > 0.95 + 1e-9 then return "health " .. seed .. " " .. h end
+                    if #LivingKnox.MemberHealth.wounds(m) ~= 1 then return "wounds " .. seed end
                 end
                 if #g.log ~= n + 1 or g.log[n + 1].kind ~= "conflict" then return "log " .. seed end
                 texts[#texts + 1] = g.log[n + 1].text
@@ -964,9 +1058,10 @@ class EventTests(EventWorld):
                     local r = _FORCE(d, "grp-1", "illness", seed)
                     if #r.sick > maxSick then maxSick = #r.sick end
                     for _, mid in ipairs(r.sick) do
-                        local w = g.members[mid].wound or 0
-                        if medical > 0 and (w < 5 or w > 12) then return "treated wound " .. w end
-                        if medical == 0 and (w < 10 or w > 25) then return "untreated wound " .. w end
+                        local w = (1 - LivingKnox.MemberHealth.health(g.members[mid])) * 100
+                        if medical > 0 and (w < 5 - 1e-6 or w > 12 + 1e-6) then return "treated loss " .. w end
+                        if medical == 0 and (w < 10 - 1e-6 or w > 25 + 1e-6) then return "untreated loss " .. w end
+                        if g.members[mid].wounds ~= nil then return "illness wound " .. seed end   -- aucune plaie
                     end
                     if medical > 0 and (r.treated ~= #r.sick or g.needs.medical ~= 80 - 3 * #r.sick) then
                         return "medical " .. seed
@@ -1042,8 +1137,10 @@ class EventTests(EventWorld):
                 end
                 for _, w in ipairs({{ {{ a, r.woundedA }}, {{ t, r.woundedD }} }}) do
                     for _, mid in ipairs(w[2]) do
-                        local wound = w[1].members[mid].wound or 0
-                        if wound < 15 or wound > 99 then return "wound " .. seed end
+                        local m = w[1].members[mid]
+                        local h = LivingKnox.MemberHealth.health(m)
+                        if h < 0.01 or h > 0.85 + 1e-9 then return "health " .. seed end
+                        if #LivingKnox.MemberHealth.wounds(m) ~= 1 then return "wounds " .. seed end
                     end
                 end
                 for _, side in ipairs({{ {{ a, na, r.deadA, "attack grp%-1 " }}, {{ t, nt, r.deadD, "defend grp%-2 " }} }}) do
@@ -1148,7 +1245,7 @@ class EventTests(EventWorld):
             local E = {EVENTS_CFG}
             E.HOUR, E.MAX_DAILY = 40, "x"
             E.DEPARTURE = {{ CHANCE = 3, MORALE_MAX = 250, MIN_LEFT = 0, MORALE = -400 }}
-            E.CONFLICT.WOUND_MIN, E.CONFLICT.WOUND_MAX = 30, 10
+            E.CONFLICT.HIT_MIN, E.CONFLICT.HIT_MAX, E.CONFLICT.SOURCE = 30, 10, "blade"
             E.CLASH.PLAYER_DISTANCE, E.CLASH.ATTACKERS = 5, {{ "raiders", 7 }}
             E.ILLNESS = nil
         ''')
@@ -1156,7 +1253,7 @@ class EventTests(EventWorld):
         self.assertEqual((s.hour, s.maxDaily), (23, 0))
         d = s.departure
         self.assertEqual((d.CHANCE, d.MORALE_MAX, d.MIN_LEFT, d.MORALE), (1, 100, 1, -100))
-        self.assertEqual((s.conflict.WOUND_MIN, s.conflict.WOUND_MAX), (30, 30))
+        self.assertEqual((s.conflict.HIT_MIN, s.conflict.HIT_MAX, s.conflict.SOURCE), (30, 30, 'blade'))
         self.assertEqual(s.clash.PLAYER_DISTANCE, 80)        # jamais à portée de la zone chargée
         self.assertEqual(dict(s.clash.ATTACKERS), {'raiders': True})
         self.assertIsNone(s.illness)                          # sous-table absente : événement désactivé
@@ -1223,10 +1320,11 @@ end
 HOURLY_MODULES = 'require "LivingKnox/LK_Raids" require "LivingKnox/LK_Fortify"'
 
 # LK16-T09 : empreintes (sha256) relevées sur le code d'avant les registres de la simulation (passes horaires dans une
-# boucle codée en dur, cinq événements tirés par applyEvent).
+# boucle codée en dur, cinq événements tirés par applyEvent). LK21-T03 : relevées de nouveau (la blessure abstraite
+# wound devient des plaies et une santé : tirages des plaies dans le flux de l'heure, champs wounds et health des membres).
 FROZEN_SIM = {
-    'events': '458ace73a707e3196c30fd648c26cc1e30699564dfbd2e6d0f228d261b7373d5',
-    'catchup': '3233636844a2a90f87828108200d623c30b0c62c91a6078d2cb373ae601411db',
+    'events': '367e98c7c0646407475355c0e9ad561af6a78501c2078553d6d5ae4160ecab53',
+    'catchup': '35a785855c1fc084d00af4f6eca0d8a93e280ef81dfaeebbe0e65a11af2b9bf7',
 }
 
 
@@ -1379,14 +1477,14 @@ class CrossVmTests(Base):
         """Même code que l'évaluation KR-SIM de tests/coreai/test_kahlua.py : lupa et Kahlua donnent les mêmes valeurs."""
         import test_kahlua
         code = next(e for e in test_kahlua.EXCHANGE_EVALS if '"KR-SIM "' in e)[len('eval:'):]
-        self.assertEqual(self.run_lua(code), 'KR-SIM true 34 43 2 84 43 62 m-2 true 20 497 1')
+        self.assertEqual(self.run_lua(code), 'KR-SIM true 34 48 13 66 30 52 m-1 false 10000 497 1')
 
 
     def test_same_event_values_as_the_kahlua_bench(self):
         """LK09-T05 : même code que l'évaluation KR-EVT de tests/coreai/test_kahlua.py (événements, combat compris)."""
         import test_kahlua
         code = next(e for e in test_kahlua.EXCHANGE_EVALS if '"KR-EVT "' in e)[len('eval:'):]
-        self.assertEqual(self.run_lua(code), 'KR-EVT true 8 0 47 32 58 7 6 nil m-1')
+        self.assertEqual(self.run_lua(code), 'KR-EVT true 4 0 44 31 58 7 6 nil m-1')
 
 
 class SoloTests(Base):

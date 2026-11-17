@@ -3,7 +3,7 @@
 --
 -- Commandes réservées aux administrateurs, toutes passées par Admin.request(player, args) sur l'autorité :
 --   list   -> état de tous les groupes (vivants, objectif, tâche, foyer exact, marque « disparu » et relève) ;
---   group  -> un groupe en détail : membres (rôle, vivant, PNJ, poste, blessure, incarné), expédition, journal ;
+--   group  -> un groupe en détail : membres (rôle, vivant, PNJ, poste, santé et plaies, incarné), expédition, journal ;
 --   relief -> force la relève d'un groupe disparu (LK09-T04) : heure due ramenée à l'heure courante, puis un pas de
 --             relève (LivingKnox.Population.reliefStep, même chemin que le pas horaire) ;
 --   home   -> déplace le foyer d'un groupe vers une case choisie, contrôlée (entiers, dans la carte de la métagrille,
@@ -11,10 +11,11 @@
 --   load   -> mesure de charge de l'autorité (LK13-T02, shared/LivingKnox/LK_Load.lua) : action "start" (windowMs,
 --             log), "report" ou "stop" ; réponse { action, running, lines } (rapport anglais, aussi écrit au journal) ;
 --   npc    -> fiche d'un PNJ (LK13-T13, client/LivingKnox/LK_NpcSheet.lua) : tout l'état connu de l'autorité (groupe,
---             membre, rôle, profil, chef, besoins, santé et blessure, comportement et règle de la cascade, tâche et
---             geste, vigilance, perception résumée, arme et munitions, position, foyer) ; réponse { npc = vue } ;
+--             membre, rôle, profil, chef, besoins, santé et plaies (corps, hors écran), comportement et règle de la
+--             cascade, tâche et geste, vigilance, perception résumée, arme et munitions, position, foyer) ;
+--             réponse { npc = vue } ;
 --   npcSet -> réglage d'un champ de SHEET_FIELDS (besoins 0..100, santé en % de la santé de naissance, saignement en %
---             de celle-ci par heure, blessure abstraite 0..WOUND_DEATH-1), borné ici, noté au journal du groupe
+--             de celle-ci par heure, santé hors écran offhealth en %, LK21-T03), borné ici, noté au journal du groupe
 --             (« ... set by admin <compte> ») ; réponse { npc = vue, field, value = valeur retenue, old }.
 --             Le moteur le lit au passage de décision suivant (LK_Decisions.needsOf / healthOf lisent le registre).
 --   activity -> panneau de debug des PNJ (LK13-T14, client/LivingKnox/LK_DebugView.lua) : liste de tous les groupes
@@ -73,7 +74,7 @@ Admin.OPS = { list = true, group = true, relief = true, home = true, load = true
 -- téléportation au foyer d'un groupe (homeGoto), mêmes droits.
 Admin.DEBUG_OPS = { npc = true, npcSet = true, activity = true, npcRole = true, npcName = true, npcGoto = true,
     homeGoto = true }
-Admin.SHEET_FIELDS = { "hunger", "thirst", "fatigue", "fear", "health", "bleed", "wound" }
+Admin.SHEET_FIELDS = { "hunger", "thirst", "fatigue", "fear", "health", "bleed", "offhealth" }
 Admin.NAME_PART_MAX = 24   -- caractères au plus d'un prénom ou d'un nom saisi (LK13-T15)
 
 -- Prénom ou nom saisi, nettoyé (espaces de tête et de fin retirés, espaces répétés réduits à un) : lettres ASCII,
@@ -99,6 +100,7 @@ require "LivingKnox/LK_Population"
 require "LivingKnox/LK_Journal"
 require "LivingKnox/LK_Load"
 require "LivingKnox/LK_Activity"
+require "LivingKnox/LK_MemberHealth"   -- LK21-T03 : santé et plaies des membres (corps ou hors écran)
 
 Admin.CFG = Admin.CFG or {
     HOME_GAP = 25,             -- cases au moins entre le nouveau foyer et le foyer d'un autre groupe (2,5 x RADIUS
@@ -211,8 +213,9 @@ local function detail(data, g, hour)
     r.members = {}
     for _, mid in ipairs(sortedMembers(g)) do
         local m = g.members[mid]
+        local h = LivingKnox.MemberHealth.summary(m)   -- LK21-T03 : santé (%) et nombre de plaies
         r.members[#r.members + 1] = { id = mid, role = m.role, alive = m.alive == true, npc = m.npc, duty = m.duty,
-            wound = m.wound or 0, profile = m.profile, embodied = m.alive == true and embodied(m) }
+            hp = h.pct, wounds = h.wounds, profile = m.profile, embodied = m.alive == true and embodied(m) }
     end
     r.log = {}
     for i = 1, #g.log do
@@ -395,12 +398,6 @@ local function scalars(t)
     return out
 end
 
-local function woundMax()
-    local c = LivingKnox.Config.SIMULATION
-    local death = c and c.WOUND_DEATH or 100
-    return math.max(0, death - 1)
-end
-
 local function bleedMaxPct()
     local c = LivingKnox.Config.BLEEDING
     return (c and c.MAX or 0.6) * 100
@@ -527,7 +524,10 @@ function Admin.npcView(id)
     local v = { id = id, gid = gid, mid = mid, group = g.name, type = g.type, role = m.role, profile = m.profile,
         alive = m.alive == true, leader = g.leader == mid, leaderId = g.leader, duty = m.duty,
         objective = g.objective, task = g.task, home = homeOf(g), state = reg and reg.state or nil,
-        embodied = z ~= nil, wound = m.wound or 0, woundMax = woundMax() }
+        embodied = z ~= nil }
+    -- LK21-T03 : santé (%) et plaies hors écran du membre (dernier état de la simulation ; celui du corps s'il est incarné).
+    v.offHealth = round1(100 * LivingKnox.MemberHealth.health(m))
+    v.offWounds = #LivingKnox.MemberHealth.wounds(m)
     local N = LivingKnox.Needs
     v.needs = N ~= nil and N.get ~= nil and N.get(gid, mid) or nil
     local De = LivingKnox.Decisions   -- seuils de la cascade (NEED_HIGH), à défaut ceux du pas horaire (ENVY)
@@ -580,7 +580,7 @@ end
 
 -- Réglage borné d'un champ de la fiche (field de SHEET_FIELDS, value nombre fini). Rend { npc = vue, field, value,
 -- old }, ou nil et la raison. Une entrée de journal « admin » dans le groupe, écrite avec la valeur (besoins,
--- blessure : une écriture du registre des groupes ; santé, saignement : registre des corps puis entrée de journal).
+-- santé hors écran : une écriture du registre des groupes ; santé, saignement : registre des corps puis entrée de journal).
 function Admin.npcSet(id, field, value, who)
     local g, m, gid, mid = memberOfNpc(id)
     if g == nil then return nil, m end
@@ -601,11 +601,11 @@ function Admin.npcSet(id, field, value, who)
             if not N.valid(live.vitals) then live.vitals = N.fresh(hour) end
             live.vitals[field] = new
         end
-    elseif field == "wound" then
-        new = math.max(0, math.min(woundMax(), math.floor(value + 0.5)))
-        old = m.wound or 0
+    elseif field == "offhealth" then   -- LK21-T03 : santé hors écran du membre (%), reprise à la matérialisation
+        new = round1(math.max(Admin.SHEET.HEALTH_MIN, math.min(100, value)))
+        old = round1(100 * LivingKnox.MemberHealth.health(m))
         apply = function(live)
-            if new > 0 then live.wound = new else live.wound = nil end
+            if new < 100 then live.health = new / 100 else live.health = nil end
         end
     elseif field == "health" or field == "bleed" then
         local H = LivingKnox.Health

@@ -199,8 +199,8 @@ class EngineOrderRefusalTests(MatBase):
     def test_leader_and_wounded_member(self):
         gid = self.mk()
         # Blessé (santé 50 % < 60 %) : refuse le guet quelle que soit sa loyauté ; le chef ne refuse jamais.
-        self.run_lua(f'local g = LivingKnox.Groups.state.data.groups["{gid}"] g.members["m-2"].wound = 50 '
-                     'g.members["m-3"].wound = 50 g.members["m-1"].wound = 90')
+        self.run_lua(f'local g = LivingKnox.Groups.state.data.groups["{gid}"] g.members["m-2"].health = 0.5 '
+                     'g.members["m-3"].health = 0.5 g.members["m-1"].health = 0.1')
         g = f'LivingKnox.Groups.state.data.groups["{gid}"]'
         minute = self.ev(f'{D}.currentMinute()')
         self.assertEqual(self.run_lua(f'return {D}.judgeOrder("{gid}", {g}, "m-2", {g}.members["m-2"], "guard", '

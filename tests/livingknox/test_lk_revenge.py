@@ -346,11 +346,11 @@ class OffscreenTests(OffscreenBase):
         due = self.rev(gid).due
         self.step_to(due - 1)
         self.run_lua(f'local d = LivingKnox.Groups.state.data.groups["{gid}"] '
-                     'd.members["m-2"].wound = 50 d.members["m-3"].wound = 50')
+                     'd.members["m-2"].health = 0.1 d.members["m-3"].health = 0.1')
         self.step_to(due + 3)
-        self.assertEqual(self.rev(gid).phase, 'sworn')                       # un seul valide : attente
+        self.assertEqual(self.rev(gid).phase, 'sworn')                       # un seul valide : attente (santé 10 % + régénération)
         self.run_lua(f'local d = LivingKnox.Groups.state.data.groups["{gid}"] '
-                     'd.members["m-2"].wound = nil d.members["m-3"].wound = nil '
+                     'd.members["m-2"].health = nil d.members["m-3"].health = nil '
                      'd.expedition = { place = "houses", team = { "m-2" }, departed = 0, returns = 100000 }')
         self.step_to(due + 4)
         self.assertEqual(self.rev(gid).phase, 'sworn')                       # expédition en cours : attente
@@ -531,7 +531,9 @@ class OffscreenTests(OffscreenBase):
 
 
 # LK16-T09 : empreinte (sha256) relevée sur le code d'avant le registre des passes horaires de la simulation.
-FROZEN_REVENGE = '306bf006b103b26859c09d60b4a02cd5bd79a532c141f5d77463c72d8ec9ba69'
+# Rebasée le 2026-11-17 (LK21-T03) : la simulation hors écran tient des plaies et une santé au lieu de la blessure
+# abstraite wound (tirages des plaies dans le flux de l'heure, membres gravement blessés selon la santé).
+FROZEN_REVENGE = '39cc4de7a941454cb40e9347c485f695c768e200207f9a5a6c36a27eac2fa6e8'
 
 
 class FrozenRevengeTests(OffscreenBase):

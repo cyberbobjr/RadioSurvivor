@@ -145,7 +145,7 @@ Config.dangerWarned = Config.dangerWarned or {}
 -- repli). { min, max, défaut } = min / max / default de sandbox-options.txt (vérifié par tests/livingknox/test_lk_fitness.py).
 -- Une seule notion par option, partout où le moteur l'emploie (LK_Decisions : Decisions.woundRatio, Decisions.fearHigh).
 Config.FITNESS = {
-    WoundedHealth = { 10, 90, 50 },          -- % de la santé de naissance : Decisions.CFG.WOUND_RATIO 0,5
+    WoundedHealth = { 10, 90, 50 },          -- % de la santé de naissance (Config.woundedRatio)
     AfraidFear = { 30, 100, 70 },            -- peur 0..100 : Decisions.CFG.NEED_HIGH.fear 70
 }
 
@@ -167,6 +167,23 @@ function Config.danger(name, fallback)
     end
     return value
 end
+
+-- Santé (fraction de la santé de naissance) sous laquelle un membre est blessé : option WoundedHealth (LK05-T16).
+-- Seule lecture de l'option : LK_Decisions (Decisions.woundRatio) et le critère « gravement blessé » des membres
+-- hors écran (LK_MemberHealth, LK21-T03).
+function Config.woundedRatio()
+    return Config.danger("WoundedHealth", Config.FITNESS.WoundedHealth[3]) / 100
+end
+
+-- Plaies (LK21-T02, LK21-T03 ; règles d'évolution du modèle, LK_Wounds.lua) : corps incarné (LK_Health) et
+-- simulation hors écran (LK_MemberHealth).
+Config.BLEEDING = Config.BLEEDING or {
+    STEP_MAX = 60,            -- minutes de jeu rattrapées au plus par passage (pause, chargement)
+    MAX = 0.6,                -- saignement réglable au plus par un administrateur (fraction de hpMax par heure)
+    ADMIN_KIND = "laceration",   -- plaie posée par un administrateur qui fait saigner un PNJ sans plaie
+    ADMIN_PART = "Torso_Upper",
+    BANDAGE_LIFE = { 0.5, 1.0 },   -- vie tirée d'un bandage posé, plus BandagePower (ISApplyBandage.lua:112, soin 0)
+}
 
 -- LK06-T14 : option de portée d'engagement des zombies de chaque rôle (Config.GROUP_ROLES) ; un rôle inconnu (autre
 -- mod, rôle absent) prend celle de fighter (Config.zombieEngageOption).
@@ -216,19 +233,19 @@ Config.SIMULATION = Config.SIMULATION or {
     REST_SCAVENGE_LOSS = -4,     -- tâche « scavenge »
     REST_LOW = 25,
     REST_OK = 50,
-    -- Blessures abstraites par membre (0..100, mort à WOUND_DEATH).
-    WOUND_DEATH = 100,
-    WOUND_MINOR = 20,            -- en dessous : guérit seule (WOUND_SELF_HEAL)
-    WOUND_SERIOUS = 40,          -- au-dessus : la tâche « heal » passe en tête
-    WOUND_SELF_HEAL = -0.25,
-    WOUND_HEAL = -1,             -- avec des soins (medical > 0), doublé par la tâche « heal »
-    WOUND_WORSEN = 0.5,          -- sans soins, au-dessus de WOUND_MINOR
-    WOUND_STARVING = 0.3,        -- chaque membre vivant quand la nourriture est à 0
-    MEDICAL_PER_HEAL = 0.25,     -- soins consommés par membre soigné et par heure
+    -- Blessures hors écran (LK21-T03, LK_MemberHealth) : plaies du modèle (LK_Wounds) et santé (fraction de la santé
+    -- maximale) de chaque membre, mêmes règles que le corps incarné ; mort quand la santé atteint 0. Blessure de l'heure :
+    -- coup de la source WOUND_SOURCE (registre des sources, LK_WoundSources) qui fait ses plaies et retire HIT_MIN à
+    -- HIT_MAX % de la santé (jamais mortel sur le coup). Soins avec la réserve medical > 0 : chaque plaie qui saigne
+    -- reçoit un bandage (Config.BLEEDING.BANDAGE_LIFE), MEDICAL_PER_BANDAGE consommé par bandage posé. Gravement
+    -- blessé (tâche « heal », équipes, combats) : santé sous l'option WoundedHealth, ou plaie qui saigne.
     WOUND_CHANCE = 0.002,        -- chance par membre et par heure d'une blessure (~5 % par jour)
     WOUND_CHANCE_SCAVENGE = 0.01, -- pendant une fouille
-    WOUND_MIN = 10,
-    WOUND_MAX = 40,
+    WOUND_SOURCE = "blunt",
+    HIT_MIN = 10,
+    HIT_MAX = 40,
+    MEDICAL_PER_BANDAGE = 1,
+    STARVING_LOSS = 0.003,       -- santé perdue par heure, nourriture à 0 (et aucune régénération)
     -- Fouille (tâche « scavenge ») : gain par heure tiré de 0 à SCAVENGE_MAX, sur la réserve la plus basse.
     SCAVENGE_MAX = 3,
     -- Expéditions abstraites (LK09-T02, fiche simulation.md, section « Expéditions ») : une équipe part vers un type de
@@ -237,7 +254,7 @@ Config.SIMULATION = Config.SIMULATION or {
     EXPEDITIONS = {
         NEED_TRIGGER = 35,       -- tâche « scavenge » et réserve la plus basse sous ce seuil : expédition possible
         DEPART_CHANCE = 0.25,    -- chance par heure éligible de partir (0 = jamais, 1 = dès la première heure)
-        TEAM_MIN = 2,            -- équipe : 1..32 membres vivants, au foyer, hors chef, blessure < WOUND_MINOR
+        TEAM_MIN = 2,            -- équipe : 1..32 membres vivants, au foyer, hors chef, pas gravement blessés
         TEAM_MAX = 4,
         MIN_HOME = 2,            -- membres vivants qui restent au foyer (1..32 ; chef compris)
         -- Ordre de choix de l'équipe (puis ancienneté) ; un rôle absent de la liste passe en dernier.
@@ -249,8 +266,9 @@ Config.SIMULATION = Config.SIMULATION or {
         ROLE_YIELD = { scout = 0.15, worker = 0.1, breaker = 0.1 },
         YIELD_BONUS_MAX = 0.5,
         DEATH_SHARE = 0.2,       -- part des incidents (chance = risque effectif par membre) qui sont mortels
-        WOUND_MIN = 15,          -- blessure d'un incident non mortel (bornée à WOUND_DEATH - 1)
-        WOUND_MAX = 45,
+        SOURCE = "zombie",       -- incident non mortel : coup de cette source (plaies), HIT_MIN..HIT_MAX % de santé
+        HIT_MIN = 15,
+        HIT_MAX = 45,
         MORALE_RETURN = 2,       -- retour sans perte avec un gain ; chaque mort : MORALE_DEATH
         -- Lieux (liste fermée, ordre = ordre de tirage) : durée en heures de jeu (1..72), risque d'incident par
         -- membre (0..1), chance d'une recrue au retour (0..1), gain moyen par survivant et par réserve (0..100).
@@ -284,21 +302,23 @@ Config.SIMULATION = Config.SIMULATION or {
         -- Un survivant rejoint le groupe (profil tiré du type, bornes size.max et MAX_MEMBERS comme LK09-T02).
         RECRUIT = { CHANCE = 0.03, FOOD_MIN = 40, MORALE_MIN = 40, MORALE = 2 },
         -- Conflit interne : moral bas (sous MORALE_MAX) ou réserve sous NEED_LOW ; chance = CHANCE + CHANCE_LOW_NEED
-        -- par réserve basse. Moral MORALE, blessure légère possible, chef contesté au journal seulement.
+        -- par réserve basse. Moral MORALE, blessure légère possible (coup de SOURCE, HIT_MIN..HIT_MAX % de santé),
+        -- chef contesté au journal seulement.
         CONFLICT = { CHANCE = 0.02, CHANCE_LOW_NEED = 0.03, MORALE_MAX = 50, MIN_MEMBERS = 2, MORALE = -6,
-            WOUND_CHANCE = 0.3, WOUND_MIN = 5, WOUND_MAX = 15, CONTEST_CHANCE = 0.25 },
+            WOUND_CHANCE = 0.3, SOURCE = "blunt", HIT_MIN = 5, HIT_MAX = 15, CONTEST_CHANCE = 0.25 },
         -- Maladie : chance = CHANCE (+ CHANCE_HUNGRY si nourriture sous NEED_LOW) ; un malade, puis chaque autre
-        -- membre au foyer avec SPREAD, MAX_SICK au plus ; blessure WOUND_MIN..WOUND_MAX (moitié si soigné :
-        -- MEDICAL_PER_SICK consommé par malade soigné, tant qu'il en reste).
-        ILLNESS = { CHANCE = 0.02, CHANCE_HUNGRY = 0.04, SPREAD = 0.25, MAX_SICK = 3, WOUND_MIN = 10, WOUND_MAX = 25,
+        -- membre au foyer avec SPREAD, MAX_SICK au plus ; santé perdue HIT_MIN..HIT_MAX %, sans plaie (moitié si
+        -- soigné : MEDICAL_PER_SICK consommé par malade soigné, tant qu'il en reste).
+        ILLNESS = { CHANCE = 0.02, CHANCE_HUNGRY = 0.04, SPREAD = 0.25, MAX_SICK = 3, HIT_MIN = 10, HIT_MAX = 25,
             MEDICAL_PER_SICK = 3, MORALE = -3 },
         -- Combat abstrait (I9.1) d'un groupe d'un type ATTACKERS contre un groupe d'un autre type : deux foyers
         -- connus à MAX_DISTANCE cases au plus, chacun à PLAYER_DISTANCE cases au moins de toute base connue
-        -- (CA_Sites.knownBases : refuges, joueurs connectés ou locaux). Issue selon les effectifs au foyer.
+        -- (CA_Sites.knownBases : refuges, joueurs connectés ou locaux). Issue selon les effectifs au foyer ; blessé :
+        -- coup de SOURCE, HIT_MIN..HIT_MAX % de santé.
         CLASH = { CHANCE = 0.05, CHANCE_NEEDY = 0.05, ATTACKERS = { "raiders" }, MAX_DISTANCE = 2000,
             PLAYER_DISTANCE = 300, MIN_FORCE = 2, DEFENSE_BONUS = 1.25, LOSS_WIN = 0.05, LOSS_LOSE = 0.2,
-            WOUND_WIN = 0.2, WOUND_LOSE = 0.4, MAX_DEATHS = 3, WOUND_MIN = 15, WOUND_MAX = 40, LOOT_SHARE = 0.25,
-            LOOT_MAX = 20, AMMO_COST = 4, MORALE_WIN = 3, MORALE_LOSE = -8, PLACE_ROUND = 10 },
+            WOUND_WIN = 0.2, WOUND_LOSE = 0.4, MAX_DEATHS = 3, SOURCE = "blade", HIT_MIN = 15, HIT_MAX = 40,
+            LOOT_SHARE = 0.25, LOOT_MAX = 20, AMMO_COST = 4, MORALE_WIN = 3, MORALE_LOSE = -8, PLACE_ROUND = 10 },
     },
 }
 

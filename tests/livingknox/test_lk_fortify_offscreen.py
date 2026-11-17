@@ -459,7 +459,9 @@ class CompactFormTests(OffscreenStack):
 
 
 # LK16-T09 : empreinte (sha256) relevée sur le code d'avant le registre des passes horaires de la simulation.
-FROZEN_WORKS = 'f25625493b60b3578e42781bad64a82116d54798d397ee69c346dfdac99b019e'
+# Rebasée le 2026-11-17 (LK21-T03) : la simulation hors écran tient des plaies et une santé au lieu de la blessure
+# abstraite wound (tirages des plaies dans le flux de l'heure).
+FROZEN_WORKS = '0570abdb823c81d06d94bb4aaea4fab7ccaef3c38deeedf44088ff83e97f9281'
 
 
 class FrozenWorksTests(OffscreenStack):

@@ -78,6 +78,7 @@
 - Raiders wait for their breaker before forcing a way in.
 - Living Knox missions can be given, delivered and rewarded without Radio Survivor.
 - Survivors get wounds like a player: a zombie scratches, lacerates or bites a precise body part, a knife cuts, a bat bruises, a bullet lodges, fire burns, and broken glass cuts a hand or forearm. Each wound bleeds and heals at the game's own pace, and a survivor's health follows its wounds (it also slowly comes back on its own, like a player's).
+- Survivors living away from you keep the same real wounds: a member bitten on a trip comes back with the bite, bleeds if the group has no medical supplies, gets bandaged if it has some, and a survivor who meets you shows the wounds it got while you were away.
 
 ### Fixes
 

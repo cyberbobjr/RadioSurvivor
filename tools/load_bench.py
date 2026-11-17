@@ -347,7 +347,7 @@ def to_py(v):
 # RSV2) encodé, passé en hex, contrôlé, relu et décodé (le chemin d'une écriture de registre, LK_Store.writeSlotFile).
 FACTOR_BUILD = (
     'local t = {} for g = 1, 5 do local grp = { id = "grp-" .. g, members = {}, fort = {} } '
-    'for m = 1, 7 do grp.members["m-" .. m] = { role = "worker", alive = true, wound = 0, duty = "guard", '
+    'for m = 1, 7 do grp.members["m-" .. m] = { role = "worker", alive = true, duty = "guard", '
     'npc = "lk-" .. m } end '
     'for f = 1, 120 do grp.fort[f] = { x = 1000 + f, y = 2000 + f, z = 0, kind = "wall", tier = 2, have = 3, '
     'steps = { "a", "b" } } end t[#t + 1] = grp end DATA = { groups = t } return "built"')

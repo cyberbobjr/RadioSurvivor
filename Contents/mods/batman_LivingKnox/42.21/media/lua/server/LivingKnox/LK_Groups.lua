@@ -14,7 +14,9 @@
 --   registre : simHour = dernière heure de jeu simulée (entier >= 0 ; invalide : oublié, la simulation repart de
 --              l'heure courante) ;
 --   group    : rest = 0..100 (repos), task = dernière tâche hors écran choisie (même forme qu'un kind de journal) ;
---   member   : wound = 0..100 (blessure abstraite ; absent = 0).
+--   member   : wounds = plaies (LK21-T03, LK_MemberHealth : forme compacte de Wounds.pack, LK_WoundsForm.lua, validée
+--              comme celle du registre des corps ; absent = aucune plaie), health = santé hors écran, fraction de la
+--              santé de naissance ]0, 1[ (absent = pleine santé).
 -- Champ facultatif des expéditions abstraites (LK09-T02, LK_Simulation.lua ; schéma 1 inchangé) :
 --   group    : expedition = { place = <forme d'un kind>, team = { "m-<k>", ... } (1 à MAX_MEMBERS identifiants de
 --              membre bien formés, numéros < nextMember, sans doublon ; un membre retiré ou mort entre-temps est
@@ -83,6 +85,7 @@ require "LivingKnox/LK_Log"
 require "LivingKnox/LK_Identity"
 require "LivingKnox/LK_GroupTypes"
 require "LivingKnox/LK_Store"
+require "LivingKnox/LK_WoundsForm"   -- LK21-T03 : forme sauvegardée des plaies d'un membre (member.wounds)
 
 local Groups = LivingKnox.Groups or {}
 LivingKnox.Groups = Groups
@@ -200,6 +203,18 @@ local function validMemberExtras(m)
     return true
 end
 
+-- Plaies et santé hors écran d'un membre (LK21-T03). Rend vrai, ou faux et une raison.
+local function validMemberHealth(m)
+    if m.health ~= nil and not (LivingKnox.Num.finite(m.health) and m.health > 0 and m.health < 1) then
+        return false, "bad health"
+    end
+    if m.wounds ~= nil then
+        local list, why = LivingKnox.Wounds.unpack(m.wounds)
+        if list == nil then return false, "bad wounds (" .. tostring(why) .. ")" end
+    end
+    return true
+end
+
 -- Expédition en cours d'un groupe (LK09-T02). Rend vrai, ou faux et une raison.
 local function validExpedition(e, nextMember)
     if type(e) ~= "table" then return false, "expedition is not a table" end
@@ -274,9 +289,8 @@ function Groups.validGroup(g, id, nextId)
         if type(m) ~= "table" or m.id ~= mid then return false, "member " .. mid .. ": id mismatch" end
         if not roleRank(m.role) then return false, "member " .. mid .. ": unknown role " .. tostring(m.role) end
         if type(m.alive) ~= "boolean" then return false, "member " .. mid .. ": bad alive flag" end
-        if m.wound ~= nil and not LivingKnox.Num.isInt(m.wound, 0, Groups.LEVEL_MAX) then
-            return false, "member " .. mid .. ": bad wound"
-        end
+        local healthOk, healthWhy = validMemberHealth(m)
+        if not healthOk then return false, "member " .. mid .. ": " .. healthWhy end
         local extrasOk, extrasWhy = validMemberExtras(m)
         if not extrasOk then return false, "member " .. mid .. ": " .. extrasWhy end
         if m.duty ~= nil and not validKind(m.duty) then return false, "member " .. mid .. ": bad duty" end

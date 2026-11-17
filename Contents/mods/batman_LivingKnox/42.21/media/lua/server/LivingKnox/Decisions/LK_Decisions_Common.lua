@@ -84,7 +84,6 @@ Decisions.CFG = Decisions.CFG or {
                              -- (LivingKnox.Needs.fearSource) à cet écart au plus -> fuite sans menace perçue
     FLEE_STEP = 10,          -- cases : longueur du pas de fuite
     FACE_DELTA = 30,         -- degrés : nouvelle consigne « face » si la menace a tourné d'au moins autant
-    WOUND_RATIO = 0.5,       -- santé de référence / santé de naissance sous laquelle le membre se repose
     WOUND_DUTY = 50,         -- blessure (0..100) à partir de laquelle le poste est « rest »
     NEED_HIGH = { fear = 70, hunger = 70, thirst = 70, fatigue = 80 },
     MINUTES = { watch = { 1, 1 }, flee = { 2, 2 }, guard = { 10, 20 }, patrol = { 10, 20 }, home = { 15, 30 },
@@ -160,9 +159,10 @@ function Decisions.fleeDistAfraid() return LivingKnox.Config.danger("FleeDistanc
 function Decisions.retreatDist() return LivingKnox.Config.danger("RetreatDangerDistance", cfg().RETREAT.DIST) end
 function Decisions.helpRadius() return LivingKnox.Config.danger("ReinforcementRadius", cfg().HELP.RADIUS) end
 -- LK05-T16 : seuils « blessé » (option WoundedHealth, en % : santé de référence / naissance sous ce rapport) et
--- « apeuré » (option AfraidFear : peur à partir de cette valeur), employés par toutes les règles qui lisaient
--- WOUND_RATIO et NEED_HIGH.fear (inaptitude, repos, fuite apeurée, cascade de la peur ; LK_Defense, LK_Expeditions).
-function Decisions.woundRatio() return LivingKnox.Config.danger("WoundedHealth", cfg().WOUND_RATIO * 100) / 100 end
+-- « apeuré » (option AfraidFear : peur à partir de cette valeur), employés par toutes les règles de santé et de peur
+-- (inaptitude, repos, fuite apeurée, cascade de la peur ; LK_Defense, LK_Expeditions). Seuil « blessé » : lecture
+-- unique de l'option, Config.woundedRatio (aussi pour les membres hors écran, LK_MemberHealth, LK21-T03).
+function Decisions.woundRatio() return LivingKnox.Config.woundedRatio() end
 function Decisions.fearHigh() return LivingKnox.Config.danger("AfraidFear", cfg().NEED_HIGH.fear) end
 -- Seuil d'envie name de la cascade : peur = Decisions.fearHigh(), autres = NEED_HIGH.
 function Decisions.needHigh(name)

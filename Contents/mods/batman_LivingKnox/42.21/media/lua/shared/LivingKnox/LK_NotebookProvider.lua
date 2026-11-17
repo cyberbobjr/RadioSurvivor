@@ -289,7 +289,7 @@ end
 -- expedition). Home of the loner first (LivingKnox.Sites.pick, type loners: in a ring around the old home, E10-T05,
 -- LK.homeOptions; far from every group home, the old one included; no site: nothing changes). Then ONE registry
 -- transaction (LivingKnox.Groups.update, written at once by Groups.flush): new group of type loners named after the
--- NPC, with that home; new member linked to the same NPC (same role, profile, sex, traits, wound and vitals), its
+-- NPC, with that home; new member linked to the same NPC (same role, profile, sex, traits, wounds, health and vitals), its
 -- leader; journal entry "separated" (old group id); the old member leaves (Groups.applyLeave, entry "left", fact
 -- memberLeft with reason "leave_group"); if it led, immediate succession (Groups.pickSuccessor, as Groups.succeed).
 -- The fiche, memories, observations and relations of the notebook are keyed by the NPC, never by its group:
@@ -388,7 +388,8 @@ function LK.leave(id, expect)
             data.groups[ng.id] = nil   -- identifier never reused (nextId kept)
             return true, {why = 'loner member refused: ' .. tostring(refused)}
         end
-        ng.members[nm].wound, ng.members[nm].vitals = m.wound, G.copy(m.vitals)
+        ng.members[nm].wounds, ng.members[nm].health = m.wounds, m.health   -- LK21-T03
+        ng.members[nm].vitals = G.copy(m.vitals)
         G.applyLeader(ng, nm, day)
         G.appendLog(ng, 'separated', gid, day)
         local wasLeader = G.applyLeave(old, mid, day, 'leave_group')

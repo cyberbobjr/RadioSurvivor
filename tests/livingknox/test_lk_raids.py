@@ -497,7 +497,9 @@ class OffscreenTests(RaidBase):
 
 
 # LK16-T09 : empreinte (sha256) relevée sur le code d'avant le registre des passes horaires de la simulation.
-FROZEN_RAID = 'cca07854decf33118930c3c87c4f45a0cdd0416cf42596b3b1b7270727b491f0'
+# Rebasée le 2026-11-17 (LK21-T03) : la simulation hors écran tient des plaies et une santé au lieu de la blessure
+# abstraite wound (tirages des plaies dans le flux de l'heure, membres gravement blessés selon la santé).
+FROZEN_RAID = '71d7186d51f16c4c14e482ef7495fbf51a205995e6d7d79bddb758ca4a12448b'
 
 
 class FrozenRaidTests(RaidBase):

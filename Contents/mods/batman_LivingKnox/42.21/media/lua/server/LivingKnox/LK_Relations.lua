@@ -51,6 +51,7 @@ require "LivingKnox/LK_Hostility"
 require "LivingKnox/LK_Decisions"   -- LK16-T05 : fournisseur de contexte (registerContext)
 require "LivingKnox/LK_Stock"
 require "LivingKnox/LK_Simulation"   -- LK16-T09 : passe horaire (registerHourly)
+require "LivingKnox/LK_MemberHealth"   -- LK21-T03 : partants pas gravement blessés
 require "LivingKnox/LK_Passage"   -- LK18-T01 : priorité de passage déclarée plus bas
 
 local Relations = LivingKnox.Relations or {}
@@ -376,7 +377,6 @@ Relations.REVENGE = Relations.REVENGE or {
     TEAM_MIN = 2,                  -- combattants (rôle qui permet fight ou defend), hors chef, valides, au foyer
     TEAM_MAX = 3,
     MIN_HOME = 1,                  -- vivants qui restent au foyer
-    WOUND_MAX = 20,                -- blessure abstraite au plus d'un partant (Config.SIMULATION.WOUND_MINOR)
     MAT_RADIUS = 80,               -- un joueur vivant à cet écart de la zone : l'équipe en traque reçoit ses corps
     SPAWN_MIN = 40,                -- cases : jamais un corps créé plus près d'un joueur vivant
     SPAWN_MAX = 75,                -- cases : recherche de la case d'apparition autour de la zone
@@ -622,11 +622,10 @@ end
 
 -- ------------------------------------------------------------------ hors écran (dans le pas de LK_Simulation)
 
--- Partants possibles (pur, registre vivant) : vivants au foyer (hors expédition), hors chef, combattants, blessure
--- abstraite au plus WOUND_MAX, sans corps (un corps au foyer veut dire un joueur proche : on attend) ; triés par
--- numéro. Rend la liste et le nombre de vivants au foyer.
+-- Partants possibles (pur, registre vivant) : vivants au foyer (hors expédition), hors chef, combattants, pas
+-- gravement blessés (MemberHealth.seriouslyWounded, LK21-T03), sans corps (un corps au foyer veut dire un joueur
+-- proche : on attend) ; triés par numéro. Rend la liste et le nombre de vivants au foyer.
 function Relations.revengeCandidates(g)
-    local cfg = revCfg()
     local away = {}
     if type(g.expedition) == "table" and type(g.expedition.team) == "table" then
         for _, mid in ipairs(g.expedition.team) do away[mid] = true end
@@ -635,7 +634,7 @@ function Relations.revengeCandidates(g)
     for mid, m in pairs(g.members) do
         if m.alive and not away[mid] then
             present = present + 1
-            if mid ~= g.leader and Relations.combatant(g.type, m.role) and (m.wound or 0) <= cfg.WOUND_MAX
+            if mid ~= g.leader and Relations.combatant(g.type, m.role) and not LivingKnox.MemberHealth.seriouslyWounded(m)
                 and not memberEmbodied(m) then
                 out[#out + 1] = mid
             end

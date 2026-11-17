@@ -10,8 +10,8 @@
 -- moteur, npc.hpMax = santé de naissance), tenu par l'autorité et sauvegardé avec le registre. Seules écritures :
 --   - Health.bodyBound (corps relié : création, retour de chunk, redémarrage ; appelé par Bodies.guardNow) : hp gardé
 --     s'il est connu (au plus hpMax), sinon santé du corps ;
---   - Health.setBirth (matérialisation d'un membre de groupe, LK09-T03 : santé tirée de la blessure abstraite du
---     membre, état décidé par la simulation de l'autorité) ;
+--   - Health.setBirth (matérialisation d'un membre de groupe, LK09-T03, LK21-T03 : santé et plaies du membre hors
+--     écran, état décidé par la simulation de l'autorité) ;
 --   - Health.applyHit (coup contrôlé, en baisse seulement) ;
 --   - Health.bleedPass (plaies, LK21-T02, en baisse seulement) ;
 --   - Health.noteHeal (soin connu de l'autorité, LK07-T03, LK_Care) et la régénération de Health.bleedPass
@@ -32,6 +32,9 @@
 --   - Soins : Health.stopBleeding (adaptateur provisoire de LK_Care jusqu'à LK21-T05 : bande les plaies qui
 --     saignent) ; les soins de LK21-T05 changeront les plaies par Health.wounds puis Health.woundsChanged.
 --   - PNJ virtuel (corps retiré) : plaies suspendues, reprises à la prochaine incarnation. Mort : plaies effacées.
+--   - Membre de groupe (LK21-T03, LK_Materialize) : ses plaies passent telles quelles au corps à la naissance
+--     (Health.setBirth) et lui reviennent au retrait (Health.handOver) ; la simulation hors écran les fait évoluer
+--     par la même formule (Wounds.healthStep, shared/LivingKnox/LK_WoundsHealth.lua).
 -- Régénération (LK21-T02, Wounds.regeneration) : chaque minute de jeu, un corps relié qui n'a pas toute sa santé en
 -- regagne comme un joueur éveillé et nourri du vanilla (BodyDamage.java:1887-1928), sans dépasser ce que ses plaies
 -- tiennent encore (Wounds.healthCap) ; soin connu (noteHeal) en plus.
@@ -84,14 +87,7 @@ LivingKnox.Config.HEALTH = LivingKnox.Config.HEALTH or {
     BURST = 5,                -- coups d'avance (paquets regroupés par le réseau)
     WARN_EVERY_MS = 60000,    -- une ligne par (attaquant, raison) au plus par minute
 }
--- Plaies (LK21-T02 ; les règles d'évolution sont celles du modèle, LK_Wounds.lua).
-LivingKnox.Config.BLEEDING = LivingKnox.Config.BLEEDING or {
-    STEP_MAX = 60,            -- minutes de jeu rattrapées au plus par passage (pause, chargement)
-    MAX = 0.6,                -- saignement réglable au plus par un administrateur (fraction de hpMax par heure)
-    ADMIN_KIND = "laceration",   -- plaie posée par un administrateur qui fait saigner un PNJ sans plaie
-    ADMIN_PART = "Torso_Upper",
-    BANDAGE_LIFE = { 0.5, 1.0 },   -- vie tirée d'un bandage posé, plus BandagePower (ISApplyBandage.lua:112, soin 0)
-}
+-- Plaies : réglages LivingKnox.Config.BLEEDING (LK_Config.lua, lus aussi par la simulation hors écran, LK21-T03).
 
 if isClient() then return Health end
 
@@ -100,6 +96,7 @@ require "LivingKnox/LK_Store"
 require "LivingKnox/LK_Bodies"
 require "LivingKnox/LK_Directives"
 require "LivingKnox/LK_WoundsForm"
+require "LivingKnox/LK_WoundsHealth"
 require "LivingKnox/LK_WoundSources"
 require "LivingKnox/LK_WoundContext"
 
@@ -235,17 +232,6 @@ function Health.bodyBound(id, z)
     return hp
 end
 
--- Santé de naissance décidée par l'autorité (matérialisation d'un membre, LK09-T03). Rend vrai si posée.
-function Health.setBirth(id, hp)
-    if not LivingKnox.isAuthority() or not LivingKnox.Identity.validHealth(hp) or hp <= 0 then return false end
-    local npc = npcOf(id)
-    if npc == nil or npc.state ~= LivingKnox.Identity.STATE_EMBODIED then return false end
-    npc.hp = hp
-    LivingKnox.Store.markDirty()
-    touch(id)
-    return true
-end
-
 -- Santé de référence du PNJ incarné id, ou nil (inconnue, PNJ virtuel ou mort).
 function Health.reference(id)
     local npc = npcOf(id)
@@ -305,6 +291,40 @@ function Health.woundsChanged(id)
     return true
 end
 
+-- Plaies du PNJ virtuel id rendues à la simulation hors écran (retrait d'un membre de groupe, LK21-T03) : forme
+-- sauvegardée (texte de Wounds.pack, ou nil sans plaie), retirée du registre des corps (un seul détenteur). PNJ
+-- inconnu ou incarné : nil, rien n'est retiré.
+function Health.handOver(id)
+    local npc = npcOf(id)
+    if npc == nil or npc.state ~= LivingKnox.Identity.STATE_VIRTUAL then return nil end
+    local text = npc.wounds
+    if text ~= nil then
+        clearWounds(npc)
+        LivingKnox.Store.markDirty()
+    end
+    return text
+end
+
+-- Santé de naissance décidée par l'autorité (matérialisation d'un membre, LK09-T03) et plaies du membre (LK21-T03 :
+-- forme sauvegardée de Wounds.pack, ou nil = aucune plaie ; forme refusée : signalée, aucune plaie). Rend vrai si
+-- posée.
+function Health.setBirth(id, hp, wounds)
+    if not LivingKnox.isAuthority() or not LivingKnox.Identity.validHealth(hp) or hp <= 0 then return false end
+    local npc = npcOf(id)
+    if npc == nil or npc.state ~= LivingKnox.Identity.STATE_EMBODIED then return false end
+    npc.hp = hp
+    local list, why = {}, nil
+    if wounds ~= nil then list, why = Wounds.unpack(wounds) end
+    if list == nil then
+        LivingKnox.Log.warn("npc %s: birth wounds not readable (%s), ignored", id, tostring(why))
+        list = {}
+    end
+    saveWounds(npc, list)
+    LivingKnox.Store.markDirty()
+    touch(id)
+    return true
+end
+
 -- Saignement du PNJ id (fraction de hpMax perdue par heure de jeu, somme des plaies), 0 s'il ne saigne pas.
 function Health.bleeding(id)
     local npc = npcOf(id)
@@ -344,21 +364,13 @@ local function woundFrom(id, npc, hit)
 end
 
 -- Arrête le saignement du PNJ id. ADAPTATEUR PROVISOIRE de LK_Care (LK07-T03) jusqu'à LK21-T05 (registre des soins) :
--- chaque plaie qui saigne reçoit un bandage (Wounds.bandage) de vie tirée dans BANDAGE_LIFE plus power (BandagePower
--- de l'objet, 0 par défaut), sans alcool. Rend le saignement arrêté (fraction par heure ; 0 : aucun).
+-- chaque plaie qui saigne reçoit un bandage (Wounds.bandageBleeding) de vie tirée dans BANDAGE_LIFE plus power
+-- (BandagePower de l'objet, 0 par défaut), sans alcool. Rend le saignement arrêté (fraction par heure ; 0 : aucun).
 function Health.stopBleeding(id, why, power)
     local npc = npcOf(id)
     if npc == nil then return 0 end
-    local list, ctx = woundsOf(npc), wctx()
-    local range = bcfg().BANDAGE_LIFE
-    local stopped = 0
-    for _, w in ipairs(list) do
-        local b = Wounds.woundBleeding(w, ctx)
-        if b > 0 then
-            Wounds.bandage(w, range[1] + (range[2] - range[1]) * ctx.rnd() + math.max(0, power or 0), false)
-            stopped = stopped + b
-        end
-    end
+    local list = woundsOf(npc)
+    local stopped = Wounds.bandageBleeding(list, wctx(), bcfg().BANDAGE_LIFE, power)
     if stopped <= 0 then return 0 end
     saveWounds(npc, list)
     LivingKnox.Store.markDirty()
@@ -378,8 +390,8 @@ local function gameMinute()
 end
 
 -- Évolution des plaies et régénération des corps reliés depuis le dernier passage (minutes manquées rattrapées, au plus
--- STEP_MAX) : santé baissée de hpLoss x hpMax (Wounds.advance), puis rendue comme au vanilla (Wounds.regeneration,
--- jamais au-dessus de Wounds.healthCap x hpMax quand une perte générale reste à rattraper). Santé gardée au millionième
+-- STEP_MAX) : formule commune au corps et à la simulation hors écran (Wounds.healthStep, LK_WoundsHealth.lua), santé
+-- rapportée à hpMax. Santé gardée au millionième
 -- (une minute de régénération ou de petit saignement vaut moins que le millième envoyé aux clients). Mort décidée par
 -- Health.kill (cause « bleeding ») quand la référence atteint 0. Rend le nombre de PNJ qui ont encore des plaies.
 local function round6(v) return math.floor(v * 1e6 + 0.5) / 1e6 end
@@ -388,17 +400,9 @@ local function woundPass(id, z, npc, steps)
     local list, ctx = woundsOf(npc), wctx()
     local full = fullOf(npc, z) or npc.hp
     local bleeding = Wounds.bleeding(list, ctx)
-    local out = Wounds.advance(list, steps, ctx)
+    local health, out = Wounds.healthStep(list, npc.hp / full, steps, ctx)
     Health.stats.healed = Health.stats.healed + #out.healed
-    local lowered = npc.hp - out.hpLoss * full
-    local hp = lowered
-    if hp > 0 then
-        local cap = Wounds.healthCap(list) * full
-        local general = hp < cap - 1e-9
-        local gain = Wounds.regeneration(list, steps, ctx, general) * full
-        if general then hp = math.min(cap, hp + gain) else hp = math.min(full, hp + gain) end
-        if hp < lowered then hp = lowered end   -- la régénération ne baisse jamais la santé
-    end
+    local hp = health * full
     saveWounds(npc, list)
     if hp < 0 then hp = 0 end
     local before = npc.hp

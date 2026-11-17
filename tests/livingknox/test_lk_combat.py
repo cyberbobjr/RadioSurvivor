@@ -1478,7 +1478,7 @@ class DefenceStackTests(DecisionCombatTests):
         self.assertEqual(self.ev(f'{C}.get("{fighter}").u'), 'A')
         self.assertNotEqual(self.st(worker)[1], 'surrender')
         # Blessé sous 60 % puis frappé encore : il se rend (arrêt, regard, mains levées) ; le groupe épargne le joueur.
-        self.update(gid, 'g.members["m-2"].wound = 50')
+        self.update(gid, 'g.members["m-2"].health = 0.5')
         self.assertTrue(self.hit_by(worker))
         self.dpass(3)
         rule, b, why = self.st(worker)
@@ -1516,7 +1516,7 @@ class DefenceStackTests(DecisionCombatTests):
         self.assertEqual(self.st(first)[1], 'fight')
         self.assertNotEqual(self.st(second)[1], 'fight')   # ne voit pas le joueur
         # Blessure à 70 (santé 30 % < 35 %) : retraite au foyer en courant, mêlée finie, cible passée au second.
-        self.update(gid, 'g.members["m-1"].wound = 70')
+        self.update(gid, 'g.members["m-1"].health = 0.3')
         self.dpass(2)
         rule, b, why = self.st(first)
         self.assertEqual((rule, b), ('threat', 'retreat'))
@@ -1532,7 +1532,7 @@ class DefenceStackTests(DecisionCombatTests):
         self.assertEqual(self.st(second)[1], 'fight')
         self.assertIn('(help)', self.st(second)[2])
         # Moral du groupe bas (20) : blessure 55 (santé 45 %) suffit au second pour se retirer.
-        self.update(gid, 'g.morale = 20 g.members["m-2"].wound = 55')
+        self.update(gid, 'g.morale = 20 g.members["m-2"].health = 0.45')
         self.dpass(2)
         rule, b, why = self.st(second)
         self.assertEqual(b, 'retreat')

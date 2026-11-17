@@ -135,7 +135,7 @@ LUA_FILES = [
     # LK21-T01 : modèle pur des plaies, soins demandés, forme sauvegardée, puis un fichier par type (Wounds/), triés
     # par nom comme au chargement du jeu.
     *[(f'LivingKnox/{name}', LK_LUA / 'shared' / 'LivingKnox' / f'{name}.lua')
-      for name in ('LK_Wounds', 'LK_WoundsNeeds', 'LK_WoundsForm')],
+      for name in ('LK_Wounds', 'LK_WoundsNeeds', 'LK_WoundsForm', 'LK_WoundsHealth')],
     *[(f'LivingKnox/Wounds/{p.stem}', p)
       for p in sorted((LK_LUA / 'shared' / 'LivingKnox' / 'Wounds').glob('*.lua'), key=lambda p: p.name.lower())],
     # LK21-T02 : sources de blessure (registre, contexte du jeu, un fichier par source sous server/LivingKnox/Wounds/),
@@ -152,6 +152,8 @@ LUA_FILES = [
     ('LivingKnox/Data/LK_Type_settlers', LK_LUA / 'shared' / 'LivingKnox' / 'Data' / 'LK_Type_settlers.lua'),
     ('LivingKnox/LK_Store', LK_LUA / 'server' / 'LivingKnox' / 'LK_Store.lua'),
     ('LivingKnox/LK_Groups', LK_LUA / 'server' / 'LivingKnox' / 'LK_Groups.lua'),
+    # LK21-T03 : plaies et santé des membres hors écran (requis par LK_Simulation).
+    ('LivingKnox/LK_MemberHealth', LK_LUA / 'server' / 'LivingKnox' / 'LK_MemberHealth.lua'),
     # LK09-T01 : simulation hors écran (logique pure sur un registre en mémoire).
     ('LivingKnox/LK_Simulation', LK_LUA / 'server' / 'LivingKnox' / 'LK_Simulation.lua'),
     # LK16-T09 : événements de groupe inscrits au registre de LK_Simulation, un par fichier (SimEvents/).
@@ -358,20 +360,25 @@ EXCHANGE_EVALS = [
     '.. bg.members[m1].npc .. " " .. tostring(bg.members[m1].alive) .. " " .. tostring(G.today()) .. " " '
     '.. d2[1].why .. " / " .. kind .. " " .. tostring(m3)',
     # LK09-T01 : simulation hors écran dans la VM réelle : 24 pas d'une heure = un rattrapage de 24 h (mêmes octets),
-    # valeurs identiques à celles de lupa (tirages Park-Miller, arrondi aléatoire, blessures, succession) ;
+    # valeurs identiques à celles de lupa (tirages Park-Miller, arrondi aléatoire, plaies et santé hors écran de LK21-T03 :
+    # plaie profonde au cou du chef sans soins, coupure d'un membre ; succession) ;
     # LK09-T02 : une expédition partie et revenue pendant les 24 h (dernier nombre : entrées « return »).
     'eval:local G = LivingKnox.Groups; local S = LivingKnox.Simulation; local C = require("CoreAI/CA_Codec"); '
     'LivingKnox.Config.SIMULATION.SEED = 4242; G.state.data, G.state.blocked = G.newRegistry(), false; '
     'G.save = function() return true end; local g = G.create({ type = "settlers", name = "Mill", day = 1 }); '
     'for _ = 1, 5 do G.addMember(g.id, { role = "worker" }) end; G.setLeader(g.id, "m-2", 1); local d = G.state.data; '
-    'd.groups[g.id].members["m-2"].wound = 97; d.groups[g.id].members["m-3"].wound = 30; d.groups[g.id].needs.medical = 0; '
+    'local W = LivingKnox.Wounds; local W0 = { rnd = function() return 0.5 end }; local L2, L3 = {}, {}; '
+    'W.add(L2, "Neck", "deep", W0); W.add(L3, "Hand_L", "laceration", W0); local m2, m3 = d.groups[g.id].members["m-2"], '
+    'd.groups[g.id].members["m-3"]; m2.wounds, m2.health = W.pack(L2), 0.3; m3.wounds, m3.health = W.pack(L3), 0.7; '
+    'd.groups[g.id].needs.medical = 0; '
     'd.simHour = 10; local a, b = G.copy(d), G.copy(d); '
     'for h = 11, 34 do S.advance(a, h) end; S.advance(b, 34); local ga = a.groups[g.id]; local rnd = S.stream(7, 1, 1); '
     'local s = 0; for _ = 1, 1000 do s = s + S.amount(0.5, rnd) end; '
     'local rets = 0; for _, e in ipairs(ga.log) do if e.kind == "return" then rets = rets + 1 end end; '
     'return "KR-SIM " .. tostring(C.hexBytes(C.encodeBytes(a)) == C.hexBytes(C.encodeBytes(b))) .. " " .. a.simHour '
     '.. " " .. ga.needs.food .. " " .. ga.needs.medical .. " " .. ga.needs.ammo .. " " .. ga.morale .. " " .. ga.rest '
-    '.. " " .. tostring(ga.leader) .. " " .. tostring(ga.members["m-2"].alive) .. " " .. tostring(ga.members["m-3"].wound) '
+    '.. " " .. tostring(ga.leader) .. " " .. tostring(ga.members["m-2"].alive) .. " " '
+    '.. tostring(math.floor((ga.members["m-3"].health or 1) * 10000 + 0.5)) '
     '.. " " .. s .. " " .. rets',
     # LK09-T05 : événements de groupe (combat compris) dans la VM réelle : 240 pas d'une heure = rattrapages de 72 h
     # (mêmes octets), nombre d'événements et valeurs identiques à lupa (tests/livingknox/test_lk_simulation.py, CrossVmTests).
@@ -1128,11 +1135,11 @@ class KahluaBench(unittest.TestCase):
     def test_simulation_in_kahlua(self):
         # Mêmes valeurs que sous lupa (tests/livingknox/test_lk_simulation.py, même graine et même état de départ) ; expéditions
         # comprises depuis LK09-T02 (réserve de soins à 0 : une équipe part et revient pendant les 24 h).
-        self.assertEqual(self.line('KR-SIM'), 'true 34 43 2 84 43 62 m-2 true 20 497 1')
+        self.assertEqual(self.line('KR-SIM'), 'true 34 48 13 66 30 52 m-1 false 10000 497 1')
 
     def test_simulation_events_in_kahlua(self):
         # LK09-T05 : événements (combat compris), mêmes valeurs que sous lupa (tests/livingknox/test_lk_simulation.py).
-        self.assertEqual(self.line('KR-EVT'), 'true 8 0 47 32 58 7 6 nil m-1')
+        self.assertEqual(self.line('KR-EVT'), 'true 4 0 44 31 58 7 6 nil m-1')
 
     def test_appearance_logic_in_kahlua(self):
         self.assertEqual(self.line('KR-APPEARANCE'), expected_appearance())

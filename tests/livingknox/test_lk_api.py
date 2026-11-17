@@ -164,7 +164,7 @@ class Base(unittest.TestCase):
             self.assertNotIn(s, dump, expr)
         self.assertNotIn('10637', dump)
         self.assertNotIn('9412', dump)
-        for key in ('home=', 'log=', 'story=', 'nextMember=', 'wound=', 'secrets='):
+        for key in ('home=', 'log=', 'story=', 'nextMember=', 'wounds=', 'secrets='):
             self.assertNotIn(key, dump, expr)
         return dump
 
@@ -267,7 +267,7 @@ class PublicGroupTests(Base):
             local v = LivingKnox.API.getGroup("{self.a}")
             v.area = {{ x = 10637, y = 9412, size = 1 }}
             v.secret = "hidden"; v.home = nil; v.name = function() end; v.leader.obj = HARNESS.zombies[1001]
-            v.members[1].wound = 40; v.members[1].npc = HARNESS.zombies[1001]; v.needs.water = 3
+            v.members[1].wounds = "x"; v.members[1].npc = HARNESS.zombies[1001]; v.needs.water = 3
             PUB = LivingKnox.API.publicGroup(v)
         ''')
         dump = self.assert_clean('PUB')

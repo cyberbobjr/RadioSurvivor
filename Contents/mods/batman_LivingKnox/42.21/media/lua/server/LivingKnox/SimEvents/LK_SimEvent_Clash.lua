@@ -58,16 +58,17 @@ local function clashTargets(data, ids, gid, e, bases, done)
     return out
 end
 
--- Force au foyer : 1 par membre, 0.5 par blessé grave (WOUND_SERIOUS).
+-- Force au foyer : 1 par membre, 0.5 par membre gravement blessé (MemberHealth.seriouslyWounded, LK21-T03).
 local function strength(g, home)
-    local serious, s = LivingKnox.Config.SIMULATION.WOUND_SERIOUS, 0
+    local s = 0
     for _, mid in ipairs(home) do
-        if (g.members[mid].wound or 0) >= serious then s = s + 0.5 else s = s + 1 end
+        if LivingKnox.MemberHealth.seriouslyWounded(g.members[mid]) then s = s + 0.5 else s = s + 1 end
     end
     return s
 end
 
--- Un tirage par membre au foyer : perte (lossRate, MAX_DEATHS au plus, au-delà : blessure), sinon blessure.
+-- Un tirage par membre au foyer : perte (lossRate, MAX_DEATHS au plus, au-delà : blessure), sinon blessure (coup de la
+-- source SOURCE : plaies et HIT_MIN..HIT_MAX % de santé, LK21-T03).
 local function casualties(g, home, lossRate, woundRate, e, rnd)
     local dead, wounded = {}, {}
     for _, mid in ipairs(home) do
@@ -75,7 +76,7 @@ local function casualties(g, home, lossRate, woundRate, e, rnd)
         if r < lossRate and #dead < e.MAX_DEATHS then
             dead[#dead + 1] = mid
         elseif r < lossRate + woundRate then
-            kit.hurt(g.members[mid], e.WOUND_MIN, e.WOUND_MAX, rnd)
+            kit.hit(g.members[mid], e.SOURCE, e.HIT_MIN, e.HIT_MAX, rnd)
             wounded[#wounded + 1] = mid
         end
     end
@@ -160,7 +161,7 @@ Simulation.registerEvent({
     bounds = { CHANCE = { 0, 1 }, CHANCE_NEEDY = { 0, 1 }, MAX_DISTANCE = { 0, 100000, true },
         PLAYER_DISTANCE = { 80, 100000, true }, MIN_FORCE = { 1, 32, true }, DEFENSE_BONUS = { 0.1, 10 },
         LOSS_WIN = { 0, 1 }, LOSS_LOSE = { 0, 1 }, WOUND_WIN = { 0, 1 }, WOUND_LOSE = { 0, 1 },
-        MAX_DEATHS = { 0, 32, true }, WOUND_MIN = { 0, 99, true }, WOUND_MAX = { 0, 99, true },
+        MAX_DEATHS = { 0, 32, true }, HIT_MIN = { 0, 99, true }, HIT_MAX = { 0, 99, true },
         LOOT_SHARE = { 0, 1 }, LOOT_MAX = { 0, 100, true }, AMMO_COST = { 0, 100, true },
         MORALE_WIN = { -100, 100 }, MORALE_LOSE = { -100, 100 }, PLACE_ROUND = { 1, 1000, true } },
     -- Types attaquants : ensemble des chaînes de la liste ATTACKERS (autres entrées ignorées).

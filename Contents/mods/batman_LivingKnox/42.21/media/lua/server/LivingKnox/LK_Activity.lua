@@ -21,6 +21,7 @@
 if isClient() then return end
 
 require "LivingKnox/LK_Core"
+require "LivingKnox/LK_MemberHealth"   -- LK21-T03 : santé et plaies des membres
 
 local Activity = LivingKnox.Activity or {}
 LivingKnox.Activity = Activity
@@ -162,8 +163,10 @@ end
 -- Activité d'un membre (valeurs simples). reg : registre des PNJ (Store.data()) ou nil.
 local function memberView(gid, g, mid, m, reg)
     local v = { id = mid, npc = m.npc, role = m.role, profile = m.profile, alive = m.alive == true,
-        leader = g.leader == mid, duty = m.duty, wound = m.wound or 0 }
+        leader = g.leader == mid, duty = m.duty }
     if not v.alive then return v end
+    local h = LivingKnox.MemberHealth.summary(m)   -- LK21-T03 : santé du corps, ou hors écran, et nombre de plaies
+    v.hp, v.wounds = h.pct, h.wounds
     v.away = onExpedition(g, mid) or nil
     local id = m.npc
     local npc = reg ~= nil and type(id) == "string" and reg.npcs[id] or nil
@@ -193,10 +196,6 @@ local function memberView(gid, g, mid, m, reg)
     if c ~= nil then v.combat = { k = c.k, u = c.u, phase = c.phase } end
     local An = LivingKnox.Anim
     v.gesture = An ~= nil and An.shownOf ~= nil and An.shownOf(id) or nil
-    local H = LivingKnox.Health
-    local h = H ~= nil and H.get ~= nil and H.get(id) or nil
-    if h ~= nil and LivingKnox.Num.finite(h.hp) and LivingKnox.Num.finite(h.max)
-        and h.max > 0 then v.hp = round1(100 * h.hp / h.max) end
     return v
 end
 

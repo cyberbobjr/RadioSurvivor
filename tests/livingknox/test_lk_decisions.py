@@ -417,7 +417,7 @@ class MultiplayerDecisionTests(MatBase):
         # LK06-T07 : la fuite dépend des constantes, non du rôle : l'ouvrier m-2 est blessé (santé 40 %) et fuit ; le
         # combattant m-1, valide, tient (regard). Un ouvrier valide tient aussi (test_cascade, banc pur).
         gid = self.mk()
-        self.run_lua(f'LivingKnox.Groups.state.data.groups["{gid}"].members["m-2"].wound = 60')
+        self.run_lua(f'LivingKnox.Groups.state.data.groups["{gid}"].members["m-2"].health = 0.4')
         self.assertEqual(self.ev(f'{D}.healthOf(LivingKnox.Groups.state.data.groups["{gid}"].members["m-2"])'), 0.4)
         self.all_members(gid, 4)
         fx, fy = self.body_xy(gid, 'm-1')
@@ -445,7 +445,7 @@ class MultiplayerDecisionTests(MatBase):
         self.assertEqual(d2[:2], ('move', 'run'))
         self.assertLess(d2[2], wx - 5)                             # s'éloigne vers l'ouest
         self.run_lua(f'local g = LivingKnox.Groups.state.data.groups["{gid}"] g.home = {{ x = 110, y = 110, z = 0 }} '
-                     'g.members["m-2"].wound = 0 g.members["m-2"].duty = "keeper"')   # soigné : suite d'avant
+                     'g.members["m-2"].health = nil g.members["m-2"].duty = "keeper"')   # soigné : suite d'avant
         self.assertGreaterEqual(self.ev(f'{D}.knownThreats("{gid}", {D}.currentHour())'), 2)
         # Menace disparue (interruption) : poste du groupe ; le corps n'a pas bougé (serveur seul propriétaire, consigne
         # suspendue) et reste au foyer : la fuite est arrêtée.

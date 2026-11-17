@@ -280,8 +280,8 @@ class DefenseStack(AlertStack):
         return self.ev(f'LivingKnox.Anim.gestureOf(MEMBER_NPC("{gid}", "{mid}"))', m)
 
     def hurt(self, gid, mid, ratio):
-        """Santé de référence (LK_Health) du membre à ratio x sa santé de naissance, blessure du registre alignée."""
-        self.update(gid, f'g.members["{mid}"].wound = {int(round((1 - ratio) * 100))}')
+        """Santé de référence (LK_Health) du membre à ratio x sa santé de naissance, santé hors écran alignée."""
+        self.update(gid, f'g.members["{mid}"].health = {ratio if ratio < 1 else "nil"}')
         self.run_lua(f'local n = LivingKnox.Store.data().npcs[MEMBER_NPC("{gid}", "{mid}")] '
                      f'if n.hpMax ~= nil then n.hp = n.hpMax * {ratio} end')
 

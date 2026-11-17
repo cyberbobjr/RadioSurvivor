@@ -15,15 +15,18 @@
 --   - lien vers un PNJ incarné : rien (son corps existe, chargé ou mis de côté) ;
 --   - lien vers un PNJ mort alors que le membre est vivant (mort d'un corps avant cette tâche) : le membre est marqué
 --     mort (Materialize.onBodyDied), jamais recréé.
--- Santé : celle de naissance du corps (npc.hpMax, robustesse du moteur) réduite selon la blessure abstraite du membre
--- (wound 0..99 -> santé x (100 - wound) / 100), posée sur la copie de l'autorité dans le même appel Lua que la
--- création : un client MP la reçoit avec sa copie (J/popman/NetworkZombieSimulator.java:200).
+-- Santé et plaies (LK21-T03) : le corps naît avec la santé hors écran du membre (fraction member.health de sa santé
+-- de naissance npc.hpMax, robustesse du moteur), posée sur la copie de l'autorité dans le même appel Lua que la
+-- création (un client MP la reçoit avec sa copie, J/popman/NetworkZombieSimulator.java:200), et avec ses plaies telles
+-- quelles (member.wounds, Health.setBirth). Le membre garde sa dernière santé hors écran tant qu'il est incarné
+-- (LivingKnox.MemberHealth lit alors celle du corps).
 -- Place : cases du foyer au même niveau, à PLACE_RADIUS cases au plus, la plus proche d'abord : même bâtiment que la
 -- case du foyer (IsoGridSquare.getBuildingDef, par la pièce, J/iso/IsoGridSquare.java:7805-7816) ou, foyer hors de
 -- tout bâtiment (camp), cases hors bâtiment ; jamais un escalier (isFree(false) y est vrai, J/iso/IsoGridSquare.java:
 -- 2173-2175 HasStairs) ; chaque case doit satisfaire Bodies.freeSquare (case libre de LK02-T11).
--- Retrait (Bodies.release, LK03-T04) : Materialize.onReleased convertit la santé gardée en blessure du membre (le
--- membre est de nouveau traité par la simulation horaire, présent au foyer). Mort d'un corps de membre
+-- Retrait (Bodies.release, LK03-T04) : Materialize.onReleased rend au membre la santé gardée (rapportée à hpMax) et
+-- les plaies du corps telles quelles (Health.handOver) ; le membre est de nouveau traité par la simulation horaire,
+-- présent au foyer. Mort d'un corps de membre
 -- (Bodies.onZombieDead) : Materialize.onBodyDied marque le membre mort une seule fois, sans second fait memberDied
 -- (Groups.applyDeath quiet), succession immédiate et moral comme une mort hors écran.
 if isClient() then return end
@@ -37,6 +40,7 @@ require "LivingKnox/LK_GroupTypes"
 require "LivingKnox/LK_Bodies"
 require "LivingKnox/LK_Groups"
 require "LivingKnox/LK_StopPlace"
+require "LivingKnox/LK_MemberHealth"
 
 local Materialize = LivingKnox.Materialize or {}
 LivingKnox.Materialize = Materialize
@@ -72,32 +76,6 @@ function Materialize.settings()
     }
     s.radius = math.floor(num(raw.RADIUS, 1, math.max(1, release - s.placeRadius - 1), 80))
     return s
-end
-
--- Santé <-> blessure abstraite (logique pure) ------------------------------------------------------------------------
-
-local function woundMax()
-    local c = LivingKnox.Config.SIMULATION
-    local death = c and c.WOUND_DEATH or 100
-    return math.max(0, death - 1)
-end
-
--- Santé d'un corps neuf pour une blessure wound (0..99) et une santé de naissance full : full x (100 - wound) / 100.
--- Une blessure abstraite ne tue jamais à la matérialisation (au plus WOUND_DEATH - 1).
-function Materialize.healthOf(wound, full)
-    local w = math.floor(num(wound, 0, woundMax(), 0))
-    return full * (100 - w) / 100
-end
-
--- Blessure abstraite (0..WOUND_DEATH - 1, entier) d'une santé hp rapportée à la santé de naissance full ; nil si hp
--- est inconnue. Un corps vivant n'est jamais rendu mort par la conversion ; une santé au-dessus de full = indemne.
-function Materialize.woundOf(hp, full)
-    if type(hp) ~= "number" or hp ~= hp then return nil end
-    if type(full) ~= "number" or full ~= full or full <= 0 then return nil end
-    local w = math.floor(100 * (1 - hp / full) + 0.5)
-    if w < 0 then w = 0 end
-    if w > woundMax() then w = woundMax() end
-    return w
 end
 
 -- Membres -----------------------------------------------------------------------------------------------------------
@@ -260,41 +238,55 @@ function Materialize.onBodyDied(npcId, gid, mid)
     return false
 end
 
--- PNJ npcId rendu à la simulation abstraite (Bodies.release) avec la santé gardée hp (ou nil) : blessure du membre
--- lié = Materialize.woundOf(hp, npc.hpMax ou FULL_HEALTH) ; membre de nouveau présent au foyer pour la simulation
--- horaire. Santé inconnue : blessure inchangée. Rend la blessure retenue, ou nil.
+-- Santé hors écran (fraction ]0, 1], nil = pleine) d'une santé hp rapportée à la santé de naissance full ; nil si hp
+-- est inconnue. Un corps vivant n'est jamais rendu mort ; une santé au-dessus de full = pleine santé.
+local function healthOf(hp, full)
+    if not LivingKnox.Num.finite(hp) or not LivingKnox.Num.finite(full) or full <= 0 then return nil end
+    local h = math.floor(hp / full * 1e6 + 0.5) / 1e6
+    if h >= 1 then return 1 end
+    return math.max(1e-6, h)
+end
+
+-- PNJ npcId rendu à la simulation abstraite (Bodies.release) avec la santé gardée hp (ou nil) : santé du membre lié
+-- = hp / (npc.hpMax ou FULL_HEALTH), plaies du corps reprises telles quelles (Health.handOver) ; membre de nouveau
+-- présent au foyer pour la simulation horaire. Santé inconnue : santé hors écran inchangée (plaies reprises quand
+-- même). Rend la santé retenue (fraction), ou nil.
 function Materialize.onReleased(npcId, hp, npc)
     local G = LivingKnox.Groups
     local gid, mid = G.findNpc(npcId)
     if gid == nil then return nil end
     local full = npc and npc.hpMax or Materialize.settings().fullHealth
-    local wound = Materialize.woundOf(hp, full)
+    local health = healthOf(hp, full)
+    local H = LivingKnox.Health
+    local handed = H ~= nil and H.handOver ~= nil   -- plaies tenues par le corps (LK_Health), sinon gardées au membre
+    local wounds = handed and H.handOver(npcId) or nil
     local kept = G.update(function(data)
         local m = data.groups[gid] and data.groups[gid].members[mid]
-        if m == nil or not m.alive or wound == nil then return false, false end
-        local before = m.wound or 0
-        if wound > 0 then m.wound = wound else m.wound = nil end
-        return before ~= wound, true
+        if m == nil or not m.alive then return false, false end
+        if handed then m.wounds = wounds end
+        if health == nil then return true, false end
+        if health < 1 then m.health = health else m.health = nil end
+        return true, true
     end)
     Materialize.stats.released = Materialize.stats.released + 1
     -- LK05-T05, LK16-T04 : événement "memberReleased" (LK_Expeditions : membre d'une expédition physique, équipe ou
     -- bascule hors écran).
     LivingKnox.publish("memberReleased", { group = gid, member = mid })
-    LivingKnox.Log.info("group %s member %s back to the offscreen simulation at home (npc %s): health %s of %s, wound %s",
+    LivingKnox.Log.info("group %s member %s back to the offscreen simulation at home (npc %s): health %s of %s, %s",
         gid, mid, npcId, hp and string.format("%.3f", hp) or "unknown", string.format("%.3f", full),
-        wound and tostring(wound) or "unchanged")
-    if kept == true then return wound end
+        kept == true and (wounds ~= nil and "wounds kept" or "no wound") or "unchanged")
+    if kept == true then return health end
     return nil
 end
 
 -- Création ------------------------------------------------------------------------------------------------------------
 
--- Pose la santé d'un corps neuf selon la blessure du membre. Rend la santé posée, ou nil (indemne).
-local function applyWound(z, npc, m, s)
-    local w = m.wound or 0
-    if w <= 0 then return nil end
-    local full = npc.hpMax or s.fullHealth
-    local hp = Materialize.healthOf(w, full)
+-- Pose la santé d'un corps neuf selon la santé hors écran du membre (MemberHealth.health). Rend la santé posée, ou nil
+-- (pleine santé).
+local function applyHealth(z, npc, m, s)
+    local health = LivingKnox.MemberHealth.health(m)
+    if health >= 1 then return nil end
+    local hp = (npc.hpMax or s.fullHealth) * health
     z:setHealth(hp)
     return hp
 end
@@ -332,13 +324,13 @@ function Materialize.embodyMember(gid, g, mid, m, sq, s)
     else
         return nil, "npc " .. tostring(m.npc) .. " is " .. tostring(state)
     end
-    local hp = applyWound(z, npc, m, s)
-    -- Santé de référence (LK07-T02) : celle que la simulation donne au membre (blessure abstraite), décidée ici.
+    local hp = applyHealth(z, npc, m, s)
+    -- Santé de référence (LK07-T02) et plaies (LK21-T03) : celles que la simulation donne au membre, décidées ici.
     local H = LivingKnox.Health
-    if H ~= nil and H.setBirth ~= nil then H.setBirth(npcId, hp or z:getHealth()) end
-    LivingKnox.Log.info("group %s member %s materialized as npc %s at %s,%s,%s (wound %s, health %s)", gid, mid, npcId,
-        tostring(x), tostring(y), tostring(zz), tostring(m.wound or 0),
-        string.format("%.3f", hp or z:getHealth()))
+    if H ~= nil and H.setBirth ~= nil then H.setBirth(npcId, hp or z:getHealth(), m.wounds) end
+    LivingKnox.Log.info("group %s member %s materialized as npc %s at %s,%s,%s (health %s, %s)", gid, mid, npcId,
+        tostring(x), tostring(y), tostring(zz), string.format("%.3f", hp or z:getHealth()),
+        m.wounds ~= nil and "wounded" or "no wound")
     return npcId, z
 end
 

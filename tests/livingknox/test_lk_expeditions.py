@@ -194,7 +194,7 @@ class PureExpeditionTests(PureBase):
     def test_abstract_return_never_loses_a_member_and_is_reproducible(self):
         code = f'''local function run(seed, find)
             {EX}.CFG.ABSTRACT_FIND = find
-            local g = {{ members = {{ ["m-3"] = {{ alive = true, wound = 10 }}, ["m-4"] = {{ alive = true }},
+            local g = {{ members = {{ ["m-3"] = {{ alive = true, health = 0.9 }}, ["m-4"] = {{ alive = true }},
                 ["m-5"] = {{ alive = false }} }}, log = {{}},
                 expedition = {{ place = "trip", team = {{ "m-3", "m-4", "m-5" }}, departed = 10, returns = 12, trip = 2 }},
                 trips = {{ v = 1, n = 2, seen = {{}}, cur = {{ n = 2, phase = "away", from = "search",
@@ -205,7 +205,7 @@ class PureExpeditionTests(PureBase):
             local parts = {{}}
             for _, e in ipairs(g.trips.cur.carry) do parts[#parts + 1] = e.t .. (e.a and "*" or "") end
             return {{ r.back, r.found, g.trips.cur.phase, tostring(g.expedition == nil), table.concat(parts, " "),
-                tostring(g.members["m-3"].alive) .. tostring(g.members["m-4"].alive) .. g.members["m-3"].wound,
+                tostring(g.members["m-3"].alive) .. tostring(g.members["m-4"].alive) .. tostring(g.members["m-3"].health),
                 g.log[#g.log].kind }}
         end
         local a = run(4, 0.5)
@@ -218,7 +218,7 @@ class PureExpeditionTests(PureBase):
         self.assertTrue(same)                                             # même flux : même butin
         self.assertEqual((back, found, phase, cleared), (2, 2, 'deliver', True))   # charge 3 : 1 porté + 2
         self.assertEqual(carry, 'Base.Pills Base.WaterBottle* Base.WaterBottle*')
-        self.assertEqual(alive, 'truetrue10')                             # ni mort ni blessure
+        self.assertEqual(alive, 'truetrue0.9')                             # ni mort ni blessure
         self.assertEqual(kind, 'trip')
         self.assertTrue(bounded)
 

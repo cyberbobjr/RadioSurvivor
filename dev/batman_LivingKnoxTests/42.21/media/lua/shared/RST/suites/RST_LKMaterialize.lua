@@ -1,14 +1,14 @@
 --[[
 lk.materialize - Living Knox groups materialized near a player (LK09-T03, server/LivingKnox/LK_Materialize.lua):
 the player is moved next to the home of a group of the initial population; the living members present at home
-(not on an expedition, not dead) get bodies, with the health of their abstract wound; the player leaves beyond the
+(not on an expedition, not dead) get bodies, with their off-screen health; the player leaves beyond the
 release radius (release delay shortened to 3 s for the test), the bodies go back to the offscreen simulation; the
 player comes back: the same npcs come back (same ids, next generation, no new npc number), no dead member.
 Tags "world" and "server": the authority only, on a save named rstest*, with a target player (t.ctx.player); the
 Living Knox option Enabled must be on and the initial population made (at least one group with a home).
 Solo: RST.run({ suite = "lk.materialize", tags = "world" }); dedicated server: RST.server({ suite =
 "lk.materialize", tags = "world" }) from an admin client. Asynchronous run only (teleports and waits, about 2 min).
-Each body is printed as a note ("member m-<k> npc lk-<n> wound w health h") for the report.
+Each body is printed as a note ("member m-<k> npc lk-<n> offscreen health w health h") for the report.
 ]]
 
 require "RST/RST"
@@ -97,11 +97,11 @@ RST.suite("lk.materialize", { tags = { "world", "server" }, testTimeoutMs = 3000
                     local b = found[mid]
                     t3:ok(b ~= nil, "member " .. mid .. " has no body")
                     local npc = registry.npcs[b.npc]
-                    local w = live.members[mid].wound or 0
+                    local w = live.members[mid].health or 1   -- LK21-T03: off-screen health (fraction)
                     local full = npc.hpMax or E.Materialize.settings().fullHealth
-                    t3:near(E.Materialize.healthOf(w, full), b.body:getHealth(), 0.01, "health of " .. mid)
+                    t3:near(w * full, b.body:getHealth(), 0.01, "health of " .. mid)
                     ids[mid], gens[mid] = b.npc, npc.generation
-                    t3:note("member " .. mid .. " npc " .. b.npc .. " wound " .. w .. " health "
+                    t3:note("member " .. mid .. " npc " .. b.npc .. " offscreen health " .. w .. " health "
                         .. string.format("%.3f", b.body:getHealth()) .. " at " .. math.floor(b.body:getX()) .. ","
                         .. math.floor(b.body:getY()))
                 end

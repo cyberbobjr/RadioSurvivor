@@ -364,7 +364,7 @@ class SoloChoreTests(ChoreStack):
                 'tostring(p.x), tostring(p.y), tostring(p.z), tostring(p.a), tostring(p.gesture) }, "|") '
                 'end end end end return table.concat(out, ";")')
         healthy = self.run_lua(code)
-        self.update(gid, 'g.members["m-3"].wound = 70')
+        self.update(gid, 'g.members["m-3"].health = 0.3')
         hurt = self.run_lua(code)
         seen = {row.split('|')[2] for row in (healthy + ';' + hurt).split(';')}
         self.assertEqual(seen, set(CHORES))                                    # la grille couvre toutes les corvées
@@ -428,7 +428,7 @@ class SoloChoreTests(ChoreStack):
         healthy = self.run_lua(code).split(' ')
         self.assertFalse(any(p.startswith('care@') for p in healthy), healthy)
         self.assertIsNotNone(wounded)
-        self.update(gid, 'g.members["m-3"].wound = 70')                      # santé 30 % (Decisions.healthOf)
+        self.update(gid, 'g.members["m-3"].health = 0.3')                      # santé 30 % (Decisions.healthOf)
         hurt = self.run_lua(code).split(' ')
         care = [p for p in hurt if p.startswith('care@')]
         self.assertTrue(care, hurt)

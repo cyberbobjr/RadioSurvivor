@@ -1,7 +1,8 @@
 -- Living Knox : événement de groupe « conflict » de la simulation hors écran (LK09-T05 ; un fichier par événement,
 -- LK16-T09). Fiche : docs/annexes/conception/simulation.md. Ordre du tirage 30.
 -- Deux membres au foyer s'opposent (le premier hors chef ; le second est le chef si contesté), blessure légère possible
--- de l'un d'eux, moral. Aucun changement de chef (journal seulement).
+-- de l'un d'eux (LK21-T03 : coup de la source SOURCE, plaies et HIT_MIN..HIT_MAX % de santé), moral. Aucun
+-- changement de chef (journal seulement).
 if isClient() then return end
 
 require "LivingKnox/LK_Simulation"
@@ -12,8 +13,8 @@ local kit = Simulation.eventKit
 Simulation.registerEvent({
     id = "conflict", order = 30, config = "CONFLICT",
     bounds = { CHANCE = { 0, 1 }, CHANCE_LOW_NEED = { 0, 1 }, MORALE_MAX = { 0, 100, true },
-        MIN_MEMBERS = { 2, 32, true }, MORALE = { -100, 100 }, WOUND_CHANCE = { 0, 1 }, WOUND_MIN = { 0, 99, true },
-        WOUND_MAX = { 0, 99, true }, CONTEST_CHANCE = { 0, 1 } },
+        MIN_MEMBERS = { 2, 32, true }, MORALE = { -100, 100 }, WOUND_CHANCE = { 0, 1 }, HIT_MIN = { 0, 99, true },
+        HIT_MAX = { 0, 99, true }, CONTEST_CHANCE = { 0, 1 } },
     -- Assez de monde au foyer, et moral bas ou une réserve basse (chance accrue par réserve basse).
     chance = function(e, ctx)
         if #ctx.home >= e.MIN_MEMBERS and (ctx.g.morale < e.MORALE_MAX or ctx.low > 0) then
@@ -46,7 +47,7 @@ Simulation.registerEvent({
         if rnd() < e.WOUND_CHANCE then
             wounded = a
             if rnd() < 0.5 then wounded = b end
-            kit.hurt(g.members[wounded], e.WOUND_MIN, e.WOUND_MAX, rnd)
+            kit.hit(g.members[wounded], e.SOURCE, e.HIT_MIN, e.HIT_MAX, rnd)
             parts[#parts + 1] = wounded .. " wounded"
         end
         g.morale = kit.clamp(g.morale + e.MORALE)

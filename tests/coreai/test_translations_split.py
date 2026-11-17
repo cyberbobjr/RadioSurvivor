@@ -232,6 +232,10 @@ ADDED |= {'IGUI_RS_Radio_trade', 'IGUI_RS_TradeDeal', 'IGUI_RS_RepReason_TradeNo
 ADDED |= {'IGUI_RS_FreqDebug_Col_draw', 'IGUI_RS_FreqDebug_Drawn'} | {
     f'IGUI_RS_FreqDebug_Radio_{level}' for level in ('any_talkie', 'good_talkie', 'pro_talkie', 'tactical', 'military')}
 REMOVED |= {'IGUI_RS_FreqDebug_Col_ranges', 'IGUI_RS_FreqDebug_Radio_any', 'IGUI_RS_FreqDebug_Radio_high_tier'}
+# LK21-T03: off-screen members carry real wounds and a health, no more abstract wound level.
+RENAMED.update({'IGUI_LK_Admin_Wound': 'IGUI_LK_Admin_Health', 'IGUI_LK_Debug_Wound': 'IGUI_LK_Debug_Wounds',
+                'IGUI_LK_Sheet_Field_wound': 'IGUI_LK_Sheet_Field_offhealth'})
+ADDED |= {'IGUI_LK_Sheet_OffscreenCell'}
 
 
 class TranslationSplitTests(unittest.TestCase):

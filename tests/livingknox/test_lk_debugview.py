@@ -298,11 +298,11 @@ class TableTests(ViewBase):
         dead = self.ev(f'{V}.memberCells({{ id = "m-4", npc = "lk-9", role = "scout", alive = false }})')
         self.assertEqual((dead.npc, dead.behaviour, dead.pos), ('lk-9 - IGUI_LK_Debug_Dead', '-', '-'))
         m = self.ev(f'{V}.memberCells({{ id = "m-2", name = "Bob Ray", npc = "lk-7", role = "worker", alive = true, '
-                    'away = true, b = "meal", rule = "hunger", why = "hunger 95", key = "stock", hp = 42.5, wound = 3, '
+                    'away = true, b = "meal", rule = "hunger", why = "hunger 95", key = "stock", hp = 42.5, wounds = 3, '
                     'pos = { x = 10.6, y = 20.2, z = 0, last = true }, needs = { hunger = 95, thirst = 1, fatigue = 2, '
                     'fear = 0 } })')
         self.assertEqual((m.member, m.npc), ('m-2 Bob Ray', 'lk-7 - IGUI_LK_Debug_Away'))
-        self.assertEqual((m.rule, m.target, m.health), ('hunger: hunger 95', 'stock', '42.5 % IGUI_LK_Debug_Wound|3'))
+        self.assertEqual((m.rule, m.target, m.health), ('hunger: hunger 95', 'stock', '42.5 % IGUI_LK_Debug_Wounds|3'))
         self.assertEqual(m.pos, 'IGUI_LK_Debug_Pos_last|10,20,0')
         # LK13-T16 : source donnée par l'autorité, foyer du groupe dans la liste des groupes.
         home = self.ev(f'{V}.memberCells({{ id = "m-3", npc = "lk-8", alive = true, '

@@ -287,6 +287,23 @@ function Wounds.unbandage(w)
     w.bandage = nil
 end
 
+-- Premier soin : chaque plaie de list qui saigne à nu reçoit un bandage sans alcool de vie tirée dans range
+-- ({ min, max }) plus power (BandagePower de l'objet, 0 par défaut). Rend le saignement arrêté (fraction de la santé
+-- maximale par heure) et le nombre de bandages posés. Corps incarné (LK_Health.stopBleeding) et simulation hors écran
+-- (LK_MemberHealth.care) font ce même soin.
+function Wounds.bandageBleeding(list, ctx, range, power)
+    local stopped, count = 0, 0
+    for _, w in ipairs(list) do
+        local b = Wounds.woundBleeding(w, ctx)
+        if b > 0 then
+            Wounds.bandage(w, roll(ctx, range) + math.max(0, power or 0), false)
+            stopped = stopped + b
+            count = count + 1
+        end
+    end
+    return stopped, count
+end
+
 -- Désinfectant : puissance d'alcool ajoutée (ISDisinfect.lua:71).
 function Wounds.disinfect(w, power)
     w.alcohol = (w.alcohol or 0) + math.max(0, power or 0)

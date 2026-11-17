@@ -23,6 +23,8 @@ import bench_paths  # noqa: E402,F401  (tests/commun and tests/coreai on sys.pat
 from test_lk_bodies import lua_list  # noqa: E402
 from harness import LK_LUA  # noqa: E402  (E18-T07)
 from test_lk_reports import ReleaseBase  # noqa: E402
+from test_lk_simulation import hurt  # noqa: E402  (LK21-T03 : plaies et santé d'un membre hors écran)
+from test_lk_health import HEALTH, HEALTH_DOUBLES, wound_files  # noqa: E402  (LK21-T03)
 
 MATERIALIZE = LK_LUA / 'server' / 'LivingKnox' / 'LK_Materialize.lua'
 from harness import tests_lua  # noqa: E402  (E21-T07: media/lua of the test mods)
@@ -110,6 +112,8 @@ class MatBase(ReleaseBase):
         h = super().make(root)
         for m in (['solo'] if self.mode == 'solo' else ['server', 'A', 'B']):
             h.load(m, MAT_DOUBLES)
+            for path in wound_files():   # LK21-T03 : types de plaie et sources, chargés par le jeu
+                h.load(m, path)
         return h
 
     def setUp(self):
@@ -158,11 +162,12 @@ class MatBase(ReleaseBase):
 
 class MultiplayerMaterializeTests(MatBase):
     def prepared(self):
-        """Groupe de cinq : m-1 chef, m-3 blessé (40), m-4 mort, m-5 en expédition. Joueurs loin."""
+        """Groupe de cinq : m-1 chef, m-3 blessé (santé hors écran 60 %), m-4 mort, m-5 en expédition. Joueurs
+        loin."""
         gid = self.mk_group()
         self.run_lua(f'assert(LivingKnox.Groups.markDead("{gid}", "m-4", 1))')
         self.update(gid, 'g.expedition = { place = "houses", team = { "m-5" }, departed = 0, returns = 100000 } '
-                         'g.members["m-3"].wound = 40')
+                         'g.members["m-3"].health = 0.6')
         return gid
 
     def test_present_members_get_bodies_from_the_simulated_state(self):
@@ -179,7 +184,7 @@ class MultiplayerMaterializeTests(MatBase):
         self.assertIsNone(self.member(gid, 'm-4', 'npc'))
         self.assertIsNone(self.member(gid, 'm-5', 'npc'))
         self.assertEqual(self.ev('ALL_TAGGED()'), 3)
-        # Santé : naissance (2 sur ce banc) x (100 - blessure) / 100.
+        # Santé : naissance (2 sur ce banc) x santé hors écran (LK21-T03).
         self.assertEqual(self.npc(gid, 'm-3', 'hpMax'), 2)
         self.assertAlmostEqual(self.run_lua(f'return MAT_BODY("{gid}", "m-3"):getHealth()'), 1.2, places=6)
         self.assertEqual(self.run_lua(f'return MAT_BODY("{gid}", "m-1"):getHealth()'), 2)
@@ -213,9 +218,9 @@ class MultiplayerMaterializeTests(MatBase):
             for mid in ids:
                 self.assertEqual(self.npc(gid, mid, 'state'), 'virtual', (cycle, mid))
             self.assertEqual(self.ev('ALL_TAGGED()'), 0)
-            self.assertEqual(self.member(gid, 'm-1', 'wound'), 50)              # 1.0 sur 2 -> 50
-            self.assertIsNone(self.member(gid, 'm-2', 'wound'))
-            self.assertEqual(self.member(gid, 'm-3', 'wound'), 40)              # 1.2 sur 2 -> 40, inchangée
+            self.assertEqual(self.member(gid, 'm-1', 'health'), 0.5)            # 1.0 sur 2 -> 50 %
+            self.assertIsNone(self.member(gid, 'm-2', 'health'))
+            self.assertEqual(self.member(gid, 'm-3', 'health'), 0.6)            # 1.2 sur 2 -> 60 %, inchangée
             self.h.move_player('A', 100, 100)
             self.passes(3)
             self.assertEqual(self.bodies(gid), ['m-1', 'm-2', 'm-3'])
@@ -375,14 +380,18 @@ class MultiplayerMaterializeTests(MatBase):
     def test_offscreen_simulation_leaves_embodied_members_to_their_body(self):
         gid = self.prepared()
         self.run_lua('LivingKnox.Config.MATERIALIZE.MAX_PER_GROUP = 2')
-        self.update(gid, 'g.members["m-1"].wound = 60 g.members["m-3"].wound = 60 g.needs.medical = 0')
+        self.update(gid, hurt('g.members["m-1"]', 0.4, 'laceration') + hurt('g.members["m-3"]', 0.4, 'laceration')
+                    + 'g.needs.medical = 0')
+        before = self.member(gid, 'm-1', 'wounds')
         self.h.move_player('A', 100, 100)
         self.passes(3)
         self.assertEqual(self.bodies(gid), ['m-1', 'm-2'])                    # m-3 reste hors écran
         self.run_lua('assert(LivingKnox.Groups.update(function(d) d.simHour = 100 '
                      'return LivingKnox.Simulation.advance(d, 124, {}) end))')
-        self.assertEqual(self.member(gid, 'm-1', 'wound'), 60)                # corps : santé du corps
-        self.assertGreater(self.member(gid, 'm-3', 'wound'), 60)              # abstrait : s'aggrave sans soins
+        # LK21-T03 : corps, plaies et santé du corps (état hors écran figé) ; hors écran, les plaies évoluent.
+        self.assertEqual((self.member(gid, 'm-1', 'health'), self.member(gid, 'm-1', 'wounds')), (0.4, before))
+        self.assertNotEqual(self.member(gid, 'm-3', 'health'), 0.4)
+        self.assertNotEqual(self.member(gid, 'm-3', 'wounds'), before)
         self.assertTrue(self.ev(f'LivingKnox.Simulation.materialized(LivingKnox.Groups.state.data.groups["{gid}"])'))
         team = lua_list(self.run_lua(
             f'local S, g = LivingKnox.Simulation, LivingKnox.Groups.state.data.groups["{gid}"] '
@@ -430,7 +439,7 @@ class SoloMaterializeTests(MatBase):
 
     def test_solo_approach_departure_and_return(self):
         gid = self.mk_group(crew=CREW[:3])
-        self.update(gid, 'g.members["m-2"].wound = 25')
+        self.update(gid, 'g.members["m-2"].health = 0.75')
         self.h.move_player('A', 100, 100)
         self.passes(2)
         self.assertEqual(self.bodies(gid), ['m-1', 'm-2', 'm-3'])
@@ -438,11 +447,59 @@ class SoloMaterializeTests(MatBase):
         self.away()
         self.wait(65)
         self.assertEqual(self.bodies(gid), [])
-        self.assertEqual(self.member(gid, 'm-2', 'wound'), 25)
+        self.assertEqual(self.member(gid, 'm-2', 'health'), 0.75)
         self.h.move_player('A', 100, 100)
         self.passes(2)
         self.assertEqual(self.bodies(gid), ['m-1', 'm-2', 'm-3'])
         self.assertEqual(self.ev('ALL_TAGGED()'), 3)
+        self.assertEqual(self.h.errors('solo'), [])
+
+
+class WoundsRoundTripTests(MatBase):
+    """LK21-T03 : les plaies d'un membre passent telles quelles au corps (LK_Health, Health.setBirth) et lui reviennent
+    au retrait (Health.handOver) ; un seul détenteur à la fois."""
+    mode = 'solo'
+
+    def make(self, root=None):
+        h = super().make(root)
+        h.load('solo', HEALTH_DOUBLES)
+        h.load('solo', HEALTH)
+        return h
+
+    def body_wounds(self, gid, mid):
+        return self.ev(f'LivingKnox.Health.get(LivingKnox.Groups.get("{gid}").members["{mid}"].npc).wounds')
+
+    def test_wounded_member_comes_back_with_its_wounds(self):
+        gid = self.mk_group(crew=CREW[:3])
+        self.update(gid, hurt('g.members["m-2"]', 0.6, 'deep', 'Torso_Upper'))
+        text = self.member(gid, 'm-2', 'wounds')
+        self.assertRegex(text, r'^deep:Torso_Upper:')
+        self.h.move_player('A', 100, 100)
+        self.passes(3)
+        self.assertEqual(self.bodies(gid), ['m-1', 'm-2', 'm-3'])
+        npc = self.member(gid, 'm-2', 'npc')
+        # Naissance : santé 60 % de la santé de naissance, plaie du membre telle quelle sur le corps.
+        self.assertEqual(self.ev(f'LivingKnox.Store.data().npcs["{npc}"].wounds'), text)
+        self.assertAlmostEqual(self.ev(f'LivingKnox.Health.reference("{npc}")'), 2 * 0.6, places=6)
+        self.assertEqual((self.body_wounds(gid, 'm-2')[1].p, self.body_wounds(gid, 'm-2')[1].kind),
+                         ('Torso_Upper', 'deep'))
+        self.assertIsNone(self.ev(f'LivingKnox.Store.data().npcs["{self.member(gid, "m-1", "npc")}"].wounds'))
+        # Le corps saigne une minute de plus ; au retrait, plaies et santé reviennent au membre, plus au corps.
+        self.h.advance(1)
+        self.h.advance(10)
+        body_text = self.ev(f'LivingKnox.Store.data().npcs["{npc}"].wounds')
+        hp = self.ev(f'LivingKnox.Health.reference("{npc}")')
+        self.assertLess(hp, 2 * 0.6)
+        self.away()
+        self.wait(65)
+        self.assertEqual(self.bodies(gid), [])
+        self.assertEqual(self.member(gid, 'm-2', 'wounds'), body_text)
+        self.assertAlmostEqual(self.member(gid, 'm-2', 'health'), hp / 2, places=5)
+        self.assertIsNone(self.ev(f'LivingKnox.Store.data().npcs["{npc}"].wounds'))   # un seul détenteur
+        # Retour : le corps reprend les plaies du membre.
+        self.h.move_player('A', 100, 100)
+        self.passes(3)
+        self.assertEqual(self.ev(f'LivingKnox.Store.data().npcs["{npc}"].wounds'), body_text)
         self.assertEqual(self.h.errors('solo'), [])
 
 
@@ -451,7 +508,7 @@ class SoloSuiteTests(MatBase):
 
     def test_suite_lk_materialize_passes_on_the_doubles(self):
         gid = self.mk_group(crew=CREW[:3])
-        self.update(gid, 'g.members["m-3"].wound = 30')
+        self.update(gid, 'g.members["m-3"].health = 0.7')
         self.h.load('solo', PLAYER_MOVES)
         self.h.load('solo', 'shared/RST/suites/RST_LKMaterialize.lua')
         listed = self.h.eval('solo', 'RST.list({ suite = "lk.materialize", tags = "world" }, true)[1]')
@@ -475,16 +532,6 @@ class SoloSuiteTests(MatBase):
 
 class ConversionTests(MatBase):
     mode = 'solo'
-
-    def test_health_and_wound_round_trip(self):
-        for full in (1.8, 2, 3.7, 0.5):
-            for w in range(0, 100):
-                back = self.ev(f'LivingKnox.Materialize.woundOf(LivingKnox.Materialize.healthOf({w}, {full}), {full})')
-                self.assertEqual(back, w, (full, w))
-        self.assertEqual(self.ev('LivingKnox.Materialize.woundOf(0, 2)'), 99)  # jamais mort par la conversion
-        self.assertEqual(self.ev('LivingKnox.Materialize.woundOf(3, 2)'), 0)
-        self.assertIsNone(self.ev('LivingKnox.Materialize.woundOf(nil, 2)'))
-        self.assertAlmostEqual(self.ev('LivingKnox.Materialize.healthOf(150, 2)'), 0.02, places=6)
 
     def test_full_health_checked_at_reload(self):
         def check(value):

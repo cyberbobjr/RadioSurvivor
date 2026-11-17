@@ -34,10 +34,12 @@ from harness import routine_files  # noqa: E402
 from test_lk_decisions import DECIDERS, PureBase  # noqa: E402
 
 D = 'LivingKnox.Decisions'
-# Empreintes (sha256) relevées sur le code d'avant le registre des fournisseurs (LK16-T05).
-FROZEN_FULL = '572edd9f2f17393c9ee4af5ce122f32d50062e9e52d9924116e4da8c270e3517'
-FROZEN_SERVER = '1006a41ae1dc5dc11b5c9b9245106944fee60c6d10c6bc5485d95d6f46574762'
-FROZEN_BARE = '7e0bca5846d889d82dbeb8784d477fb33fa6325fb09a1f84e4bccbd54330e97a'
+# Empreintes (sha256) relevées sur le code d'avant le registre des fournisseurs (LK16-T05). Rebasées le 2026-11-17
+# (LK21-T03) : seule différence, le champ de membre wound = n devient health = 1 - n / 100 dans les tables relevées ;
+# contextes, décisions et appels identiques (relevés d'avant et d'après comparés champ renommé ôté).
+FROZEN_FULL = '2cc44535712eb744a00d8e0965668fe3e1b54c2b495da4f32d0ac8452a65697b'
+FROZEN_SERVER = '714f7332cfcc167f84865c3e9724cf813999096ddd4af06927751d6aee383077'
+FROZEN_BARE = '7a1d99f6bae8bf9c6c8bb1f6a9dd9a743bfef051ae134fc0161e1c419c777155'
 # Modules qui ne sont pas chargés par LK_Server : la grille « full » les charge (ordre du jeu : tri des noms).
 EXTRA = ('LK_Health', 'LK_Combat', 'LK_Zombies', 'LK_Defense', 'LK_Encounters', 'LK_Expeditions', 'LK_Relations')
 
@@ -121,6 +123,7 @@ fake("Needs", "perceive", function() return 0 end)
 fake("Needs", "fearSource", function() return SIT.fearFrom end)
 fake("Needs", "get", function(gid, mid) return SIT.needs[mid] or SIT.needs.all end, true)
 fake("Health", "get", function(id) return SIT.hp[id] end, true)
+fake("Health", "reference", function(id) return SIT.hp[id] and SIT.hp[id].hp end, true)   -- LK21-T03
 fake("Bodies", "find", function(id) return SIT.bodies[id] end, true)
 
 local ROLES = { "fighter", "worker", "medic", "scout" }
@@ -142,7 +145,7 @@ function SITUATION(i)
         { "settle", "guard", "rest" }), members = {} }
     if home ~= "none" then g.home = { x = 100, y = 100, z = 0 } end
     for k, role in ipairs(ROLES) do
-        g.members["m-" .. k] = { role = role, npc = "lk-" .. k, alive = true, wound = (k * 13 + i) % 40,
+        g.members["m-" .. k] = { role = role, npc = "lk-" .. k, alive = true, health = 1 - ((k * 13 + i) % 40) / 100,
             duty = pick(i + k, 11, 3, k == 1 and { "sentry", "sentry", "keeper" } or { "sentry", "keeper", "rest", "forager", "carer" }) }
     end
     local mi = pick(i, 1, 0, { 1, 2, 3, 4 })
@@ -299,9 +302,10 @@ class FrozenBareContextTests(GridBase):
 # (Needs.observe, Alert.noteWoken, Alert.raise, Speech.say, Activity.behaviour), état gardé et geste du moteur.
 # Empreintes relevées sur le code d'avant la migration des comportements (LK16-T06). Rebasées le 2026-11-16 (LK17-T03,
 # lk.windowsally MP) : seule différence, watch et alert ne posent ni regard ni geste tant qu'une course du moteur est
-# ouverte (Decisions.runningOwnMove) ; une marche ordinaire est coupée comme avant.
-FROZEN_APPLY_FULL = '6e4459fc5454c09290e636891348394b01dec1f028873a1c0838b735e49e8449'
-FROZEN_APPLY_BARE = 'b77a9ce517b1a92269c03d78f23f2be27264be7fc110d1d5ae9599b5806d25c3'
+# ouverte (Decisions.runningOwnMove) ; une marche ordinaire est coupée comme avant. Rebasées le 2026-11-17 (LK21-T03) :
+# seul le champ de membre renommé (wound -> health) change, application identique (même comparaison).
+FROZEN_APPLY_FULL = '0d3cf5f04112a9dc98e861896882a0af41d89d2061bf3fd07760da9cb5090745'
+FROZEN_APPLY_BARE = 'af90157d76df94d8ca0bb45cc38d2aecf20ce9ea323bf20f4a571d6982bcd687'
 APPLY = r'''
 DIR, ANIM, VSEQ, CARE, STUCK = {}, {}, 0, false, false
 local function noteApply(mod, fn, ret)

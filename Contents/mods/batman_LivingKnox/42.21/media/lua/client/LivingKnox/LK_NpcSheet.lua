@@ -40,7 +40,7 @@ Sheet.CMD_REQUEST = "adminRequest"
 Sheet.CMD_REPLY = "adminReply"
 Sheet.CAPABILITY = Access.CAPABILITY
 Sheet.ROUTE = { module = Sheet.MODULE, request = Sheet.CMD_REQUEST, server = "Admin" }   -- LK20-T06
-Sheet.FIELDS = { "hunger", "thirst", "fatigue", "fear", "health", "bleed", "wound" }
+Sheet.FIELDS = { "hunger", "thirst", "fatigue", "fear", "health", "bleed", "offhealth" }
 Sheet.OPS = { npc = true, npcSet = true, npcRole = true, npcName = true, npcGoto = true, homeGoto = true }
 Sheet.GOTO_OPS = { npcGoto = true, homeGoto = true }   -- téléportations (LK13-T15, foyer d'un groupe : LK13-T16)
 Sheet.TELEPORT_CAPABILITY = "TeleportToCoordinates"   -- capacité exigée par /teleportto (TeleportToCommand.java:24)
@@ -340,7 +340,7 @@ function Sheet.sections(d)
         { tr("L_Health"), h.pct ~= nil and (num(h.pct) .. " %") or "-" },
         { tr("L_Bleed"), h.bleedPct ~= nil and (num(h.bleedPct) .. " % / h") or "-" },
         { tr("L_Wounds"), opt(h.wounds) .. (last ~= "" and (", " .. last) or "") },
-        { tr("L_Offscreen"), num(d.wound) .. " / " .. num(d.woundMax) } } }
+        { tr("L_Offscreen"), tr("OffscreenCell", num(d.offHealth), num(d.offWounds)) } } }
     local de = type(d.decision) == "table" and d.decision or nil
     local rows = {}
     if de ~= nil then
@@ -392,8 +392,8 @@ function Sheet.fieldValue(d, field)
         v = type(d.health) == "table" and d.health.pct or nil
     elseif field == "bleed" then
         v = type(d.health) == "table" and d.health.bleedPct or nil
-    elseif field == "wound" then
-        v = d.wound
+    elseif field == "offhealth" then
+        v = d.offHealth
     else
         v = type(d.needs) == "table" and d.needs[field] or nil
     end

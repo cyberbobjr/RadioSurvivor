@@ -296,7 +296,7 @@ function DebugView.memberCells(m)
         out.needs = opt(n.hunger) .. "/" .. opt(n.thirst) .. "/" .. opt(n.fatigue) .. "/" .. opt(n.fear)
     end
     if m.hp ~= nil then out.health = tostring(m.hp) .. " %" end
-    if (m.wound or 0) > 0 then out.health = out.health .. " " .. tr("Wound", m.wound) end
+    if (m.wounds or 0) > 0 then out.health = out.health .. " " .. tr("Wounds", m.wounds) end   -- LK21-T03
     return out
 end
 

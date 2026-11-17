@@ -181,7 +181,7 @@ class MPTests(SheetBase):
         self.assertIsInstance(d.decision.b, str)
         self.assertIsInstance(d.decision.rule, str)
         self.assertEqual(d.weapon.t, 'Base.KitchenKnife')
-        self.assertEqual(d.wound, 0)
+        self.assertEqual((d.offHealth, d.offWounds), (100, 0))   # LK21-T03 : santé et plaies hors écran
         # LK13-T15 : sections étiquetées, nombres arrondis, santé en %, rôles du type, champs préremplis.
         secs = lua_list(self.h.eval('A', f'{S}.sections({S}.state.data)'))
         self.assertEqual([s.title for s in secs], [f'IGUI_LK_Sheet_Sec_{k}' for k in (
@@ -192,7 +192,7 @@ class MPTests(SheetBase):
         self.assertEqual(rows['IGUI_LK_Sheet_L_Weapon'], 'Base.KitchenKnife')
         self.assertEqual(rows['IGUI_LK_Sheet_L_Role'], 'worker / cook')
         self.assertEqual(lua_list(d.roles), ['fighter', 'scout', 'medic', 'worker'])
-        for field, value in (('hunger', '20'), ('fear', '0'), ('health', '100'), ('bleed', '0'), ('wound', '0')):
+        for field, value in (('hunger', '20'), ('fear', '0'), ('health', '100'), ('bleed', '0'), ('offhealth', '100')):
             self.assertEqual(self.h.eval('A', f'{S}.fieldValue({S}.state.data, "{field}")'), value, field)
         self.assertEqual(self.h.errors('server'), [])
         self.assertEqual(self.h.errors('A'), [])
@@ -213,7 +213,7 @@ class MPTests(SheetBase):
         self.assertEqual((self.ev(f'{D}.get("{npc}").rule'), self.ev(f'{D}.get("{npc}").why')), ('hunger', 'hunger 100'))
         # Autres bornes : peur négative, santé, saignement, blessure, champ inconnu, valeur non numérique.
         cases = [('fear', -20, 0), ('health', 0, 1), ('health', 250, 100), ('health', 42.25, 42.3), ('bleed', 500, 60),
-                 ('bleed', 12.5, 12.5), ('wound', 400, 99), ('wound', 0, 0)]
+                 ('bleed', 12.5, 12.5), ('offhealth', 400, 100), ('offhealth', 0, 1), ('offhealth', 62.25, 62.3)]
         for field, value, expected in cases:
             with self.subTest(field=field, value=value):
                 r = self.ev(f'{A}.request(getOnlinePlayers():get(0), {{ op = "npcSet", n = 1, npc = "{npc}", '
@@ -225,7 +225,7 @@ class MPTests(SheetBase):
         npc = self.npc_of(gid, 'm-2')
         self.assertAlmostEqual(self.ev(f'LivingKnox.Health.bleeding("{npc}")'), 0.125, places=6)
         self.assertEqual(self.ev(f'LivingKnox.Health.get("{npc}").wounds[1].kind'), 'laceration')
-        self.assertIsNone(self.member(gid, 'm-2', 'wound'))
+        self.assertEqual(self.member(gid, 'm-2', 'health'), 0.623)                 # santé hors écran réglée (LK21-T03)
         for field, value, err in (('morale', 5, 'unknown field'), ('hunger', '"x"', 'bad value'),
                                   ('hunger', '0/0', 'bad value')):
             r = self.ev(f'{A}.request(getOnlinePlayers():get(0), {{ op = "npcSet", n = 1, npc = "{npc}", '
