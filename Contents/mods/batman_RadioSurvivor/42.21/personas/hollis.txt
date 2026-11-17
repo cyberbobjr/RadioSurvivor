@@ -1,3 +1,5 @@
+# Hollis Beck, routier qui ravitaille les postes de l'armée : au retour, il vend sur le bas-côté ce qui « tombe du camion ».
+
 # Hollis Beck : marchand de Muldraugh (E20-T11, ADR D08 ; format docs/specifications-techniques/persona-format.md).
 # - radio nécessaire (E24-T01) : un talkie pro (Premium Technologies, 25-300 MHz, ou mieux) ; fréquence libre tirée
 #   à chaque nouvelle partie dans la zone de cette radio, que les radios plus simples ne captent pas, mémorisée pour

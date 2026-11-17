@@ -1,3 +1,5 @@
+# Odessa Kessler, ancienne infirmière scolaire de Rosewood : ses colis de médicaments arrivent dans une cachette en ville.
+
 # Odessa Kessler : marchande de Rosewood (E20-T11, ADR D08 ; format docs/specifications-techniques/persona-format.md).
 # - radio nécessaire (E24-T01) : un talkie pro (Premium Technologies, 25-300 MHz, ou mieux) ; fréquence libre tirée
 #   à chaque nouvelle partie dans la zone de cette radio, que les radios plus simples ne captent pas, mémorisée pour

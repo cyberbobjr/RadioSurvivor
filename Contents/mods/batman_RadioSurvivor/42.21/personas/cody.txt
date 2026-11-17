@@ -1,3 +1,5 @@
+# Cody Haskins, 21 ans, soldat de la garde nationale qui a déserté : méfiant, il connaît les armes.
+
 # Spc. Cody Haskins : le déserteur de la garde nationale (E05-T04, format docs/persona-format.md).
 # Le mod livre une copie identique (Contents/mods/batman_RadioSurvivor/42.21/personas/cody.txt).
 # - radio nécessaire (E24-T01) : un talkie tactique ou une radio HAM (10-500 MHz, ou mieux) ; fréquence libre tirée

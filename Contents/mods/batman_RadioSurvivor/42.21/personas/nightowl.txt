@@ -1,3 +1,5 @@
+# Lyle Ferrand, le « Night Owl » : chaque soir, il donne les nouvelles du comté sur sa radio pirate.
+
 # « Night Owl », Lyle Ferrand : le chroniqueur de la station pirate (E05-T04, format docs/persona-format.md).
 # Le mod livre une copie identique (Contents/mods/batman_RadioSurvivor/42.21/personas/nightowl.txt).
 # - radio nécessaire (E24-T01) : n'importe quel talkie (talkie jouet ou bricolé, 75-150 MHz : tout le monde

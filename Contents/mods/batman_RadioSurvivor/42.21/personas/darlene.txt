@@ -1,3 +1,5 @@
+# Darlene Pruitt, infirmière de nuit à la petite clinique de West Point : elle veut y retourner.
+
 # Darlene Pruitt : l'infirmière qui veut rentrer à sa clinique de West Point (E05-T04, E20-T10, ADR D09 ;
 # format docs/specifications-techniques/persona-format.md).
 # Le mod livre une copie identique (Contents/mods/batman_RadioSurvivor/42.21/personas/darlene.txt).

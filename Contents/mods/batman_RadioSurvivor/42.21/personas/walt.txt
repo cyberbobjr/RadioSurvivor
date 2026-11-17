@@ -1,3 +1,5 @@
+# Walt Hensley, ancien monteur de lignes électriques de Brandenburg : la première voix de la radio.
+
 # Walt Hensley : la voix d'origine de Radio Survivor (fiche de référence, format docs/persona-format.md).
 # Fiche autoporteuse : elle fait foi pour Walt (E05-T02, l'option sandbox RadioSurvivor.Frequency est retirée).
 # Livrée par le mod, installée par le serveur dans Zomboid/Lua/batman_RadioSurvivor/personas/, puis relue à chaud

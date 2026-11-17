@@ -1,3 +1,5 @@
+# Delphine Arnett, cuisinière d'un remorqueur en face de Louisville : elle traverse le fleuve en barque pour troquer.
+
 # Delphine Arnett : marchande de Louisville (E20-T11, ADR D08 ; format docs/specifications-techniques/persona-format.md).
 # - radio nécessaire (E24-T01) : un bon talkie (ValuTech, 50-200 MHz, ou mieux) ; fréquence libre tirée à chaque
 #   nouvelle partie dans la zone de cette radio, que les radios plus simples ne captent pas, mémorisée pour la

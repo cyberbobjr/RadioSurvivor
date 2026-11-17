@@ -71,37 +71,43 @@ Personas.PLACES = "_places.txt"
 -- commits 09d7474 et 24832ea (fréquences fixes ; Walt identique dans les deux), 486b21e (plages, E05-T07), puis
 -- E05-T10, E05-T05, E20-T03, E20-T07, E20-T10, E20-T11 ([note] des fiches), E22-T12 (stock sans poids), E22-T14 (sans
 -- knows, ignores ni secret), E23-T06, E24-T01 (radio=<niveau> a la place des plages), E25-T01 (lieux communs),
--- E27-T02 ([help]). Toute
+-- E27-T02 ([help]), description en une phrase. Toute
 -- nouvelle version livrée d'une fiche ajoute ici son empreinte (banc tests/radiosurvivor/test_personas_server.py) ; une fiche
 -- livrée après E05-T11 (marchands des villes, E20-T11 ; lieux communs _places.txt, E25-T01) n'a jamais été installée
 -- sans le fichier d'empreintes : aucune entrée.
 Personas.KNOWN_DELIVERED = {
     walt = { "2105682694", "2759756800", "213942039", "1586801598", "2833011528", "1923829937",   -- E22-T14
         "4196879131",   -- E24-T01 : radio=<niveau>
-        "1334134519" },   -- E24-T03 : socle commun des notes, sans corpse=
+        "1334134519",   -- E24-T03 : socle commun des notes, sans corpse=
+        "3962006636" },   -- description en une phrase pour l'atelier
     darlene = { "611497886", "1134557996", "2120896689", "3998911546", "3957645400",
         "1182033778", "674887514", "2957274911", "3572312285",   -- E22-T14 : sans knows, ignores ni secret
         "3580043489",   -- E24-T01 : radio=<niveau>
         "1476664509",   -- E24-T03 : socle commun des notes, sans corpse=
         "1469846348",   -- E25-T01 : lieux communs (marks=, cache_place=)
-        "536756451" },   -- E27-T02 : aide aux recettes [help]
+        "536756451",   -- E27-T02 : aide aux recettes [help]
+        "267805978" },   -- description en une phrase pour l'atelier
     cody = { "3131466986", "673421833", "4032160620", "318842949", "1196981398",
         "1976566616", "1464760889", "2238673311",   -- E22-T14 : sans knows, ignores ni secret
         "3427747601",   -- E24-T01 : radio=<niveau>
         "69681901",   -- E24-T03 : socle commun des notes, sans corpse=
         "2025292335",   -- E25-T01 : lieux communs (marks=, drops=, cache_place=)
-        "2033170993" },   -- E27-T02 : aide aux recettes [help]
+        "2033170993",   -- E27-T02 : aide aux recettes [help]
+        "3880116270" },   -- description en une phrase pour l'atelier
     whitaker = { "4044533006", "3352221633", "2075828338", "1570277033",   -- E22-T14
-        "3237976040" },   -- E24-T01 : radio=<niveau>
+        "3237976040",   -- E24-T01 : radio=<niveau>
+        "1588969284" },   -- description en une phrase pour l'atelier
     nightowl = { "4175146858", "225312038", "1263236001", "326850688",   -- E22-T14
         "2694918921",   -- E24-T01 : radio=<niveau>
-        "1281699557" },   -- E24-T03 : socle commun des notes, sans corpse=
+        "1281699557",   -- E24-T03 : socle commun des notes, sans corpse=
+        "1616008339" },   -- description en une phrase pour l'atelier
     gus = { "2508366732", "2733824589", "2930912175", "1078646290", "1260582370", "3810027509", "4079538633",
         "3516644979", "78816791",   -- E22-T14 : sans knows, ignores ni secret
         "2872044854",              -- E23-T06 : accept=, troc par listes
         "3627338360",              -- E24-T01 : radio=<niveau>
         "3160852052",   -- E24-T03 : socle commun des notes, sans corpse=
-        "923359829" },   -- E25-T01 : ponton dans les lieux communs
+        "923359829",   -- E25-T01 : ponton dans les lieux communs
+        "741372713" },   -- description en une phrase pour l'atelier
 }
 
 local function fresh()

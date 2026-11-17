@@ -1,3 +1,5 @@
+# Gus Lacombe, ancien pilote de remorqueur devenu passeur sur l'Ohio.
+
 # Gus Lacombe : le passeur de la rive de l'Indiana (E05-T04, format docs/persona-format.md).
 # Le mod livre une copie identique (Contents/mods/batman_RadioSurvivor/42.21/personas/gus.txt).
 # - radio nécessaire (E24-T01) : un bon talkie (ValuTech, 50-200 MHz, ou mieux) ; fréquence libre tirée à chaque

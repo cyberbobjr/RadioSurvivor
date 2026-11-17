@@ -1,3 +1,5 @@
+# Maxine Whitlock, ancienne gérante du camping de Fallas Lake : elle laisse ses marchandises dans une cachette en ville.
+
 # Maxine Whitlock : marchande de Fallas Lake (E20-T11, ADR D08 ; format docs/specifications-techniques/persona-format.md).
 # - radio nécessaire (E24-T01) : un talkie pro (Premium Technologies, 25-300 MHz, ou mieux) ; fréquence libre tirée
 #   à chaque nouvelle partie dans la zone de cette radio, que les radios plus simples ne captent pas, mémorisée pour

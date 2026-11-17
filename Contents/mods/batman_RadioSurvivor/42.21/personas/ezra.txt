@@ -1,3 +1,5 @@
+# Ezra Overby, prédicateur d'une petite église près d'Ekron : il troque par une cachette, « la boîte aux lettres du Seigneur ».
+
 # Ezra Overby : marchand de Ekron (E20-T11, ADR D08 ; format docs/specifications-techniques/persona-format.md).
 # - radio nécessaire (E24-T01) : un talkie pro (Premium Technologies, 25-300 MHz, ou mieux) ; fréquence libre tirée
 #   à chaque nouvelle partie dans la zone de cette radio, que les radios plus simples ne captent pas, mémorisée pour
