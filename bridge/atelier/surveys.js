@@ -1,17 +1,18 @@
-// E22-T08 (ADR atelier-voix D08): the places recorded in game ("Voice workshop: record this place", right click in
-// the world, solo or admin), read through GET /api/surveys (bridge/place_surveys.py, newest first). Each one can become
-// a place of the voice: its square, a name suggested from what was recorded (container, room, building) and uses
-// suggested the same way (container: dead drop; building: job place and map mark), all editable in the place's card.
-// The survey file is the game's: the workshop only reads it.
+// E22-T08 (ADR atelier-voix D08), E25-T03 (ADR lieux communs D08): the places recorded in game ("Voice workshop: record
+// this place", right click in the world, solo or admin), read through GET /api/surveys (bridge/place_surveys.py, newest
+// first), listed in the Places tab. Each one can become a shared place: its square and a name suggested from what was
+// recorded (container, room, building), editable before it is made. The survey file is the game's: the workshop only
+// reads it.
+//
+// ctx = {t, api, catalog, ai, toast, places: place store}
 
 import { inputPropose, placeDetails } from './ai.js';
 import { askBar } from './dialogs.js';
 import { clear, h } from './dom.js';
 import { hint } from './help.js';
-import * as voice from './voice.js';
+import { POINT } from './places.js';
 import { button } from './widgets.js';
 
-const LABEL_BYTES = 48;   // [place] label= limit (persona-format.md), counted in UTF-8 bytes
 const encoder = new TextEncoder();
 
 function capitalize(text) {
@@ -19,8 +20,8 @@ function capitalize(text) {
   return words ? words[0].toUpperCase() + words.slice(1) : '';
 }
 
-// Text cut to `max` UTF-8 bytes, never in the middle of a character.
-export function cutBytes(text, max = LABEL_BYTES) {
+// Text cut to `max` UTF-8 bytes, never in the middle of a character (label= of a place: 48 bytes).
+export function cutBytes(text, max = 48) {
   let out = '';
   for (const char of String(text ?? '')) {
     if (encoder.encode(out + char).length > max) break;
@@ -41,15 +42,9 @@ export function suggestedLabel(record, t) {
   return cutBytes(label);
 }
 
-// Uses suggested for a record: a container is a dead drop; a building, a job place and a map mark; else a map mark.
-export function suggestedUses(record) {
-  if (record.containers?.length) return ['drop'];
-  if (record.room || record.building) return ['target', 'mark'];
-  return ['mark'];
-}
-
+const square = (at) => ({ x: String(at.x), y: String(at.y), z: String(at.z ?? 0) });
 const atText = (at) => `${at.x}, ${at.y}, ${at.z}`;
-const sameSquare = (place, at) => ['x', 'y', 'z'].every((k) => String(place.at[k]).trim() === String(at[k]));
+const sameSquare = (place, at) => place.kind === POINT && ['x', 'y', 'z'].every((k) => String(place.at[k]).trim() === String(at[k]));
 
 function what(t, record) {
   const parts = [];
@@ -59,20 +54,19 @@ function what(t, record) {
   return parts.join(' · ');
 }
 
-function recordItem(ctx, record, ask, full) {
-  const { model, t } = ctx;
+function recordItem(ctx, record, ask) {
+  const { t, places } = ctx;
   const label = suggestedLabel(record, t);
-  const known = voice.places(model).some((p) => sameSquare(p, record.at));
+  const known = places.list().some((p) => sameSquare(p, record.at));
   const add = async () => {
+    const draft = { label, kind: POINT, at: square(record.at) };
     const name = await askBar(ask, t, { message: t('surveys.ask'), label: t('places.label'), value: label,
-      ok: t('places.add_ok'), check: (v) => (v ? null : t('places.ask')),
-      propose: (input) => inputPropose(ctx, 'place_label', input,
-        { details: () => placeDetails(t, suggestedUses(record), record.at) }) });
+      ok: t('places.add_ok'), check: (v) => (v ? null : t('places.check.no_name')),
+      propose: (input) => inputPropose({ ai: ctx.ai, t, voiceId: null, sheetText: () => '' }, 'place_label', input,
+        { details: () => placeDetails(t, draft, []) }) });
     if (name === null) return;
-    voice.addPlace(model, { label: cutBytes(name), at: { ...record.at }, uses: suggestedUses(record) });
-    ctx.ui.open_place = true;
-    ctx.changed();
-    ctx.rerender();
+    const { id, result } = await places.create({ ...draft, label: cutBytes(name) });
+    ctx.toast?.(id ? t('places.created', { name: cutBytes(name) }) : t(`code.${result.code}`, { name: result.place?.label ?? '' }, result.message), !id);
   };
   return h('li', { class: 'survey' },
     h('div', { class: 'survey-text' },
@@ -80,22 +74,20 @@ function recordItem(ctx, record, ask, full) {
       h('small', { class: 'muted', text: [what(t, record), t('surveys.when', { time: record.time, game: record.game,
         by: record.by || '?' })].filter(Boolean).join(' · ') })),
     known ? h('small', { class: 'muted', text: t('surveys.known') })
-      : button('neutral', { class: 'survey-add', disabled: full, onClick: add }, t('surveys.add')));
+      : button('neutral', { class: 'survey-add', disabled: places.full(), onClick: add }, t('surveys.add')));
 }
 
-let cache = null;   // last answer, shown at once when the step is drawn again
+let cache = null;   // last answer, shown at once when the tab is drawn again
 
 function draw(ctx, host, ask, answer) {
   const { t } = ctx;
   const records = answer?.records ?? [];
-  const max = ctx.catalog.sheet.maxPlaces;
-  const full = Boolean(max && voice.places(ctx.model).length >= max);
   clear(host).append(records.length
-    ? h('ul', { class: 'surveys' }, records.map((r) => recordItem(ctx, r, ask, full)))
+    ? h('ul', { class: 'surveys' }, records.map((r) => recordItem(ctx, r, ask)))
     : h('p', { class: 'muted', text: answer?.ok === false ? t('surveys.unreadable') : t('surveys.none') }));
 }
 
-// Block "Places recorded in game" of the places panel: the list, loaded from the bridge each time it is drawn.
+// Block "Places recorded in game" of the Places tab: the list, loaded from the bridge each time it is drawn.
 export function surveysBlock(ctx) {
   const { t } = ctx;
   const host = h('div', { class: 'surveys-host' });

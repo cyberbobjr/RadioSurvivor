@@ -1,5 +1,5 @@
-"""Type de mission `route` (E20-T13, ADR D10) : passer DANS L'ORDRE par plusieurs lieux de la fiche d'une voix
-(use=target, clé points=), à pied ou en véhicule ; passage lu par le serveur sur sa copie du participant, compte rendu
+"""Type de mission `route` (E20-T13, ADR D10) : passer DANS L'ORDRE par plusieurs points des lieux communs
+nommés par la clé points= de la section d'une voix (E25-T01), à pied ou en véhicule ; passage lu par le serveur sur sa copie du participant, compte rendu
 à la radio.
 
     python RadioSurvivor/tests/test_mission_route.py
@@ -19,8 +19,8 @@ from types import SimpleNamespace
 
 import test_carnet as carnet_helpers
 from test_carnet import MAP_DOUBLE, NOTEBOOK_UI, bridge_module, convert
-from test_personas import LuaPersona
-from test_persona_sections import BASE, PROMPT
+from test_personas import LuaPersona, place
+from test_persona_sections import BASE, PLACES, PROMPT, ZONE_HERE
 import npc_protocol as protocol
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -57,12 +57,12 @@ end
 function newVehicle(x, y) return setmetatable({x = x, y = y, z = 0}, Vehicle) end
 '''
 
-# Fiche d'une voix qui donne la mission route : trois points use=target, un lieu use=mark seulement.
+# Lieux communs lus avec la fiche d'une voix qui donne la mission route (E25-T01) : trois points, une zone.
 SHEET_PLACES = [
-    {'id': 'a', 'x': 40, 'y': 10, 'z': 0, 'label': 'Point A', 'uses': ['target'], 'use': {'target': True}},
-    {'id': 'b', 'x': 40, 'y': 40, 'z': 0, 'label': 'Point B', 'uses': ['target'], 'use': {'target': True}},
-    {'id': 'c', 'x': 10, 'y': 40, 'z': 0, 'label': 'Point C', 'uses': ['target'], 'use': {'target': True}},
-    {'id': 'shed', 'x': 70, 'y': 70, 'z': 0, 'label': 'Shed', 'uses': ['mark'], 'use': {'mark': True}},
+    {'id': 'a', 'x': 40, 'y': 10, 'z': 0, 'label': 'Point A'},
+    {'id': 'b', 'x': 40, 'y': 40, 'z': 0, 'label': 'Point B'},
+    {'id': 'c', 'x': 10, 'y': 40, 'z': 0, 'label': 'Point C'},
+    {'id': 'yard', 'z': 0, 'label': 'Yard', 'area': {'x1': 60, 'y1': 60, 'x2': 80, 'y2': 80}},
 ]
 POINTS = {'a': (40, 10), 'b': (40, 40), 'c': (10, 40)}
 
@@ -82,10 +82,11 @@ class RouteMissionTests(unittest.TestCase):
 
     def sheet(self, sim, points=('a', 'b', 'c')):
         rt = sim.server.rt
-        places = [rt.table_from({**p, 'uses': rt.table_from(p['uses']), 'use': rt.table_from(p['use'])})
-                  for p in SHEET_PLACES]
+        places = {p['id']: rt.table_from({**p, **({'area': rt.table_from(p['area'])} if 'area' in p else {})})
+                  for p in SHEET_PLACES}
         params = {} if points is None else {'points': rt.table_from(list(points))}
-        section = rt.table_from({'id': 'route', 'type': 'route', 'params': rt.table_from(params)})
+        section = rt.table_from({'id': 'route', 'type': 'route', 'target': rt.table_from({'kind': 'near'}),
+                                 'params': rt.table_from(params)})
         return rt.table_from({'id': 'custom', 'name': 'Custom', 'missions': rt.table_from([section]),
                               'places': rt.table_from(places)})
 
@@ -187,7 +188,7 @@ class RouteMissionTests(unittest.TestCase):
 
     def test_start_refused_without_valid_points(self):
         for case, points in {'no points': None, 'one point': ('a',), 'unknown point': ('a', 'zz'),
-                             'point without use=target': ('a', 'shed')}.items():
+                             'zone instead of a point': ('a', 'yard')}.items():
             with self.subTest(case=case):
                 sim, voice, store = self.world('route-refused-' + case.replace(' ', '-').replace('=', '-'))
                 self.assertEqual(self.start(sim, voice, store, self.sheet(sim, points)), (None, 'no_points'))
@@ -251,7 +252,7 @@ class RouteBriefTests(unittest.TestCase):
         field = voice.field(ctx)
         generic = {'kind', 'state', 'turn', 'place', 'clues', 'remainingMs', 'toReport', 'reward', 'job', 'facts'}
         self.assertLessEqual(set(protocol.decode(bytes.fromhex(field))), generic)
-        mission = bridge_module.mission_context({'mission': field}, SimpleNamespace(places=[]))
+        mission = bridge_module.mission_context({'mission': field}, SimpleNamespace(marks=[]))
         return mission, bridge_module.mission_prompt(mission, 'Caller')
 
     def test_job_and_verified_progress_told_to_the_voice(self):
@@ -269,15 +270,16 @@ class RouteBriefTests(unittest.TestCase):
 
 
 class RouteSheetTests(unittest.TestCase):
-    """The sheet reader accepts a route section with at least two target places in points=, and refuses an unknown
-    place, a place without use=target, a single point, the same point twice in a row and any other parameter; with the
-    real RS_Persona and the template registered as at game load."""
-    BRIDGE = '[place bridge]\nat=5,6,0\nlabel=Old bridge\nuse=target\n'  # lines 13 to 16; mission at 17, key at 19
+    """The sheet reader accepts a route section with at least two shared points in points=, and refuses an unknown
+    place, a zone, a single point, the same point twice in a row and any other parameter; with the real RS_Persona and
+    the template registered as at game load. Shared places of the cases (E25-T01): PLACES and a bridge."""
+    # BASE ends at line 4: mission header at 5, type at 6, first key at 7.
 
     @classmethod
     def setUpClass(cls):
         cls.tmp = tempfile.TemporaryDirectory()
         cls.folder = Path(cls.tmp.name)
+        (cls.folder / '_places.txt').write_text(PLACES + place('bridge', '5,6,0', 'Old bridge'), encoding='utf-8')
         cls.lua = LuaPersona(cls.folder)
         cls.lua.rt.eval('require("CoreAI/CA_MissionRoute")')
 
@@ -286,7 +288,7 @@ class RouteSheetTests(unittest.TestCase):
         cls.tmp.cleanup()
 
     def read(self, body: str):
-        text = BASE + self.BRIDGE + '[mission m]\ntype=route\n' + body + PROMPT
+        text = BASE + '[mission m]\ntype=route\n' + body + PROMPT
         (self.folder / 'case.txt').write_bytes(text.encode('utf-8'))
         return self.lua.read('case.txt')
 
@@ -298,13 +300,12 @@ class RouteSheetTests(unittest.TestCase):
 
     def test_refusals(self):
         for body, why in (
-                ('points=clinic,nowhere\n', "line 19: unknown place 'nowhere'"),
-                ('points=clinic,church\n', "line 19: place 'church' has no use=target"),
-                ('points=clinic\n', 'line 19: bad place list (2 to 8 places with use=target)'),
-                ('points=clinic,bridge,bridge\n', "line 19: place 'bridge' twice in a row"),
-                ('points=' + ','.join(['clinic', 'bridge'] * 5) + '\n',
-                 'line 19: bad place list (2 to 8 places with use=target)'),
-                ('points=clinic,bridge\ncount=2\n', "line 20: unknown key 'count' for mission type 'route'")):
+                ('points=clinic,nowhere\n', "line 7: unknown place 'nowhere'"),
+                ('points=clinic,town\n', 'line 7: ' + ZONE_HERE),
+                ('points=clinic\n', 'line 7: bad place list (2 to 8 places)'),
+                ('points=clinic,bridge,bridge\n', "line 7: place 'bridge' twice in a row"),
+                ('points=' + ','.join(['clinic', 'bridge'] * 5) + '\n', 'line 7: bad place list (2 to 8 places)'),
+                ('points=clinic,bridge\ncount=2\n', "line 8: unknown key 'count' for mission type 'route'")):
             with self.subTest(body=body):
                 self.assertEqual(self.read(body), (None, why))
 

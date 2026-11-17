@@ -18,6 +18,9 @@ Requester: an NPC fiche of the notebook, or a radio voice under the name `signal
 Place: drawn as the scout template (CA_MissionScout.pick: habitable building at 60-250 tiles of the requester's body,
 60 tiles at least from any known base, nothing loaded), kept per requester for siteTtlMs in a memory of this file so
 that the offer told by the bridge and the created mission name the same building, colour and hour.
+Aimed place (E25-T02, declaration aimed): an offer that receives `aim` (the objective of a voice's mission section: a
+point, or a building drawn in a zone or at a distance by CA_Sites.draw) takes the building at that place
+(CA_MissionScout.siteAt), wherever the requester stands, with a fresh colour and hour; no building there: no offer.
 Zone: a circle centred on the building (m.mapZone = { x, y, r }, like the clear template: the signal must be lit
 inside it), every floor, drawn on the map of an engaged participant of an active mission (client/CoreAI
 CA_MapZones.lua, label IGUI_CA_MapZoneSignal) and removed once the mission is closed.
@@ -43,7 +46,7 @@ end
 
 -- E11-T13: report in person. E20-T01: given by a voice as `signal`, labelled IGUI_CA_MapZoneSignal on the map.
 local Signal = {idPrefix = 'signal', reportBySpeech = true, voiceName = 'signal', mapStyle = 'Signal',
-    voiceText = 'light a Signal Smoke signal at a place'}
+    voiceText = 'light a Signal Smoke signal at a place', aimed = true}
 local COLOR_TOLERANCE = 0.02
 -- Requester fiche id -> {site = ..., at = ms} (memory only); Signal Smoke module (false: unusable).
 local sites = {}
@@ -122,11 +125,12 @@ function Signal.inWindow(hour, window, h)
     return (h - hour + 24) % 24 < window
 end
 
--- Place, colour and hour kept for this requester (drawn again after siteTtlMs, or retryMs when none fitted).
-function Signal.site(npc, body, c, mod)
+-- Place, colour and hour kept for this requester (drawn again after siteTtlMs, or retryMs when none fitted); aim
+-- (E25-T02): the building at that place, taken at once instead of a draw around the body.
+function Signal.site(npc, body, c, mod, aim)
     local now = getTimestampMs()
     local entry = sites[npc.id]
-    if entry and now - entry.at < (entry.site and c.siteTtlMs or c.retryMs) then return entry.site end
+    if not aim and entry and now - entry.at < (entry.site and c.siteTtlMs or c.retryMs) then return entry.site end
     local seed = 'signal:' .. tostring(npc.id) .. ':' .. tostring(npc.missionCount or 0) .. ':' .. tostring(now)
     local site, why = nil, 'no requester body'
     local names, hour = colors(c, mod), gameHour()
@@ -134,8 +138,8 @@ function Signal.site(npc, body, c, mod)
         why = 'no colour known by Signal Smoke'
     elseif hour == nil then
         why = 'no game clock'
-    elseif body then
-        site, why = Scout.pick(body:getX(), body:getY(), c, seed)
+    elseif aim or body then
+        if aim then site, why = Scout.siteAt(aim) else site, why = Scout.pick(body:getX(), body:getY(), c, seed) end
         if site then
             local draw = Sites.drawer(seed .. ':terms')
             site.zone = Clear.zone(site.bounds, c)
@@ -148,13 +152,14 @@ function Signal.site(npc, body, c, mod)
     return site
 end
 
-function Signal.offer(c, npc, record, body)
+-- aim (E25-T02): the objective named or drawn for the giver, or nil (drawn around the body).
+function Signal.offer(c, npc, record, body, character, aim)
     -- A radio voice donor has no fiche (npc.incarnation): this template is for NPC fiches only.
     if not npc or (npc.incarnation == nil and not npc.voice) then return nil end
     local mod = Signal.library()
     if not mod then return nil end
     Signal.install()
-    local site = Signal.site(npc, body, c, mod)
+    local site = Signal.site(npc, body, c, mod, aim)
     if not site then return nil end
     return {kind = 'signal', place = site.label, clues = copyList(site.clues), color = site.color, hour = site.hour,
         windowHours = c.windowHours, report = 'in_person', durationMs = c.durationMs, rewardType = c.rewardType,

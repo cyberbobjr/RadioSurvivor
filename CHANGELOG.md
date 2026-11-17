@@ -37,7 +37,8 @@
 - Increased the availability of Walt's frequency note in home and office desks, garages, electronics crates and amateur radio shelves.
 - A successful mission's unclaimed shared reward is now kept for 7 in-game days instead of 7 real days: the wait stops while the game is paused or the server is empty.
 - Radio voices no longer repeat fixed claims about the map (such as a clinic being surrounded) once your game has changed it: what a voice knows of the world now comes only from what happens in your game. Its past, skills and what it keeps to itself are written in its personality text.
-- Server owners can write their own radio voices in a single text file: places, jobs, rewards, item categories, trade stock and frequency notes all go in that one sheet (see the wiki page "Creating a radio voice").
+- Radio jobs no longer always send you to the same building: a job can aim at a building near you (100 to 200 tiles), farther away (200 to 500) or far away (500 to 1500), or at a building inside an area, drawn again for each new job; the voice can also ask for a kind of building (house, farmhouse, motel, church, school, police station, clinic...). Every kind of job works this way, and a job with no place set looks near you.
+- Server owners can write their own radio voices in a single text file: jobs, rewards, item categories, trade stock and frequency notes all go in that one sheet, and the places shared by every voice go in one places file (see the wiki page "Creating a radio voice").
 
 ### Voice workshop
 
@@ -54,6 +55,7 @@
 - ✨ Suggest next to every text you write in the workshop (voice name, description, personality idea, place name, a job's sentence and what it changes in the story, spontaneous call, note lines, bundle and list names): the AI reads the whole voice being written (personality, places, jobs already written, notes, trade) and what the field is for, and proposes a text that fits; click again for another idea.
 - Paste a position copied on the Project Zomboid map (`7966, 11751`) straight into a place's coordinates: x and y fill at once.
 - New dashboard, the first tab of the workshop: every voice at a glance with the radio needed to hear it, its listening hours over 24 hours and what you can do with it (talk, jobs, trade, other frequencies, calls, rescue), with key numbers, one-click filters and sorting; click a voice to open it.
+- New Places tab: every place is written once (an exact spot, or an area made of two corners pasted from the map) and every voice picks its places from a list, with "New place..." right in the list. A place a voice still uses cannot be deleted. In a job, choose its target: a place, near the player, farther or far away, and the kind of building.
 - A voice's personality can be written in French as well as English: the AI understands both and keeps your text as you wrote it.
 - A trader's sheet now says what the voice accepts as payment ("What the voice accepts"): whole categories such as Cash and valuables or Jewelry, or single items, only among those that have a trade price.
 - Next to a place's x, y and z, a link opens the community Build 42 map on that square.

@@ -18,13 +18,13 @@ class VoiceTemplateTests(unittest.TestCase):
                    "cell.getGridSquare = function() return nil end; getCell = function() return cell end")
         rt.execute(CLEAR_WORLD)
         voice = rt.eval("require('RadioSurvivor/RS_MissionVoice')")
-        # E20-T03: one [mission] section of this type, one place usable as a dead drop and a mark.
-        mission = rt.table_from({'id': template, 'type': template})
-        place = rt.table_from({'id': 'box', 'x': 100, 'y': 10, 'z': 0, 'label': 'Supply depot',
-                               'uses': rt.table_from(['mark', 'drop']),
-                               'use': rt.table_from({'mark': True, 'drop': True})})
+        # E20-T03, E25-T01: one [mission] section of this type (target near, drops=box), one shared point that is a
+        # dead drop and a mark of the voice.
+        mission = rt.table_from({'id': template, 'type': template, 'target': rt.table_from({'kind': 'near'}),
+                                 'drops': rt.table_from(['box'])})
+        place = rt.table_from({'id': 'box', 'x': 100, 'y': 10, 'z': 0, 'label': 'Supply depot'})
         sheet = rt.table_from({'id': 'custom', 'name': 'Custom', 'missions': rt.table_from([mission]),
-                               'places': rt.table_from([place])})
+                               'places': rt.table_from({'box': place}), 'marks': rt.table_from([place])})
         return sim, voice, sheet
 
     def start(self, sim, voice, sheet, template):
@@ -52,7 +52,7 @@ class VoiceTemplateTests(unittest.TestCase):
     def test_delivery_targets_sheet_place_and_requires_collection(self):
         sim, voice, sheet = self.setup_voice('deliver')
         m = self.start(sim, voice, sheet, 'deliver')
-        # E20-T05: every drop place of the sheet (no drops= in the section: any), with the default game-hour delay.
+        # E20-T05: every drop of the section (drops=), with the default game-hour delay.
         self.assertEqual(len(m.drops), 1)
         drop = m.drops[1]
         self.assertEqual((drop.x, drop.y, drop.z, drop.label), (100, 10, 0, 'Supply depot'))
@@ -63,13 +63,12 @@ class VoiceTemplateTests(unittest.TestCase):
         self.assertEqual(m.collectHours, 6)
 
     def test_notebook_lists_every_drop_and_the_map_circles_each(self):
-        """E20-T05: a deliver mission without drops= carries every use=drop place; the participant's notebook names
+        """E20-T05: a deliver mission carries every drop of its section (drops=); the participant's notebook names
         them and the map gets one circle per drop, labelled with the place label."""
         sim, voice, sheet = self.setup_voice('deliver')
         rt = sim.server.rt
-        shed = rt.table_from({'id': 'shed', 'x': 130, 'y': 10, 'z': 0, 'label': 'Old shed',
-                              'uses': rt.table_from(['drop']), 'use': rt.table_from({'drop': True})})
-        sheet.places[2] = shed
+        sheet.places.shed = rt.table_from({'id': 'shed', 'x': 130, 'y': 10, 'z': 0, 'label': 'Old shed'})
+        sheet.missions[1].drops[2] = 'shed'
         m = self.start(sim, voice, sheet, 'deliver')
         self.assertEqual(m.place, 'Supply depot, Old shed')
         c = sim.clients['alice']
@@ -140,7 +139,7 @@ class MissionBriefTests(unittest.TestCase):
     def told(self, voice, ctx):
         field = voice.field(ctx)
         self.assertLessEqual(set(protocol.decode(bytes.fromhex(field))), GENERIC_FIELDS)
-        mission = bridge_module.mission_context({'mission': field}, SimpleNamespace(places=[]))
+        mission = bridge_module.mission_context({'mission': field}, SimpleNamespace(marks=[]))
         return mission, bridge_module.mission_prompt(mission, 'Caller')
 
     def test_every_template_tells_its_objective_and_facts(self):
@@ -179,7 +178,7 @@ class MissionContextTests(unittest.TestCase):
     """E20-T02: the bridge checks the generic fields only."""
 
     def context(self, **fields):
-        sheet = SimpleNamespace(places=[])
+        sheet = SimpleNamespace(marks=[])
         data = dict(kind='any_job', state='active', turn='not_yet', place='house', clues={}, job='Do the job.')
         data.update(fields)
         return bridge_module.mission_context({'mission': protocol.encode(data).hex()}, sheet)

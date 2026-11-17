@@ -31,14 +31,21 @@ DECISIONS = {}
 package.loaded["RadioSurvivor/RS_State"] = { data = { actionCounters = {} }, dirty = false }
 package.loaded["RadioSurvivor/RS_MapMarks"] = {}
 package.loaded["RadioSurvivor/RS_Persona"] = {
-    parseLines = function(lines, id) return { id = id, lines = lines } end,
+    parsePlaces = function(lines) return { lines = lines } end,
+    parseLines = function(lines, id, rules) return { id = id, lines = lines, places = rules and rules.places } end,
 }
 package.loaded["RadioSurvivor/RS_Actions"] = {
     decide = function(sheet, mode, actions, now, ctx)
-        -- [place <id>] sections of the sheet (E20-T03): at=x,y,z and label=.
+        -- E25-T01: [place <id>] sections of the shared places (at=x,y,z and label=), given by marks= of the sheet.
         local wanted = actions[1] and actions[1].place
-        local places, current = {}, nil
+        local marked = {}
         for _, line in ipairs(sheet.lines) do
+            local list = string.match(line, "^marks=(.*)$")
+            if list then for id in string.gmatch(list, "[^,%s]+") do marked[id] = true end end
+        end
+        if wanted and not marked[wanted] then wanted = nil end
+        local places, current = {}, nil
+        for _, line in ipairs(sheet.places and sheet.places.lines or {}) do
             local id = string.match(line, "^%[place (%S+)%]$")
             if id then current = {}; places[id] = current end
             local x, y = string.match(line, "^at=(%d+),(%d+),%d+$")

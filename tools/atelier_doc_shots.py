@@ -6,11 +6,12 @@ Dev only (Playwright and a local stub of the AI provider, never a paid model). S
 bridge/atelier_server.py on a random free port (never the user's 8765) over a temporary working folder copied from the
 shipped sheets; the mod's folder is only read and the user's own folders (Zomboid/Lua) are never read. Each shot gets only
 what it needs: the voices of the mod stay as delivered, except Walt, changed for the 13-restore shot only. An example voice, Rosie (a girl hiding in the
-Muldraugh water tower: two places, two missions, rewards, a handwritten note and a spontaneous call), is written into
-that temporary folder first, with a fake survey file of the game, a fake game console and a few bridge log lines.
+Muldraugh water tower: two shared places of the working _places.txt (E25-T03), two missions, rewards, a handwritten
+note and a spontaneous call), is written into that temporary folder first, with a fake survey file of the game, a fake
+game console and a few bridge log lines.
 Then, per locale (fr-FR, en-US) at 1280x800, it opens the page and writes atelier-<lang>-NN-<subject>.png:
-00-dashboard (the dashboard of the voices shown first, E24-T05), 01-voice (list and step 1), 02-where (the radio cards, E24-T01), 03-personality (help popover), 04-missions, 04b-places ("recorded in game"),
-04c-place-map (a place card with its link to the community map),
+00-dashboard (the dashboard of the voices shown first, E24-T05), 01-voice (list and step 1), 02-where (the radio cards, E24-T01), 03-personality (help popover), 04-missions, places (the Places tab, E25-T03),
+04b-places ("recorded in game", in the Places tab), 04c-place-map (a place card with its link to the community map),
 05-rewards, 06-trade (a shipped trader), 07-note, 08-try (test conversation), 09-journal, 10-refused (game banner),
 11-login (login page of the network mode, E22-T15), and for the reference page 13 (E22-T16): 12-new (new voice
 form, a voice type picked), 13-restore (a changed voice of the mod, "back to the original" asked), 14-import (import of a
@@ -52,7 +53,7 @@ import log_buffer  # noqa: E402
 import place_surveys  # noqa: E402
 import radio_bridge  # noqa: E402
 from test_atelier_ui import game_reads  # noqa: E402
-from test_wiki_voice_examples import GameReader, example_sheets  # noqa: E402
+from test_wiki_voice_examples import GameReader, example_sheets, shared_places  # noqa: E402
 
 VIEW = {'width': 1280, 'height': 800}
 LOCALES = (('fr-FR', 'fr'), ('en-US', 'en'))
@@ -108,16 +109,7 @@ shares=darlene
 call_one_in=5
 call={call}
 state=active
-
-[place tower]
-at=10604,10622,0
-label={tower}
-use=mark,target
-
-[place dumpster]
-at=10617,10617,0
-label={dumpster}
-use=drop
+marks=tower
 
 [mission food]
 type=deliver
@@ -155,6 +147,17 @@ Rules:
 - No game mechanics and no exact coordinates.
 - Radio style: 1 to 4 short sentences, spoken plain text, no lists, no markdown. End each transmission with "Over." (or the equivalent in the caller's language, e.g. "À vous." in French).
 - Answer in the same language the caller uses.
+"""
+
+# Rosie's places, added to the shared places of the mod in the working folder (E25-T03).
+ROSIE_PLACES = """
+[place tower]
+at=10604,10622,0
+label={tower}
+
+[place dumpster]
+at=10617,10617,0
+label={dumpster}
 """
 
 # A voice with a typing mistake, refused by the game (hours written 8:00 instead of 08:00).
@@ -215,12 +218,15 @@ def strings(lang: str) -> dict:
 
 
 def write_sheets(working: Path, lang: str) -> None:
-    """Rosie and Tommy in the temporary working folder; Rosie must be accepted by the game reader."""
+    """Rosie and Tommy in the temporary working folder; Rosie must be accepted by the game reader. The shared places:
+    the shipped ones, the places of the wiki examples (```places block of page 14), then Rosie's."""
     local = LOCAL[lang]
-    rosie = ROSIE.format(lang=lang, description=local['description'], call=local['call'], tower=local['tower'],
-                         dumpster=local['dumpster'], note0=local['note'][0], note1=local['note'][1],
-                         note2=local['note'][2])
-    verdict = game_reads(rosie, 'rosie')
+    rosie = ROSIE.format(lang=lang, description=local['description'], call=local['call'], note0=local['note'][0],
+                         note1=local['note'][1], note2=local['note'][2])
+    places = (shared_places(lang)
+              + ROSIE_PLACES.format(tower=local['tower'], dumpster=local['dumpster']))
+    (working / '_places.txt').write_text(places, encoding='utf-8', newline='\n')
+    verdict = game_reads(rosie, 'rosie', places)
     if verdict[0] != 'OK':
         raise SystemExit(f'{lang}: the game reader refuses Rosie: {verdict[1]}')
     (working / 'rosie.txt').write_text(rosie, encoding='utf-8', newline='\n')
@@ -228,7 +234,7 @@ def write_sheets(working: Path, lang: str) -> None:
     (working / 'tommy.txt').write_text(tommy, encoding='utf-8', newline='\n')
     reader = GameReader()
     for voice_id, text in example_sheets(lang):                     # the voices of the wiki page 14, as written there
-        verdict = reader.read(text, voice_id)
+        verdict = reader.read(text, voice_id, places)
         if verdict[0] != 'OK':
             raise SystemExit(f'{lang}: the game reader refuses the example {voice_id}: {verdict[1]}')
         (working / f'{voice_id}.txt').write_text(text, encoding='utf-8', newline='\n')
@@ -313,9 +319,9 @@ def run_locale(browser, locale: str, lang: str, out: Path, provider: StubProvide
         live = atelier_server.Live(radio_bridge.LOG_BUFFER, game_console.GameConsole(console, radio_bridge.LOG_BUFFER),
                                    running.is_set, surveys=place_surveys.SurveyFile(survey_file))
         radio_bridge.TOKEN_USAGE = radio_bridge.TokenUsageLog(Path(tmp) / 'token_usage.jsonl')
-        live.ai = radio_bridge.workshop_ai({'OPENAI_BASE_URL': f'http://127.0.0.1:{provider.server_port}/v1',
-                                            'OPENAI_MODEL': 'stub', 'OPENAI_KEY': 'stub'})
         store = atelier_server.VoiceStore(working, SHIPPED)
+        live.ai = radio_bridge.workshop_ai({'OPENAI_BASE_URL': f'http://127.0.0.1:{provider.server_port}/v1',
+                                            'OPENAI_MODEL': 'stub', 'OPENAI_KEY': 'stub'}, store.shared_places)
         server = atelier_server.bind(store, 0, ATELIER, atelier_server.mod_version(SHIPPED), lambda *a: None,
                                      live=live)
         atelier_server.start(server)
@@ -354,19 +360,24 @@ def run_locale(browser, locale: str, lang: str, out: Path, provider: StubProvide
             shoot(page, out, f'atelier-{lang}-03-personality.png')
             page.keyboard.press('Escape')
 
-            pill(page, 3)                                                        # missions
-            page.locator('details.fold').first.evaluate('d => d.open = false')
-            scroll_to(page, page.locator('details.fold').first)
+            pill(page, 3)                                                        # map marks and missions
+            page.mouse.move(0, 0)
             shoot(page, out, f'atelier-{lang}-04-missions.png')
-            page.locator('details.fold').first.evaluate('d => d.open = true')     # places recorded in game
-            expect(page.locator('li.survey')).to_have_count(2)
+
+            page.locator('#tab-places').click()                                  # the Places tab (E25-T03)
+            tower = page.locator('.card.place[data-place="tower"]')
+            expect(tower.locator('.used-by')).to_contain_text('Rosie Calloway')
+            page.mouse.move(0, 0)
+            page.evaluate('window.scrollTo(0, 0)')
+            shoot(page, out, f'atelier-{lang}-places.png')
+            expect(page.locator('li.survey')).to_have_count(2)                   # places recorded in game
             block = page.locator('.surveys-block')
             scroll_to(page, block)
             box = block.bounding_box()
             shoot(page, out, f'atelier-{lang}-04b-places.png',
                   clip={'x': box['x'] - 16, 'y': max(0, box['y'] - 4), 'width': box['width'] + 32,
                         'height': box['height'] + 16})
-            card = page.locator('article.card', has=page.locator('a.maplink')).first     # 04c: a place, map link
+            card = tower                                                         # 04c: a place, map link
             expect(card.locator('a.maplink')).to_be_visible()
             scroll_to(page, card)
             box = card.bounding_box()
@@ -374,6 +385,7 @@ def run_locale(browser, locale: str, lang: str, out: Path, provider: StubProvide
                   clip={'x': box['x'] - 8, 'y': max(0, box['y'] - 8), 'width': box['width'] + 16,
                         'height': box['height'] + 16})
 
+            open_voice(page, 'Rosie Calloway')
             pill(page, 4)                                                        # rewards
             expect(page.locator('.card.reward').first).to_be_visible()
             shoot(page, out, f'atelier-{lang}-05-rewards.png')
@@ -511,7 +523,6 @@ def shoot_examples(page, out: Path, lang: str) -> None:
 
     open_voice(page, 'Vernon Tibbs')                                     # two chained missions
     pill(page, 3)
-    page.locator('details.fold').first.evaluate('d => d.open = false')
     cards = page.locator('article.card.mission')
     expect(cards).to_have_count(2)
     shoot_region(page, out, f'atelier-{lang}-22-tibbs-missions.png', cards.first, cards.last)

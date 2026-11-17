@@ -75,15 +75,16 @@ mod (`batman_RadioSurvivor`): with Living Knox alone there are no voice sheets.
 
 - First a header of `key=value` lines, then optional **sections**, then a line `[prompt]`, then the free text of the
   prompt.
-- A section starts with a title in square brackets and groups its own `key=value` lines: `[place <id>]` (a place),
-  `[mission <id>]` (a mission), `[rewards]` (the rewards), `[category <id>]` (a list of items). It ends at the next
-  title or at `[prompt]`. A line written under a title belongs to that section: keep the header lines above the first
+- A section starts with a title in square brackets and groups its own `key=value` lines: `[mission <id>]` (a
+  mission), `[rewards]` (the rewards), `[category <id>]` (a list of items), `[trade]` (the trade), `[note]` (the
+  frequency note). It ends at the next title or at `[prompt]`. Places are not written in a sheet: every voice shares
+  them (see [Places](#places--shared-file-_placestxt)). A line written under a title belongs to that section: keep the header lines above the first
   section.
 - Empty lines and lines starting with `#` are ignored outside the prompt.
 - Unknown keys and empty values are refused: to keep a default value, remove the line.
 - Every header key appears once.
 - The file name and the `id` must match: `mae.txt` holds `id=mae`. A file whose name starts with `_` is not a voice
-  (the mod keeps its item catalogue there, `_categories.txt`).
+  (`_places.txt`: the places of every voice; the mod also keeps its item catalogue in `_categories.txt`).
 
 The full reference of the format (in French) is
 [docs/specifications-techniques/persona-format.md](https://github.com/cyberbobjr/RadioSurvivor/blob/main/docs/specifications-techniques/persona-format.md).
@@ -158,30 +159,113 @@ In the voice workshop, the same choice exists as "Choose the frequency myself": 
 > Never put a real secret of the server in a sheet: passwords, codes, hidden frequencies, the position of a player
 > base. The AI may say anything that is in its prompt.
 
-### Places — `[place]` sections
+### Places — shared file `_places.txt`
 
-Each place the voice knows is a section, 12 at most:
+Places are not written in the sheet of a voice: they live in **one file for every voice**, `personas/_places.txt`, in
+the same folder as the sheets. The mod ships one (the places of its voices), installed and updated like a shipped
+sheet; your copy wins. The **Places** tab of the voice workshop writes it for you. A voice then **names** the places it
+uses, where it uses them: one place can serve several voices.
+
+The file starts with `format=1`, then one `[place <id>]` section per place (500 at most). Here are the places of the
+examples of this page, as they are added to the file (the places shipped with the mod are not copied here):
 
 ```text
+# personas/_places.txt: the places of every voice.
+format=1
+
 [place rosewood]
 at=8159,11661,0
 label=Rosewood, center of town
-use=mark,target
+
+[place fallas_lake]
+at=7253,8279,0
+label=Fallas Lake
+
+[place farmhouse]
+at=10850,9650,0
+label=Barker farmhouse
+
+[place ferry]
+at=6041,5217,0
+label=Old ferry landing
+
+[place west_point]
+at=11654,6864,0
+label=West Point, center of town
+
+[place muldraugh_pd]
+at=10644,10405,0
+label=Muldraugh, police station
+
+[place muldraugh]
+area=10650,9800,10850,10050,0
+label=Muldraugh, center of town
+
+[place march_ridge]
+at=10130,12801,0
+label=March Ridge
 ```
 
 | Key | What it does |
 |---|---|
-| `[place <id>]` | Id of the place: `a`-`z`, `0`-`9`, `_`, unique in the sheet. |
-| `at` | `x,y,z` coordinates of the square (read on the game map). The AI never sees them. |
-| `label` | Name of the place, 48 bytes at most, shown as is on the player's map. |
-| `use` | What the voice does with this place, one or more words separated by commas (below). |
+| `[place <id>]` | Id of the place: `a`-`z`, `0`-`9`, `_`, 32 characters at most, unique in the file. `near`, `far` and `very_far` are reserved (they are distances). |
+| `at` | An **exact spot**: the square `x,y,z` (recorded in game or read on the map; `z` = floor, 0 on the ground floor). |
+| `area` | An **area**: a rectangle `x1,y1,x2,y2,z`, two opposite corners in any order, 1 to 1,500 squares a side. |
+| `label` | Name of the place, 48 bytes at most, shown to the AI and as is on the player's map: no secret here. |
 
-- `mark`: a **marker** it can give you (`mark_map`, `reveal_area`, marker offered at the end of a mission without a
-  `[rewards]` section). The AI only sees the id and label of these places.
-- `target`: a mission **objective** (`target=` of a `[mission]` section).
-- `drop`: a **dead drop**. A `deliver` or `retrieve` mission offers them all at once (or those of `drops=`); a `cache` reward is left at the
-  first `drop` place of the sheet (else at its first place).
-- `landing`: a trader's meeting point (`landing` key of the `[trade]` section, see "Trade").
+- Every place has a `label` and **either** `at` **or** `area`. The AI never sees a coordinate.
+- A refused file is written to the log with its line, and the last valid places stay in service. Without the file,
+  there is no place.
+- To delete a place, first take it out of every voice that names it: otherwise those voices are refused
+  (`unknown place '…'`).
+
+#### Where a voice names a place
+
+| Where | Key | Places allowed |
+|---|---|---|
+| Header | `marks` | Spots or areas, 12 at most, separated by commas: the **markers** it can give you (`mark_map`, `reveal_area`, marker offered after a mission without a `[rewards]` section). The AI only sees their id and label. |
+| `[mission]` | `target` | A place (spot or area), or a distance: `near`, `far`, `very_far` (below). `near` by default. |
+| `[mission]` | `drops` | The **dead drops** of the mission: spots, required for `deliver`, `retrieve` and `item`. |
+| `[mission]` of `route` | `points` | 2 to 8 spots, in order. |
+| `[trade]` | `landing` | The meeting spot(s) of the trader. |
+| `[rewards]` | `cache_place` | The spot where the bag of a `cache` reward is left. |
+
+A dead drop, a meeting place, a route stop or the bag of a reward is always a **spot**: the player must find the very
+square. A place missing from the file makes the sheet refused (`unknown place 'mill'`), and so does an area where a
+spot is needed (`place 'muldraugh' is a zone, a point is needed here`). A place the voice does not name, it does not
+know.
+
+```ini
+marks=rosewood,fallas_lake
+```
+
+#### Objective of a mission — `target=` and `building=`
+
+| `target=` | What the server picks, each time the mission starts |
+|---|---|
+| a spot | The building on that square, always the same, wherever the player is. |
+| an area | A building drawn in the rectangle. Two missions of the same section may aim at two buildings. |
+| `near` (default) | A building drawn 100 to 200 squares from the caller. |
+| `far` | A building drawn 200 to 500 squares away. |
+| `very_far` | A building drawn 500 to 1,500 squares away. |
+
+- `building=` picks the kind of the drawn building, with an area or a distance only: `church`, `school`, `police`,
+  `firestation`, `hospital`, `clinic`, `motel`, `farmhouse`, `apartments`, `house_garage`, `house`. Without the key,
+  any kind.
+- A drawn building is a livable building of the map, never built by a player, at least 60 squares from any known base
+  (safehouses, connected players, the caller included). The distance starts from the character's position on the
+  server.
+- Nothing fits: the mission does not start (`no_place` in the server log); the voice offers another one.
+- Only the types that have an objective read it (`scout`, `clear`, `retrieve`, `signal`, `barricade`, `relay`,
+  `watch`, `item`); `deliver` and `route` have none.
+
+```ini
+[mission look]
+type=scout
+target=far
+building=church
+story=My sister hid in a church out of town. Find out which one.
+```
 
 #### Recording a place in game
 
@@ -191,10 +275,9 @@ square, the container on it (a dumpster, a crate), the room and the building's b
 character's name, in `Zomboid/Lua/batman_RadioSurvivor/workshop-places.txt` on the machine that runs the game or the
 server (the last 200 records). A message above the character confirms it.
 
-In the voice workshop (step "Missions", panel "Places"), the **"Recorded in game"** list shows the records, newest
-first. **"Add to this voice"** makes a `[place]` at that square with a suggested name (editable) and suggested uses: a
-container becomes a dead drop (`drop`), a building a job place and a map mark (`target`, `mark`). Change anything
-afterwards in the place's card. The workshop never changes that file; on a rented server, the workshop must run on the
+In the voice workshop (**Places** tab, **From my records** block), the records show, newest first. **Add to the
+places** makes a `[place]` at that square in `_places.txt`, with a suggested name (editable). Each voice then ticks it
+where it uses it. The workshop never changes the records file; on a rented server, the workshop must run on the
 server's machine to read it.
 
 ### Actions
@@ -246,8 +329,8 @@ line: a sheet that lists it is refused (`unknown action 'remember'`), and so is 
 
 - **In game:** the voice says "I'm marking it on your map" and **a symbol appears on your world map**, at one of the
   places it knows.
-- **The sheet needs:** at least one `[place]` with `use=mark`. The voice can mark **only** those places, never an
-  invented position.
+- **The sheet needs:** at least one place in `marks=`. The voice can mark **only** those places, never an invented
+  position; an area is marked in its middle.
 - **Effect:** the marker appears only for the player who is talking, not for the others.
 - **Limits:** 30 real seconds between two markers of the voice; daily cap with `budget.mark_map`.
 
@@ -255,7 +338,8 @@ line: a sheet that lists it is refused (`unknown action 'remember'`), and so is 
 
 - **In game:** the voice describes an area it knows and **that area is uncovered on your map** (as if you had found
   a local map).
-- **The sheet needs:** at least one `[place]` with `use=mark`; the revealed area is centred on one of those places.
+- **The sheet needs:** at least one place in `marks=`; the revealed area is centred on one of those places (an area:
+  it covers it when it fits).
 - **Effect:** only for the player who is talking.
 - **Limits:** a square of 160 tiles per side at most; 60 real seconds between two reveals; daily cap with
   `budget.reveal_area`.
@@ -266,13 +350,14 @@ line: a sheet that lists it is refused (`unknown action 'remember'`), and so is 
   (delivery drop), `retrieve` (missing papers), `clear` (clearing zombies), `signal` (Signal Smoke signal), `barricade` (barricading a building), `relay` (radio relay), `route` (several places to cross in order), `watch` (keeping watch), `item` (personal item to find and leave at a dead drop). The server
   checks each objective; one mission per player and voice. The notebook is required. Without any `[mission]` section,
   only `scout` is allowed. Keys in detail: [Missions, rewards and items](#missions-rewards-and-items).
-- The building is chosen by the server, never by the AI: for `scout` and `clear`, the one of the section's
-  `target=` place, wherever the player is, or else a building drawn around them; for `barricade` and `relay`, the one of
-  the required `target=` place. A `deliver` or `retrieve` mission needs at least one `use=drop` place.
+- The building is chosen by the server, never by the AI: the one of the section's `target=` objective (a place, or a
+  building drawn in an area or at a distance from the player; `near` without the key, see
+  [Objective of a mission](#objective-of-a-mission--target-and-building)). A `deliver`, `retrieve` or `item` mission
+  needs its dead drops (`drops=`).
 - **Report by radio**, on the voice's frequency (`report_mission` is implicit). Successful missions improve reputation.
 - The `[rewards]` section allows one extra reward per success. The AI never chooses the reward nor its contents.
-  Without a `[rewards]` section, the voice offers the marker of one of its `use=mark` places.
-- A cache contains real items of its category, at the first `use=drop` place: one per mission, deferred placement
+  Without a `[rewards]` section, the voice offers the marker of a place of `marks=` not given yet.
+- A cache contains real items of its category, at the `cache_place=` spot of `[rewards]`: one per mission, deferred placement
   when unloaded, with a private map marker. `shares` limits other active voices whose frequency may enter the
   beneficiary's radio notebook. A vanilla stash map leads to an unexplored stash (one map per player and voice).
 - Lessons grant 25 base XP, capped at 100 per game day before the multiplier. The sandbox **Lesson multiplier** ranges from 0 to 5; 0 disables lessons. The server grants XP under the game's learning rules: a character without a profession or trait bonus in the skill receives a quarter of it, a gifted one more.
@@ -291,12 +376,14 @@ One section per mission, then a `[rewards]` section, and your own item lists if 
 type=deliver
 items=medical
 quantity=2-4
-drops=any
+drops=rosewood
 weight=2
 story=I am running out of bandages.
 
 [mission look]
 type=scout
+target=muldraugh
+building=clinic
 
 [category snacks]
 item=Base.Crisps:1-2
@@ -304,6 +391,7 @@ item=Base.Pop:1
 
 [rewards]
 pool=cache:medical:3, cache:snacks:1, frequency:1, stashmap:1, lesson:Doctor:2
+cache_place=rosewood
 ```
 
 | `[mission]` key | What it does |
@@ -314,13 +402,14 @@ pool=cache:medical:3, cache:snacks:1, frequency:1, stashmap:1, lesson:Doctor:2
 | `scope` | `character` (default): `after` counts the character's successes; `team`: those of its team (faction, or the lone player). |
 | `sets_state` | Story state the voice takes when this mission succeeds, a name (`returned`…). See "Chained missions". |
 | `story` | The reason the voice gives, told to the AI with the mission (200 bytes at most). |
-| `drops` | Dead drops of the mission, all offered to the player: `any` (every `use=drop` place, as without the key) or a list of ids of `use=drop` places. |
-| `target` | Objective place, a `use=target` place: a square inside the building aimed at. `scout` and `clear`: that building, wherever the player is (without the key, a building drawn around them); required for `barricade` (the building to barricade) and for `relay` (the relay spot: the radio goes on level 1 or higher, at least on the place's `z=` level; outside any building, a high point). Required for `watch`: the watch post (the watch counts within 6 tiles of the place, on any level). Required for `item`: the place where the server puts the item (on the floor, in the building of the square, on the place's `z=` level; outside any building, within 4 tiles of the place). |
-| others | Parameters of the type: `deliver` takes `items` (an item category), `quantity` (`4` or `2-4`) and `collect_hours` (game hours before a dead drop is collected, 6 by default); `retrieve` takes `collect_hours` (the ID card is left at a dead drop); `barricade` takes `count` (outside windows and doors to barricade, 4 by default, at least 1); `relay` takes none; `route` requires `points` (2 to 8 `use=target` places separated by commas, to cross in this order, never the same twice in a row: `points=bridge,station,clinic`). `watch` takes `hours` (game hours of the watch, 2 by default, from 1 to 24). `item` requires `item` (the full type of a game item, `Module.Type`: `item=Base.Locket`, `Base.Photo`, `Base.Pocketwatch`...) and takes `label` (the name the voice gives it, else the game's name) and `collect_hours` (the item is left at a dead drop). |
+| `drops` | Dead drops of the mission, all offered to the player: a list of spots of the places file, no repeat. Required for `deliver`, `retrieve` and `item`. |
+| `target` | Objective: a shared place (spot or area) or a distance (`near`, `far`, `very_far`), `near` by default (see [Objective of a mission](#objective-of-a-mission--target-and-building)). `scout`, `clear`, `retrieve`, `signal`: the building aimed at. `barricade`: the building to barricade. `relay`: the relay spot (the radio goes on level 1 or higher, at least on the place's `z=` level; outside any building, a high point). `watch`: the watch post (the watch counts within 6 tiles of the place, on any level). `item`: the place where the server puts the item (on the floor, in the building of the square, on the place's `z=` level; outside any building, within 4 tiles of the place). |
+| `building` | Kind of the drawn building, with an area or a distance only: `church`, `school`, `police`, `firestation`, `hospital`, `clinic`, `motel`, `farmhouse`, `apartments`, `house_garage`, `house`. |
+| others | Parameters of the type: `deliver` takes `items` (an item category), `quantity` (`4` or `2-4`) and `collect_hours` (game hours before a dead drop is collected, 6 by default); `retrieve` takes `collect_hours` (the ID card is left at a dead drop); `barricade` takes `count` (outside windows and doors to barricade, 4 by default, at least 1); `relay` takes none; `route` requires `points` (2 to 8 shared spots separated by commas, to cross in this order, never the same twice in a row: `points=bridge,station,clinic`). `watch` takes `hours` (game hours of the watch, 2 by default, from 1 to 24). `item` requires `item` (the full type of a game item, `Module.Type`: `item=Base.Locket`, `Base.Photo`, `Base.Pocketwatch`...) and takes `label` (the name the voice gives it, else the game's name) and `collect_hours` (the item is left at a dead drop). |
 
 Every key is **read and checked** when the sheet loads. `weight`, `after`, `scope`, `sets_state`, `story`, `drops`,
-`collect_hours`, `target` (`scout`, `clear`, `barricade`), `items` and `quantity` (`deliver`: accepted items and
-requested number, drawn when the mission starts) are all used.
+`collect_hours`, `target`, `building`, `items` and `quantity` (`deliver`: accepted items and requested number, drawn
+when the mission starts) are all used.
 
 ##### Chained missions and story state
 
@@ -333,7 +422,8 @@ available missions of that type, by `weight`. A sheet without any `[mission]` se
 `sets_state=<name>` gives the voice a **story state** when the mission succeeds: a free name (`a`-`z`, `0`-`9`, `_`),
 distinct from the head's `state=` (`active`, `silent`…). It is set once, kept with the game, told to the AI at every
 call, and readable by other mods (`RadioSurvivor.API.voiceStoryState("<id>")`). Say in the prompt what that state
-changes for the voice. Complete example (example coordinates, to be taken from your map):
+changes for the voice. Complete example (the place `farmhouse` is in the [places file](#places--shared-file-_placestxt)
+of this page):
 
 ```ini
 format=1
@@ -341,11 +431,6 @@ id=nell
 name=Nell Barker
 frequency=152.4
 actions=say,start_mission
-
-[place farmhouse]
-at=10850,9650,0
-label=Barker farmhouse
-use=target,drop
 
 [mission look_farm]
 type=scout
@@ -363,6 +448,7 @@ story=The dead are all over my yard. Clear them out.
 type=deliver
 items=food
 quantity=2-4
+drops=farmhouse
 after=clear_farm
 sets_state=returned
 story=Leave some food at the farm and I will come home.
@@ -375,11 +461,12 @@ If your story state is "returned", you are back at your farm and you talk from t
 Here `look_farm` is offered alone; its success opens `clear_farm` (for the player's whole team), whose success opens
 `stock_farm`; the success of `stock_farm` puts Nell in the `returned` state.
 
-`[rewards]` has a single line, `pool=`, a list of rewards `kind:weight` or `kind:parameter:weight`:
+`[rewards]` has a line `pool=`, a list of rewards `kind:weight` or `kind:parameter:weight`, and a line `cache_place=`
+(a shared spot) when `pool` holds a `cache` reward (`cache reward needs cache_place` without it):
 
 | Kind | Parameter | What the player receives |
 |---|---|---|
-| `cache` | a category: `cache:medical:3` | a bag of items of that category, quantities drawn at random, at the first `use=drop` place |
+| `cache` | a category: `cache:medical:3` | a bag of items of that category, quantities drawn at random, left at the `cache_place=` spot |
 | `frequency` | none | the frequency of a voice of `shares`, written in the notebook |
 | `stashmap` | none | an annotated map to an unexplored vanilla stash |
 | `lesson` | a skill: `lesson:Doctor:2` | experience: `Doctor`, `Aiming`, `Reloading`, `Woodwork`, `Mechanics`, `Electricity`, `MetalWelding`, `Cooking`, `Farming`, `Fishing`, `Trapping`, `PlantScavenging` |
@@ -396,28 +483,28 @@ its category: each `item=` line gives a quantity within its range (`Base.Bandage
 item (`Base.Bandage:2-4`), with an id that is not in the catalogue; a `cache:<id>` entry of `pool` may cite either,
 and the bag is filled from that category only.
 
-Only the server checks these sections: an unknown mission type, a missing place or one without the right `use`, an
-unknown category or an invalid weight makes the server refuse the sheet, with the line and the reason in
-`console.txt` (the last valid version of the voice stays in service). `persona_store.py` only reads the header, the
-places and the prompt: it does not see these errors.
+Only the server checks these sections: an unknown mission type, a place missing from the places file or an area where
+a spot is needed, an unknown category or an invalid weight makes the server refuse the sheet, with the line and the
+reason in `console.txt` (the last valid version of the voice stays in service). `persona_store.py` only reads the
+header (`marks=` included), the places file and the prompt: it does not see these errors.
 
 #### Radio deliveries: discreet collection
 
-A delivery mission of a voice offers **all its dead drops at once** (key `drops=` of its section; without it, every `use=drop` place of the sheet), each circled on your map with its name. Leave the goods wherever you want: items left at several drops add up toward the requested quantity. At each drop, the server designates a suitable existing box (every other mission) or, without one, requests a bag on the ground. The voice collects a drop only **out of everyone's sight** (no player within 100 tiles on x and on y, whatever the floor, or the square unloaded) **and after about 6 game hours** (`collect_hours=` of the `[mission]` section). The wait follows the game clock: it stops while paused, runs faster at higher speed or while sleeping, and does not count while the server is stopped. A player back in sight before the end resets it. A drop whose wait ran out while its square was unloaded is emptied as soon as the square loads again.
+A delivery mission of a voice offers **all its dead drops at once** (key `drops=` of its section, required), each circled on your map with its name. Leave the goods wherever you want: items left at several drops add up toward the requested quantity. At each drop, the server designates a suitable existing box (every other mission) or, without one, requests a bag on the ground. The voice collects a drop only **out of everyone's sight** (no player within 100 tiles on x and on y, whatever the floor, or the square unloaded) **and after about 6 game hours** (`collect_hours=` of the `[mission]` section). The wait follows the game clock: it stops while paused, runs faster at higher speed or while sleeping, and does not count while the server is stopped. A player back in sight before the end resets it. A drop whose wait ran out while its square was unloaded is emptied as soon as the square loads again.
 
 **Requested items.** With `items=<category>`, the mission accepts only the items of that category (a `[category]` section of the sheet, else the shared catalogue); with `quantity=`, the requested number is drawn when the mission starts (`2-4`: 2, 3 or 4; `3`: always 3) and then stays the same. Without these keys, the mission asks for 6 bandages or ripped sheets. The notebook and the voice tell the accepted items and the requested number; an item outside the category is never collected.
 
 From a box, only requested items disappear, never more than the remaining quantity: the box, other items and the surplus remain. For a bag, the bag and contents disappear; a bag containing unrelated items, or more than the remaining quantity, is refused to prevent their loss. Each item counts only once, even after a restart. Until collection, you can take the drop back and nothing is validated. **Only once the whole quantity is collected, report over the radio**.
 
-**Barricading for a voice.** The building of the `target=` place is circled on your map. Barricade the requested number (`count=`) of its **outside** windows and doors, with planks or metal sheets, from inside or outside: each opening counts once. The server counts the building's barricades itself; those already in place when the mission started do not count, and a barricade removed again stops counting. Once the count is reached, call the voice back.
+**Barricading for a voice.** The building of the objective (`target=`) is circled on your map. Barricade the requested number (`count=`) of its **outside** windows and doors, with planks or metal sheets, from inside or outside: each opening counts once. The server counts the building's barricades itself; those already in place when the mission started do not count, and a barricade removed again stops counting. Once the count is reached, call the voice back.
 
-**Radio relay for a voice.** The `target=` place is circled on your map. Put a radio that can transmit there, high up, on an upper floor or the roof (at least on the level the notebook shows): a walkie-talkie or a ham radio. Turn it on; it must stay powered by its battery, the grid or a generator. The server checks the radio itself; turned off, without power or taken away, it stops counting and the report is refused. While it is on, call the voice back.
+**Radio relay for a voice.** The place of the objective (`target=`) is circled on your map. Put a radio that can transmit there, high up, on an upper floor or the roof (at least on the level the notebook shows): a walkie-talkie or a ham radio. Turn it on; it must stay powered by its battery, the grid or a generator. The server checks the radio itself; turned off, without power or taken away, it stops counting and the report is refused. While it is on, call the voice back.
 
-**Keeping watch for a voice.** The `target=` place is circled on your map: it is the watch post. Stay there (within 6 tiles of the place; an upper floor or the roof counts too) for the game hours the notebook shows, 2 by default. Time counts in game hours: it stops while the game is paused and runs faster at a higher speed. A short absence (10 game minutes at most) is tolerated without counting; a longer one starts the watch again from zero. The server notes what happens during the watch (a helicopter heard, a group of the dead close by) and the voice talks about it when you call back once the watch is done.
+**Keeping watch for a voice.** The place of the objective (`target=`) is circled on your map: it is the watch post. Stay there (within 6 tiles of the place; an upper floor or the roof counts too) for the game hours the notebook shows, 2 by default. Time counts in game hours: it stops while the game is paused and runs faster at a higher speed. A short absence (10 game minutes at most) is tolerated without counting; a longer one starts the watch again from zero. The server notes what happens during the watch (a helicopter heard, a group of the dead close by) and the voice talks about it when you call back once the watch is done.
 
 **Personal item for a voice.** An `item` mission names a vanilla item (`item=`, for example a locket, a photo or a pocket watch) and, optionally, how the voice calls it (`label=`, "Ellen's locket"). When the mission starts, the server puts that item on the floor in the building of the `target=` place (or close to the place outside any building), only once, as soon as the place is loaded; the place is circled on your map. Find it, then leave it at one of the mission's drop points, at your choice: it is collected out of everyone's sight, after the delay in game hours. Only the item put there for the voice counts: another item of the same kind, even identical, is never taken and stays where you left it. Once the item has been collected, call the voice back.
 
-**Route for a voice.** A `route` mission names several places to cross **in order**, on foot or by vehicle. Only the next point is circled on your map, with the place name; points already crossed stay circled, the later ones only show in their turn. A point is crossed when you pass within 8 tiles of its centre, even driving fast; a point reached before the previous one does not count and must be crossed again in its turn. The notebook shows "2 of 4" and the next point. The server reads your position itself (the one of the vehicle you sit in). Once every point is crossed, call the voice back.
+**Route for a voice.** A `route` mission names several shared spots (`points=`) to cross **in order**, on foot or by vehicle. Only the next point is circled on your map, with the place name; points already crossed stay circled, the later ones only show in their turn. A point is crossed when you pass within 8 tiles of its centre, even driving fast; a point reached before the previous one does not count and must be crossed again in its turn. The notebook shows "2 of 4" and the next point. The server reads your position itself (the one of the vehicle you sit in). Once every point is crossed, call the voice back.
 
 **Missing papers for a voice.** The ID card taken from the body is not handed over on the radio: leave it at one of the mission's dead drops, marked on your map as for a delivery (in the designated box, or alone in a bag on the ground). The voice collects it by the same rule, out of sight and after the wait (`collect_hours=` of the `[mission]` section); only the card of that body is taken, another ID card stays where it is. **Only once the card is collected, report over the radio**: the report removes nothing from your inventory.
 
@@ -430,7 +517,7 @@ one without the other is refused.
 
 | Key | What it does |
 |---|---|
-| `landing` | Meeting place(s), each `use=landing`; its label is the only meeting name the voice gives, and only to the group that booked. |
+| `landing` | Meeting spot(s) of the places file, separated by commas (one drawn per run when there are several); its label is the only meeting name the voice gives, and only to the group that booked. |
 | `arrival` | How the trader comes: `boat` (a boat comes alongside; the player shows a lit lamp in hand or a red flare there during the window), `road` (a van pulls over by the road, same signals; its door at the arrival, its trunk at the departure) or `cache` (a dead drop: nobody comes; the payment is left in a container of the place, a dumpster or a mailbox, and the goods are put there out of sight; no signal, no sound). |
 | `every_days` | One run every N game days (1 to 28). |
 | `hours` | Meeting window, `HH:MM-HH:MM`. |
@@ -464,12 +551,7 @@ listen=21:00-02:00
 actions=say,propose_trade
 budget=3
 
-# Example coordinates (Gus's pier): read your own place on the map.
-[place ferry]
-at=6041,5217,0
-label=Old ferry landing
-use=landing
-
+# The place ferry is in _places.txt (example coordinates: Gus's pier).
 [trade]
 landing=ferry
 arrival=boat
@@ -623,19 +705,11 @@ budget.mark_map=4
 call_one_in=5
 call=This is Mae near Rosewood, on %1. Anyone out there? Over.
 state=active
-
-[place rosewood]
-at=8159,11661,0
-label=Rosewood, center of town
-use=mark,target,drop
-
-[place fallas_lake]
-at=7253,8279,0
-label=Fallas Lake
-use=mark
+marks=rosewood,fallas_lake
 
 [mission scout]
 type=scout
+target=rosewood
 weight=2
 story=Somebody stopped answering my roll call near there.
 
@@ -643,11 +717,12 @@ story=Somebody stopped answering my roll call near there.
 type=deliver
 items=radio
 quantity=1-2
-drops=any
+drops=rosewood
 story=My batteries will not last the month.
 
 [mission retrieve]
 type=retrieve
+drops=rosewood
 
 [mission clear]
 type=clear
@@ -657,6 +732,7 @@ type=signal
 
 [rewards]
 pool=cache:radio:1, frequency:1, stashmap:1, lesson:Electricity:1
+cache_place=rosewood
 
 [prompt]
 You are Mae Tolliver, 67, a retired schoolteacher and a licensed radio amateur who lives alone in a farmhouse a few miles outside Rosewood, Kentucky. You are a character in a survival story set in July 1993, during the "Knox Event": an infection turned people in Knox County into violent, undead "zombies", and the army sealed the county behind a fence.
@@ -709,29 +785,11 @@ budget.reveal_area=2
 budget.start_mission=2
 call_one_in=6
 call=Rick Grimes on %1. Anyone still out there? Over.
-
-[place west_point]
-at=11654,6864,0
-label=West Point, center of town
-use=mark
-
-[place muldraugh_pd]
-at=10644,10405,0
-label=Muldraugh, police station
-use=mark,target,drop
-
-[place muldraugh]
-at=10754,9926,0
-label=Muldraugh, center of town
-use=mark
-
-[place march_ridge]
-at=10130,12801,0
-label=March Ridge
-use=mark,drop
+marks=west_point,muldraugh_pd,muldraugh,march_ridge
 
 [mission scout]
 type=scout
+target=far
 weight=3
 story=I am looking for any trace of my wife and my son.
 
@@ -743,10 +801,13 @@ drops=muldraugh_pd,march_ridge
 
 [mission papers]
 type=retrieve
+drops=muldraugh_pd
 after=scout
 
 [mission clear]
 type=clear
+target=muldraugh
+building=house
 
 [mission signal]
 type=signal
@@ -757,6 +818,7 @@ item=Base.Battery:1-2
 
 [rewards]
 pool=cache:ammo:2, cache:patrol:1, frequency:1, stashmap:1, lesson:Aiming:2
+cache_place=muldraugh_pd
 
 [prompt]
 You are Rick Grimes, 38, a sheriff's deputy from a small county south of Louisville, Kentucky. You are a character in a survival story set in July 1993, during the "Knox Event": an infection turned people in Knox County into violent, undead "zombies", and the army sealed the county behind a fence.
@@ -786,8 +848,11 @@ Rules:
 
 What to notice:
 
-- The `[place]` sections say what each place is for (`use`): map markers, mission objectives, dead drops. The server
-  chooses the rewards from the `pool` list above; Rick's `patrol` category is valid for his sheet only.
+- The places come from the [shared file](#places--shared-file-_placestxt): Rick names them where he uses them
+  (`marks=` for the markers, `drops=` for the dead drops, `target=` for an objective, `cache_place=` for the bag). His
+  scouting aims at a building drawn far from the player (`target=far`), his clearing at a house drawn in the
+  `muldraugh` area. The server chooses the rewards from the `pool` list above; Rick's `patrol` category is valid for
+  his sheet only.
 - Each action has its own daily budget, so a chatty caller cannot reveal the whole map in one evening.
 - The prompt says **when** to use the actions ("only when it helps them and they earned some trust"); the server
   still checks every one.
@@ -888,16 +953,20 @@ first error, and the last valid version of the voice stays in service until you 
 | `note text needs %1 (the frequency) on one of its lines` | Put `%1` where the frequency must show. |
 | `note text too long (40 bytes of UTF-8 at most)` | Split the line into two `text=` lines. |
 | `item and key cannot be used with text in [note] …` | Keep `text` (handwritten note) or `item` and `key`, not both. |
-| `unknown key 'radio' in [place mill]` | A header line written below a section: move it above the first section. |
-| `missing key 'use' in [place mill]` | A place needs `at`, `label` and `use`. |
-| `bad use entry 'hide' (expected mark, target, drop, landing)` | See [Places](#places--place-sections). |
-| `place label of 'mill' too long (48 bytes of UTF-8 at most)` | Shorten the label. |
-| `unknown section 'shop' (expected place, mission, rewards, category or prompt)` | Typo in a section title. |
+| `unknown key 'radio' in [mission meds]` | A header line written below a section: move it above the first section. |
+| `unknown section 'place' (expected mission, rewards, category, trade, note or prompt)` | A place written in the sheet: move it to `_places.txt` (see [Places](#places--shared-file-_placestxt)). Also for a typo in a section title. |
+| `unknown place 'mill'` | The named place (`marks`, `target`, `drops`, `points`, `landing`, `cache_place`) is not in `_places.txt`: add it or fix the id. |
+| `place 'muldraugh' is a zone, a point is needed here` | A dead drop, a meeting place, a route stop or the bag of a reward needs a spot (`at=`). |
+| `too many marks (12 at most)` | 12 markers at most in `marks=`. |
+| `missing key 'drops' in [mission meds]` (server log only) | `deliver`, `retrieve` and `item` need their dead drops. |
+| `building needs a zone or a distance target` (server log only) | `building=` goes with an area or `near`, `far`, `very_far`, not with a spot. |
+| `cache reward needs cache_place` (server log only) | Add `cache_place=` to `[rewards]`. |
+| `place label of 'mill' too long (48 bytes of UTF-8 at most)` (places file) | Shorten the label. |
+| `missing key 'at' or 'area' in [place mill]` (places file) | A place needs `label` and either `at` or `area`. |
 | `unknown mission type 'fly'` (server log only) | Use a type of the mod: `scout`, `deliver`, `retrieve`, `clear`, `signal`, `barricade`, `route`, `relay`, `watch`, `item`. |
 | `bad item 'Locket' (Module.Type of an item script, e.g. Base.Locket)` (server log only) | The `item=` key of an `item` mission gives the module and the type: `Base.Locket`. |
 | `unknown item 'Base.Lockett'` (server log only) | No item of the game (nor of the active mods) has this type: check the spelling. |
-| `bad place list (2 to 8 places with use=target)` | The `points=` key of a `route` mission names 2 to 8 `use=target` places, separated by commas. |
-| `place 'clinic' has no use=drop` (server log only) | Add `drop` to the `use` of that place, or cite another place. |
+| `bad place list (2 to 8 places)` (server log only) | The `points=` key of a `route` mission names 2 to 8 shared spots, separated by commas. |
 | `unknown category 'weapons'` (server log only) | A category of the catalogue or a `[category]` of the sheet. |
 | `bad reward weight '0' (whole number from 1 to 999999)` (server log only) | Weights start at 1. |
 | `missing [prompt] line before the prompt text` / `empty prompt text after [prompt]` | Add the line, then the text. |

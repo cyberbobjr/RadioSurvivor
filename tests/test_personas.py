@@ -63,12 +63,20 @@ FIXED_HEAD = BASE + 'frequency=145.0\n'
 BOTH = 'radio and frequency cannot be used together (a radio level to draw a free frequency, or one fixed frequency)'
 LEVELS = ('any_talkie', 'good_talkie', 'pro_talkie', 'tactical', 'military')
 PROMPT = '[prompt]\nYou are a test voice.\n'
-PLACE = '[place mill]\nat=10600,9300,0\nlabel=Old mill\nuse=mark\n'
+PLACES_HEAD = 'format=1\n'
 
 
-def place(ident: str, at: str = '1,2,0', label: str = 'Place', use: str = 'mark') -> str:
-    """One [place] section of four lines."""
-    return f'[place {ident}]\nat={at}\nlabel={label}\nuse={use}\n'
+def place(ident: str, at: str = '1,2,0', label: str = 'Place', area: str | None = None) -> str:
+    """One [place] section of three lines of the shared file _places.txt (E25-T01): a point (at=) or a zone (area=)."""
+    where = f'area={area}' if area is not None else f'at={at}'
+    return f'[place {ident}]\n{where}\nlabel={label}\n'
+
+
+# Shared places of the voice cases, written as _places.txt next to case.txt: two points, a zone, then p0 to p12.
+PLACES = (PLACES_HEAD + place('mill', '10600,9300,0', 'Vieux moulin')
+          + place('west_point_2', '11900,6900,-1', 'Pharmacie  de West Point')
+          + place('town', label='Old town', area='100,200,50,150,0')
+          + ''.join(place(f'p{i}') for i in range(13)))
 
 
 FULL = ('# fiche complète\n'
@@ -87,16 +95,6 @@ FULL = ('# fiche complète\n'
         'call_one_in=4\n'
         'call_text=IGUI_Test_Call\n'
         'state=silent\n'
-        '\n'
-        '[place mill]\n'
-        'at=10600,9300,0\n'
-        'label=Vieux moulin\n'
-        'use=mark\n'
-        '# lieu à deux usages\n'
-        ' [ place   west_point_2 ] \n'
-        ' at = 11900,6900,-1 \n'
-        'label= \t Pharmacie  de West Point \n'
-        'use=drop, mark\n'
         '\n'
         '[prompt]\n'
         '\n'
@@ -208,76 +206,121 @@ CASES: list[tuple[str, str | bytes, tuple[int, str] | None]] = [
     ('budget of a forbidden action', HEAD + 'actions=say\nbudget.signal=1\n' + PROMPT,
      (6, "budget.signal set but action 'signal' is not in actions")),
     ('budget of say by default', HEAD + 'budget.say=5\n' + PROMPT, None),
-    # Sections (E20-T03, ADR D04) : [place <id>] lu par les deux lecteurs ; [mission], [rewards] et [category] passés
-    # par le pont (le serveur les valide : tests/test_persona_sections.py). Lieux : 12 au plus, libellé de 48 octets
-    # UTF-8 au plus.
-    ('place', HEAD + PLACE + PROMPT, None),
-    ('place with every use', HEAD + PLACE.replace('use=mark', 'use=mark,target,drop,landing') + PROMPT, None),
-    ('place label of 48 bytes', HEAD + place('a', label='é' * 24) + PROMPT, None),
-    ('place label of 4-byte characters', HEAD + place('a', label='\U0001F4FB' * 12) + PROMPT, None),
-    ('place without at', HEAD + '[place mill]\nlabel=Old mill\nuse=mark\n' + PROMPT,
-     (5, "missing key 'at' in [place mill]")),
-    ('place without label', HEAD + '[place mill]\nat=1,2,0\nuse=mark\n' + PROMPT,
-     (5, "missing key 'label' in [place mill]")),
-    ('place without use', HEAD + '[place mill]\nat=1,2,0\nlabel=Old mill\n' + PROMPT,
-     (5, "missing key 'use' in [place mill]")),
-    ('place id upper case', HEAD + PLACE.replace('[place mill]', '[place Mill]') + PROMPT,
-     (5, "bad place id 'Mill' (a to z, 0 to 9 and _, 32 characters at most)")),
-    ('place id with accent', HEAD + PLACE.replace('[place mill]', '[place moulïn]') + PROMPT,
-     (5, "bad place id 'moulïn' (a to z, 0 to 9 and _, 32 characters at most)")),
-    ('place id too long', HEAD + PLACE.replace('[place mill]', '[place ' + 'm' * 33 + ']') + PROMPT,
-     (5, "bad place id '" + 'm' * 33 + "' (a to z, 0 to 9 and _, 32 characters at most)")),
-    ('place id with a space', HEAD + PLACE.replace('[place mill]', '[place old mill]') + PROMPT,
-     (5, "bad place id 'old mill' (a to z, 0 to 9 and _, 32 characters at most)")),
-    ('section without id', HEAD + PLACE.replace('[place mill]', '[place]') + PROMPT,
-     (5, 'section [place] needs an id, e.g. [place mill]')),
+    # Sections (E20-T03, ADR D04) : [mission], [rewards], [category], [trade] et [note] passées par le pont (le serveur
+    # les valide : tests/test_persona_sections.py). E25-T01 : plus de [place] dans une fiche ; la tête nomme les repères
+    # de la voix (marks=, 12 au plus) parmi les lieux communs _places.txt, lus par les deux lecteurs.
+    ('marks', HEAD + 'marks=mill,town\n' + PROMPT, None),
+    ('marks with spaces', HEAD + 'marks= west_point_2 , mill \n' + PROMPT, None),
+    ('unknown mark', HEAD + 'marks=mill,ghost\n' + PROMPT, (5, "unknown place 'ghost'")),
+    ('duplicate mark', HEAD + 'marks=mill,town,mill\n' + PROMPT, (5, "duplicate marks entry 'mill'")),
+    ('bad mark', HEAD + 'marks=Mill\n' + PROMPT, (5, "bad marks entry 'Mill'")),
+    ('empty mark entry', HEAD + 'marks=mill,\n' + PROMPT, (5, "bad marks entry ''")),
+    ('twelve marks', HEAD + 'marks=' + ','.join(f'p{i}' for i in range(12)) + '\n' + PROMPT, None),
+    ('thirteen marks', HEAD + 'marks=' + ','.join(f'p{i}' for i in range(13)) + '\n' + PROMPT,
+     (5, 'too many marks (12 at most)')),
+    ('place section in a voice', HEAD + place('mill') + PROMPT,
+     (5, "unknown section 'place' (expected mission, rewards, category, trade, note or prompt)")),
     ('mission section without id', HEAD + '[mission]\ntype=scout\n' + PROMPT,
      (5, 'section [mission] needs an id, e.g. [mission meds]')),
     ('rewards section with an id', HEAD + '[rewards main]\npool=frequency:1\n' + PROMPT,
      (5, 'section [rewards] takes no id')),
     ('unknown section', HEAD + '[shop gus]\nstock=food\n' + PROMPT,
-     (5, "unknown section 'shop' (expected place, mission, rewards, category, trade, note or prompt)")),
-    ('place coords with two numbers', HEAD + PLACE.replace('10600,9300,0', '10600,9300') + PROMPT,
-     (6, "bad place coords '10600,9300' (x,y,z whole numbers, z from -32 to 31)")),
-    ('place coords z out of range', HEAD + PLACE.replace('10600,9300,0', '1,2,-33') + PROMPT,
-     (6, "bad place coords '1,2,-33' (x,y,z whole numbers, z from -32 to 31)")),
-    ('place coords too large', HEAD + PLACE.replace('10600,9300,0', '1234567,2,0') + PROMPT,
-     (6, "bad place coords '1234567,2,0' (x,y,z whole numbers, z from -32 to 31)")),
-    ('place label too long', HEAD + place('a', label='é' * 24 + 'x') + PROMPT,
-     (7, "place label of 'a' too long (48 bytes of UTF-8 at most)")),
-    ('place label too long in 4-byte characters', HEAD + place('a', label='\U0001F4FB' * 12 + 'x') + PROMPT,
-     (7, "place label of 'a' too long (48 bytes of UTF-8 at most)")),
-    ('bad use', HEAD + PLACE.replace('use=mark', 'use=mark,hide') + PROMPT,
-     (8, "bad use entry 'hide' (expected mark, target, drop, landing)")),
-    ('duplicate use', HEAD + PLACE.replace('use=mark', 'use=mark,mark') + PROMPT, (8, "duplicate use entry 'mark'")),
-    ('empty use entry', HEAD + PLACE.replace('use=mark', 'use=mark,') + PROMPT,
-     (8, "bad use entry '' (expected mark, target, drop, landing)")),
-    ('unknown place key', HEAD + PLACE + 'colour=red\n' + PROMPT, (9, "unknown key 'colour' in [place mill]")),
-    ('head key after a section', HEAD + PLACE + 'location=none\n' + PROMPT,
-     (9, "unknown key 'location' in [place mill]")),
-    ('duplicate place key', HEAD + PLACE + 'at=1,2,0\n' + PROMPT,
-     (9, "duplicate key 'at' in [place mill] (first set on line 6)")),
-    ('empty place value', HEAD + PLACE.replace('label=Old mill', 'label=') + PROMPT,
-     (7, "empty value for key 'label'")),
-    ('place line without equal sign', HEAD + PLACE + 'Old mill\n' + PROMPT, (9, 'expected key=value or [prompt]')),
-    ('duplicate place', HEAD + PLACE + PLACE.replace('10600,9300,0', '3,4,0') + PROMPT,
-     (9, "duplicate place 'mill' (first set on line 5)")),
-    ('twelve places', HEAD + ''.join(place(f'p{i}') for i in range(12)) + PROMPT, None),
-    ('thirteen places', HEAD + ''.join(place(f'p{i}') for i in range(13)) + PROMPT,
-     (53, 'too many places (12 at most)')),
+     (5, "unknown section 'shop' (expected mission, rewards, category, trade, note or prompt)")),
+    ('mission id upper case', HEAD + '[mission Meds]\ntype=scout\n' + PROMPT,
+     (5, "bad mission id 'Meds' (a to z, 0 to 9 and _, 32 characters at most)")),
     ('duplicate mission section', HEAD + '[mission a]\ntype=scout\n[mission a]\ntype=clear\n' + PROMPT,
      (7, "duplicate mission 'a' (first set on line 5)")),
     ('duplicate rewards section', HEAD + '[rewards]\npool=frequency:1\n[rewards]\npool=stashmap:1\n' + PROMPT,
      (7, 'duplicate section [rewards] (first set on line 5)')),
-    ('sections read by the server only', HEAD + PLACE.replace('use=mark', 'use=drop')
-     + '[mission meds]\ntype=deliver\nitems=medical\nquantity=2-4\ndrops=any\n'
-     + '[category snacks]\nitem=Base.Crisps:1-2\n[rewards]\npool=cache:snacks:2, frequency:1\n' + PROMPT, None),
+    ('sections read by the server only', HEAD + 'marks=mill\n'
+     + '[mission meds]\ntype=deliver\nitems=medical\nquantity=2-4\ndrops=mill,west_point_2\n'
+     + '[mission look]\ntype=scout\ntarget=town\nbuilding=church\n'
+     + '[category snacks]\nitem=Base.Crisps:1-2\n[rewards]\npool=cache:snacks:2, frequency:1\ncache_place=mill\n'
+     + PROMPT, None),
+]
+
+# E25-T01 : fichier commun des lieux _places.txt, lu par les deux lecteurs (mêmes règles, mêmes messages). Un point
+# (at=) ou une zone (area=, deux coins dans n'importe quel ordre, côtés de 1 à 1500 cases), un libellé de 48 octets
+# UTF-8 au plus ; 500 lieux au plus ; near, far et very_far sont des distances, jamais des identifiants de lieu.
+PLACE = place('mill', '10600,9300,0', 'Old mill')                  # lignes 2 à 4 après PLACES_HEAD
+BAD_AREA = "(x1,y1,x2,y2,z whole numbers, sides 1 to 1500)"
+PLACES_CASES: list[tuple[str, str | bytes, tuple[int, str] | None]] = [
+    ('point', PLACES_HEAD + PLACE, None),
+    ('zone', PLACES_HEAD + place('town', area='100,200,50,150,0'), None),
+    ('zone of one tile', PLACES_HEAD + place('spot', area='5,5,5,5,-1'), None),
+    ('zone of 1500 tiles', PLACES_HEAD + place('county', area='0,10,1499,1508,0'), None),
+    ('no place', PLACES_HEAD, None),
+    ('comments and blank lines', '# shared places\n\nformat=1\n\n# the mill\n' + PLACE + '\n', None),
+    ('crlf', (PLACES_HEAD + PLACE).replace('\n', '\r\n'), None),
+    ('label of 48 bytes', PLACES_HEAD + place('a', label='é' * 24), None),
+    ('label of 4-byte characters', PLACES_HEAD + place('a', label='\U0001F4FB' * 12), None),
+    ('spaces around', PLACES_HEAD + ' [ place   west_point_2 ] \n at = 11900,6900,-1 \nlabel= \t Pharmacie \n', None),
+    ('bom', '﻿' + PLACES_HEAD + PLACE, (1, 'file starts with a byte order mark (save it as UTF-8 without BOM)')),
+    ('invalid utf-8', PLACES_HEAD.encode() + b'[place mill]\nat=1,2,0\nlabel=caf\xe9\n', (4, 'invalid UTF-8 (save the file as UTF-8)')),
+    ('missing format', PLACE, (1, "missing key 'format'")),
+    ('missing format without place', '# nothing\n', (1, "missing key 'format'")),
+    ('empty file', '', (1, "missing key 'format'")),
+    ('format 2', 'format=2\n' + PLACE, (1, "unsupported format '2' (expected 1)")),
+    ('unknown head key', PLACES_HEAD + 'colour=red\n' + PLACE, (2, "unknown key 'colour'")),
+    ('duplicate format', PLACES_HEAD + 'format=1\n', (2, "duplicate key 'format' (first set on line 1)")),
+    ('head line without equal sign', PLACES_HEAD + 'mill\n', (2, 'expected key=value or [place <id>]')),
+    ('other section', PLACES_HEAD + '[category a]\nitem=Base.A:1\n', (2, "unknown section 'category' (expected place)")),
+    ('section without id', PLACES_HEAD + PLACE.replace('[place mill]', '[place]'),
+     (2, 'section [place] needs an id, e.g. [place mill]')),
+    ('place id upper case', PLACES_HEAD + PLACE.replace('[place mill]', '[place Mill]'),
+     (2, "bad place id 'Mill' (a to z, 0 to 9 and _, 32 characters at most)")),
+    ('place id with accent', PLACES_HEAD + PLACE.replace('[place mill]', '[place moulïn]'),
+     (2, "bad place id 'moulïn' (a to z, 0 to 9 and _, 32 characters at most)")),
+    ('place id too long', PLACES_HEAD + PLACE.replace('[place mill]', '[place ' + 'm' * 33 + ']'),
+     (2, "bad place id '" + 'm' * 33 + "' (a to z, 0 to 9 and _, 32 characters at most)")),
+    ('place id with a space', PLACES_HEAD + PLACE.replace('[place mill]', '[place old mill]'),
+     (2, "bad place id 'old mill' (a to z, 0 to 9 and _, 32 characters at most)")),
+    *((f'place id {d}', PLACES_HEAD + PLACE.replace('[place mill]', f'[place {d}]'),
+       (2, f"place id '{d}' is reserved (near, far and very_far are distances)")) for d in ('near', 'far', 'very_far')),
+    ('place without at or area', PLACES_HEAD + '[place mill]\nlabel=Old mill\n',
+     (2, "missing key 'at' or 'area' in [place mill]")),
+    ('place without label', PLACES_HEAD + '[place mill]\nat=1,2,0\n', (2, "missing key 'label' in [place mill]")),
+    ('place with at and area', PLACES_HEAD + PLACE + 'area=1,2,3,4,0\n', (5, "place 'mill' has both at and area")),
+    ('place with area and at', PLACES_HEAD + place('town', area='1,2,3,4,0') + 'at=1,2,0\n',
+     (5, "place 'town' has both at and area")),
+    ('place coords with two numbers', PLACES_HEAD + PLACE.replace('10600,9300,0', '10600,9300'),
+     (3, "bad place coords '10600,9300' (x,y,z whole numbers, z from -32 to 31)")),
+    ('place coords z out of range', PLACES_HEAD + PLACE.replace('10600,9300,0', '1,2,-33'),
+     (3, "bad place coords '1,2,-33' (x,y,z whole numbers, z from -32 to 31)")),
+    ('place coords too large', PLACES_HEAD + PLACE.replace('10600,9300,0', '1234567,2,0'),
+     (3, "bad place coords '1234567,2,0' (x,y,z whole numbers, z from -32 to 31)")),
+    ('zone side too long', PLACES_HEAD + place('t', area='0,0,1500,10,0'), (3, f"bad place area '0,0,1500,10,0' {BAD_AREA}")),
+    ('zone height too long', PLACES_HEAD + place('t', area='10,1600,20,100,0'),
+     (3, f"bad place area '10,1600,20,100,0' {BAD_AREA}")),
+    ('zone with four numbers', PLACES_HEAD + place('t', area='1,2,3,4'), (3, f"bad place area '1,2,3,4' {BAD_AREA}")),
+    ('zone z out of range', PLACES_HEAD + place('t', area='1,2,3,4,32'), (3, f"bad place area '1,2,3,4,32' {BAD_AREA}")),
+    ('zone coords too large', PLACES_HEAD + place('t', area='1234567,2,3,4,0'),
+     (3, f"bad place area '1234567,2,3,4,0' {BAD_AREA}")),
+    ('label too long', PLACES_HEAD + place('a', label='é' * 24 + 'x'),
+     (4, "place label of 'a' too long (48 bytes of UTF-8 at most)")),
+    ('label too long in 4-byte characters', PLACES_HEAD + place('a', label='\U0001F4FB' * 12 + 'x'),
+     (4, "place label of 'a' too long (48 bytes of UTF-8 at most)")),
+    ('unknown place key', PLACES_HEAD + PLACE + 'colour=red\n', (5, "unknown key 'colour' in [place mill]")),
+    ('duplicate place key', PLACES_HEAD + PLACE + 'at=1,2,0\n', (5, "duplicate key 'at' in [place mill] (first set on line 3)")),
+    ('empty place value', PLACES_HEAD + PLACE.replace('label=Old mill', 'label='), (4, "empty value for key 'label'")),
+    ('place line without equal sign', PLACES_HEAD + PLACE + 'Old mill\n', (5, 'expected key=value or [place <id>]')),
+    ('duplicate place', PLACES_HEAD + PLACE + PLACE.replace('10600,9300,0', '3,4,0'),
+     (5, "duplicate place 'mill' (first set on line 2)")),
+    ('500 places', PLACES_HEAD + ''.join(place(f'p{i}') for i in range(500)), None),
+    ('501 places', PLACES_HEAD + ''.join(place(f'p{i}') for i in range(501)), (1502, 'too many places (500 at most)')),
 ]
 
 # Résumé canonique d'une fiche, identique en Python et en Lua (comparaison des deux lecteurs).
 # E24-T01 : le pont garde la radio écrite (None avec frequency=) ; le serveur déduit celle d'une fréquence fixe.
 # Pas de commentaire dans LUA_CANONICAL : tests/test_kahlua.py le met sur une seule ligne.
-LUA_CANONICAL = r'''
+LUA_PLACE = r'''
+local function place(l)
+    local where = l.area and (tostring(l.area.x1) .. "," .. tostring(l.area.y1) .. "," .. tostring(l.area.x2) .. ","
+        .. tostring(l.area.y2)) or (tostring(l.x) .. "," .. tostring(l.y))
+    return l.id .. "@" .. (l.area and "area " or "") .. where .. "," .. tostring(l.z) .. "@" .. l.label
+end
+'''
+LUA_CANONICAL = LUA_PLACE + r'''
 return function(p)
     local function join(list, sep, f)
         local out = {}
@@ -293,12 +336,34 @@ return function(p)
         p.frequency and "-" or p.radio,
         join(p.listen, ",", function(r) return tostring(r.from) .. "-" .. tostring(r.to) end), p.location,
         p.coords and (tostring(p.coords.x) .. "," .. tostring(p.coords.y) .. "," .. tostring(p.coords.z)) or "-",
-        join(p.places, ";", function(l) return l.id .. "@" .. tostring(l.x) .. "," .. tostring(l.y) .. ","
-            .. tostring(l.z) .. "@" .. l.label .. "@" .. join(l.uses, ",") end), join(p.actions, ","),
+        join(p.marks, ";", function(l) return place(l) end), join(p.actions, ","),
         tostring(p.budget), table.concat(budgets, ","), tostring(p.call_one_in), p.call_text, p.call, p.state, p.prompt,
         join(p.shares, ",") }, "|")
 end
 '''
+
+
+def place_canonical(q: store.Place) -> str:
+    """Place as LUA_CANONICAL writes it: id@x,y,z@label, or id@area x1,y1,x2,y2,z@label for a zone."""
+    where = f'area {",".join(str(v) for v in q.area)}' if q.area else f'{q.x},{q.y}'
+    return f'{q.id}@{where},{q.z}@{q.label}'
+
+
+# Résumé canonique du fichier commun des lieux (E25-T01), identique en Python et en Lua : lieux triés par identifiant.
+LUA_PLACES_CANONICAL = LUA_PLACE + r'''
+return function(places)
+    local ids = {}
+    for id in pairs(places) do ids[#ids + 1] = id end
+    table.sort(ids)
+    local out = {}
+    for _, id in ipairs(ids) do out[#out + 1] = place(places[id]) end
+    return table.concat(out, ";")
+end
+'''
+
+
+def places_canonical(places: dict[str, store.Place]) -> str:
+    return ';'.join(place_canonical(places[i]) for i in sorted(places))
 
 
 def canonical(p: store.Persona) -> str:
@@ -306,7 +371,7 @@ def canonical(p: store.Persona) -> str:
     return '|'.join([p.format, p.id, p.name, p.language, str(p.frequency) if p.frequency is not None else '-',
                      p.radio or '-',
                      ','.join(f'{a}-{b}' for a, b in p.listen), p.location, coords,
-                     ';'.join(f'{q.id}@{q.x},{q.y},{q.z}@{q.label}@{",".join(q.uses)}' for q in p.places), ','.join(p.actions),
+                     ';'.join(place_canonical(q) for q in p.marks), ','.join(p.actions),
                      str(p.budget),
                      ','.join(f'{k}={v}' for k, v in sorted(p.budgets.items())), str(p.call_one_in), p.call_text, p.call,
                      p.state, p.prompt, ','.join(p.shares)])
@@ -363,9 +428,21 @@ class LuaPersona:
         self.module = self.rt.eval('require("RadioSurvivor/RS_Persona")')
         self.rules = self.rt.eval('require("RadioSurvivor/RS_Personas")').rules()
         self.canonical = self.rt.execute(LUA_CANONICAL)
+        self.places_canonical = self.rt.execute(LUA_PLACES_CANONICAL)
+        self.folder = folder
+
+    def places(self, name: str = '_places.txt'):
+        """Fichier commun des lieux lu par le serveur (E25-T01) : table id -> lieu, ou (None, raison)."""
+        path = self.folder / name
+        if not path.is_file():
+            return self.rt.table()
+        return self.module.parsePlaces(self.rt.table_from(LuaReader(path).lines))
 
     def read(self, name: str):
-        """Fiche lue par le serveur : table Lua, ou (None, raison)."""
+        """Fiche lue par le serveur avec les lieux communs du même dossier (_places.txt, comme le pont) : table Lua, ou
+        (None, raison)."""
+        places = self.places()
+        self.rules.places = places if not isinstance(places, tuple) else self.rt.table()
         return self.module.readFile(name, self.rules)
 
     def result(self, name: str) -> str:
@@ -386,10 +463,60 @@ class PersonaFormatTests(unittest.TestCase):
     def tearDownClass(cls):
         cls.tmp.cleanup()
 
+    def setUp(self):
+        (self.folder / '_places.txt').write_bytes(PLACES.encode('utf-8'))
+
     def write_case(self, content: str | bytes) -> Path:
         path = self.folder / 'case.txt'
         path.write_bytes(raw_bytes(content))
         return path
+
+    def places_result(self, content: str | bytes) -> tuple[str, str]:
+        """Fichier commun des lieux lu par les deux lecteurs : résumé canonique (OK) ou message (ERR)."""
+        path = self.folder / '_places.txt'
+        path.write_bytes(raw_bytes(content))
+        try:
+            py = 'OK ' + places_canonical(store.load_places(path))
+        except store.PersonaError as exc:
+            py = 'ERR ' + str(exc)
+        lua = self.lua.places()
+        return py, ('ERR ' + lua[1]) if isinstance(lua, tuple) else 'OK ' + self.lua.places_canonical(lua)
+
+    def test_places_same_result_in_python_and_lua(self):
+        self.assertEqual(len({name for name, _, _ in PLACES_CASES}), len(PLACES_CASES))
+        for name, content, expected in PLACES_CASES:
+            with self.subTest(name):
+                py, lua = self.places_result(content)
+                if expected is None:
+                    self.assertTrue(py.startswith('OK '), py)
+                else:
+                    self.assertEqual(py, f'ERR line {expected[0]}: {expected[1]}')
+                self.assertEqual(lua, py)
+
+    def test_places_content(self):
+        places = store.load_places(self.folder / '_places.txt')
+        self.assertEqual(places['mill'], store.Place('mill', 'Vieux moulin', 0, x=10600, y=9300))
+        # Zone : coins rangés du plus petit au plus grand, quel que soit leur ordre dans le fichier.
+        self.assertEqual(places['town'], store.Place('town', 'Old town', 0, area=(50, 150, 100, 200)))
+        self.assertTrue(places['town'].is_zone and not places['mill'].is_zone)
+        lua = self.lua.places()
+        town = lua['town']
+        self.assertEqual((town.area.x1, town.area.y1, town.area.x2, town.area.y2, town.z, town.x), (50, 150, 100, 200, 0, None))
+        self.assertEqual((lua.mill.x, lua.mill.y, lua.mill.z, lua.mill.area), (10600, 9300, 0, None))
+
+    def test_marks_in_the_order_of_the_sheet(self):
+        p = store.load_file(self.write_case(HEAD + 'actions=say,mark_map\nmarks=town, mill\n' + PROMPT))
+        self.assertEqual([q.id for q in p.marks], ['town', 'mill'])
+        sheet = self.lua.read('case.txt')
+        self.assertEqual([q.id for q in lua_items(sheet.marks)], ['town', 'mill'])
+        # Le pont lit les lieux communs du dossier de la fiche ; sans fichier, aucun lieu n'existe.
+        (self.folder / '_places.txt').unlink()
+        with self.assertRaises(store.PersonaError) as ctx:
+            store.load_file(self.folder / 'case.txt')
+        self.assertEqual((ctx.exception.line, ctx.exception.reason), (6, "unknown place 'town'"))
+        self.assertEqual(store.load_file(self.folder / 'case.txt', places={'town': store.Place('town', 'T', 0, x=1, y=2),
+                                                                            'mill': store.Place('mill', 'M', 0, x=3, y=4)})
+                         .marks[1].label, 'M')
 
     def test_cases_same_result_in_python_and_lua(self):
         self.assertEqual(len({name for name, _, _ in CASES}), len(CASES))
@@ -413,11 +540,6 @@ class PersonaFormatTests(unittest.TestCase):
         self.assertEqual(p.frequency, 7200)
         self.assertEqual(p.listen, [(22 * 60, 6 * 60), (12 * 60 + 30, 13 * 60)])
         self.assertEqual(p.coords, (10600, 9300, -1))
-        self.assertEqual(p.places, [store.Place('mill', 10600, 9300, 0, 'Vieux moulin', ('mark',)),
-                                    store.Place('west_point_2', 11900, 6900, -1, 'Pharmacie  de West Point',
-                                                ('drop', 'mark'))])
-        self.assertEqual([q.id for q in p.places_for('mark')], ['mill', 'west_point_2'])
-        self.assertEqual([q.id for q in p.places_for('drop')], ['west_point_2'])
         self.assertEqual(p.actions, ['say', 'signal', 'mark_map'])
         self.assertEqual((p.budget, p.budgets), (12, {'signal': 2, 'say': 0}))
         self.assertEqual((p.call_one_in, p.call_text), (4, 'IGUI_Test_Call'))
@@ -427,7 +549,7 @@ class PersonaFormatTests(unittest.TestCase):
     def test_defaults(self):
         p = store.load_file(self.write_case(HEAD + PROMPT))
         self.assertEqual((p.language, p.radio, p.listen, p.location, p.coords, p.actions, p.budget, p.budgets,
-                          p.call_one_in, p.call_text, p.state, p.places),
+                          p.call_one_in, p.call_text, p.state, p.marks),
                          ('en', 'any_talkie', [], 'none', None, ['say'], 0, {}, 0, '', 'active', []))
         self.assertIsNone(p.frequency)
 
@@ -535,6 +657,15 @@ class DeliveredVoicesTests(unittest.TestCase):
     def test_the_six_voices_are_delivered(self):
         self.assertEqual(set(self.sheets), VOICES)
 
+    def test_shared_places_valid_in_python_and_lua(self):
+        # E25-T01 : les 15 lieux des voix livrées (11 rendez-vous de marchand, le relais de Cody, la clinique de
+        # Darlene et ses deux planques), tous des points, dans le fichier commun livré.
+        places = store.load_places(WALT.parent / '_places.txt')
+        self.assertEqual(len(places), 15)
+        self.assertFalse(any(q.is_zone for q in places.values()))
+        lua = LuaPersona(WALT.parent)
+        self.assertEqual(lua.places_canonical(lua.places()), places_canonical(places))
+
     def test_valid_in_python_and_lua(self):
         lua = LuaPersona(WALT.parent)
         for vid, sheet in self.sheets.items():
@@ -597,7 +728,7 @@ class DeliveredVoicesTests(unittest.TestCase):
                                  ('en', self.LEVELS[vid], actions, self.CALLS[vid], 0, {}))
                 if vid in ('darlene', 'cody'):
                     # Missions, récompenses et catégories : lues par le serveur seul (tests/test_persona_sections.py).
-                    self.assertTrue(s.places and s.shares)
+                    self.assertTrue(s.marks and s.shares)
                 self.assertIn('Answer in the same language the caller uses.', s.prompt)
 
 

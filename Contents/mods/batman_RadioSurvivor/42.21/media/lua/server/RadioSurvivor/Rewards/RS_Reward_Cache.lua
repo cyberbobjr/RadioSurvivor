@@ -1,19 +1,19 @@
--- Reward kind `cache` (pool entry cache:<category>:<weight>, E20-T04, ADR D05): a marked bag left at a place of the
--- sheet, filled with contents drawn in the category (shared catalogue personas/_categories.txt or a [category]
--- section of the sheet): each item line gives a quantity drawn in its range (a fixed number gives that number).
+-- Reward kind `cache` (pool entry cache:<category>:<weight>, E20-T04, ADR D05): a marked bag left at the sheet's
+-- cache_place= (E25-T01: a point of the shared places, declaration place), filled with contents drawn in the category
+-- (shared catalogue personas/_categories.txt or a [category] section of the sheet): each item line gives a quantity
+-- drawn in its range (a fixed number gives that number).
 -- The drawn contents are saved in the mission cache record (CA_Caches.attachContents), which is the deferred outbox
 -- placed by CA_Caches.poll: a restart places the same contents.
 if isClient() then return end
 local Rewards = require 'RadioSurvivor/RS_Rewards'
-local Persona = require 'RadioSurvivor/RS_Persona'
 local Caches = require 'CoreAI/CA_Caches'
 local Categories = require 'RadioSurvivor/RS_Categories'
 
 local Cache = {}
 
--- Where a cache reward is left: first place of the sheet with use=drop, else its first place.
+-- Where a cache reward is left: the point named by cache_place= of the sheet's [rewards] (E25-T01), or nil.
 function Cache.place(source)
-    return Persona.placeFor(source, 'drop') or (type(source.places) == 'table' and source.places[1]) or nil
+    return type(source) == 'table' and source.cachePlace or nil
 end
 
 -- Category of this id for the sheet: its own [category] section first, else the shared catalogue (E20-T16: the
@@ -74,7 +74,7 @@ local function describe()
     return 'A supply bag has been left for you at the marked place.'
 end
 
-Rewards.register('cache', {param = 'category', available = available, reserve = reserve, cancel = cancel,
-    apply = apply, describe = describe})
+Rewards.register('cache', {param = 'category', place = true, available = available, reserve = reserve,
+    cancel = cancel, apply = apply, describe = describe})
 
 return Cache

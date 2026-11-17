@@ -3,7 +3,8 @@
 -- kind its parameter (RS_Rewards.KINDS); RS_Persona checks every such value here, one validator per kind. Adding a
 -- kind = one Params.register call, without touching the sheet reader.
 -- validator(value, ctx) -> parsed value, or nil and the reason (English, logged with the line of the sheet).
--- ctx (built by RS_Persona): places (id -> place of the sheet), categories (id -> category: shared catalogue and
+-- ctx (built by RS_Persona): places (id -> shared place of personas/_places.txt, E25-T01: a point { x, y, z } or a
+-- zone { area, z }), categories (id -> category: shared catalogue and
 -- categories of the sheet), skills (list of the skills a lesson may teach), split (value -> list of its comma
 -- separated parts, trimmed, as the sheet reader splits a list).
 -- ASCII only (Kahlua lexer).
@@ -64,23 +65,33 @@ Params.register("category", function(value, ctx)
     return value
 end)
 
+-- E25-T01 (ADR D05): a shared place where the player must find an exact spot (dead drop, meeting point, route point,
+-- cache): a point, never a zone. Returns the place, or nil and the reason.
+function Params.point(id, ctx)
+    local place = ctx.places[id]
+    if not place then return nil, "unknown place '" .. id .. "'" end
+    if place.area then return nil, "place '" .. id .. "' is a zone, a point is needed here" end
+    return place
+end
+
+-- A point of the shared places, parsed as its id.
 Params.register("place", function(value, ctx)
-    if not ctx.places[value] then return nil, "unknown place '" .. value .. "'" end
+    local place, reason = Params.point(value, ctx)
+    if not place then return nil, reason end
     return value
 end)
 
--- E20-T13: ordered list of places with use=target ("a, b, c"), MIN_PLACES to MAX_PLACES of them, never the same twice
--- in a row; parsed as the list of their ids.
+-- E20-T13: ordered list of points ("a, b, c"), MIN_PLACES to MAX_PLACES of them, never the same twice in a row;
+-- parsed as the list of their ids.
 local MIN_PLACES, MAX_PLACES = 2, 8
 Params.register("places", function(value, ctx)
     local ids = ctx.split(value)
     if #ids < MIN_PLACES or #ids > MAX_PLACES then
-        return nil, "bad place list (" .. MIN_PLACES .. " to " .. MAX_PLACES .. " places with use=target)"
+        return nil, "bad place list (" .. MIN_PLACES .. " to " .. MAX_PLACES .. " places)"
     end
     for i, id in ipairs(ids) do
-        local place = ctx.places[id]
-        if not place then return nil, "unknown place '" .. id .. "'" end
-        if not place.use.target then return nil, "place '" .. id .. "' has no use=target" end
+        local place, reason = Params.point(id, ctx)
+        if not place then return nil, reason end
         if ids[i - 1] == id then return nil, "place '" .. id .. "' twice in a row" end
     end
     return ids

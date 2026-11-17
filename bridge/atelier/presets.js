@@ -16,7 +16,7 @@ export const VOICE_TYPES = [
 // Steps a voice may not need (step id -> what makes it wanted: one of these actions, or a section of these kinds).
 // A step missing here is always shown.
 export const STEP_WANTS = {
-  missions: { actions: ['start_mission', 'propose_trade', 'mark_map', 'reveal_area'], blocks: ['place', 'mission'] },
+  missions: { actions: ['start_mission', 'propose_trade', 'mark_map', 'reveal_area'], blocks: ['mission'] },
   rewards: { actions: ['start_mission', 'propose_trade'], blocks: ['rewards', 'trade', 'note', 'category'] },
 };
 

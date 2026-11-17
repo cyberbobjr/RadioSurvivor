@@ -49,12 +49,12 @@ non vérifiés. Les personnages morts que la voix a connus arrivent avec chaque 
 serveur le joint à ses demandes (persona=, hexadécimal RSV2) ; le pont l'ajoute au prompt (« Your current state »).
 Sans état, prompt inchangé.
 
-Repère sur la carte (E07-T04) : une fiche qui autorise mark_map et a des lieux use=mark propose l'action avec les
-identifiants et libellés de ses lieux, jamais leurs coordonnées ; un identifiant hors fiche est retiré. Le serveur
-envoie les coordonnées au seul appelant.
+Repère sur la carte (E07-T04) : une fiche qui autorise mark_map et nomme des repères (marks=, lieux communs
+_places.txt depuis E25-T01) propose l'action avec leurs identifiants et libellés, jamais leurs coordonnées ; un
+identifiant hors de ses repères est retiré. Le serveur envoie les coordonnées au seul appelant.
 
 Quartier révélé (E07-T05) : reveal_area prend le même paramètre place que mark_map, proposée dans les mêmes conditions
-(lieux de la fiche) ; le serveur rend connu sur la carte du seul appelant un carré plafonné autour du lieu.
+(repères de la fiche) ; le serveur rend connu sur la carte du seul appelant un carré plafonné autour du lieu.
 
 Mission donnée par la voix (E11-T08) : start_mission { template } ; le serveur choisit le lieu et joint ensuite la
 mission de cette voix pour cet appelant à ses demandes (mission=, hexadécimal RSV2 générique depuis E20-T02 : type,
@@ -535,13 +535,37 @@ class Conversations:
 class Voices:
     """Fiches lues dans <exchange>/personas/<voix>.txt, le dossier du serveur (persona_store, mêmes règles que
     RS_Persona.lua). Relues à chaque demande quand leur contenu a changé ; une fiche refusée garde la dernière
-    version valide (comme le serveur) et n'est journalisée qu'une fois par contenu ; absente ou vide : aucune."""
+    version valide (comme le serveur) et n'est journalisée qu'une fois par contenu ; absente ou vide : aucune.
+    E25-T01 : lieux communs lus dans <dossier>/_places.txt (comme le serveur) ; un fichier refusé garde les derniers
+    lieux valides, journalisé une fois par contenu ; absent ou vide : aucun lieu. Un changement des lieux fait relire
+    les fiches (une fiche qui nomme un lieu retiré est alors refusée)."""
 
     def __init__(self, folder: Path):
         self.folder = folder
         self.lock = threading.Lock()
-        self.cache: dict[str, tuple[bytes, persona_store.Persona]] = {}
+        self.cache: dict[str, tuple[bytes, bytes, persona_store.Persona]] = {}
         self.refused: dict[str, bytes] = {}
+        self.places_raw: bytes | None = None
+        self.places_valid: tuple[bytes, dict[str, persona_store.Place]] = (b"", {})
+
+    def places(self) -> tuple[bytes, dict[str, persona_store.Place]]:
+        """Lieux communs en service : (contenu lu de la dernière version valide, id -> lieu). Appel sous self.lock."""
+        path = self.folder / persona_store.PLACES_FILE
+        try:
+            raw = path.read_bytes()
+        except FileNotFoundError:
+            raw = b""
+        except OSError as err:  # fichier en cours d'écriture
+            log(f"shared places {path} unreadable ({type(err).__name__}), previous places kept")
+            return self.places_valid
+        if raw == self.places_raw:
+            return self.places_valid
+        self.places_raw = raw
+        try:
+            self.places_valid = (raw, persona_store.parse_places_bytes(raw) if raw else {})
+        except persona_store.PersonaError as err:
+            log(f"shared places {path} refused, {err}; the previous valid places stay in service")
+        return self.places_valid
 
     def get(self, voice: str) -> persona_store.Persona | None:
         path = self.folder / f"{voice}.txt"
@@ -553,23 +577,24 @@ class Voices:
             log(f"voice sheet {path} unreadable ({type(err).__name__}), previous version kept")
             with self.lock:
                 cached = self.cache.get(voice)
-            return cached[1] if cached else None
+            return cached[2] if cached else None
         with self.lock:
             cached = self.cache.get(voice)
             if not raw:
                 self.cache.pop(voice, None)
                 return None
-            if cached and cached[0] == raw:
-                return cached[1]
+            places_raw, places = self.places()
+            if cached and cached[0] == raw and cached[1] == places_raw:
+                return cached[2]
             try:
-                sheet = persona_store.parse_bytes(raw, voice)
+                sheet = persona_store.parse_bytes(raw, voice, places)
             except persona_store.PersonaError as err:
-                if self.refused.get(voice) != raw:
-                    self.refused[voice] = raw
+                if self.refused.get(voice) != raw + b"\0" + places_raw:
+                    self.refused[voice] = raw + b"\0" + places_raw
                     kept = "; the previous valid version stays in service" if cached else ""
                     log(f"voice sheet {path} refused, {err}{kept}")
-                return cached[1] if cached else None
-            self.cache[voice] = (raw, sheet)
+                return cached[2] if cached else None
+            self.cache[voice] = (raw, places_raw, sheet)
             return sheet
 
 
@@ -1089,12 +1114,14 @@ class WorkshopLLM:
         return radio_lines(turn[1])
 
 
-def workshop_ai(config: dict[str, str] | None) -> atelier_ai.WorkshopAI | None:
-    """Workshop AI over the configured LLM; None without configuration or offline (its buttons are greyed)."""
+def workshop_ai(config: dict[str, str] | None,
+                places: atelier_ai.SharedPlaces = dict) -> atelier_ai.WorkshopAI | None:
+    """Workshop AI over the configured LLM; None without configuration or offline (its buttons are greyed). `places`:
+    the shared places a tried voice may name (E25-T03: the workshop store's working _places.txt)."""
     if not config or config.get("OFFLINE"):
         return None
     llm = WorkshopLLM(config)
-    return atelier_ai.WorkshopAI(llm.complete, llm.reply, log)
+    return atelier_ai.WorkshopAI(llm.complete, llm.reply, log, places=places)
 
 
 # --- mémoire des voix (E07-T03) ---------------------------------------------------------------
@@ -1400,7 +1427,7 @@ def mission_context(req: dict[str, str], sheet: persona_store.Persona) -> dict |
     minutes = math.ceil(remaining / 60000) if isinstance(remaining, (int, float)) and not isinstance(
         remaining, bool) and remaining > 0 else 0
     reward = value.get("reward")
-    labels = {p.label for p in sheet.places}
+    labels = {p.label for p in sheet.marks}
     to_report = value.get("toReport") is True   # E11-T13: objective met (server fact)
     turn = value["turn"] if value["turn"] != "report_due" or to_report else "not_yet"
     return {"kind": value["kind"], "state": value["state"], "turn": turn, "place": place, "job": job,
@@ -1769,7 +1796,7 @@ EXECUTABLE_ACTIONS: dict[str, tuple[str, dict]] = {
         "you are.",
         {"type": "persona_state", "morale": 4, "place": "the old mill"},
     ),
-    # E07-T04 : lieux use=mark de la fiche ([place], E20-T03) ; le prompt n'en donne que les identifiants et libellés
+    # E07-T04 : repères de la fiche (marks=, lieux communs, E25-T01) ; le prompt n'en donne que les identifiants et libellés
     # (ACTION_CHOICES), l'exemple prend le premier identifiant de ces lieux. Les coordonnées restent au serveur.
     "mark_map": (
         "put a mark on the caller's own map at one of the places you know, when you tell them where it is. "
@@ -1856,10 +1883,10 @@ class ActionChoice:
     missing: str
 
 
-# E20-T03 : seuls les lieux [place] de la fiche avec use=mark se donnent (le serveur refuse les autres, RS_MapMarks).
+# E25-T01 : seuls les repères de la fiche (marks=) se donnent (le serveur refuse les autres, RS_MapMarks).
 PLACE_CHOICE = ActionChoice("place", "Places you know (id: label):",
-                            lambda sheet, jobs: [(p.id, p.label) for p in sheet.places_for("mark")],
-                            "the sheet has no [place] with use=mark")
+                            lambda sheet, jobs: [(p.id, p.label) for p in sheet.marks],
+                            "the sheet has no marks=")
 JOB_CHOICE = ActionChoice("template", "Jobs you may give (name: what it is):",
                           lambda sheet, jobs: list(jobs.jobs) if jobs else [], "the request lists no job (jobs=)")
 CACHE_CHOICE = ActionChoice("table", "Bags you may leave (name):",
@@ -2397,7 +2424,7 @@ def main() -> None:
         return
     TOKEN_USAGE = TokenUsageLog(args.usage_log or args.exchange / 'token_usage.jsonl')
     if workshop is not None:
-        workshop[0].live.ai = workshop_ai(config)   # E22-T06: the AI buttons of the workshop (None offline)
+        workshop[0].live.ai = workshop_ai(config, workshop[0].store.shared_places)   # E22-T06: the AI buttons of the workshop (None offline)
     startup_header(args, config)
     if args.test:
         test_dir = args.exchange / "console-test"

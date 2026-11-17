@@ -1,5 +1,5 @@
 -- ID card of a voice `retrieve` mission left at a dead drop (E20-T06, ADR D06). Real start path of a voice
--- (RS_MissionVoice.start, sheet with one [mission] of type retrieve and one place use=drop on the player's square,
+-- (RS_MissionVoice.start, sheet with one [mission] of type retrieve and drops= a shared point on the player's square,
 -- next to a real crate), real engine poll (CA_Missions.observe: drop hooks of the voice giver, RS_DeadDrops), real
 -- radio report (RS_MissionVoice.report). The body is not placed (its building is far away): the card is given to the
 -- player and recorded as the card of the mission (m.cardId), as Retrieve.place does; a second ID card is the decoy.
@@ -64,8 +64,9 @@ local function run(t)
     crate:createContainersFromSpriteProperties()
     sq:transmitAddObjectToSquare(crate, -1)
     local sheet = {id = 'rst-voice-retrieve-drop', name = 'RST Voice', actions = {'say', 'start_mission'},
-        budgets = {}, missions = {{id = 'retrieve', type = 'retrieve', params = {collect_hours = DELAY}}},
-        places = {{id = 'drop', label = 'RST drop', x = x, y = y, z = z, uses = {'drop'}, use = {drop = true}}}}
+        budgets = {}, missions = {{id = 'retrieve', type = 'retrieve', target = {kind = 'near'}, drops = {'drop'},
+            params = {collect_hours = DELAY}}},
+        places = {drop = {id = 'drop', label = 'RST drop', x = x, y = y, z = z}}}
     local state = {missions = {}, npcs = {}, voiceDonors = {}, characters = {}, outcomes = {}}
     state.characters.char1 = {name = 'Tester', contacts = {}, knownMissions = {}}
     local store = {data = state, save = function() return true end}

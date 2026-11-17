@@ -48,8 +48,7 @@ local function log(msg)
 end
 
 local Scout = {idPrefix = 'scout', reportBySpeech = true, voiceName = 'scout',
-    voiceText = 'visit a building and report on it'}
-local CELL = 256
+    voiceText = 'visit a building and report on it', aimed = true}
 -- Requester fiche id -> {site = ..., at = ms} or {at = ms} when no place was found (memory only).
 local sites = {}
 
@@ -66,15 +65,19 @@ local function metaGrid()
     return nil
 end
 
--- Clues of a rescue speak of a shelter; a scouting target is only a place. Returns the English clues (bridge) and
--- their translatable data (notebook, E11-T09), same order.
-local function clues(b, grid)
+-- Clues of a rescue speak of a shelter; a scouting target is only a place.
+local function asPlace(lines)
     local out = {}
-    local lines, data = Sites.clueData(b, grid)
-    for i, line in ipairs(lines) do
+    for i, line in ipairs(lines or {}) do
         out[i] = (string.gsub(line, '^The shelter is ', 'The place is '))
     end
-    return out, data
+    return out
+end
+
+-- English clues (bridge) and their translatable data (notebook, E11-T09) of a BuildingDef, same order.
+local function clues(b, grid)
+    local lines, data = Sites.clueData(b, grid)
+    return asPlace(lines), data
 end
 
 -- Copy of the clue data (plain values only).
@@ -86,40 +89,14 @@ local function copyClueData(list)
     return out
 end
 
--- Buildings of the metagrid crossing the square of half side r around (x, y), cell by cell.
-local function buildingsAround(grid, x, y, r)
-    local x1, y1 = math.max(0, math.floor(x - r)), math.max(0, math.floor(y - r))
-    local x2, y2 = math.floor(x + r) + 1, math.floor(y + r) + 1
-    local found = ArrayList.new()
-    for cy = math.floor(y1 / CELL), math.floor((y2 - 1) / CELL) do
-        for cx = math.floor(x1 / CELL), math.floor((x2 - 1) / CELL) do
-            local cell = grid:getCellData(cx, cy)
-            if cell then cell:getBuildingsIntersecting(x1, y1, x2 - x1, y2 - y1, found) end
-        end
-    end
-    return found
-end
-
--- Draws a place around (x, y): site table (plain values only) or nil and a reason.
+-- Draws a place around (x, y) (the common draw CA_Sites.draw, E25-T02: up to maxDistance tiles, known bases and the
+-- requester at minDistance at least): site table (plain values only) or nil and a reason.
 function Scout.pick(x, y, c, seed)
-    local grid = metaGrid()
-    if grid == nil then return nil, 'no metagrid' end
-    local found = buildingsAround(grid, x, y, c.maxDistance)
-    local n = found:size()
-    if n == 0 then return nil, 'no building around the requester' end
-    local here = {x1 = math.floor(x), y1 = math.floor(y), x2 = math.floor(x) + 1, y2 = math.floor(y) + 1}
-    local bases = Sites.knownBases({avoid = {{x = x, y = y, source = 'requester'}}})
-    -- Random start, then consecutive buildings: each one examined at most once, maxAttempts at most.
-    local start = Sites.drawer(seed)(n)
-    for i = 0, math.min(c.maxAttempts, n) - 1 do
-        local b = found:get((start + i) % n)
-        local site = Sites.check(b, bases, {minDistance = c.minDistance}, grid)
-        if site and Sites.gap(site.bounds, here) <= c.maxDistance then
-            site.clues, site.clueData = clues(b, grid)
-            return site
-        end
-    end
-    return nil, 'no suitable building around the requester'
+    local site, why = Sites.draw({around = {x = x, y = y, min = 0, max = c.maxDistance}, minDistance = c.minDistance,
+        avoid = {{x = x, y = y, source = 'requester'}}, maxAttempts = c.maxAttempts, seed = seed})
+    if not site then return nil, why end
+    site.clues = asPlace(site.clues)
+    return site
 end
 
 -- E20-T10: site of the building at a place named by the giver ({ x, y, z, label }), or nil and a reason. Same

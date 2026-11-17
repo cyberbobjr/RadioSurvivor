@@ -2449,6 +2449,16 @@ local cells = {}
 SCOUT_GRID = {}
 function SCOUT_GRID:isValidSquare(x, y) return x >= 0 and y >= 0 and x < 4096 and y < 4096 end
 function SCOUT_GRID:getZonesAt() return jlist({}) end
+-- IsoMetaGrid.getBuildingAt(x, y, z) (IsoMetaGrid.java:271-280): building of the room covering the tile (every room of
+-- a scoutHouse covers its footprint at level 0), loaded or not; nil elsewhere. E25-T02: a drawn objective is handed
+-- to the templates as its site point, found back here.
+function SCOUT_GRID:getBuildingAt(x, y, z)
+    if z == nil then error('getBuildingAt(x, y) reads the bounds only: use the room variant (x, y, z)') end
+    for _, b in ipairs(SCOUT_BUILDINGS) do
+        if z == 0 and x >= b.x1 and x < b.x2 and y >= b.y1 and y < b.y2 then return b end
+    end
+    return nil
+end
 function SCOUT_GRID:getCellData(cx, cy)
     if cx < 0 or cy < 0 or cx >= 16 or cy >= 16 then return nil end
     local key = cx .. ',' .. cy
@@ -3056,16 +3066,19 @@ name=Scout Voice
 frequency=160.0
 actions=say,start_mission
 budget.start_mission=3
+marks=depot,farm
+[prompt]
+You are Scout Voice, a voice of the offline test bench who gives scouting jobs.
+"""
+
+# E25-T01: shared places of the bench voices (sibling _places.txt of the sheets).
+VOICE_PLACES = """format=1
 [place depot]
 at=10600,9300,0
 label=Fuel depot
-use=mark,target,drop
 [place farm]
 at=8000,8000,0
 label=Old farm
-use=mark,target,drop
-[prompt]
-You are Scout Voice, a voice of the offline test bench who gives scouting jobs.
 """
 
 # E11-T13: another voice that gives missions, on another frequency.
@@ -3095,14 +3108,16 @@ class VoiceMissionTests(unittest.TestCase):
     def voice_sim(self, name='voice', far_only=False, sheet=VOICE_SHEET):
         sim = Simulation(self.path / name, provider=False)
         sim.server.rt.execute(SCOUT_GRID)
-        # Players at (10, 10): building 5002 reachable (gap 87), 5001 too close, 5003 too far.
+        # Players at (10, 10): building 5002 near (gap 139, E25-T02: a voice section aims near by default), 5001 too
+        # close, 5003 very far (gap 589).
         if not far_only:
             sim.server.g.scoutHouse(5001, 20, 12, 8, 8)
-            sim.server.g.scoutHouse(5002, 100, 10, 10, 10)
+            sim.server.g.scoutHouse(5002, 150, 10, 10, 10)
         sim.server.g.scoutHouse(5003, 600, 10, 10, 10)
         (sim.path / 'personas').mkdir(parents=True, exist_ok=True)
         (sim.path / 'personas' / 'scouter.txt').write_text(sheet, encoding='utf-8')
         (sim.path / 'personas' / 'other.txt').write_text(OTHER_SHEET, encoding='utf-8')
+        (sim.path / 'personas' / '_places.txt').write_text(VOICE_PLACES, encoding='utf-8')
         sim.server.load('shared/RadioSurvivor/RadioSurvivor_Const.lua', 'server/RadioSurvivor_Server.lua')
         sim.server.g.fire('OnLoadRadioScripts', sim.server.g.MANAGER, True)
         self.sent = []
@@ -3174,9 +3189,9 @@ class VoiceMissionTests(unittest.TestCase):
         self.respond(sim, req, [{'type': 'start_mission', 'template': 'scout'}], 'I need eyes on a place.')
         [m] = self.voice_missions(sim)
         zone = convert(m.mapZone)
-        for px, py in ((100, 10), (110, 10), (100, 20), (110, 20)):
+        for px, py in ((150, 10), (160, 10), (150, 20), (160, 20)):
             self.assertLessEqual(math.hypot(px - zone['x'], py - zone['y']), zone['r'])
-        self.assertNotEqual((zone['x'], zone['y']), (105, 15))
+        self.assertNotEqual((zone['x'], zone['y']), (155, 15))
         shown = [convert(s) for s in lua_list(alice.rt.eval('mapSymbols()'))]
         self.assertEqual(sorted((s['kind'], s['x'], s['y']) for s in shown),
                          [('text', zone['x'], zone['y'] - zone['r']), ('texture', zone['x'], zone['y'])])
@@ -3190,7 +3205,7 @@ class VoiceMissionTests(unittest.TestCase):
         [brief] = [r for r in parsed[1] if r['id'].endswith('-brief')]
         self.assertNotIn('mapZone', self.mission_field(brief))
         self.respond(sim, brief)
-        sim.server.g.PLAYERS.alice.x, sim.server.g.PLAYERS.alice.y = 105, 15
+        sim.server.g.PLAYERS.alice.x, sim.server.g.PLAYERS.alice.y = 155, 15
         self.poll(sim)
         self.assertTrue(m.zoneReached)
         sim.server.g.PLAYERS.alice.x, sim.server.g.PLAYERS.alice.y = 10, 10
@@ -3219,7 +3234,7 @@ class VoiceMissionTests(unittest.TestCase):
         self.assertEqual((m.donor, m.voice, m.npc, m.template, m.state, m.report, m.requesterName),
                          ('voice', 'scouter', 'voice:scouter:' + char, 'scout', 'active', 'radio', 'Scout Voice'))
         self.assertEqual((m.place, m.placeKind, m.rewardCount, m.durationMs), ('house', 'house', 0, 7200000))
-        self.assertEqual(convert(m.zone), {'x1': 98, 'y1': 8, 'x2': 112, 'y2': 22}, 'drawn around the caller')
+        self.assertEqual(convert(m.zone), {'x1': 148, 'y1': 8, 'x2': 162, 'y2': 22}, 'drawn near the caller')
         self.assertTrue(m.participants[char] is not None and sim.state().characters[char].knownMissions[m.id])
         self.assertEqual(count(sim.state().npcs), 0, 'a voice requester created an NPC fiche')
         # E11-T09: the mission just created is told to the bridge at once (briefing request, same caller and voice),
@@ -3289,10 +3304,10 @@ class VoiceMissionTests(unittest.TestCase):
                                    'reason=not_done')
         # Visit, polled on the server copy of the player (never a client position).
         local = sim.clients['alice'].g.getPlayer()
-        local.x, local.y = 105, 15
+        local.x, local.y = 155, 15
         self.poll(sim)
         self.assertFalse(m.zoneReached, 'the client copy was trusted')
-        alice.x, alice.y = 105, 15
+        alice.x, alice.y = 155, 15
         self.poll(sim)
         self.assertTrue(m.zoneReached)
         self.assertEqual(m.state, 'active', 'a visit alone is not a success')
@@ -3418,14 +3433,14 @@ class VoiceMissionTests(unittest.TestCase):
         # E11-T09: clues translated by the client with every argument, title of the template, no technical line.
         for key in ('IGUI_CA_ScoutClues',
                     '- IGUI_CA_Clue_Kind|IGUI_CA_Place_house|IGUI_CA_ClueSize_large|IGUI_CA_ClueFloors_single',
-                    '- IGUI_CA_Clue_FewHouses'):
+                    '- IGUI_CA_Clue_Isolated'):
             self.assertIn(key, text)
         self.assertNotIn('ReputationUnavailable', text)
         self.assertEqual(c.rt.eval('CoreAI.notebookClient.window.list.items[1].text'), 'IGUI_CA_Mission_Scout - Scout Voice')
         self.assertTrue(window.abandon.isVisible(window.abandon))
         for button in (window.deliver, window.claim, window.invite, window.accept):
             self.assertFalse(button.isVisible(button))
-        sim.server.g.PLAYERS.alice.x, sim.server.g.PLAYERS.alice.y = 100, 10
+        sim.server.g.PLAYERS.alice.x, sim.server.g.PLAYERS.alice.y = 150, 10
         self.poll(sim)
         window.changeTab(window, 'Missions')
         self.assertIn('IGUI_RS_ScoutReachedRadio|alice Doe', window.detail.text)

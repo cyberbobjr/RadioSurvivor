@@ -31,20 +31,19 @@ name=Scout Voice
 frequency=160.0
 actions=say,start_mission
 budget.start_mission=20
-[place depot]
-at=10600,9300,0
-label=Fuel depot
-use=drop
 [mission snacks]
 type=deliver
+drops=depot
 items=snacks
 quantity=2-4
 [mission meds]
 type=deliver
+drops=depot
 items=medical
 quantity=3
 [mission plain]
 type=deliver
+drops=depot
 [category snacks]
 item=Base.Crisps:1
 item=Base.Chocolate:2-3
@@ -64,7 +63,7 @@ class VoiceGoodsTests(unittest.TestCase):
     voice_sim = carnet_helpers.VoiceMissionTests.voice_sim
 
     def world(self, name):
-        sim = self.voice_sim(name, sheet=SHEET)
+        sim = self.voice_sim(name, sheet=SHEET)  # shared places of the bench: depot, the drop of every section
         shutil.copyfile(PERSONAS / '_categories.txt', sim.path / 'personas' / '_categories.txt')
         rt = sim.server.rt
         rt.execute(CLINIC_WORLD)  # squares of the drop not loaded: the drop waits for its first reading

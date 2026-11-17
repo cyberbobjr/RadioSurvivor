@@ -87,15 +87,17 @@ class RewardDrawTests(unittest.TestCase):
         # Real sheet reader with the rules of the server: the [category] section of the sheet, cited by its pool.
         sheet = self.lua.execute('''
         local text = {'format=1', 'id=case', 'name=Case', 'frequency=145.0',
-            '[place church]', 'at=1,2,0', 'label=Behind the church', 'use=drop',
             '[category snacks]', 'item=Base.Crisps:1-3', 'item=Base.Pop:2',
-            '[rewards]', 'pool=cache:snacks:1', '[prompt]', 'You are a test voice.'}
+            '[rewards]', 'pool=cache:snacks:1', 'cache_place=church', '[prompt]', 'You are a test voice.'}
+        local Persona = require('RadioSurvivor/RS_Persona')
         local Rewards = require('RadioSurvivor/RS_Rewards')
         local rules = {template = function() return nil end, rewards = Rewards.KINDS, skills = Rewards.SKILLS,
-            categories = catalogue}
-        return require('RadioSurvivor/RS_Persona').parseLines(text, 'case', rules)
+            categories = catalogue,
+            places = Persona.parsePlaces({'format=1', '[place church]', 'at=1,2,0', 'label=Behind the church'})}
+        return Persona.parseLines(text, 'case', rules)
         ''')
         self.assertFalse(isinstance(sheet, tuple), sheet)
+        self.assertEqual((sheet.cachePlace.x, sheet.cachePlace.y), (1, 2))
         self.g.source = sheet
         drawn = self.caches(100)
         self.assertEqual({c for c, _ in drawn}, {'snacks'})

@@ -17,13 +17,6 @@ actions=say,propose_trade,share_frequency
 shares=wanda,hollis
 state=active
 
-# Lieu du rendez-vous relevé sur la carte 42.22 (lotheader 50_4 ; jetée bétonnée blends_street_01_54/55 x 12897-12902, y 1139-1185, eau des deux côtés (bassin est, en aval du pont Clark Memorial), ouverture du mur du quai en y 1185).
-# Rendez-vous seulement : jamais donné comme repère par mark_map.
-[place louisville_jetty]
-at=12899,1150,0
-label=Concrete jetty, Louisville riverfront
-use=landing
-
 # Troc (E20-T11) : barème docs/specifications-techniques/passeur-table.md section 3.
 [trade]
 landing=louisville_jetty

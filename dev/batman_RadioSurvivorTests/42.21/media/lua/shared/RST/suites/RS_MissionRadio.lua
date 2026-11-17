@@ -9,7 +9,7 @@ report_mission) closes it (success, reputation event of M01).
 Tags "server" (authority only: solo, or RST.server from an admin client of a dedicated server) and "world" (the
 player is moved: test saves "rstest*" only). Asynchronous run (RST.start / RST.server): the move waits in steps.
 The mission lives in an in-memory state built by the test (character, store whose save does nothing): no notebook
-state, no history line, no ModData. The test sheet has no [place]: no map mark is given (reputation only).
+state, no history line, no ModData. The test sheet has no marks=: no map mark is given (reputation only).
 E11-T10: the mission keeps an approximate map area (m.mapZone) that holds the building footprint without being
 centred on it, projected to the participant only while the mission is active, never in the bridge context. Where the
 client map module is loaded with the authority (solo), the area is drawn on the world map (Circle symbol at its
@@ -76,7 +76,7 @@ RST.suite("rs.missions.radio", { tags = { "server", "world" }, testTimeoutMs = 6
         local p = F.player(t)
         if not p then t:skip("no target player") end
         local sheet = { id = "rst-voice", name = "RST Voice", actions = { "say", "start_mission" }, budgets = {},
-            places = {} }
+            places = {}, marks = {} }
         local state = { missions = {}, npcs = {}, characters = {}, outcomes = {} }
         state.characters.char1 = { name = "Tester", contacts = {}, knownMissions = {} }
         local store = { data = state, save = function() return true end }
@@ -135,9 +135,10 @@ RST.suite("rs.missions.radio", { tags = { "server", "world" }, testTimeoutMs = 6
             t2:eq("active", m.state, "a visit alone is not a success")
             local after = V.heard(sheet, p, "char1", 199800, store)
             t2:eq({ "report_due", "active", true }, { after.turn, m.state, after.toReport }, "call after the visit")
-            t2:eq(nil, after.reward, "reward place from a sheet without [place]")
+            t2:eq(nil, after.reward, "reward place from a sheet without marks=")
             t2:eq(true, M.projection(m, "char1").toReport, "notebook row not marked to report")
-            local other = { id = "rst-other", name = "RST Other", actions = { "say", "start_mission" }, places = {} }
+            local other = { id = "rst-other", name = "RST Other", actions = { "say", "start_mission" }, places = {},
+                marks = {} }
             t2:eq({ nil, "no_mission" }, { V.report(store, other, "char1", p, 199900) }, "report to another voice")
             t2:eq("active", m.state, "a report to another voice closed the mission")
             t2:eq(true, V.report(store, sheet, "char1", p, 199800) == m, "report on the voice's frequency refused")
@@ -315,8 +316,8 @@ Two templates are played to the end with the real objective mechanism of their r
   another caller is refused, the report on the voice's frequency closes the mission in success; a second report is
   refused, the reputation fact is written once and the mission has no lot to claim (no reward doubled).
 Each mission lives in an in-memory state built by the test (characters char1 and char2, store whose save does
-nothing): no notebook state, no history line, no ModData of the notebook. The test sheets have one [place] only
-(use=drop, its dead drop point is the player's square, used by deliver and retrieve): reputation only, no map mark. A dead
+nothing): no notebook state, no history line, no ModData of the notebook. The test sheets name one shared point only
+(drops= of deliver and retrieve, the player's square) and no marks=: reputation only, no map mark. A dead
 drop in "box" mode leaves an opaque key in the ModData of a nearby container: removed at the end. Cleanup: zombies and
 corpses of the test removed, Signal Smoke listener removed and test signals stopped, god mode restored.
 Outside the game: tests/test_rs_e11_voice_npc_suites.py (voice simulation of tests/test_carnet.py, clear and Signal
@@ -355,12 +356,14 @@ local function voiceMission(t, template)
     t:eq(true, V.register(), "start_mission or report_mission executor not registered")
     local p = F.player(t)
     if not p then t:skip("no target player") end
+    -- E25-T01: the dead drop is a shared point named by drops= of the section (required for deliver and retrieve,
+    -- unused by the other templates); the objective is near (target= absent).
+    local section = { id = template, type = template, target = { kind = "near" }, drops = {}, params = {} }
+    if template == "deliver" or template == "retrieve" then section.drops = { "drop" } end
     local sheet = { id = "rst-voice-" .. template, name = "RST Voice", actions = { "say", "start_mission" },
-        budgets = {}, missions = { { id = template, type = template } }, places = {} }
-    -- E20-T03: the dead drop of a voice is a place of its sheet with use=drop (E20-T06: deliver and retrieve use it;
-    -- the other templates ignore it).
-    sheet.places[1] = { id = "drop", label = "RST drop", x = math.floor(p:getX()), y = math.floor(p:getY()),
-        z = math.floor(p:getZ()), uses = { "drop" }, use = { drop = true } }
+        budgets = {}, missions = { section }, marks = {},
+        places = { drop = { id = "drop", label = "RST drop", x = math.floor(p:getX()), y = math.floor(p:getY()),
+            z = math.floor(p:getZ()) } } }
     local state = { missions = {}, npcs = {}, characters = {}, outcomes = {} }
     state.characters.char1 = { name = "Tester", contacts = {}, knownMissions = {} }
     state.characters.char2 = { name = "Mate", contacts = {}, knownMissions = {} }
@@ -429,7 +432,8 @@ end
 local function reported(t, c)
     local M, V, m, p, store = c.M, c.V, c.m, c.p, c.store
     t:eq(true, M.reportReady(m), "objective met but the mission does not wait for its report")
-    local other = { id = "rst-other", name = "RST Other", actions = { "say", "start_mission" }, places = {} }
+    local other = { id = "rst-other", name = "RST Other", actions = { "say", "start_mission" }, places = {},
+        marks = {} }
     t:eq(nil, V.heard(other, p, "char1", OTHER_KHZ, store), "another voice hears the mission")
     t:eq({ nil, "no_mission" }, { V.report(store, other, "char1", p, OTHER_KHZ) }, "report on another frequency")
     t:eq("active", m.state, "a report on another frequency closed the mission")
@@ -445,7 +449,7 @@ local function reported(t, c)
     t:eq({ nil, "no_mission" }, { V.report(store, c.sheet, "char1", p, VOICE_KHZ) }, "second report")
     t:eq(facts, factsOf(c.state, m), "reputation fact written twice")
     t:eq(false, (M.claim(store, m, p, "char1", "rst-voice-claim")), "a voice mission gave a lot to claim")
-    t:eq({ 0, nil }, { m.rewardCount, m.rewardPlace }, "reward of a sheet without a [place] to mark")
+    t:eq({ 0, nil }, { m.rewardCount, m.rewardPlace }, "reward of a sheet without marks=")
     t:eq(nil, V.open(c.state, c.sheet.id, "char1"), "mission still open after the report")
 end
 
@@ -532,8 +536,8 @@ RST.suite("rs.missions.voicetemplates", { tags = { "server", "world" }, testTime
     s.test("deliver: created for the caller only, drop at the voice's place, no report before collection", function(t)
         local c = voiceMission(t, "deliver")
         created(t, c, "deliver")
-        -- E20-T05: every use=drop place of the sheet is a drop of the mission.
-        local d, place = c.m.drops and c.m.drops[1], c.sheet.places[1]
+        -- E20-T05 (E25-T01): every point of drops= of the section is a drop of the mission.
+        local d, place = c.m.drops and c.m.drops[1], c.sheet.places.drop
         t:eq({ place.x, place.y, place.z }, { d and d.x, d and d.y, d and d.z }, "dead drop point of the sheet")
         t:ok(d.mode == "box" or d.mode == "bag", "dead drop mode " .. tostring(d.mode))
         t:note("dead drop mode " .. tostring(d.mode))
@@ -545,7 +549,7 @@ RST.suite("rs.missions.voicetemplates", { tags = { "server", "world" }, testTime
         t:eq({ false, false }, { c.m.placed, c.m.found }, "body placed or card found at creation")
         -- E20-T06: the card is left at a drop of the sheet; the mission keeps its search place.
         local d = c.m.drops and c.m.drops[1]
-        t:eq({ 1, c.sheet.places[1].x, c.sheet.places[1].y }, { c.m.drops and #c.m.drops, d and d.x, d and d.y },
+        t:eq({ 1, c.sheet.places.drop.x, c.sheet.places.drop.y }, { c.m.drops and #c.m.drops, d and d.x, d and d.y },
             "dead drop of the retrieve mission")
         t:ok(c.m.place ~= "RST drop", "the search place was replaced by the drop")
     end)

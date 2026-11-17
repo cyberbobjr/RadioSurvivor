@@ -38,6 +38,8 @@ export function createApi(fetchFn = fetch, onLoginRequired = () => window.locati
     verdicts: () => call('GET', '/api/verdicts'),
     journal: (since) => call('GET', `/api/log?since=${encodeURIComponent(String(since))}`),
     surveys: () => call('GET', '/api/surveys'),   // E22-T08: places recorded in game, newest first
+    places: () => call('GET', '/api/places'),     // E25-T03: {text} of the shared places file
+    savePlaces: (text) => call('PUT', '/api/places', text, false),
     status: () => call('GET', '/api/status'),
     // E22-T06: the bridge's AI ({ok:false, code:'ai_unavailable'} without configuration)
     aiPersonality: (body) => call('POST', '/api/ai/personality', body),

@@ -123,11 +123,21 @@ export function withPropose(ctx, field, input, options = {}) {
   return h('div', { class: 'inline grow' }, input, inputPropose(ctx, field, input, options));
 }
 
-// What the AI is told of a place when it proposes its name: its uses in words and its square when it has one.
-export function placeDetails(t, uses, at = {}) {
-  const known = [at.x, at.y].every((v) => String(v ?? '').trim() !== '');
-  return { uses: uses.map((u) => t(`use.${u}`)).join(', '),
-    map_square: known ? [at.x, at.y, at.z || '0'].map((v) => String(v).trim()).join(',') : null };
+// What the AI is told of a shared place when it proposes its name (E25-T03): a spot or an area in words, its square or
+// its corners when known, and the voices that use it.
+export function placeDetails(t, place, usedBy = []) {
+  const known = (...values) => values.every((v) => String(v ?? '').trim() !== '');
+  const trim = (v) => String(v).trim();
+  const at = place.at ?? {};
+  const area = place.area ?? {};
+  const zone = place.kind === 'zone';
+  return {
+    where: t(`places.kind.${zone ? 'zone' : 'point'}`),
+    map_square: !zone && known(at.x, at.y) ? [at.x, at.y, at.z || '0'].map(trim).join(',') : null,
+    map_area: zone && known(area.x1, area.y1, area.x2, area.y2)
+      ? `${trim(area.x1)},${trim(area.y1)} - ${trim(area.x2)},${trim(area.y2)}, floor ${trim(place.z || '0')}` : null,
+    used_by: usedBy.join(', ') || null,
+  };
 }
 
 // A text of the sheet as the AI reads it in the details: the frequency mark as the AI writes it.

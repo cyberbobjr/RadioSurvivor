@@ -666,6 +666,11 @@
       ]
     }
   },
+  "distances": [
+    "near",
+    "far",
+    "very_far"
+  ],
   "header": {
     "budgetPrefix": "budget.",
     "choices": {
@@ -714,6 +719,7 @@
       "language",
       "listen",
       "location",
+      "marks",
       "name",
       "radio",
       "shares",
@@ -33190,6 +33196,26 @@
     "skill",
     "text"
   ],
+  "places": {
+    "choices": {},
+    "hasId": true,
+    "keys": [
+      "area",
+      "at",
+      "label"
+    ],
+    "maxAreaSide": 1500,
+    "maxLabelBytes": 48,
+    "oneOf": [
+      "at",
+      "area"
+    ],
+    "rank": 1,
+    "repeatable": [],
+    "required": [
+      "label"
+    ]
+  },
   "radioLevels": [
     {
       "id": "any_talkie",
@@ -33266,16 +33292,20 @@
   "radioStepKhz": 200,
   "rewardKinds": {
     "cache": {
-      "param": "category"
+      "param": "category",
+      "place": true
     },
     "frequency": {
-      "param": null
+      "param": null,
+      "place": false
     },
     "lesson": {
-      "param": "skill"
+      "param": "skill",
+      "place": false
     },
     "stashmap": {
-      "param": null
+      "param": null,
+      "place": false
     }
   },
   "sections": {
@@ -33295,6 +33325,19 @@
     },
     "mission": {
       "choices": {
+        "building": [
+          "church",
+          "school",
+          "police",
+          "firestation",
+          "hospital",
+          "clinic",
+          "motel",
+          "farmhouse",
+          "apartments",
+          "house_garage",
+          "house"
+        ],
         "scope": [
           "character",
           "team"
@@ -33303,6 +33346,7 @@
       "hasId": true,
       "keys": [
         "after",
+        "building",
         "drops",
         "scope",
         "sets_state",
@@ -33335,33 +33379,11 @@
       ],
       "required": []
     },
-    "place": {
-      "choices": {
-        "use": [
-          "mark",
-          "target",
-          "drop",
-          "landing"
-        ]
-      },
-      "hasId": true,
-      "keys": [
-        "at",
-        "label",
-        "use"
-      ],
-      "rank": 1,
-      "repeatable": [],
-      "required": [
-        "at",
-        "label",
-        "use"
-      ]
-    },
     "rewards": {
       "choices": {},
       "hasId": false,
       "keys": [
+        "cache_place",
         "pool"
       ],
       "rank": 3,
@@ -33593,7 +33615,8 @@
   },
   "sheet": {
     "format": "1",
-    "maxPlaces": 12,
+    "maxMarks": 12,
+    "maxPlaces": 500,
     "separator": "[prompt]"
   },
   "skills": [

@@ -12,6 +12,9 @@ a memory of this file so that the offer told by the bridge and the created missi
 Aimed place (E20-T10): an offer that receives `aim` (target= of a voice's mission section) takes the building at that
 place (CA_MissionScout.siteAt), wherever the requester stands; zone, density and N are then computed as for a drawn
 place (no building there, or a density below minDensity: no offer).
+Drawn objective (E25-T02): a zone or a distance of the giver is drawn by the common draw (CA_Sites.draw) before the
+offer; the declaration acceptSite(c, site) hands it the density rule, so that a building with too few zombies around is
+skipped and the next one examined; the drawn building then comes as `aim`, as above.
 Zone: a circle centred on the building (m.mapZone = { x, y, r }, r = zoneRadius tiles, larger for a big building so
 that the whole footprint lies inside), every floor. It is the counting zone itself, drawn on the map of an engaged
 participant of an active mission (client/CoreAI/CA_MapZones.lua, label IGUI_CA_MapZoneClear): unlike the
@@ -51,7 +54,7 @@ end
 
 -- E11-T13: report in person. E20-T01: given by a voice as `clear`, labelled IGUI_CA_MapZoneClear on the map.
 local Clear = {idPrefix = 'clear', reportBySpeech = true, voiceName = 'clear', mapStyle = 'Clear',
-    voiceText = 'kill zombies around a place'}
+    voiceText = 'kill zombies around a place', aimed = true}
 Clear.MARK = 'CA_ClearCounted'
 Clear.HIT_WINDOW_MS = 5000   -- E04-T06: a kill is attributed only to a recent hit (same window as the NPC engine)
 local CHUNK = 8
@@ -137,6 +140,14 @@ local function counted(site, grid, c)
     if density < c.minDensity then return nil, 'too few zombies around ' .. tostring(site.key) end
     site.density, site.kills = density, Clear.target(c, density)
     return site
+end
+
+-- Declaration acceptSite (E25-T02): a drawn objective must have enough zombies around it (same rule as an offer).
+function Clear.acceptSite(c, site)
+    local grid = metaGrid()
+    if grid == nil then return false, 'no metagrid' end
+    local kept, why = counted(site, grid, c)
+    return kept ~= nil, why
 end
 
 -- Keeps the site (or the miss) for this requester, so that create names the offered building.

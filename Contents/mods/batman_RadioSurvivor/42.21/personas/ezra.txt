@@ -17,13 +17,6 @@ actions=say,propose_trade,share_frequency
 shares=virgil,lamar
 state=active
 
-# Lieu du rendez-vous relevé sur la carte 42.22 (lotheader 2_38 ; boîte aux lettres street_decoration_01_18 (container postbox, ContainerCapacity 5) en 643,9739 sur le trottoir, rue blends_street_01_87 en x 644 ; le lieu est la case voisine).
-# Rendez-vous seulement : jamais donné comme repère par mark_map.
-[place ekron_mailbox]
-at=643,9740,0
-label=Street mailbox on the main road, Ekron
-use=landing
-
 # Troc (E20-T11) : barème docs/specifications-techniques/passeur-table.md section 3.
 [trade]
 landing=ekron_mailbox

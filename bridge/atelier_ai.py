@@ -6,7 +6,8 @@ Three requests of the voice workshop page (bridge/atelier_server.py routes /api/
                   author in any language (instructions: atelier_ai_templates.json, data, English);
     suggest       E24-T04: a proposal for one text field of the page (name, mission story, note line...), written
                   from the WHOLE unsaved sheet; one entry per field in the "suggest" section of the templates file;
-    try_voice     one turn of a test conversation with the voice, its sheet read from the UNSAVED text of the page.
+    try_voice     one turn of a test conversation with the voice, its sheet read from the UNSAVED text of the page
+                  with the shared places the game reads (E25-T03: port `places`, the working _places.txt).
 
 This module only validates the requests, fills the templates and shapes the answers. The LLM call (provider, cost
 caps LLM_MAX_TOKENS / LLM_MAX_PROMPT_CHARS, token usage journal) and the prompt of a voice are the bridge's own,
@@ -67,6 +68,10 @@ class FieldSpec:
     sentences: str       # one | line | paragraph: how the answer is shaped
     task: str
     sheet_required: bool = True
+
+
+class SharedPlaces(Protocol):
+    def __call__(self) -> dict[str, persona_store.Place]: ...
 
 
 @dataclass(frozen=True)
@@ -285,8 +290,9 @@ class WorkshopAI:
     """The AI requests of the workshop over the injected LLM ports of the bridge."""
 
     def __init__(self, complete: Complete, reply: VoiceReply, log: Callable[[str], None],
-                 templates: dict[str, dict[str, str]] | None = None, suggestions: SuggestBook | None = None):
-        self._complete, self._reply, self._log = complete, reply, log
+                 templates: dict[str, dict[str, str]] | None = None, suggestions: SuggestBook | None = None,
+                 places: SharedPlaces = dict):
+        self._complete, self._reply, self._log, self._places = complete, reply, log, places
         self._templates = templates if templates is not None else load_templates()
         self._suggestions = suggestions if suggestions is not None else load_suggest()
 
@@ -331,7 +337,7 @@ class WorkshopAI:
         if not isinstance(sheet_text, str) or not sheet_text.strip():
             raise _bad("sheetText is empty")
         try:
-            sheet = persona_store.parse_bytes(sheet_text.encode('utf-8'), voice)
+            sheet = persona_store.parse_bytes(sheet_text.encode('utf-8'), voice, self._places())
         except persona_store.PersonaError as err:
             raise AiError(422, 'sheet_refused', f"the sheet is not valid yet: {err}") from None
         self._log(f"workshop AI try for voice '{voice}'")

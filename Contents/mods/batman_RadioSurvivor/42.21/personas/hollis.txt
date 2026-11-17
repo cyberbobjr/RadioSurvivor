@@ -17,13 +17,6 @@ actions=say,propose_trade,share_frequency
 shares=loretta,delphine
 state=active
 
-# Lieu du rendez-vous relevé sur la carte 42.22 (lotheader 41_37 ; herbe blends_natural_01_21 hors de toute pièce, au bord ouest de la grande route blends_street_01_86 (x 10584-10598), à l'entrée nord de la ville).
-# Rendez-vous seulement : jamais donné comme repère par mark_map.
-[place muldraugh_shoulder]
-at=10583,9700,0
-label=Highway shoulder north of Muldraugh
-use=landing
-
 # Troc (E20-T11) : barème docs/specifications-techniques/passeur-table.md section 3.
 [trade]
 landing=muldraugh_shoulder

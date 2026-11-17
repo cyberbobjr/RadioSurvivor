@@ -78,15 +78,17 @@ de voix.
 
 - D'abord un en-tête de lignes `clé=valeur`, puis des **sections** facultatives, puis une ligne `[prompt]`, puis le
   texte libre du prompt.
-- Une section commence par un titre entre crochets et regroupe ses propres lignes `clé=valeur` : `[place <id>]` (un
-  lieu), `[mission <id>]` (une mission), `[rewards]` (les récompenses), `[category <id>]` (une liste d'objets). Elle
-  s'arrête au titre suivant ou à `[prompt]`. Une ligne écrite sous un titre appartient à cette section : gardez les
+- Une section commence par un titre entre crochets et regroupe ses propres lignes `clé=valeur` : `[mission <id>]`
+  (une mission), `[rewards]` (les récompenses), `[category <id>]` (une liste d'objets), `[trade]` (le troc), `[note]`
+  (la note de fréquence). Elle s'arrête au titre suivant ou à `[prompt]`. Les lieux ne s'écrivent pas dans une fiche :
+  ils sont communs à toutes les voix (voir [Lieux](#lieux--fichier-commun-_placestxt)). Une ligne écrite sous un titre appartient à cette section : gardez les
   lignes de l'en-tête au-dessus de la première section.
 - Les lignes vides et celles qui commencent par `#` sont ignorées hors du prompt.
 - Les clés inconnues et les valeurs vides sont refusées : pour garder une valeur par défaut, retirez la ligne.
 - Chaque clé de l'en-tête apparaît une fois.
 - Le nom du fichier et l'`id` correspondent : `mae.txt` contient `id=mae`. Un fichier dont le nom commence par `_`
-  n'est pas une voix (le mod y range son catalogue d'objets, `_categories.txt`).
+  n'est pas une voix (`_places.txt` : les lieux de toutes les voix ; le mod range aussi son catalogue d'objets dans
+  `_categories.txt`).
 
 La référence complète du format est
 [docs/specifications-techniques/persona-format.md](https://github.com/cyberbobjr/RadioSurvivor/blob/main/docs/specifications-techniques/persona-format.md).
@@ -161,30 +163,113 @@ Dans l'atelier des voix, le mode « Choisir moi-même la fréquence » demande u
 > Ne mettez jamais un vrai secret du serveur dans une fiche : mots de passe, codes, fréquences cachées, position d'une
 > base de joueur. L'IA peut dire tout ce qui est dans son prompt.
 
-### Lieux — sections `[place]`
+### Lieux — fichier commun `_places.txt`
 
-Chaque lieu que la voix connaît est une section, 12 au plus :
+Les lieux ne s'écrivent pas dans la fiche d'une voix : ils vivent dans **un seul fichier pour toutes les voix**,
+`personas/_places.txt`, dans le même dossier que les fiches. Le mod en livre un (les lieux de ses voix), installé et mis
+à jour comme une fiche livrée ; votre copie fait foi. L'onglet **Lieux** de l'atelier des voix l'écrit pour vous. Une
+voix **nomme** ensuite les lieux dont elle se sert, là où elle s'en sert : un lieu peut servir à plusieurs voix.
+
+Le fichier commence par `format=1`, puis une section `[place <id>]` par lieu (500 au plus). Voici les lieux des
+exemples de cette page, tels qu'ils s'ajoutent au fichier (les lieux livrés avec le mod ne sont pas recopiés ici) :
 
 ```text
+# personas/_places.txt : les lieux de toutes les voix.
+format=1
+
 [place rosewood]
 at=8159,11661,0
 label=Rosewood, center of town
-use=mark,target
+
+[place fallas_lake]
+at=7253,8279,0
+label=Fallas Lake
+
+[place farmhouse]
+at=10850,9650,0
+label=Barker farmhouse
+
+[place ferry]
+at=6041,5217,0
+label=Old ferry landing
+
+[place west_point]
+at=11654,6864,0
+label=West Point, center of town
+
+[place muldraugh_pd]
+at=10644,10405,0
+label=Muldraugh, police station
+
+[place muldraugh]
+area=10650,9800,10850,10050,0
+label=Muldraugh, center of town
+
+[place march_ridge]
+at=10130,12801,0
+label=March Ridge
 ```
 
 | Clé | À quoi ça sert |
 |---|---|
-| `[place <id>]` | Identifiant du lieu : `a`-`z`, `0`-`9`, `_`, unique dans la fiche. |
-| `at` | Coordonnées `x,y,z` de la case (relevées sur la carte du jeu). L'IA ne les voit jamais. |
-| `label` | Nom du lieu, 48 octets au plus, affiché tel quel sur la carte du joueur. |
-| `use` | Ce que la voix fait de ce lieu, un ou plusieurs mots séparés par des virgules (ci-dessous). |
+| `[place <id>]` | Identifiant du lieu : `a`-`z`, `0`-`9`, `_`, 32 caractères au plus, unique dans le fichier. `near`, `far` et `very_far` sont réservés (ce sont des distances). |
+| `at` | Un **endroit précis** : la case `x,y,z` (relevée en jeu ou sur la carte ; `z` = étage, 0 au rez-de-chaussée). |
+| `area` | Un **quartier** : un rectangle `x1,y1,x2,y2,z`, deux coins opposés dans n'importe quel ordre, de 1 à 1 500 cases de côté. |
+| `label` | Nom du lieu, 48 octets au plus, montré à l'IA et affiché tel quel sur la carte du joueur : pas de secret ici. |
 
-- `mark` : un **repère** qu'elle peut vous donner (`mark_map`, `reveal_area`, repère offert à la fin d'une mission
-  sans section `[rewards]`). L'IA ne voit que l'id et le libellé de ces lieux.
-- `target` : un **objectif** de mission (`target=` d'une section `[mission]`).
-- `drop` : une **planque**. Une mission `deliver` ou `retrieve` les propose toutes à la fois (ou celles de `drops=`) ; une récompense `cache` est
-  posée au premier lieu `drop` de la fiche (à défaut, à son premier lieu).
-- `landing` : un rendez-vous de marchand (clé `landing` de la section `[trade]`, voir « Troc »).
+- Chaque lieu a un `label` et **soit** `at`, **soit** `area`. L'IA ne voit jamais une coordonnée.
+- Un fichier refusé est écrit dans le journal avec sa ligne, et les derniers lieux valides restent en service. Sans
+  fichier, il n'y a aucun lieu.
+- Pour supprimer un lieu, retirez-le d'abord de toutes les voix qui le nomment : sinon ces voix sont refusées
+  (`unknown place '…'`).
+
+#### Où une voix nomme un lieu
+
+| Où | Clé | Lieux admis |
+|---|---|---|
+| En-tête | `marks` | Points ou quartiers, 12 au plus, séparés par des virgules : les **repères** qu'elle peut vous donner (`mark_map`, `reveal_area`, repère offert après une mission sans section `[rewards]`). L'IA ne voit que leur id et leur libellé. |
+| `[mission]` | `target` | Un lieu (point ou quartier), ou une distance : `near`, `far`, `very_far` (ci-dessous). `near` par défaut. |
+| `[mission]` | `drops` | Les **planques** de la mission : des points, obligatoires pour `deliver`, `retrieve` et `item`. |
+| `[mission]` de `route` | `points` | De 2 à 8 points, dans l'ordre. |
+| `[trade]` | `landing` | Le ou les points de rendez-vous du marchand. |
+| `[rewards]` | `cache_place` | Le point où est posé le sac d'une récompense `cache`. |
+
+Une planque, un rendez-vous, une étape d'itinéraire ou le sac d'une récompense est toujours un **point** : le joueur
+doit trouver la case exacte. Un lieu absent du fichier fait refuser la fiche (`unknown place 'mill'`), un quartier là
+où il faut un point aussi (`place 'muldraugh' is a zone, a point is needed here`). Un lieu que la voix ne nomme pas,
+elle ne le connaît pas.
+
+```ini
+marks=rosewood,fallas_lake
+```
+
+#### Objectif d'une mission — `target=` et `building=`
+
+| `target=` | Ce que le serveur choisit, à chaque départ de mission |
+|---|---|
+| un point | Le bâtiment de cette case, toujours le même, où que soit le joueur. |
+| un quartier | Un bâtiment tiré dans le rectangle. Deux missions de la même section peuvent viser deux bâtiments. |
+| `near` (défaut) | Un bâtiment tiré à 100 à 200 cases de l'appelant. |
+| `far` | Un bâtiment tiré à 200 à 500 cases. |
+| `very_far` | Un bâtiment tiré à 500 à 1 500 cases. |
+
+- `building=` choisit le genre du bâtiment tiré, avec un quartier ou une distance seulement : `church`, `school`,
+  `police`, `firestation`, `hospital`, `clinic`, `motel`, `farmhouse`, `apartments`, `house_garage`, `house`. Sans la
+  clé, n'importe lequel.
+- Un bâtiment tiré est un bâtiment habitable de la carte, jamais construit par un joueur, à 60 cases au moins de toute
+  base connue (refuges, joueurs connectés, l'appelant compris). La distance part de la position du personnage sur le
+  serveur.
+- Rien ne convient : la mission ne part pas (`no_place` dans le journal du serveur) ; la voix en propose une autre.
+- Seuls les types qui ont un objectif le lisent (`scout`, `clear`, `retrieve`, `signal`, `barricade`, `relay`,
+  `watch`, `item`) ; `deliver` et `route` n'en ont pas.
+
+```ini
+[mission look]
+type=scout
+target=far
+building=church
+story=My sister hid in a church out of town. Find out which one.
+```
 
 #### Relever un lieu en jeu
 
@@ -194,11 +279,10 @@ note la case, le conteneur qui s'y trouve (une benne, une caisse), la pièce et 
 jeu et le nom du personnage, dans `Zomboid/Lua/batman_RadioSurvivor/workshop-places.txt` de la machine qui fait tourner
 la partie ou le serveur (les 200 derniers relevés). Un message au-dessus du personnage confirme le relevé.
 
-Dans l'atelier des voix (étape « Missions », panneau « Ses lieux »), la liste **« Relevés en jeu »** montre les
-relevés, les plus récents d'abord. **« Ajouter à cette voix »** crée un lieu `[place]` à cette case avec un nom proposé
-(modifiable) et des usages proposés : un conteneur devient une planque (`drop`), un bâtiment un lieu de mission et un
-repère (`target`, `mark`). Tout se change ensuite dans la fiche du lieu. L'atelier ne modifie jamais ce fichier ; sur un
-serveur loué, l'atelier doit tourner sur la machine du serveur pour le lire.
+Dans l'atelier des voix (onglet **Lieux**, bloc **Depuis mes relevés**), les relevés s'affichent, les plus récents
+d'abord. **Ajouter aux lieux** crée un lieu `[place]` à cette case dans `_places.txt`, avec un nom proposé
+(modifiable). Chaque voix le coche ensuite là où elle s'en sert. L'atelier ne modifie jamais le fichier des relevés ;
+sur un serveur loué, l'atelier doit tourner sur la machine du serveur pour le lire.
 
 ### Actions
 
@@ -251,8 +335,8 @@ Rien à écrire : **toute voix se souvient de ses appelants**, pour toujours. `r
 
 - **En jeu :** la voix dit « je te le marque sur ta carte » et **un symbole apparaît sur votre carte du monde**, à
   l'un des lieux qu'elle connaît.
-- **Il faut dans la fiche :** au moins un lieu `[place]` avec `use=mark`. La voix ne peut marquer **que** ces lieux,
-  jamais une position inventée.
+- **Il faut dans la fiche :** au moins un lieu dans `marks=`. La voix ne peut marquer **que** ces lieux, jamais une
+  position inventée ; un quartier est marqué en son milieu.
 - **Conséquences :** le repère n'apparaît que chez le joueur qui parle, pas chez les autres.
 - **Limites :** 30 secondes réelles entre deux repères de la voix ; plafond par jour de jeu avec `budget.mark_map`.
 
@@ -260,8 +344,8 @@ Rien à écrire : **toute voix se souvient de ses appelants**, pour toujours. `r
 
 - **En jeu :** la voix décrit un quartier qu'elle connaît et **la zone se dévoile sur votre carte** (comme si vous
   aviez trouvé une carte locale).
-- **Il faut dans la fiche :** au moins un lieu `[place]` avec `use=mark` ; la zone révélée est centrée sur l'un de
-  ces lieux.
+- **Il faut dans la fiche :** au moins un lieu dans `marks=` ; la zone révélée est centrée sur l'un de ces lieux (un
+  quartier : elle le couvre s'il y tient).
 - **Conséquences :** seulement chez le joueur qui parle.
 - **Limites :** un carré de 160 cases de côté au plus ; 60 secondes réelles entre deux révélations ; plafond par jour
   avec `budget.reveal_area`.
@@ -272,13 +356,13 @@ Rien à écrire : **toute voix se souvient de ses appelants**, pour toujours. `r
   (reconnaissance), `deliver` (dépôt de matériel), `retrieve` (recherche de papiers), `clear` (nettoyage), `signal`
   (signal Signal Smoke), `barricade` (barricader un bâtiment), `relay` (relais radio), `route` (itinéraire : plusieurs lieux à franchir dans l'ordre), `watch` (guet), `item` (objet personnel à retrouver et déposer à une planque). Le serveur vérifie chaque objectif ; une mission par joueur et voix. Sans aucune section
   `[mission]`, seul `scout` est permis. Détail des clés : [Missions, récompenses et objets](#missions-récompenses-et-objets).
-- **Il faut :** que le joueur ait le carnet. Le bâtiment est choisi par le serveur, jamais par l'IA : pour `scout`
-  et `clear`, celui du lieu `target=` de la section, où que soit le joueur, ou à défaut un bâtiment tiré autour de
-  lui ; pour `barricade`, celui du lieu `target=`, obligatoire. Une mission `deliver` ou `retrieve` demande au moins
-  un lieu `use=drop`.
+- **Il faut :** que le joueur ait le carnet. Le bâtiment est choisi par le serveur, jamais par l'IA : celui de
+  l'objectif `target=` de la section (un lieu, ou un bâtiment tiré dans un quartier ou à une distance du joueur ;
+  `near` sans la clé, voir [Objectif d'une mission](#objectif-dune-mission--target-et-building)). Une mission
+  `deliver`, `retrieve` ou `item` demande ses planques (`drops=`).
 - **Récompense :** réputation et une récompense de la section `[rewards]`. L'IA ne choisit ni récompense ni contenu.
-  Sans section `[rewards]`, la voix vous offre le repère d'un de ses lieux `use=mark`.
-- Une cache contient des objets réels de sa catégorie, au premier lieu `use=drop` ; une seule par mission, pose
+  Sans section `[rewards]`, la voix vous offre le repère d'un lieu de `marks=` pas encore donné.
+- Une cache contient des objets réels de sa catégorie, au point `cache_place=` de `[rewards]` ; une seule par mission, pose
   différée si le lieu est déchargé et repère privé. `shares` limite les autres voix actives dont la fréquence peut
   entrer dans le carnet du bénéficiaire. Une carte-cachette vanilla mène à une planque inexplorée : une par joueur et
   voix.
@@ -293,21 +377,21 @@ Rien à écrire : **toute voix se souvient de ses appelants**, pour toujours. `r
 
 #### Livraisons radio : collecte discrète
 
-Une mission de dépôt d'une voix propose **toutes ses planques à la fois** (clé `drops=` de sa section ; sans elle, tous les lieux `use=drop` de la fiche), chacune entourée sur votre carte avec son nom. Déposez où vous voulez : les objets laissés à plusieurs planques s'additionnent jusqu'à la quantité demandée. À chaque planque, le serveur désigne une boîte existante adaptée (une mission sur deux) ou, à défaut, demande un sac au sol. La voix ne ramasse une planque que **hors de vue de tout le monde** (aucun joueur à moins de 100 cases en x comme en y, quel que soit l'étage, ou la case déchargée) **et après environ 6 heures de jeu** (`collect_hours=` de la section `[mission]`). Le délai suit l'horloge du jeu : il s'arrête en pause, va plus vite en vitesse accélérée ou pendant le sommeil, et ne compte pas serveur arrêté. Un joueur revenu en vue avant la fin remet le délai à zéro. Une planque dont le délai s'est écoulé pendant que sa case était déchargée est vidée dès que la case se charge de nouveau.
+Une mission de dépôt d'une voix propose **toutes ses planques à la fois** (clé `drops=` de sa section, obligatoire), chacune entourée sur votre carte avec son nom. Déposez où vous voulez : les objets laissés à plusieurs planques s'additionnent jusqu'à la quantité demandée. À chaque planque, le serveur désigne une boîte existante adaptée (une mission sur deux) ou, à défaut, demande un sac au sol. La voix ne ramasse une planque que **hors de vue de tout le monde** (aucun joueur à moins de 100 cases en x comme en y, quel que soit l'étage, ou la case déchargée) **et après environ 6 heures de jeu** (`collect_hours=` de la section `[mission]`). Le délai suit l'horloge du jeu : il s'arrête en pause, va plus vite en vitesse accélérée ou pendant le sommeil, et ne compte pas serveur arrêté. Un joueur revenu en vue avant la fin remet le délai à zéro. Une planque dont le délai s'est écoulé pendant que sa case était déchargée est vidée dès que la case se charge de nouveau.
 
 **Objets demandés.** Avec `items=<catégorie>`, la mission n'accepte que les objets de cette catégorie (une section `[category]` de la fiche, sinon le catalogue partagé) ; avec `quantity=`, le nombre demandé est tiré au départ de la mission (`2-4` : 2, 3 ou 4 ; `3` : toujours 3) puis ne change plus. Sans ces clés, la mission demande 6 bandages ou draps déchirés. Le carnet et la voix disent les objets acceptés et le nombre demandé ; un objet hors de la catégorie n'est jamais ramassé.
 
 Dans une boîte, seuls les objets demandés disparaissent, jamais plus que la quantité restante : boîte, autres objets et surplus restent. Pour un sac, sac et contenu disparaissent ; un sac qui contient des objets étrangers au lot, ou plus que la quantité restante, est refusé pour éviter leur perte. Chaque objet n'est compté qu'une fois, même après un redémarrage. Avant la collecte, vous pouvez reprendre le dépôt et rien n'est validé. **Une fois toute la quantité collectée seulement, rendez compte à la radio**.
 
-**Barricader pour une voix.** Le bâtiment du lieu `target=` est entouré sur votre carte. Barricadez le nombre demandé (`count=`) de ses fenêtres et portes **extérieures**, avec des planches ou de la tôle, de l'intérieur ou de l'extérieur : chaque ouverture compte une fois. Le serveur compte lui-même les barricades du bâtiment ; celles déjà en place au début de la mission ne comptent pas, et une barricade retirée ne compte plus. Une fois le compte atteint, rappelez la voix.
+**Barricader pour une voix.** Le bâtiment de l'objectif (`target=`) est entouré sur votre carte. Barricadez le nombre demandé (`count=`) de ses fenêtres et portes **extérieures**, avec des planches ou de la tôle, de l'intérieur ou de l'extérieur : chaque ouverture compte une fois. Le serveur compte lui-même les barricades du bâtiment ; celles déjà en place au début de la mission ne comptent pas, et une barricade retirée ne compte plus. Une fois le compte atteint, rappelez la voix.
 
-**Relais radio pour une voix.** Le lieu `target=` est entouré sur votre carte. Posez-y en hauteur, à un étage ou sur le toit (au moins au niveau indiqué par le carnet), une radio qui peut émettre : talkie-walkie ou radio amateur. Allumez-la ; elle doit rester alimentée par sa pile, le réseau ou un générateur. Le serveur vérifie lui-même la radio ; éteinte, sans courant ou retirée, elle ne compte plus et le compte rendu est refusé. Tant qu'elle est allumée, rappelez la voix.
+**Relais radio pour une voix.** Le lieu de l'objectif (`target=`) est entouré sur votre carte. Posez-y en hauteur, à un étage ou sur le toit (au moins au niveau indiqué par le carnet), une radio qui peut émettre : talkie-walkie ou radio amateur. Allumez-la ; elle doit rester alimentée par sa pile, le réseau ou un générateur. Le serveur vérifie lui-même la radio ; éteinte, sans courant ou retirée, elle ne compte plus et le compte rendu est refusé. Tant qu'elle est allumée, rappelez la voix.
 
-**Guet pour une voix.** Le lieu `target=` est entouré sur votre carte : c'est le poste de guet. Restez-y (à moins de 6 cases du lieu, un étage ou le toit compte aussi) le nombre d'heures de jeu indiqué par le carnet, 2 par défaut. Le temps compte en heures de jeu : il s'arrête quand le jeu est en pause et va plus vite en vitesse accélérée. Une absence courte (10 minutes de jeu au plus) est tolérée sans compter ; plus longue, le guet recommence à zéro. Le serveur note ce qui se passe pendant le guet (hélicoptère entendu, groupe de morts tout proche) et la voix en parle quand vous la rappelez une fois le guet terminé.
+**Guet pour une voix.** Le lieu de l'objectif (`target=`) est entouré sur votre carte : c'est le poste de guet. Restez-y (à moins de 6 cases du lieu, un étage ou le toit compte aussi) le nombre d'heures de jeu indiqué par le carnet, 2 par défaut. Le temps compte en heures de jeu : il s'arrête quand le jeu est en pause et va plus vite en vitesse accélérée. Une absence courte (10 minutes de jeu au plus) est tolérée sans compter ; plus longue, le guet recommence à zéro. Le serveur note ce qui se passe pendant le guet (hélicoptère entendu, groupe de morts tout proche) et la voix en parle quand vous la rappelez une fois le guet terminé.
 
-**Objet personnel pour une voix.** Une mission `item` nomme un objet vanilla (`item=`, par exemple un médaillon, une photo ou une montre de poche) et, au choix, la façon dont la voix l'appelle (`label=`, « le médaillon d'Ellen »). Au début de la mission, le serveur pose cet objet au sol dans le bâtiment du lieu `target=` (ou tout près du lieu hors bâtiment), une seule fois, dès que ce lieu est chargé ; le lieu est entouré sur votre carte. Trouvez-le puis déposez-le à l'une des planques de la mission, au choix : il est ramassé hors de vue de tous, après le délai en heures de jeu. Seul l'objet posé pour la voix compte : un autre objet du même genre, même identique, n'est jamais pris et reste où vous l'avez laissé. Une fois l'objet ramassé, rappelez la voix.
+**Objet personnel pour une voix.** Une mission `item` nomme un objet vanilla (`item=`, par exemple un médaillon, une photo ou une montre de poche) et, au choix, la façon dont la voix l'appelle (`label=`, « le médaillon d'Ellen »). Au début de la mission, le serveur pose cet objet au sol dans le bâtiment de l'objectif `target=` (ou tout près du lieu hors bâtiment), une seule fois, dès que ce lieu est chargé ; le lieu est entouré sur votre carte. Trouvez-le puis déposez-le à l'une des planques de la mission, au choix : il est ramassé hors de vue de tous, après le délai en heures de jeu. Seul l'objet posé pour la voix compte : un autre objet du même genre, même identique, n'est jamais pris et reste où vous l'avez laissé. Une fois l'objet ramassé, rappelez la voix.
 
-**Itinéraire pour une voix.** Une mission `route` nomme plusieurs lieux à franchir **dans l'ordre**, à pied ou en véhicule. Seul le prochain point est entouré sur votre carte, avec le nom du lieu ; les points déjà franchis le restent, les suivants n'apparaissent qu'à leur tour. Un point est franchi quand vous passez à moins de 8 cases de son centre, même en roulant vite ; un point atteint avant le précédent ne compte pas et doit être repassé à son tour. Le carnet indique « 2 sur 4 » et le prochain point. Le serveur lit lui-même votre position (celle du véhicule où vous êtes assis). Une fois tous les points franchis, rappelez la voix.
+**Itinéraire pour une voix.** Une mission `route` nomme plusieurs points communs (`points=`) à franchir **dans l'ordre**, à pied ou en véhicule. Seul le prochain point est entouré sur votre carte, avec le nom du lieu ; les points déjà franchis le restent, les suivants n'apparaissent qu'à leur tour. Un point est franchi quand vous passez à moins de 8 cases de son centre, même en roulant vite ; un point atteint avant le précédent ne compte pas et doit être repassé à son tour. Le carnet indique « 2 sur 4 » et le prochain point. Le serveur lit lui-même votre position (celle du véhicule où vous êtes assis). Une fois tous les points franchis, rappelez la voix.
 
 **Papiers à retrouver pour une voix.** La carte d'identité prise sur le corps ne se remet pas à la radio : déposez-la à l'une des planques de la mission, marquées sur votre carte comme pour un dépôt (dans la boîte désignée, ou seule dans un sac au sol). La voix la ramasse avec la même règle, hors de vue et après le délai (`collect_hours=` de la section `[mission]`) ; seule la carte de ce corps est prise, une autre carte d'identité reste sur place. **Une fois la carte ramassée seulement, rendez compte à la radio** : le compte rendu ne retire rien de votre inventaire.
 
@@ -320,12 +404,14 @@ Une section par mission, puis une section `[rewards]`, et si besoin vos propres 
 type=deliver
 items=medical
 quantity=2-4
-drops=any
+drops=rosewood
 weight=2
 story=I am running out of bandages.
 
 [mission look]
 type=scout
+target=muldraugh
+building=clinic
 
 [category snacks]
 item=Base.Crisps:1-2
@@ -333,6 +419,7 @@ item=Base.Pop:1
 
 [rewards]
 pool=cache:medical:3, cache:snacks:1, frequency:1, stashmap:1, lesson:Doctor:2
+cache_place=rosewood
 ```
 
 | Clé de `[mission]` | À quoi ça sert |
@@ -343,13 +430,14 @@ pool=cache:medical:3, cache:snacks:1, frequency:1, stashmap:1, lesson:Doctor:2
 | `scope` | `character` (par défaut) : `after` compte les réussites du personnage ; `team` : celles de son équipe (faction, ou le joueur seul). |
 | `sets_state` | État de récit que prend la voix à la réussite de cette mission, un nom (`returned`…). Voir « Missions enchaînées ». |
 | `story` | La raison que donne la voix, dite à l'IA avec la mission (200 octets au plus). |
-| `drops` | Planques de la mission, toutes proposées au joueur : `any` (tous les lieux `use=drop`, comme sans la clé) ou une liste d'ids de lieux `use=drop`. |
-| `target` | Lieu objectif, un lieu `use=target` : une case à l'intérieur du bâtiment visé. `scout` et `clear` : ce bâtiment, où que soit le joueur (sans la clé, un bâtiment tiré autour de lui) ; obligatoire pour `barricade` (le bâtiment à barricader) et pour `relay` (le lieu du relais : la radio se pose au niveau 1 ou plus haut, au moins au niveau `z=` du lieu ; hors bâtiment, un point en hauteur). Obligatoire pour `watch` : le poste de guet (le guet compte à moins de 6 cases du lieu, à tout niveau). Obligatoire pour `item` : le lieu où le serveur pose l'objet (au sol, dans le bâtiment de la case, au niveau `z=` du lieu ; hors bâtiment, à moins de 4 cases du lieu). |
-| autres | Les paramètres propres au type : `deliver` accepte `items` (une catégorie d'objets), `quantity` (`4` ou `2-4`) et `collect_hours` (heures de jeu avant le ramassage d'une planque, 6 par défaut) ; `retrieve` accepte `collect_hours` (la carte d'identité se dépose à une planque) ; `barricade` accepte `count` (fenêtres et portes extérieures à barricader, 4 par défaut, au moins 1) ; `relay` n'en accepte aucun ; `route` exige `points` (de 2 à 8 lieux `use=target` séparés par des virgules, à franchir dans cet ordre, jamais deux fois le même de suite : `points=pont,station,clinique`). `watch` accepte `hours` (heures de jeu du guet, 2 par défaut, de 1 à 24). `item` exige `item` (le type complet d'un objet du jeu, `Module.Type` : `item=Base.Locket`, `Base.Photo`, `Base.Pocketwatch`…) et accepte `label` (le nom que lui donne la voix, sinon le nom du jeu) et `collect_hours` (l'objet se dépose à une planque). |
+| `drops` | Planques de la mission, toutes proposées au joueur : une liste de points du fichier des lieux, sans doublon. Obligatoire pour `deliver`, `retrieve` et `item`. |
+| `target` | Objectif : un lieu commun (point ou quartier) ou une distance (`near`, `far`, `very_far`), `near` par défaut (voir [Objectif d'une mission](#objectif-dune-mission--target-et-building)). `scout`, `clear`, `retrieve`, `signal` : le bâtiment visé. `barricade` : le bâtiment à barricader. `relay` : le lieu du relais (la radio se pose au niveau 1 ou plus haut, au moins au niveau `z=` du lieu ; hors bâtiment, un point en hauteur). `watch` : le poste de guet (le guet compte à moins de 6 cases du lieu, à tout niveau). `item` : le lieu où le serveur pose l'objet (au sol, dans le bâtiment de la case, au niveau `z=` du lieu ; hors bâtiment, à moins de 4 cases du lieu). |
+| `building` | Genre du bâtiment tiré, avec un quartier ou une distance seulement : `church`, `school`, `police`, `firestation`, `hospital`, `clinic`, `motel`, `farmhouse`, `apartments`, `house_garage`, `house`. |
+| autres | Les paramètres propres au type : `deliver` accepte `items` (une catégorie d'objets), `quantity` (`4` ou `2-4`) et `collect_hours` (heures de jeu avant le ramassage d'une planque, 6 par défaut) ; `retrieve` accepte `collect_hours` (la carte d'identité se dépose à une planque) ; `barricade` accepte `count` (fenêtres et portes extérieures à barricader, 4 par défaut, au moins 1) ; `relay` n'en accepte aucun ; `route` exige `points` (de 2 à 8 points communs séparés par des virgules, à franchir dans cet ordre, jamais deux fois le même de suite : `points=pont,station,clinique`). `watch` accepte `hours` (heures de jeu du guet, 2 par défaut, de 1 à 24). `item` exige `item` (le type complet d'un objet du jeu, `Module.Type` : `item=Base.Locket`, `Base.Photo`, `Base.Pocketwatch`…) et accepte `label` (le nom que lui donne la voix, sinon le nom du jeu) et `collect_hours` (l'objet se dépose à une planque). |
 
 Toutes ces clés sont **lues et vérifiées** au chargement. `weight`, `after`, `scope`, `sets_state`, `story`, `drops`,
-`collect_hours`, `target` (`scout`, `clear`, `barricade`), `items` et `quantity` (`deliver` : objets acceptés et
-nombre demandé, tiré au départ de la mission) servent tous.
+`collect_hours`, `target`, `building`, `items` et `quantity` (`deliver` : objets acceptés et nombre demandé, tiré au
+départ de la mission) servent tous.
 
 ##### Missions enchaînées et état de récit
 
@@ -363,7 +451,8 @@ qu'un id, le serveur tire au sort parmi les missions disponibles de ce type, sel
 `sets_state=<nom>` donne à la voix un **état de récit** quand la mission réussit : un nom libre (`a`-`z`, `0`-`9`,
 `_`), distinct de `state=` de la tête (`active`, `silent`…). Il est posé une fois, gardé avec la partie, rappelé à
 l'IA à chaque appel, et lisible par les autres mods (`RadioSurvivor.API.voiceStoryState("<id>")`). Dites dans le
-prompt ce que cet état change pour la voix. Exemple complet (coordonnées d'exemple, à relever sur votre carte) :
+prompt ce que cet état change pour la voix. Exemple complet (le lieu `farmhouse` est dans le
+[fichier des lieux](#lieux--fichier-commun-_placestxt) de cette page) :
 
 ```ini
 format=1
@@ -371,11 +460,6 @@ id=nell
 name=Nell Barker
 frequency=152.4
 actions=say,start_mission
-
-[place farmhouse]
-at=10850,9650,0
-label=Barker farmhouse
-use=target,drop
 
 [mission look_farm]
 type=scout
@@ -393,6 +477,7 @@ story=The dead are all over my yard. Clear them out.
 type=deliver
 items=food
 quantity=2-4
+drops=farmhouse
 after=clear_farm
 sets_state=returned
 story=Leave some food at the farm and I will come home.
@@ -405,11 +490,13 @@ If your story state is "returned", you are back at your farm and you talk from t
 Ici, `look_farm` est proposée seule ; sa réussite ouvre `clear_farm` (pour toute l'équipe du joueur), dont la
 réussite ouvre `stock_farm` ; la réussite de `stock_farm` met Nell dans l'état `returned`.
 
-`[rewards]` n'a qu'une ligne, `pool=`, liste de récompenses `nature:poids` ou `nature:paramètre:poids` :
+`[rewards]` a une ligne `pool=`, liste de récompenses `nature:poids` ou `nature:paramètre:poids`, et une ligne
+`cache_place=` (un point commun) quand `pool` contient une récompense `cache` (`cache reward needs cache_place` sans
+elle) :
 
 | Nature | Paramètre | Ce que reçoit le joueur |
 |---|---|---|
-| `cache` | une catégorie : `cache:medical:3` | un sac d'objets de cette catégorie, quantités tirées au hasard, au premier lieu `use=drop` |
+| `cache` | une catégorie : `cache:medical:3` | un sac d'objets de cette catégorie, quantités tirées au hasard, posé au point `cache_place=` |
 | `frequency` | aucun | la fréquence d'une voix de `shares`, inscrite au carnet |
 | `stashmap` | aucun | une carte annotée vers une planque vanilla inexplorée |
 | `lesson` | une compétence : `lesson:Doctor:2` | de l'expérience : `Doctor`, `Aiming`, `Reloading`, `Woodwork`, `Mechanics`, `Electricity`, `MetalWelding`, `Cooking`, `Farming`, `Fishing`, `Trapping`, `PlantScavenging` |
@@ -426,10 +513,10 @@ est tiré dans sa catégorie : chaque ligne `item=` donne une quantité dans sa 
 `item=Module.Type:quantité` par objet (`Base.Bandage:2-4`), avec un id absent du catalogue ; une entrée
 `cache:<id>` de `pool` peut citer l'une ou l'autre, et le sac est rempli de cette catégorie seulement.
 
-Le serveur est le seul à vérifier ces sections : un type de mission inconnu, un lieu absent ou sans le bon `use`, une
-catégorie inconnue ou un poids invalide fait refuser la fiche par le serveur, avec la ligne et la raison dans
-`console.txt` (la dernière version valide de la voix reste en service). `persona_store.py` ne lit que l'en-tête, les
-lieux et le prompt : il ne voit pas ces erreurs.
+Le serveur est le seul à vérifier ces sections : un type de mission inconnu, un lieu absent du fichier des lieux ou un
+quartier là où il faut un point, une catégorie inconnue ou un poids invalide fait refuser la fiche par le serveur, avec
+la ligne et la raison dans `console.txt` (la dernière version valide de la voix reste en service). `persona_store.py`
+ne lit que l'en-tête (`marks=` compris), le fichier des lieux et le prompt : il ne voit pas ces erreurs.
 
 #### Troc — `propose_trade` et section `[trade]`
 
@@ -441,7 +528,7 @@ l'une sans l'autre est refusée.
 
 | Clé | À quoi ça sert |
 |---|---|
-| `landing` | Lieu(x) du rendez-vous, chacun `use=landing` ; son libellé est le seul nom de rendez-vous que la voix donne, et seulement au groupe qui a réservé. |
+| `landing` | Point(s) du rendez-vous, du fichier des lieux, séparés par des virgules (un tiré par passage s'il y en a plusieurs) ; son libellé est le seul nom de rendez-vous que la voix donne, et seulement au groupe qui a réservé. |
 | `arrival` | Comment le marchand arrive : `boat` (barque qui accoste ; le joueur montre une lampe allumée en main ou une fusée rouge sur place pendant la fenêtre), `road` (fourgon garé au bord de la route, mêmes signaux ; portière à l'arrivée, hayon au départ) ou `cache` (planque : personne ne vient ; le paiement se laisse dans un conteneur du lieu, poubelle ou boîte aux lettres, et la marchandise y est déposée hors de vue ; aucun signal, aucun bruit). |
 | `every_days` | Un passage tous les N jours de jeu (1 à 28). |
 | `hours` | Fenêtre du rendez-vous, `HH:MM-HH:MM`. |
@@ -476,12 +563,7 @@ listen=21:00-02:00
 actions=say,propose_trade
 budget=3
 
-# Coordonnées d'exemple (le ponton de Gus) : relevez celles de votre lieu sur la carte.
-[place ferry]
-at=6041,5217,0
-label=Old ferry landing
-use=landing
-
+# Le lieu ferry est dans _places.txt (coordonnées d'exemple : le ponton de Gus).
 [trade]
 landing=ferry
 arrival=boat
@@ -635,19 +717,11 @@ budget.mark_map=4
 call_one_in=5
 call=This is Mae near Rosewood, on %1. Anyone out there? Over.
 state=active
-
-[place rosewood]
-at=8159,11661,0
-label=Rosewood, center of town
-use=mark,target,drop
-
-[place fallas_lake]
-at=7253,8279,0
-label=Fallas Lake
-use=mark
+marks=rosewood,fallas_lake
 
 [mission scout]
 type=scout
+target=rosewood
 weight=2
 story=Somebody stopped answering my roll call near there.
 
@@ -655,11 +729,12 @@ story=Somebody stopped answering my roll call near there.
 type=deliver
 items=radio
 quantity=1-2
-drops=any
+drops=rosewood
 story=My batteries will not last the month.
 
 [mission retrieve]
 type=retrieve
+drops=rosewood
 
 [mission clear]
 type=clear
@@ -669,6 +744,7 @@ type=signal
 
 [rewards]
 pool=cache:radio:1, frequency:1, stashmap:1, lesson:Electricity:1
+cache_place=rosewood
 
 [prompt]
 You are Mae Tolliver, 67, a retired schoolteacher and a licensed radio amateur who lives alone in a farmhouse a few miles outside Rosewood, Kentucky. You are a character in a survival story set in July 1993, during the "Knox Event": an infection turned people in Knox County into violent, undead "zombies", and the army sealed the county behind a fence.
@@ -721,29 +797,11 @@ budget.reveal_area=2
 budget.start_mission=2
 call_one_in=6
 call=Rick Grimes on %1. Anyone still out there? Over.
-
-[place west_point]
-at=11654,6864,0
-label=West Point, center of town
-use=mark
-
-[place muldraugh_pd]
-at=10644,10405,0
-label=Muldraugh, police station
-use=mark,target,drop
-
-[place muldraugh]
-at=10754,9926,0
-label=Muldraugh, center of town
-use=mark
-
-[place march_ridge]
-at=10130,12801,0
-label=March Ridge
-use=mark,drop
+marks=west_point,muldraugh_pd,muldraugh,march_ridge
 
 [mission scout]
 type=scout
+target=far
 weight=3
 story=I am looking for any trace of my wife and my son.
 
@@ -755,10 +813,13 @@ drops=muldraugh_pd,march_ridge
 
 [mission papers]
 type=retrieve
+drops=muldraugh_pd
 after=scout
 
 [mission clear]
 type=clear
+target=muldraugh
+building=house
 
 [mission signal]
 type=signal
@@ -769,6 +830,7 @@ item=Base.Battery:1-2
 
 [rewards]
 pool=cache:ammo:2, cache:patrol:1, frequency:1, stashmap:1, lesson:Aiming:2
+cache_place=muldraugh_pd
 
 [prompt]
 You are Rick Grimes, 38, a sheriff's deputy from a small county south of Louisville, Kentucky. You are a character in a survival story set in July 1993, during the "Knox Event": an infection turned people in Knox County into violent, undead "zombies", and the army sealed the county behind a fence.
@@ -798,9 +860,11 @@ Rules:
 
 À remarquer :
 
-- Les sections `[place]` disent à quoi sert chaque lieu (`use`) : repères de carte, objectifs de mission,
-  planques de dépôt. Le serveur choisit les récompenses dans la liste `pool` ci-dessus ; la catégorie `patrol` de
-  Rick ne vaut que pour sa fiche.
+- Les lieux viennent du [fichier commun](#lieux--fichier-commun-_placestxt) : Rick les nomme là où il s'en sert
+  (`marks=` pour les repères, `drops=` pour les planques, `target=` pour un objectif, `cache_place=` pour le sac). Sa
+  reconnaissance vise un bâtiment tiré loin du joueur (`target=far`), son nettoyage une maison tirée dans le quartier
+  `muldraugh`. Le serveur choisit les récompenses dans la liste `pool` ci-dessus ; la catégorie `patrol` de Rick ne
+  vaut que pour sa fiche.
 - Chaque action a son propre budget du jour : un appelant bavard ne peut pas révéler toute la carte en une soirée.
 - Le prompt dit **quand** utiliser les actions (« only when it helps them and they earned some trust ») ; le serveur
   les vérifie quand même toutes.
@@ -901,16 +965,20 @@ s'arrête à la première erreur, et la dernière version valide de la voix rest
 | `note text needs %1 (the frequency) on one of its lines` | Mettre `%1` là où la fréquence doit s'afficher. |
 | `note text too long (40 bytes of UTF-8 at most)` | Couper la ligne en deux lignes `text=`. |
 | `item and key cannot be used with text in [note] …` | Garder `text` (note manuscrite) ou `item` et `key`, pas les deux. |
-| `unknown key 'radio' in [place mill]` | Une ligne de l'en-tête écrite sous une section : la remonter au-dessus de la première section. |
-| `missing key 'use' in [place mill]` | Un lieu demande `at`, `label` et `use`. |
-| `bad use entry 'hide' (expected mark, target, drop, landing)` | Voir [Lieux](#lieux--sections-place). |
-| `place label of 'mill' too long (48 bytes of UTF-8 at most)` | Raccourcir le libellé. |
-| `unknown section 'shop' (expected place, mission, rewards, category or prompt)` | Faute de frappe dans un titre de section. |
+| `unknown key 'radio' in [mission meds]` | Une ligne de l'en-tête écrite sous une section : la remonter au-dessus de la première section. |
+| `unknown section 'place' (expected mission, rewards, category, trade, note or prompt)` | Un lieu écrit dans la fiche : déplacez-le dans `_places.txt` (voir [Lieux](#lieux--fichier-commun-_placestxt)). Aussi pour une faute de frappe dans un titre de section. |
+| `unknown place 'mill'` | Le lieu nommé (`marks`, `target`, `drops`, `points`, `landing`, `cache_place`) n'est pas dans `_places.txt` : ajoutez-le ou corrigez l'id. |
+| `place 'muldraugh' is a zone, a point is needed here` | Une planque, un rendez-vous, une étape ou le sac d'une récompense demande un point (`at=`). |
+| `too many marks (12 at most)` | 12 repères au plus dans `marks=`. |
+| `missing key 'drops' in [mission meds]` (journal du serveur seulement) | `deliver`, `retrieve` et `item` demandent leurs planques. |
+| `building needs a zone or a distance target` (journal du serveur seulement) | `building=` va avec un quartier ou `near`, `far`, `very_far`, pas avec un point. |
+| `cache reward needs cache_place` (journal du serveur seulement) | Ajouter `cache_place=` à `[rewards]`. |
+| `place label of 'mill' too long (48 bytes of UTF-8 at most)` (fichier des lieux) | Raccourcir le libellé. |
+| `missing key 'at' or 'area' in [place mill]` (fichier des lieux) | Un lieu demande `label` et soit `at`, soit `area`. |
 | `unknown mission type 'fly'` (journal du serveur seulement) | Un type du mod : `scout`, `deliver`, `retrieve`, `clear`, `signal`, `barricade`, `route`, `relay`, `watch`, `item`. |
 | `bad item 'Locket' (Module.Type of an item script, e.g. Base.Locket)` (journal du serveur seulement) | La clé `item=` d'une mission `item` donne le module et le type : `Base.Locket`. |
 | `unknown item 'Base.Lockett'` (journal du serveur seulement) | Aucun objet du jeu (ni des mods actifs) ne porte ce type : vérifier l'orthographe. |
-| `bad place list (2 to 8 places with use=target)` | La clé `points=` d'une mission `route` nomme de 2 à 8 lieux `use=target`, séparés par des virgules. |
-| `place 'clinic' has no use=drop` (journal du serveur seulement) | Ajouter `drop` au `use` de ce lieu, ou citer un autre lieu. |
+| `bad place list (2 to 8 places)` (journal du serveur seulement) | La clé `points=` d'une mission `route` nomme de 2 à 8 points communs, séparés par des virgules. |
 | `unknown category 'weapons'` (journal du serveur seulement) | Une catégorie du catalogue ou une `[category]` de la fiche. |
 | `bad reward weight '0' (whole number from 1 to 999999)` (journal du serveur seulement) | Les poids commencent à 1. |
 | `missing [prompt] line before the prompt text` / `empty prompt text after [prompt]` | Ajouter la ligne, puis le texte. |

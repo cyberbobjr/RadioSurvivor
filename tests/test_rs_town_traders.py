@@ -7,7 +7,7 @@ Fiches réelles lues par RS_Persona (lupa) et par bridge/persona_store.py ; doub
 (joueurs, cellule, sacs, horloge du monde) et, pour la planque, des conteneurs d'objets aux cases (IsoGridSquare
 .getObjects, IsoObject.getContainerCount / getContainerByIndex). Couvre : une fiche par ville vanilla de la 42.22 et
 son mode d'arrivée, chaque objet du stock présent dans les scripts du jeu (media/scripts) et coté au barème, plages de
-fréquences sans recouvrement, lieux use=landing aux coordonnées relevées, note de fréquence déclarée (objet, clés de
+fréquences sans recouvrement, rendez-vous (landing=, lieux communs) aux coordonnées relevées, note de fréquence déclarée (objet, clés de
 traduction EN/FR, listes de butin vanilla) et aucune voix nommée dans le code des notes, aucun marchand nommé dans le
 code ; passage complet par la route (signal, sons du fourgon, sac, hors de vue + délai, échange, texte du mode) ;
 causes de la route ; passage par planque (aucun signal ni son, paiement dans le conteneur du lieu, sac au sol ignoré) ;
@@ -166,13 +166,12 @@ class ShippedSheetsTests(TownTradersHarness):
                     if e.t in items:
                         self.assertGreaterEqual(e.w + 1e-9, items[e.t], f'{e.t} lighter than its script')
 
-    def test_landings_use_landing_at_the_verified_coordinates(self):
+    def test_landings_at_the_verified_coordinates(self):
         for vid, at in LANDINGS.items():
             sheet = self.gus if vid == 'gus' else self.sheets[vid]
             landings = lua_list(sheet.trade.landings)
             with self.subTest(vid):
                 self.assertEqual(len(landings), 1)
-                self.assertTrue(landings[0].use.landing)
                 self.assertEqual((landings[0].x, landings[0].y, landings[0].z), at)
 
     def test_discovery_notes_are_declared_with_translations_and_vanilla_lists(self):

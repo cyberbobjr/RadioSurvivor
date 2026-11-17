@@ -453,9 +453,10 @@ class SetUpTests(DropBench):
     voice `deliver`: all the drops of the section."""
 
     SHEET = """
-        local function place(id, x, use) return {id=id, label='Label '..id, x=x, y=100, z=0, use=use} end
-        sheet={id='v', places={place('a',100,{drop=true}), place('m',300,{mark=true}),
-            place('b',130,{drop=true,mark=true}), place('c',160,{drop=true})}}
+        local function place(id, x) return {id=id, label='Label '..id, x=x, y=100, z=0} end
+        -- E25-T01: shared places of the sheet (id -> place); the section names its drops.
+        sheet={id='v', places={a=place('a',100), m=place('m',300), b=place('b',130), c=place('c',160)}}
+        ALL={type='deliver', drops={'a','b','c'}, params={}}
         square(100,100,0); square(130,100,0); square(160,100,0)
         donor={missionCount=1}
         function setUp(section)
@@ -475,23 +476,18 @@ class SetUpTests(DropBench):
         self.assertEqual(self.rt.eval('M.drops[1].label'), 'Label c')
         self.assertTrue(self.rt.eval('M.drops[1].ready and M.drops[2].ready'))
 
-    def test_no_drops_key_or_no_section_means_every_drop_place(self):
-        self.run_lua(self.SHEET + "M = setUp({type='deliver', drops={}, params={}}); N = setUp(nil)")
-        self.assertEqual(self.ids('M.drops'), ['a', 'b', 'c'])
-        self.assertEqual(self.ids('N.drops'), ['a', 'b', 'c'])
-
     def test_collect_hours_of_the_section_or_the_default(self):
         self.run_lua(self.SHEET + "M = setUp({type='deliver', drops={}, params={collect_hours=2}}); N = setUp(nil)")
         self.assertEqual(self.rt.eval('M.collectHours'), 2)
         self.assertEqual(self.rt.eval('N.collectHours'), 6)
 
     def test_sheet_without_drop_place_is_refused(self):
-        self.run_lua("R = {SETUPS.dropAccepts.check({id='v', places={}}, nil)}")
+        self.run_lua("R = {SETUPS.dropAccepts.check({id='v', places={}}, {type='deliver', drops={'a'}})}")
         self.assertEqual(self.rt.eval('R[2]'), 'no_place')
 
     def test_notebook_projection_lists_every_drop_and_its_map_zone(self):
         self.run_lua(self.SHEET + """
-            M = setUp(nil)
+            M = setUp(ALL)
             P = {engaged=true}; D.project(M, P)
             Q = {engaged=false}; D.project(M, Q)
         """)
@@ -503,7 +499,7 @@ class SetUpTests(DropBench):
         self.assertIsNone(self.rt.eval('Q.dropZones'), 'map zones only for a participant')
 
     def test_rule_told_to_the_voice(self):
-        self.run_lua(self.SHEET + "M = setUp(nil); RULE = D.rule(M); WHERE = D.where(M)")
+        self.run_lua(self.SHEET + "M = setUp(ALL); RULE = D.rule(M); WHERE = D.where(M)")
         rule = self.rt.eval('RULE')
         self.assertIn('out of sight of everyone', rule)
         self.assertIn('about 6 game hours', rule)

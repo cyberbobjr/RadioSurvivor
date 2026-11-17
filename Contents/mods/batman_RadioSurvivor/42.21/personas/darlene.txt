@@ -14,8 +14,10 @@
 #   à défaut, texte fixe IGUI_RadioSurvivor_Call_Darlene (%1 = fréquence), jamais d'invitation à la clinique ;
 # - actions say, start_mission (compte rendu à la radio sur sa fréquence, report_mission implicite) et
 #   share_frequency (Gus, Cody) ; aucun budget propre ;
-# - [rewards] : cache de soins (posée à la première planque), fréquence, carte de planque et leçon de médecine, à
-#   poids égaux.
+# - [rewards] : cache de soins (posée à la planque des bennes, cache_place=), fréquence, carte de planque et leçon
+#   de médecine, à poids égaux ;
+# - lieux (E25-T01) : la clinique et ses deux planques sont des lieux communs (personas/_places.txt) ; la clinique est
+#   aussi son repère (marks=).
 format=1
 id=darlene
 name=Darlene Pruitt
@@ -25,31 +27,10 @@ listen=07:00-10:00,16:00-19:00
 location=none
 actions=say,start_mission,share_frequency
 shares=gus,cody
+marks=clinic
 call_one_in=6
 call_text=IGUI_RadioSurvivor_Call_Darlene
 state=active
-
-# Clinique de West Point, salle d'examen medclinic 11879-11882 x 6876-6880, z 0 : bâtiment 43 du lotheader 46_26
-# (galerie marchande x 11854-11888, y 6857-6886 ; la clinique en occupe x 11879-11888), relevé sur la carte 42.22 par
-# .claude/tools/lotheader_parser.py. Façades de la clinique : quatre vitrines (walls_commercial_02_1, WindowN) et une
-# porte (fixtures_doors_01_49) au sud en y 6887, autant au nord en y 6872 (porte 11884,6872).
-[place clinic]
-at=11880,6878,0
-label=West Point clinic
-use=mark,target
-
-# Planques dehors, sur le trottoir derrière la galerie (floors_exterior_tilesandstone_01_3), chacune à côté de
-# bennes (trashcontainers_01_14/15, Dumpster) : derrière la clinique (bennes 11872-11875, 6871) et derrière la
-# librairie voisine (bâtiment 35, benne 11893-11894, 6871). Relevé sur la carte 42.22 (lotpack 46_26).
-[place drop_dumpsters]
-at=11874,6870,0
-label=Dumpsters behind the clinic
-use=drop
-
-[place drop_bookstore]
-at=11894,6870,0
-label=Dumpster behind the bookstore
-use=drop
 
 [mission scout_clinic]
 type=scout
@@ -80,6 +61,7 @@ story=Leave some medicine by the dumpsters out back and I will go home for good.
 
 [rewards]
 pool=cache:medical:1, frequency:1, stashmap:1, lesson:Doctor:1
+cache_place=drop_dumpsters
 
 # Note de fréquence (E05-T09, E20-T11) : fiche de consignes aux patients ; cliniques, cabinets médicaux,
 # pharmacies, hôpitaux, rayon santé des épiceries.

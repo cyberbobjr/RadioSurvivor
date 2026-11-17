@@ -20,8 +20,9 @@ from types import SimpleNamespace
 
 import test_carnet as carnet_helpers
 from test_carnet import MAP_DOUBLE, NOTEBOOK_UI, bridge_module, convert
+from test_mission_barricade import sheet_double
 from test_personas import LuaPersona
-from test_persona_sections import BASE, PROMPT
+from test_persona_sections import BASE, PLACES, PROMPT
 import npc_protocol as protocol
 
 # Doublures du monde, fidèles au Java 42.22 (E:\pz-source-42.22\java\zombie, relevé du 2026-11-15) :
@@ -220,11 +221,12 @@ function moveTo(item, container)
 end
 '''
 
-# Fiche d'une voix qui donne la mission item : la ferme (lieu target), la planque près du chemin (use=drop).
-SHEET_PLACES = [
-    {'id': 'farm', 'x': 304, 'y': 303, 'z': 0, 'label': 'Old farmhouse', 'uses': ['target'], 'use': {'target': True}},
-    {'id': 'stump', 'x': 320, 'y': 300, 'z': 0, 'label': 'Hollow stump', 'uses': ['drop'], 'use': {'drop': True}},
-]
+# Lieux communs (E25-T01) de la fiche d'une voix qui donne la mission item : la ferme (target=farm), la planque près
+# du chemin (drops=stump), table id -> lieu comme sheet.places.
+SHEET_PLACES = {
+    'farm': {'id': 'farm', 'x': 304, 'y': 303, 'z': 0, 'label': 'Old farmhouse'},
+    'stump': {'id': 'stump', 'x': 320, 'y': 300, 'z': 0, 'label': 'Hollow stump'},
+}
 DROP = (320, 300)
 AWAY = 700        # x of a player out of view of the farm and the drop (RS_OutOfSight.VIEW_TILES = 100)
 COLLECT_HOURS = 6
@@ -249,15 +251,12 @@ class ItemMissionTests(unittest.TestCase):
 
     def sheet(self, sim, params=None, **section):
         rt = sim.server.rt
-        places = [rt.table_from({**p, 'uses': rt.table_from(p['uses']), 'use': rt.table_from(p['use'])})
-                  for p in SHEET_PLACES]
-        fields = {'type': 'item', 'id': 'locket', 'target': 'farm', **section}
+        fields = {'target': 'farm', **section}
         if params is None:
             params = {'item': 'Base.Locket', 'label': "Ellen's locket", 'collect_hours': COLLECT_HOURS}
-        fields['params'] = rt.table_from(params)
+        fields['params'] = params
         fields['drops'] = rt.table_from(fields.get('drops', ['stump']))
-        return rt.table_from({'id': 'custom', 'name': 'Custom', 'missions': rt.table_from([rt.table_from(fields)]),
-                              'places': rt.table_from(places)})
+        return sheet_double(rt, SHEET_PLACES, fields, 'item', 'locket')
 
     def start(self, sim, voice, store, sheet):
         return voice.start(store, sheet, sim.character('alice'), sim.server.g.PLAYERS.alice, 160000, 'locket')
@@ -406,12 +405,11 @@ class ItemMissionTests(unittest.TestCase):
         self.assertEqual(after.delivered, 0, 'a credited item id is never counted again')
         self.assertTrue(self.in_box(item))
 
-    def test_start_refused_without_item_target_drop_or_with_an_unknown_item(self):
+    def test_start_refused_without_item_drop_or_with_an_unknown_item(self):
         for case, (params, section, why) in {
                 'no item': ({'label': 'Locket'}, {}, 'no_item'),
                 'unknown item': ({'item': 'Base.Spaceship'}, {}, 'no_item'),
-                'no target': (None, {'target': None}, 'no_target'),
-                'no drop': (None, {'drops': ['farm']}, 'no_place')}.items():
+                'no drop': (None, {'drops': []}, 'no_place')}.items():
             with self.subTest(case=case):
                 sim, voice, store = self.world('item-refused-' + case.replace(' ', '-'))
                 sheet = self.sheet(sim, params, **section)
@@ -503,7 +501,7 @@ class ItemBriefTests(unittest.TestCase):
     def told(self, voice, ctx):
         field = voice.field(ctx)
         self.assertLessEqual(set(protocol.decode(bytes.fromhex(field))), GENERIC_FIELDS)
-        mission = bridge_module.mission_context({'mission': field}, SimpleNamespace(places=[]))
+        mission = bridge_module.mission_context({'mission': field}, SimpleNamespace(marks=[]))
         return mission, bridge_module.mission_prompt(mission, 'Caller')
 
     def test_job_and_verified_facts_told_to_the_voice(self):
@@ -538,6 +536,7 @@ class ItemSheetTests(unittest.TestCase):
     def setUpClass(cls):
         cls.tmp = tempfile.TemporaryDirectory()
         cls.folder = Path(cls.tmp.name)
+        (cls.folder / '_places.txt').write_text(PLACES, encoding='utf-8')   # E25-T01: shared places of the cases
         cls.lua = LuaPersona(cls.folder)
         cls.lua.rt.eval('require("CoreAI/CA_MissionItem")')
         cls.lua.rt.execute(SHEET_SCRIPTS)
@@ -555,25 +554,29 @@ class ItemSheetTests(unittest.TestCase):
                       'collect_hours=4\n')
         self.assertFalse(isinstance(p, tuple), p)
         m = p.missions[1]
-        self.assertEqual((m.type, m.target, m.params.item, m.params.label, m.params.collect_hours),
-                         ('item', 'clinic', 'Base.Locket', "Her mother's locket", 4))
+        self.assertEqual((m.type, m.target.kind, m.target.id, list(m.drops.values()), m.params.item, m.params.label,
+                          m.params.collect_hours),
+                         ('item', 'place', 'clinic', ['church'], 'Base.Locket', "Her mother's locket", 4))
 
     def test_syntax_only_without_the_item_scripts(self):
         self.lua.rt.execute('local keep = getScriptManager; getScriptManager = nil; RS_KEEP_SCRIPTS = keep')
         try:
-            p = self.read('type=item\ntarget=clinic\nitem=Base.Spaceship\n')
+            p = self.read('type=item\ntarget=clinic\ndrops=church\nitem=Base.Spaceship\n')
             self.assertFalse(isinstance(p, tuple), p)
         finally:
             self.lua.rt.execute('getScriptManager = RS_KEEP_SCRIPTS')
 
     def test_refusals(self):
         for body, why in (
-                ('type=item\ntarget=clinic\nitem=Locket\n',
-                 "line 16: bad item 'Locket' (Module.Type of an item script, e.g. Base.Locket)"),
-                ('type=item\ntarget=clinic\nitem=Base.Spaceship\n', "line 16: unknown item 'Base.Spaceship'"),
-                ('type=item\ntarget=church\nitem=Base.Locket\n', "line 15: place 'church' has no use=target"),
-                ('type=item\ntarget=clinic\nitem=Base.Locket\ncount=2\n',
-                 "line 17: unknown key 'count' for mission type 'item'")):
+                ('type=item\ntarget=clinic\ndrops=church\nitem=Locket\n',
+                 "line 9: bad item 'Locket' (Module.Type of an item script, e.g. Base.Locket)"),
+                ('type=item\ntarget=clinic\ndrops=church\nitem=Base.Spaceship\n',
+                 "line 9: unknown item 'Base.Spaceship'"),
+                ('type=item\ntarget=clinic\ndrops=town\nitem=Base.Locket\n',
+                 "line 8: place 'town' is a zone, a point is needed here"),
+                ('type=item\ntarget=clinic\nitem=Base.Locket\n', "line 5: missing key 'drops' in [mission m]"),
+                ('type=item\ntarget=clinic\ndrops=church\nitem=Base.Locket\ncount=2\n',
+                 "line 10: unknown key 'count' for mission type 'item'")):
             with self.subTest(body=body):
                 self.assertEqual(self.read(body), (None, why))
 

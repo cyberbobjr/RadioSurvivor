@@ -62,13 +62,18 @@ Personas.FINGERPRINTS_HEADER = "RSFP1"
 -- Catalogue partagé des catégories d'objets (E20-T03, ADR D04) : livré dans le dossier des fiches du mod, lu là (jamais
 -- copié dans le dossier de travail), avant les fiches ; une fiche y ajoute ses catégories propres.
 Personas.CATALOGUE = "_categories.txt"
+-- Lieux communs à toutes les voix (E25-T01, ADR lieux communs D02, D06) : livrés dans le dossier des fiches du mod,
+-- installés et mis à jour dans le dossier de travail comme une fiche livrée (empreintes), relus avec les fiches ; la
+-- copie de travail fait foi (l'atelier l'édite). Nom en « _ » : jamais une voix.
+Personas.PLACES = "_places.txt"
 -- Empreintes (Personas.fingerprint) de toutes les versions livrées de chaque fiche, la version actuelle comprise :
 -- reconnaissent une fiche non modifiée installée avant le fichier d'empreintes (E05-T02 à E05-T10). Versions des
 -- commits 09d7474 et 24832ea (fréquences fixes ; Walt identique dans les deux), 486b21e (plages, E05-T07), puis
 -- E05-T10, E05-T05, E20-T03, E20-T07, E20-T10, E20-T11 ([note] des fiches), E22-T12 (stock sans poids), E22-T14 (sans
--- knows, ignores ni secret), E23-T06, E24-T01 (radio=<niveau> a la place des plages). Toute nouvelle version livrée
--- d'une fiche ajoute ici son empreinte (banc tests/test_personas_server.py) ; une fiche livrée après E05-T11
--- (marchands des villes, E20-T11) n'a jamais été installée sans le fichier d'empreintes : aucune entrée.
+-- knows, ignores ni secret), E23-T06, E24-T01 (radio=<niveau> a la place des plages), E25-T01 (lieux communs). Toute
+-- nouvelle version livrée d'une fiche ajoute ici son empreinte (banc tests/test_personas_server.py) ; une fiche
+-- livrée après E05-T11 (marchands des villes, E20-T11 ; lieux communs _places.txt, E25-T01) n'a jamais été installée
+-- sans le fichier d'empreintes : aucune entrée.
 Personas.KNOWN_DELIVERED = {
     walt = { "2105682694", "2759756800", "213942039", "1586801598", "2833011528", "1923829937",   -- E22-T14
         "4196879131",   -- E24-T01 : radio=<niveau>
@@ -76,11 +81,13 @@ Personas.KNOWN_DELIVERED = {
     darlene = { "611497886", "1134557996", "2120896689", "3998911546", "3957645400",
         "1182033778", "674887514", "2957274911", "3572312285",   -- E22-T14 : sans knows, ignores ni secret
         "3580043489",   -- E24-T01 : radio=<niveau>
-        "1476664509" },   -- E24-T03 : socle commun des notes, sans corpse=
+        "1476664509",   -- E24-T03 : socle commun des notes, sans corpse=
+        "1469846348" },   -- E25-T01 : lieux communs (marks=, cache_place=)
     cody = { "3131466986", "673421833", "4032160620", "318842949", "1196981398",
         "1976566616", "1464760889", "2238673311",   -- E22-T14 : sans knows, ignores ni secret
         "3427747601",   -- E24-T01 : radio=<niveau>
-        "69681901" },   -- E24-T03 : socle commun des notes, sans corpse=
+        "69681901",   -- E24-T03 : socle commun des notes, sans corpse=
+        "2025292335" },   -- E25-T01 : lieux communs (marks=, drops=, cache_place=)
     whitaker = { "4044533006", "3352221633", "2075828338", "1570277033",   -- E22-T14
         "3237976040" },   -- E24-T01 : radio=<niveau>
     nightowl = { "4175146858", "225312038", "1263236001", "326850688",   -- E22-T14
@@ -90,7 +97,8 @@ Personas.KNOWN_DELIVERED = {
         "3516644979", "78816791",   -- E22-T14 : sans knows, ignores ni secret
         "2872044854",              -- E23-T06 : accept=, troc par listes
         "3627338360",              -- E24-T01 : radio=<niveau>
-        "3160852052" },   -- E24-T03 : socle commun des notes, sans corpse=
+        "3160852052",   -- E24-T03 : socle commun des notes, sans corpse=
+        "923359829" },   -- E25-T01 : ponton dans les lieux communs
 }
 
 local function fresh()
@@ -98,6 +106,8 @@ local function fresh()
         voices = {},      -- id -> { sheet, rank, served = { kHz... } }
         rank = 0,
         files = {},       -- id -> texte lu au dernier passage (valide ou non)
+        places = {},      -- lieux communs en service (id -> lieu), dernière version valide de _places.txt
+        placesText = nil, -- texte de _places.txt lu au dernier passage (valide ou non), "" absent ou vide
         channels = {},    -- kHz -> { id, uuid } : chaînes créées par ce module dans le gestionnaire courant
         warned = {},      -- clé -> true : avertissements de conflit ou de refus déjà écrits
         installed = false,
@@ -125,7 +135,7 @@ local function javaList(list)
     return out
 end
 
--- Vrai pour un nom de fiche de voix : « *.txt », sauf un nom qui commence par « _ » (catalogue CATALOGUE).
+-- Vrai pour un nom de fiche de voix : « *.txt », sauf un nom qui commence par « _ » (CATALOGUE, PLACES).
 function Personas.isSheetName(name)
     name = tostring(name)
     return string.len(name) > 4 and string.sub(name, -4) == ".txt" and string.sub(name, 1, 1) ~= "_"
@@ -193,7 +203,7 @@ local function readFingerprints()
     if #lines == 0 then return record, nil end
     if lines[1] ~= Personas.FINGERPRINTS_HEADER then return {}, "line 1: expected " .. Personas.FINGERPRINTS_HEADER end
     for number = 2, #lines do
-        local name, fingerprint = string.match(lines[number], "^([a-z][a-z0-9_]*%.txt) ([0-9]+)$")
+        local name, fingerprint = string.match(lines[number], "^(_?[a-z][a-z0-9_]*%.txt) ([0-9]+)$")
         if not name or record[name] then return {}, "line " .. tostring(number) .. ": " .. lines[number] end
         record[name] = fingerprint
     end
@@ -226,15 +236,79 @@ local function writeSheet(target, lines)
     return true
 end
 
--- Copie chaque fiche livrée absente du dossier de travail et remplace les fiches installées non modifiées dont la
--- version livrée a changé. Rend le nombre de fiches copiées et le nombre de fiches remplacées.
-function Personas.install()
-    local listing = listFilesInModDirectory and listFilesInModDirectory(Personas.MOD_ID, Personas.BUNDLED_DIR)
-    local names = sheetNames(javaList(listing))
+-- Nom d'un fichier livré dans les journaux : la voix, ou le fichier commun des lieux (E25-T01).
+local function deliveredName(name)
+    if name == Personas.PLACES then return "shared places file '" .. name .. "'" end
+    return "voice '" .. string.sub(name, 1, -5) .. "'"
+end
+
+-- Fichiers livrés à installer : les fiches de voix du dossier du mod, puis le fichier commun des lieux (E25-T01).
+local function deliveredNames()
+    local listing = javaList(listFilesInModDirectory and listFilesInModDirectory(Personas.MOD_ID, Personas.BUNDLED_DIR))
+    local names = sheetNames(listing)
     if #names == 0 then
         log("ERROR: no bundled persona sheet in the mod folder " .. Personas.BUNDLED_DIR .. "/")
-        names = Personas.BUNDLED_FALLBACK
+        names = {}
+        for _, name in ipairs(Personas.BUNDLED_FALLBACK) do names[#names + 1] = name end
+        names[#names + 1] = Personas.PLACES
+    elseif contains(listing, Personas.PLACES) then
+        names[#names + 1] = Personas.PLACES
     end
+    return names
+end
+
+-- Installe ou met à jour un fichier livré (règles ci-dessus) ; rend "copied", "updated" ou nil.
+local function installOne(name, record, damaged)
+    local target = Personas.DIR .. "/" .. name
+    local source = getModFileReader(Personas.MOD_ID, Personas.BUNDLED_DIR .. "/" .. name, false)
+    if not source then
+        log("ERROR: cannot read the bundled sheet " .. Personas.BUNDLED_DIR .. "/" .. name)
+        return nil
+    end
+    local delivered = readLines(source)
+    local deliveredPrint = Personas.fingerprint(delivered)
+    local existing = getFileReader(target, false)
+    if not existing then
+        if not writeSheet(target, delivered) then return nil end
+        log("installed the bundled sheet " .. target)
+        record[name] = deliveredPrint
+        return "copied"
+    end
+    local current = Personas.fingerprint(readLines(existing))
+    if current == deliveredPrint then
+        if record[name] ~= current then
+            record[name] = current
+            return "recorded"
+        end
+        return nil
+    end
+    if damaged then
+        log("WARNING: " .. deliveredName(name) .. " differs from its delivered version, kept (fingerprint file"
+            .. " damaged)")
+        return nil
+    end
+    local unmodified
+    if record[name] ~= nil then
+        unmodified = current == record[name]
+    else
+        unmodified = isKnownDelivered(string.sub(name, 1, -5), current)
+    end
+    if not unmodified then
+        log("WARNING: " .. deliveredName(name) .. " modified by the admin, delivered version not applied"
+            .. " (Zomboid/Lua/" .. target .. ")")
+        return nil
+    end
+    if not writeSheet(target, delivered) then return nil end
+    record[name] = deliveredPrint
+    log("INFO: " .. deliveredName(name) .. " updated to the delivered version (Zomboid/Lua/" .. target .. ")")
+    return "updated"
+end
+
+-- Copie chaque fiche livrée absente du dossier de travail et remplace les fiches installées non modifiées dont la
+-- version livrée a changé ; de même pour le fichier commun des lieux (E25-T01). Rend le nombre de fichiers copiés et
+-- le nombre de fichiers remplacés.
+function Personas.install()
+    local names = deliveredNames()
     local record, damaged = readFingerprints()
     if damaged then
         log("WARNING: Zomboid/Lua/" .. Personas.FINGERPRINTS .. " is damaged (" .. damaged .. "): ignored, no"
@@ -243,51 +317,10 @@ function Personas.install()
     end
     local copied, updated, changed = 0, 0, false
     for _, name in ipairs(names) do
-        local id = string.sub(name, 1, -5)
-        local target = Personas.DIR .. "/" .. name
-        local source = getModFileReader(Personas.MOD_ID, Personas.BUNDLED_DIR .. "/" .. name, false)
-        if not source then
-            log("ERROR: cannot read the bundled sheet " .. Personas.BUNDLED_DIR .. "/" .. name)
-        else
-            local delivered = readLines(source)
-            local deliveredPrint = Personas.fingerprint(delivered)
-            local existing = getFileReader(target, false)
-            if not existing then
-                if writeSheet(target, delivered) then
-                    copied = copied + 1
-                    log("installed the bundled sheet " .. target)
-                    record[name] = deliveredPrint
-                    changed = true
-                end
-            else
-                local current = Personas.fingerprint(readLines(existing))
-                if current == deliveredPrint then
-                    if record[name] ~= current then
-                        record[name] = current
-                        changed = true
-                    end
-                elseif damaged then
-                    log("WARNING: voice '" .. id .. "' differs from its delivered version, kept (fingerprint file"
-                        .. " damaged)")
-                else
-                    local unmodified
-                    if record[name] ~= nil then
-                        unmodified = current == record[name]
-                    else
-                        unmodified = isKnownDelivered(id, current)
-                    end
-                    if not unmodified then
-                        log("WARNING: voice '" .. id .. "' modified by the admin, delivered version not applied"
-                            .. " (Zomboid/Lua/" .. target .. ")")
-                    elseif writeSheet(target, delivered) then
-                        updated = updated + 1
-                        record[name] = deliveredPrint
-                        changed = true
-                        log("INFO: voice '" .. id .. "' updated to the delivered version (Zomboid/Lua/" .. target .. ")")
-                    end
-                end
-            end
-        end
+        local done = installOne(name, record, damaged)
+        if done == "copied" then copied = copied + 1 end
+        if done == "updated" then updated = updated + 1 end
+        changed = changed or done ~= nil
     end
     if changed and not damaged then writeFingerprints(record) end
     return copied, updated
@@ -317,16 +350,48 @@ end
 
 -- Règles injectées dans RS_Persona : gabarits de mission donnés par une voix (registre du mod commun), natures de
 -- récompense et compétences (RS_Rewards), catégories, modes d'arrivée (RS_TradeArrivals), poids des objets du troc
--- (RS_ItemWeights, E22-T12), valeur de vente de ce que la voix accepte (CA_TradeValues, E23-T06). Lu à l'appel :
+-- (RS_ItemWeights, E22-T12), valeur de vente de ce que la voix accepte (CA_TradeValues, E23-T06), lieux communs en
+-- service et genres de bâtiment d'un objectif tiré (CA_Sites.KINDS, E25-T01). Lu à l'appel :
 -- le jeu a tout chargé (gabarits, natures et modes inscrits, scripts
 -- d'objets) avant la lecture des fiches (OnLoadRadioScripts).
 function Personas.rules()
     local Missions = require "CoreAI/CA_Missions"
     local Rewards, Arrivals = require "RadioSurvivor/RS_Rewards", require "RadioSurvivor/RS_TradeArrivals"
     local ItemWeights = require "RadioSurvivor/RS_ItemWeights"
+    local buildings = {}
+    for _, rule in ipairs(require("CoreAI/CA_Sites").KINDS) do buildings[#buildings + 1] = rule.kind end
     return { template = Missions.voiceTemplate, rewards = Rewards.KINDS, skills = Rewards.SKILLS,
         categories = loadCatalogue(), arrivals = Arrivals.NAMES, itemWeight = ItemWeights.of,
-        sellValue = require("CoreAI/CA_TradeValues").sellValue }
+        sellValue = require("CoreAI/CA_TradeValues").sellValue, places = state.places, buildings = buildings }
+end
+
+-- Lieux communs en service (id -> lieu), dernière version valide du fichier de travail (E25-T01).
+function Personas.places()
+    return state.places
+end
+
+-- E25-T01 : relit le fichier commun des lieux du dossier de travail quand son texte a changé. Valide : il entre en
+-- service et toutes les fiches seront relues (state.files oublié : une fiche qui nomme un lieu retiré est alors
+-- refusée avec sa ligne). Refusé : journalisé une fois par contenu avec sa ligne, la dernière version valide reste en
+-- service. Absent ou vide : aucun lieu.
+local function scanPlaces()
+    local path = Personas.DIR .. "/" .. Personas.PLACES
+    local reader = getFileReader(path, false)
+    local lines = reader and readLines(reader) or {}
+    local text = table.concat(lines, "\n")
+    if state.placesText == text then return end
+    state.placesText = text
+    local places, err = {}, nil
+    if #lines > 0 then places, err = Persona.parsePlaces(lines) end
+    if not places then
+        log("ERROR: " .. path .. " refused, " .. err .. "; the previous valid places stay in service")
+        return
+    end
+    state.places = places
+    state.files = {}
+    local count = 0
+    for _ in pairs(places) do count = count + 1 end
+    log("shared places loaded: " .. tostring(count) .. " place(s)")
 end
 
 local function removeVoice(id, why)
@@ -355,6 +420,7 @@ local function setVoice(id, sheet)
 end
 
 local function scan()
+    scanPlaces()
     local names = sheetNames(javaList(listFilesInZomboidLuaDirectory(Personas.DIR)))
     local seen = {}
     for _, name in ipairs(names) do

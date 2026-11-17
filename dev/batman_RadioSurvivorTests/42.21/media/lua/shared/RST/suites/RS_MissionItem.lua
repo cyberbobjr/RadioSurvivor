@@ -1,6 +1,6 @@
 -- Voice mission `item` (E20-T15, ADR D06, D10) on a real building near the player. Real start path of a voice
--- (RS_MissionVoice.start, sheet with one [mission] of type item, a place use=target in the nearest building and a
--- place use=drop on the player's square, next to a real crate), real set-ups (RS_MissionTarget, RS_DeadDrops), real
+-- (RS_MissionVoice.start, sheet with one [mission] of type item, target= a shared point in the nearest building and
+-- drops= a shared point on the player's square, next to a real crate), real set-ups (RS_MissionTarget, RS_DeadDrops), real
 -- engine poll (CA_Missions.observe: the template places the item through CA_Caches, then the drop hooks collect it),
 -- real radio report (RS_MissionVoice.report).
 -- The personal item (Base.Locket, media/scripts/generated/items/clothing.txt:6937 in 42.22) is spawned by the server
@@ -101,11 +101,10 @@ local function run(t)
     crate:createContainersFromSpriteProperties()
     sq:transmitAddObjectToSquare(crate, -1)
     local sheet = {id = 'rst-voice-item', name = 'RST Voice', actions = {'say', 'start_mission'}, budgets = {},
-        missions = {{id = 'locket', type = 'item', target = 'site', drops = {'drop'},
+        missions = {{id = 'locket', type = 'item', target = {kind = 'place', id = 'site'}, drops = {'drop'},
             params = {item = ITEM, label = 'RST locket', collect_hours = DELAY}}},
-        places = {{id = 'site', label = 'RST building', x = site:getX(), y = site:getY(), z = 0, uses = {'target'},
-            use = {target = true}},
-            {id = 'drop', label = 'RST drop', x = x, y = y, z = z, uses = {'drop'}, use = {drop = true}}}}
+        places = {site = {id = 'site', label = 'RST building', x = site:getX(), y = site:getY(), z = 0},
+            drop = {id = 'drop', label = 'RST drop', x = x, y = y, z = z}}}
     local state = {missions = {}, npcs = {}, voiceDonors = {}, characters = {}, outcomes = {}}
     state.characters.char1 = {name = 'Tester', contacts = {}, knownMissions = {}}
     local store = {data = state, save = function() return true end}

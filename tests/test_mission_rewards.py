@@ -86,7 +86,7 @@ def runtime():
     store={data={},save=function() saves=saves+1;return saveOK end}
     source={id='darlene',rewards={{kind='cache',param='medical',weight=1},{kind='frequency',weight=1},
         {kind='stashmap',weight=1},{kind='lesson',param='Doctor',weight=1}},
-      shares={'silent','dead','cody'},places={{id='p',x=1,y=2,label='Clinic',uses={'drop'},use={drop=true}}}}
+      shares={'silent','dead','cody'},cachePlace={id='p',label='Clinic',x=1,y=2,z=0}}  -- E25-T01: cache_place= point
     m={id='m',state='success',participants={p=true}}
     ''')
     engine=lua.execute(MODULE.read_text(encoding='utf-8-sig'))

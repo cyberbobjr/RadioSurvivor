@@ -8,6 +8,8 @@
 -- Contract of a kind (def), every function receives ctx = {store, state, source, m, cid, player, khz, param, entry,
 -- random} (param: parameter of the drawn pool entry; random(n) -> 0..n-1, the injected generator):
 --   param             kind of its parameter (RS_PersonaParams), nil when it takes none
+--   place             true when the reward is left at the sheet's cache_place= (E25-T01: a point of the shared
+--                     places, required by the sheet reader with such a kind in the pool)
 --   available(ctx)    -> detail (any true value) when realizable now, else nil; no lasting effect
 --   reserve(ctx, rec, detail) -> true, or nil and a reason; fills the record before it is saved (write-ahead)
 --   cancel(ctx, rec)  optional: undoes reserve when the reservation could not be saved
@@ -19,7 +21,7 @@
 if isClient() then return end
 local R = {}
 
--- Kind name -> parameter of a pool entry, for the sheet reader (RS_Personas.rules). Derived from the registry.
+-- Kind name -> {param, place} of a pool entry, for the sheet reader (RS_Personas.rules). Derived from the registry.
 R.KINDS = {}
 -- Skills a lesson may teach (pool entry lesson:<skill>:<weight>): names of vanilla Perks.
 R.SKILLS = {'Doctor', 'Aiming', 'Reloading', 'Woodwork', 'Mechanics', 'Electricity', 'MetalWelding', 'Cooking',
@@ -29,7 +31,7 @@ local registry = {}
 
 function R.register(name, def)
     registry[name] = def
-    R.KINDS[name] = {param = def.param}
+    R.KINDS[name] = {param = def.param, place = def.place == true}
 end
 
 local function defaultRandom(n)

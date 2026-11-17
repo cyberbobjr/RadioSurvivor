@@ -1,5 +1,6 @@
 // Step 5, rewards: the pool of [rewards] built from the reward kinds of the catalogue (with the field of their
-// parameter kind), each with how often it comes out (Rarely / Normally / Often), then the optional advanced panels,
+// parameter kind), each with how often it comes out (Rarely / Normally / Often), where a hidden reward is left
+// (cache_place=, a shared point, E25-T03) when a kind of the pool needs it, then the optional advanced panels,
 // closed by default: trade ([trade]), frequency note ([note]) and the voice's own categories ([category]), all
 // generated from the section grammar, the keys with a form of their own registered in stock.js; the own categories
 // are folded under "Advanced options" (E24-T02).
@@ -8,6 +9,7 @@ import { inputPropose } from '../ai.js';
 import { h } from '../dom.js';
 import { field, fieldOptions } from '../fields.js';
 import { hint } from '../help.js';
+import { placeSelect } from '../placeform.js';
 import { sectionForm } from '../sectionform.js';
 import * as sheet from '../sheet.js';
 import { SECTION_ACTIONS, SECTION_FORMS } from '../stock.js';
@@ -62,6 +64,20 @@ function poolEditor(ctx, opts) {
       } }, h('span', { class: 'card-icon', 'aria-hidden': 'true', text: kindIcon(t, kind.name) }),
       h('b', { text: `+ ${kindLabel(t, kind.name)}` }), h('small', { text: t(`reward.${kind.name}.help`, {}, '') })),
       kindHint(t, kind.name)))));
+}
+
+// Where a reward that is hidden in the world is left (a kind of the catalogue that declares `place`: the cache).
+function cachePlaceRow(ctx) {
+  const { model, catalog, t, changed, rerender } = ctx;
+  const rewards = sheet.section(model, 'rewards');
+  if (!rewards || !voice.pool(model).some((r) => catalog.rewardKind(r.kind)?.place)) return null;
+  const label = h('span', {}, t('rewards.cache_place'), h('span', { class: 'pill-needed', text: t('field.needed') }));
+  return row(label, (id) => placeSelect(ctx, sheet.value(rewards, 'cache_place') ?? '', (v) => {
+    voice.setCachePlace(model, v);
+    changed();
+    rerender();
+  }, { points: true, empty: t('field.choose'), id }), t('rewards.cache_place_help'),
+  hint(t, 'help.rewards.cache_place', { label: t('rewards.cache_place') }));
 }
 
 // Adds `action` to the head's actions= list when it is missing (a section that needs it was just ticked); true when it
@@ -140,12 +156,13 @@ export default {
   fields: [],
   blocks: ['rewards', 'trade', 'note', 'category'],
   render(ctx) {
-    const { model, catalog, t } = ctx;
-    const opts = fieldOptions(model, catalog, t);
+    const { t } = ctx;
+    const opts = fieldOptions(ctx, t);
     return h('div', { class: 'form' },
       h('p', { class: 'q' }, t('rewards.question'), ' ', hint(t, 'help.rewards.pool', { label: t('rewards.question') })),
       h('p', { class: 'help', text: t('rewards.help') }),
       poolEditor(ctx, opts),
+      cachePlaceRow(ctx),
       h('h3', { class: 'more', text: t('advanced.title') }),
       h('div', { class: 'more-cards' }, optionalSection(ctx, 'trade'), optionalSection(ctx, 'note')),
       fold(t('advanced.options'), Boolean(ctx.ui.open_category), categoriesPanel(ctx)));

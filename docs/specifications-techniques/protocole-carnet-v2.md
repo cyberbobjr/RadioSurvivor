@@ -199,7 +199,7 @@ valide la forme, le serveur le fond ; le serveur seul exécute. Implémentation 
   autorisée n'avait d'exécuteur, E07-T07) ; prompt, `radio_lines` et sortie `line=` identiques à ceux d'avant E07.
 - **Mode structuré** (au moins une action permise **et dotée d'un exécuteur** côté serveur, E07-T07 ; toute voix
   depuis E22-T13, car `remember` est permise à toute voix, `UNIVERSAL_ACTIONS`) : une fiche `say` seul se voit
-  proposer `remember` seule ; une fiche `actions=say,mark_map` **sans lieu `[place]` avec `use=mark`** a le même prompt
+  proposer `remember` seule ; une fiche `actions=say,mark_map` **sans repère (`marks=`)** a le même prompt
   qu'une fiche `say` seul (E07-T04). Une réponse en texte libre (sans objet JSON) est dite telle quelle, sans action.
   le prompt système demande en plus un objet JSON `{"say": "...", "actions": [{"type": "...", <paramètres>}]}`, nomme
   les actions proposées et décrit chacune (paramètres, types, bornes, usage) avec un exemple d'objet JSON ; jamais de
@@ -216,8 +216,8 @@ valide la forme, le serveur le fond ; le serveur seul exécute. Implémentation 
   |---|---|
   | `remember` | `fact` : texte d'au plus `MEMORY_FACT_CHARS` (200) caractères, un fait court sur l'appelant (nom, lieu déclaré, service rendu) ; une note, pas une preuve ; la voix se souvient de chaque appelant pour toujours, environ `MEMORY_CALLER_CHARS` (2000) caractères de notes en tout |
   | `persona_state` | au moins un de : `morale`, `supplies` (vivres, eau, munitions) : entiers de 0 à `PERSONA_LEVEL_MAX` (10), au plus `PERSONA_LEVEL_STEP` (2) d'écart par appel ; `place` : texte d'au plus `PERSONA_PLACE_CHARS` (40) caractères, où la voix dit être |
-  | `mark_map` | `place` : identifiant d'un lieu de la fiche ; suivi de la liste `id: libellé` des lieux `[place]` avec `use=mark` (E20-T03), jamais de coordonnées ; exemple au premier identifiant. Proposée seulement si la fiche a au moins un tel lieu (sinon journal anglais une fois par voix : `mark_map not offered to the LLM, the sheet has no [place] with use=mark`) |
-  | `reveal_area` | `place` : identifiant d'un lieu de la fiche, comme `mark_map` (E07-T05) ; mêmes conditions (au moins un lieu `use=mark`, sinon `reveal_area not offered to the LLM, the sheet has no [place] with use=mark`) ; la liste `id: libellé` n'est écrite qu'une fois, sous la première de ces deux actions proposée ; aucune taille de zone demandée au LLM (le serveur la fixe) |
+  | `mark_map` | `place` : identifiant d'un repère de la fiche ; suivi de la liste `id: libellé` des lieux communs nommés par `marks=` (E20-T03, E25-T01), jamais de coordonnées ; exemple au premier identifiant. Proposée seulement si la fiche a au moins un repère (sinon journal anglais une fois par voix : `mark_map not offered to the LLM, the sheet has no marks=`) |
+  | `reveal_area` | `place` : identifiant d'un lieu de la fiche, comme `mark_map` (E07-T05) ; mêmes conditions (au moins un repère `marks=`, sinon `reveal_area not offered to the LLM, the sheet has no marks=`) ; la liste `id: libellé` n'est écrite qu'une fois, sous la première de ces deux actions proposée ; aucune taille de zone demandée au LLM (le serveur la fixe) |
   | `start_mission` | `template` : un nom de la liste `jobs=` de la demande (identifiants des sections `[mission]` de la fiche disponibles pour l'appelant, E20-T08 ; défaut `scout` ; E20-T02, E20-T03) ; la voix ne choisit pas le bâtiment, décrit juste après par une demande de consigne (`turn = briefing`, E11-T09), puis à chaque appel par le champ `mission=` (« Mission donnée par une voix ») |
   | `report_mission` | aucun paramètre (E11-T13) : compte rendu, à la radio, de la mission de cette voix dont l'objectif est rempli (tour `report_due`) ; permise avec `start_mission` sans être listée ; refusée `no_mission` (pas de mission ouverte de cette voix pour l'appelant) ou `not_done` (objectif non rempli) |
   | `propose_trade` | `items` : texte d'au plus 64 caractères, « `Nom:quantité` » séparés par des virgules, noms du livre du passeur ; `margin` : nombre facultatif dans la fourchette du livre ; le serveur calcule le prix et fige l'offre (E13-T02, « Livre du passeur ») ; refuser = ne rien proposer |
@@ -545,7 +545,7 @@ Les `_` du nom deviennent des espaces. Sans champ, le prompt est identique à ce
 ### Repère sur la carte (E07-T04)
 
 Action `mark_map` : la voix marque sur la carte du monde de l'appelant un des lieux qu'elle connaît. La fiche liste
-ses lieux (sections `[place <id>]` avec `use=mark`, `docs/specifications-techniques/persona-format.md`, « Lieux connus ») ; le pont ne montre au LLM
+ses repères (`marks=`, lieux communs de `personas/_places.txt`, `docs/specifications-techniques/persona-format.md`, « Lieux connus ») ; le pont ne montre au LLM
 que leurs identifiants et libellés ; le serveur juge, puis envoie les coordonnées exactes au **seul appelant**.
 Implémentation : `server/RadioSurvivor/RS_MapMarks.lua` (exécuteur), `client/RadioSurvivor/RS_MapActions.lua`
 (symboles de la carte), `bridge/radio_bridge.py` (`places_prompt`, `bounded_actions`).
@@ -553,8 +553,8 @@ Implémentation : `server/RadioSurvivor/RS_MapMarks.lua` (exécuteur), `client/R
 **Exécuteur** (jugé par `RS_Actions.decide` comme toute action : catalogue, `actions=` de la fiche, paramètres,
 `budget.mark_map` par jour de jeu et par voix, délai) :
 
-- paramètre unique `place`, identifiant d'un lieu `use=mark` de la fiche **actuelle** de la voix (`ctx.sheet`) ; lieu
-  absent de la fiche (inconnu, d'une autre voix), autre paramètre, paramètre absent ou non texte : `bad_params` ;
+- paramètre unique `place`, identifiant d'un repère (`marks=`) de la fiche **actuelle** de la voix (`ctx.sheet`) ;
+  lieu absent de ses repères (inconnu, ou lieu commun qu'elle ne nomme pas), autre paramètre, paramètre absent ou non texte : `bad_params` ;
 - délai `cooldownMs = Const.MAP_MARK_COOLDOWN_MS` (30 000 ms réelles) entre deux repères **de la voix**, tous
   appelants confondus (le délai de `RS_Actions` est par voix) : `cooldown` ;
 - appelant introuvable (déconnecté entre la demande et la réponse, `ctx.player` nil) : `no_player`, aucun usage
@@ -609,7 +609,7 @@ la fiche, `MapMarks.placeOf` et la validation de `place`), application dans `cli
 **Exécuteur** (jugé par `RS_Actions.decide` : catalogue, `actions=` de la fiche, paramètres, `budget.reveal_area` par
 jour de jeu et par voix, délai) :
 
-- paramètre unique `place`, identifiant d'un lieu `use=mark` de la fiche actuelle : sinon `bad_params` ;
+- paramètre unique `place`, identifiant d'un repère (`marks=`) de la fiche actuelle : sinon `bad_params` ;
 - délai `cooldownMs = Const.MAP_REVEAL_COOLDOWN_MS` (60 000 ms réelles) entre deux révélations de la voix, compté à
   part de celui de `mark_map` (`cooldown`) ;
 - appelant introuvable : `no_player` ; lieu hors de la carte (rien ne reste après rognage) : `off_map` ; ni l'un ni
@@ -775,7 +775,7 @@ affirmation ne valide rien), puis `M.spoken` → `M.report` (charge `speech`, ma
 voix ne répond pas : la mission attend le pont (ou son délai) ; aucun bouton du carnet pour une voix.
 
 **Récompense** : réputation par le moteur (`mission.success`, +5, barème M01), et une **information** : repère
-`map_mark` (`MapMarks.give`, ligne `mark` « Repère reçu ») du premier lieu `use=mark` de la fiche **actuelle** qui n'a
+`map_mark` (`MapMarks.give`, ligne `mark` « Repère reçu ») du premier repère (ordre de `marks=`) de la fiche **actuelle** qui n'a
 pas encore été donné à ce personnage par cette voix, envoyé au seul appelant, hors budget et délai de `mark_map`. Fiche
 sans lieu, ou tous déjà donnés : réputation seule (journal anglais `no place left to give, reputation only`). Le repère
 part après la sauvegarde de la réussite : un arrêt entre les deux perd le repère, jamais la réussite. Pas de cache
@@ -865,7 +865,7 @@ items, price, margin, weight, state }, deals = { { passage, items, price, state 
 `open`, `replaced`, `expired`, `done`, `cheated`, `cancelled` ; refus : `bad_params`, `bad_margin`, `not_in_stock`,
 `over_stock`, `over_weight`, `over_cap`, `failed`, `booked`, `run_over`), plus `run` (E13-T03, E20-T07) = { status
 (`free`, `yours`, `taken`, `over`), from, to (heures du jeu de la fenêtre, décimales pour les minutes), days?, inHours?,
-state? (`booked`, `arrived`), place? (libellé du lieu `use=landing`), signal? et arrived? (textes du mode d'arrivée),
+state? (`booked`, `arrived`), place? (libellé du lieu de rendez-vous, `landing=`), signal? et arrived? (textes du mode d'arrivée),
 reason? (texte d'une fin : cause du mode d'arrivée ou raison générale) } ; lieu, signal et texte d'arrivée seulement pour
 l'équipe qui a réservé. E20-T07 : le livre est construit par le serveur depuis l'état **du marchand** de la voix
 (`S.data.trade.traders[<voix>]`) et la section `[trade]` de sa fiche ; le pont ne connaît ni marchand, ni lieu, ni mode
@@ -1645,7 +1645,7 @@ n'est réexécuté par Python lors de sa reprise.
 
 Cette extension remplace les anciennes restrictions de reconnaissance seule pour `deliver` donné par une voix ; la remise en personne des missions de PNJ est inchangée. Aucun nouvel appel LLM ni choix du dépôt par le modèle.
 
-Une mission de dépôt d'une voix propose **toutes ses planques à la fois** (clé `drops=` de sa section ; sans elle, tous les lieux `use=drop` de la fiche), chacune entourée sur votre carte avec son nom. Déposez où vous voulez : les objets laissés à plusieurs planques s'additionnent jusqu'à la quantité demandée. À chaque planque, le serveur désigne une boîte existante adaptée (une mission sur deux) ou, à défaut, demande un sac au sol. La voix ne ramasse une planque que **hors de vue de tout le monde** (aucun joueur à moins de 100 cases en x comme en y, quel que soit l'étage, ou la case déchargée) **et après environ 6 heures de jeu** (`collect_hours=` de la section, défaut `RS_Config.DeadDrops.collectDelayHours`). Le délai suit l'horloge du jeu : il s'arrête en pause, va plus vite en vitesse accélérée ou pendant le sommeil, et ne compte pas serveur arrêté. Un joueur revenu en vue avant la fin remet le délai à zéro. Une planque dont le délai s'est écoulé pendant que sa case était déchargée est vidée dès que la case se charge de nouveau.
+Une mission de dépôt d'une voix propose **toutes ses planques à la fois** (clé `drops=` de sa section, obligatoire : des points des lieux communs), chacune entourée sur votre carte avec son nom. Déposez où vous voulez : les objets laissés à plusieurs planques s'additionnent jusqu'à la quantité demandée. À chaque planque, le serveur désigne une boîte existante adaptée (une mission sur deux) ou, à défaut, demande un sac au sol. La voix ne ramasse une planque que **hors de vue de tout le monde** (aucun joueur à moins de 100 cases en x comme en y, quel que soit l'étage, ou la case déchargée) **et après environ 6 heures de jeu** (`collect_hours=` de la section, défaut `RS_Config.DeadDrops.collectDelayHours`). Le délai suit l'horloge du jeu : il s'arrête en pause, va plus vite en vitesse accélérée ou pendant le sommeil, et ne compte pas serveur arrêté. Un joueur revenu en vue avant la fin remet le délai à zéro. Une planque dont le délai s'est écoulé pendant que sa case était déchargée est vidée dès que la case se charge de nouveau.
 
 Dans une boîte, seuls les objets demandés disparaissent, jamais plus que la quantité restante : boîte, autres objets et surplus restent. Pour un sac, sac et contenu disparaissent ; un sac qui contient des objets étrangers au lot, ou plus que la quantité restante, est refusé pour éviter leur perte. Chaque objet n'est compté qu'une fois, même après un redémarrage. Avant la collecte, vous pouvez reprendre le dépôt et rien n'est validé. **Une fois toute la quantité collectée seulement, rendez compte à la radio**. Validation en jeu solo et MP de cette collecte : **en attente**.
 

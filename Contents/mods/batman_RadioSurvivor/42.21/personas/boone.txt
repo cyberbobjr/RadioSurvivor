@@ -17,13 +17,6 @@ actions=say,propose_trade,share_frequency
 shares=virgil,maxine
 state=active
 
-# Lieu du rendez-vous relevé sur la carte 42.22 (lotheader 13_42 ; herbe blends_natural_01_37 hors de toute pièce, au bord sud de la route blends_street_01_85/87 (y 10921-10928), à l'ouest du ruisseau).
-# Rendez-vous seulement : jamais donné comme repère par mark_map.
-[place echocreek_roadside]
-at=3480,10929,0
-label=Roadside on the main road, Echo Creek
-use=landing
-
 # Troc (E20-T11) : barème docs/specifications-techniques/passeur-table.md section 3.
 [trade]
 landing=echocreek_roadside

@@ -5,8 +5,8 @@ hours, then report by radio what was seen. Authority only. Catalogue: CA_Mission
 watch_v1). Registered in CA_Missions (M.register); required by CA_NotebookServer.
 
 Giver: a radio voice only, under the name `watch` (declaration voiceName); an NPC fiche is never offered one. The
-spot is the place `target` of the voice sheet (use=target), handed over by the voice set-up of the templates
-that declare aimAt. Parameter hours (sheet, kind count; default entry.hours), from 1 to
+spot is the objective `target` of the voice sheet (a shared place, E25-T01), handed over by the voice set-up of the
+templates that declare aimAt. Parameter hours (sheet, kind count; default entry.hours), from 1 to
 entry.maxHours, else the start is refused: bad_hours.
 Watch (server authority, the server copy of each participant, never a claim): a participant watches while within
 entry.radius tiles of the place on the ground plane (any level: a roof or an upper floor of the place counts). Time is
@@ -35,7 +35,7 @@ local Facts = require 'CoreAI/CA_WatchFacts'
 
 local Watch = {idPrefix = 'watch', reportBySpeech = true, voiceName = 'watch', mapStyle = 'Watch',
     voiceText = 'keep watch at a place for some game hours, then report what was seen',
-    -- E20-T03: sheet values of its mission section; the place is the common key target (a place with use=target).
+    -- E20-T03: sheet values of its mission section; the place is the objective of the common key target.
     params = {hours = 'count'}}
 
 local sampledAt = {} -- mission id -> real ms of its last sampling of the facts (memory only)

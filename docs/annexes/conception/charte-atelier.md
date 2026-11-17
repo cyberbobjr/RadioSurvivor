@@ -54,7 +54,8 @@ Les textes, icônes et aides vivent dans `i18n/fr.json` et `i18n/en.json` (même
 ## Identifiants fabriqués
 
 - **Voix** : premier mot du nom, en minuscules sans accent, suivi de `_2`, `_3`… s'il est pris (`voice.voiceId`).
-- **Lieu, mission** : depuis le nom du lieu ou le genre de mission (`voice.addPlace`, `voice.addMission`).
+- **Lieu, mission** : depuis le nom du lieu ou le genre de mission (`places.addPlace` : lieu commun de l'onglet « Lieux »,
+  jamais `near`, `far` ni `very_far` ; `voice.addMission`).
 - **Paquet** (`group=` du troc) : depuis le nom tapé ; l'écran le montre en clair depuis l'identifiant
   (`voice.labelOf`, sans accent) ; renommer un paquet garde ses objets (`paquets.js`).
 - **Liste d'objets propre** (`[category]`) : depuis le nom tapé, jamais le nom d'une liste du mod.

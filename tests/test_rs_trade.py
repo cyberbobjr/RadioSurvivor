@@ -78,6 +78,13 @@ VOICE_PORT = { get = function(id) return VOICES[id] end, ids = function() return
 """
 
 
+# E25-T01 : lieu commun propre au banc (fiche écrite à la main, landing=pier).
+BENCH_PIER = '''[place pier]
+at=1,2,0
+label=Pier
+'''
+
+
 # E23-T06 : paiement par défaut des bancs, accepté par Gus (catégorie cash) et assez riche pour toute offre (120 points).
 PAY = 'MoneyBundle:12'
 
@@ -367,13 +374,12 @@ class OfferTests(TradeHarness):
         self.rt.execute('require("RadioSurvivor/RS_ItemWeights").use({ ["Base.Antibiotics"] = 4.0,'
                         ' ["Base.Battery"] = 0.1, ["Base.CigaretteCarton"] = 2.0 })')
         persona = self.rt.eval('require("RadioSurvivor/RS_Persona")')
-        rules = self.rt.eval(trade_rules_lua())
+        rules = self.rt.eval(trade_rules_lua(BENCH_PIER))  # E25-T01 : rendez-vous de la fiche du banc
         # Gus cite des objets absents de cette source : sa fiche est refusée, avec la ligne du premier.
         refused = persona.parseLines(self.rt.table_from(GUS.read_text(encoding='utf-8').splitlines()), 'gus', rules)
         self.assertRegex(refused[1], r"^line \d+: unknown trade item 'Base\.\w+' \(no item script of that type\)$")
         sheet = persona.parseLines(self.rt.table_from(['format=1', 'id=gus', 'name=Gus', 'frequency=160.0',
-                                                       'actions=say,propose_trade', '[place pier]', 'at=1,2,0',
-                                                       'label=Pier', 'use=landing', '[trade]', 'landing=pier',
+                                                       'actions=say,propose_trade', '[trade]', 'landing=pier',
                                                        'arrival=boat', 'every_days=7', 'hours=01:00-03:00',
                                                        'item=Base.Antibiotics:1-6', 'item=Base.Battery:1-30',
                                                        'accept=Base.MoneyBundle', '[prompt]', 'Bench.']), 'gus',
@@ -633,7 +639,7 @@ class FakeSheet:
     def __init__(self):
         self.id = 'gus'
         self.actions = ['say', 'propose_trade']
-        self.places = []
+        self.marks = []
 
 
 class BridgeFormTests(unittest.TestCase):
@@ -676,10 +682,12 @@ class ServerChainTests(unittest.TestCase):
             folder.mkdir(parents=True)
             (folder / 'gus.txt').write_text(
                 'format=1\nid=gus\nname=Gus Bench\nfrequency=160.0\nactions=say,propose_trade\n'
-                '[place pier]\nat=6041,5217,0\nlabel=Bench pier\nuse=landing\n'
                 '[trade]\nlanding=pier\narrival=boat\nevery_days=7\nhours=01:00-03:00\n'
                 'item=Base.Battery:4-12\nitem=Base.Antibiotics:2-6\naccept=Base.MoneyBundle\n[prompt]\n'
                 'You are Gus Bench, a smuggler of the test bench.\n', encoding='utf-8')
+            # E25-T01 : le rendez-vous de Gus vit dans le fichier commun des lieux, à côté des fiches.
+            (folder / '_places.txt').write_text('format=1\n[place pier]\nat=6041,5217,0\nlabel=Bench pier\n',
+                                                encoding='utf-8')
             (folder / 'ps.txt').write_text(tp.PS_SHEETS['ps'], encoding='utf-8')
             clock = tp.Clock()
             game = tp.Game('solo', exchange, clock)

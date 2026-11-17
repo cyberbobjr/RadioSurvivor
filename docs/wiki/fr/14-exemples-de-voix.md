@@ -29,7 +29,49 @@ personnalité est la fin de la fiche, après `[prompt]`) et un petit échange ra
   au bout de quelques jours de jeu. C'est le jeu qui raconte le monde à la voix pendant la partie.
 
 Ces fiches sont vérifiées à chaque lancement des tests du mod : le lecteur du jeu et celui du pont les acceptent
-telles quelles. Vous pouvez donc les recopier dans un fichier `.txt` et les **importer** dans l'atelier.
+telles quelles, avec les lieux ci-dessous. Vous pouvez donc les recopier dans un fichier `.txt` et les **importer**
+dans l'atelier, une fois leurs lieux créés.
+
+### Les lieux des exemples
+
+Un lieu sert à **toutes les voix** : on le crée une fois dans l'onglet **Lieux** de l'atelier (**+ Nouveau lieu**,
+**Un endroit précis**, **Nom sur la carte**, **Où sur la carte ?**), ou directement depuis une liste de lieux d'une
+voix avec **+ Nouveau lieu…**. Chaque voix coche ensuite ceux dont elle se sert. Voici les sept lieux des quatre
+exemples, tels que l'atelier les ajoute à la fin du fichier des lieux de toutes les voix (`personas/_places.txt`) :
+
+```places
+[place caserne_de_rosewood]
+label=Caserne de Rosewood
+at=8140,11738,0
+
+[place centre_de_rosewood]
+label=Centre de Rosewood
+at=8114,11607,0
+
+[place lycee_de_riverside]
+label=Lycée de Riverside
+at=6510,5450,0
+
+[place terrain_de_football]
+label=Terrain de football
+at=6424,5460,0
+
+[place benne_du_gymnase]
+label=Benne du gymnase
+at=6489,5458,0
+
+[place halte_de_west_point]
+label=Halte de West Point
+at=12150,6905,0
+
+[place boite_de_la_poste]
+label=Boîte de la poste
+at=10103,12702,0
+```
+
+Ce sont tous des **endroits précis** (une case) : une planque, un rendez-vous ou le sac d'une récompense en demandent
+toujours un, car le joueur doit trouver la case exacte. Un **quartier** (un rectangle) sert aux repères et aux
+missions : le jeu y tire un bâtiment à chaque mission.
 
 ## 1. Opal, la bavarde de Rosewood
 
@@ -53,13 +95,14 @@ sur la carte.
 | | Ce qu'elle dit en appelant | « Allô, allô ? Ici Opal, sur [fréquence]. Quelqu'un veut bavarder ? À vous. » : le mot **[fréquence]** s'écrit avec le bouton **+ Ajouter ma fréquence** |
 | 3. Personnalité | Que peut-elle faire ? | **Parler** (déjà coché), puis **Marquer la carte**, **Montrer un quartier**, **Avoir un moral** |
 | | Qui est-elle vraiment ? | Le texte après `[prompt]` dans la fiche ci-dessous, écrit **En anglais** |
-| 4. Lieux et missions | Ses lieux | **Caserne de Rosewood** et **Centre de Rosewood**, tous deux avec **Repère** coché dans « Il sert à » |
+| 4. Lieux et missions | Quels lieux peut-elle marquer sur la carte ? | **Caserne de Rosewood** et **Centre de Rosewood**, cochés |
 | | Ses missions | aucune |
 | 5. Récompenses | Récompenses | aucune (elle ne confie pas de mission) |
 | | Note de fréquence | cochée : trois lignes, « Elle se trouve dans » : tables de chevet et de salon (**Normalement**) |
 
-Avec **Marquer la carte** et **Montrer un quartier**, il lui faut au moins un lieu avec **Repère** coché dans « Il sert
-à » : ce sont les seuls endroits qu'elle peut vous montrer.
+Avec **Marquer la carte** et **Montrer un quartier**, il lui faut au moins un lieu coché dans **Quels lieux peut-elle
+marquer sur la carte ?** : ce sont les seuls endroits qu'elle peut vous montrer. Les autres lieux de l'onglet Lieux,
+elle ne les connaît pas.
 
 ### La fiche complète
 
@@ -76,16 +119,7 @@ state=active
 listen=09:00-12:00,19:00-22:00
 call_one_in=3
 call=Allô, allô ? Ici Opal, sur %1. Quelqu'un veut bavarder ? À vous.
-
-[place caserne_de_rosewood]
-at=8140,11738,0
-label=Caserne de Rosewood
-use=mark
-
-[place centre_de_rosewood]
-at=8114,11607,0
-label=Centre de Rosewood
-use=mark
+marks=caserne_de_rosewood,centre_de_rosewood
 
 [note]
 text=Opal, la standardiste
@@ -150,11 +184,11 @@ lui-même, des leçons de secourisme ou la fréquence de Walt.
 | | Les appels : Appelle-t-elle toute seule ? | **Jamais** (il n'appelle jamais de lui-même) |
 | 3. Personnalité | Que peut-elle faire ? | **Parler**, **Marquer la carte**, **Donner des missions** (déjà coché), **Donner un contact** |
 | | Elle peut donner le contact de… | **Walt Hensley** (une voix du mod) |
-| 4. Lieux et missions | Ses lieux | **Lycée de Riverside** (**Repère** et **Lieu de mission**), **Terrain de football** (**Lieu de mission**), **Benne du gymnase** (**Planque**) |
-| | Mission 1 | genre **Faire le guet** au **Terrain de football**, **Combien de temps faire le guet ?** : **Une matinée** (6 heures) |
-| | Mission 2 | genre **Retrouver un objet personnel** au **Lycée de Riverside**, **Quel objet ?** : **Sifflet**, **Comment elle l'appelle** : « mon sifflet porte-bonheur », **Planques** : **Benne du gymnase**, **Seulement après la mission** : **1 · Faire le guet**, **Ce qui change dans son histoire** : « Il a retrouvé son sifflet » (voir plus bas) |
+| 4. Lieux et missions | Quels lieux peut-elle marquer sur la carte ? | **Lycée de Riverside** |
+| | Mission 1 | genre **Faire le guet**, **Où ça se passe ?** : **Terrain de football**, **Combien de temps faire le guet ?** : **Une matinée** (6 heures) |
+| | Mission 2 | genre **Retrouver un objet personnel**, **Où ça se passe ?** : **Lycée de Riverside**, **Quel objet ?** : **Sifflet**, **Comment elle l'appelle** : « mon sifflet porte-bonheur », **Planques** : **Benne du gymnase**, **Seulement après la mission** : **1 · Faire le guet**, **Ce qui change dans son histoire** : « Il a retrouvé son sifflet » (voir plus bas) |
 | 5. Récompenses | Options avancées : Ses propres listes d'objets | une liste `trousse_equipe` (tapez « trousse équipe » dans **Nom de la liste**) : bouteilles d'eau, barres de céréales, bandages |
-| | Récompenses | **Sac de matériel** sur la liste `trousse_equipe` **Souvent**, **Une leçon** Secourisme **Normalement**, **Un contact radio** **Rarement** |
+| | Récompenses | **Sac de matériel** sur la liste `trousse_equipe` **Souvent**, **Une leçon** Secourisme **Normalement**, **Un contact radio** **Rarement** ; **Où cache-t-elle le sac de matériel ?** : **Benne du gymnase** |
 
 Pour la liste : ouvrez **Options avancées** (en bas de l'étape 5), puis **Ses propres listes d'objets** : tapez
 `trousse équipe` dans **Nom de la liste**, cliquez sur **+ Ajouter une liste**, puis ajoutez les objets. Revenez ensuite
@@ -179,21 +213,7 @@ actions=say,mark_map,start_mission,share_frequency
 state=active
 listen=06:00-08:00,18:00-21:00
 shares=walt
-
-[place lycee_de_riverside]
-at=6510,5450,0
-label=Lycée de Riverside
-use=mark,target
-
-[place terrain_de_football]
-at=6424,5460,0
-label=Terrain de football
-use=target
-
-[place benne_du_gymnase]
-at=6489,5458,0
-label=Benne du gymnase
-use=drop
+marks=lycee_de_riverside
 
 [mission watch]
 type=watch
@@ -213,6 +233,7 @@ sets_state=whistle_back
 
 [rewards]
 pool=cache:trousse_equipe:4, lesson:Doctor:2, frequency:1
+cache_place=benne_du_gymnase
 
 [category trousse_equipe]
 item=Base.WaterBottle:2
@@ -284,8 +305,8 @@ la voit jamais.
 | | Les heures : Quand écoute-t-elle ? | **Sur mesure** : de 22:00 à 01:00 (une plage peut passer minuit) |
 | | Les appels : Appelle-t-elle toute seule ? | **Parfois** (environ un appel toutes les six heures de jeu), et sa phrase d'appel |
 | 3. Personnalité | Que peut-elle faire ? | **Parler**, **Avoir un moral**, **Faire du troc** (cochée toute seule à l'étape 5) |
-| 4. Lieux et missions | Ses lieux | **Halte de West Point**, avec seulement **Rendez-vous de troc** coché |
-| 5. Récompenses | Troc : Cette voix fait du troc | **Cette voix fait du troc** ; **Où a lieu le rendez-vous ?** : Halte de West Point ; **Elle arrive par** : **La route** ; **À quelle heure ?** de 02:00 à 04:00 ; **Elle revient** : **Chaque semaine** |
+| 4. Lieux et missions | Quels lieux peut-elle marquer sur la carte ? | aucun : son rendez-vous se choisit dans le troc |
+| 5. Récompenses | Troc : Cette voix fait du troc | **Cette voix fait du troc** ; **Où a lieu le rendez-vous ?** : **Halte de West Point**, cochée (ou créée sur place avec **+ Nouveau lieu…**) ; **Elle arrive par** : **La route** ; **À quelle heure ?** de 02:00 à 04:00 ; **Elle revient** : **Chaque semaine** |
 | | Ce qu'elle vend | Pile de 2 à 6, Paquet de cigarettes de 1 à 4, Café de 0 à 2, Beurre de cacahuètes de 1 à 3, Conserve de salade de fruits de 0 à 2, et quatre sortes de graines dans le paquet `graines` |
 | | Paquets | `graines` : « entre 3 et 8 objets en tout », « pas plus de 3 objets différents » |
 | | Ce qu'elle prend | les listes entières **Argent et objets de valeur** (`cash`) et **Bijoux** (`jewelry`) |
@@ -314,11 +335,6 @@ state=active
 listen=22:00-01:00
 call_one_in=6
 call=Ici Sol, sur %1. Le camion passe bientôt, préparez vos commandes. À vous.
-
-[place halte_de_west_point]
-at=12150,6905,0
-label=Halte de West Point
-use=landing
 
 [trade]
 landing=halte_de_west_point
@@ -411,8 +427,8 @@ peut donner sa fréquence.
 | | L'endroit : Où se trouve-t-elle ? | **Personne ne sait où elle est** |
 | 3. Personnalité | Que peut-elle faire ? | **Parler**, **Faire du troc**, **Donner un contact** |
 | | Elle peut donner le contact de… | **Marisol Vega** (l'exemple 3 : créez-la d'abord) |
-| 4. Lieux et missions | Ses lieux | **Boîte de la poste**, coché **Rendez-vous de troc**, relevé en jeu juste à côté de la boîte aux lettres |
-| 5. Récompenses | Troc : Où a lieu le rendez-vous ? | **Boîte de la poste** ; **Elle arrive par** : **Une cachette** ; **À quelle heure ?** de 05:00 à 06:00 ; **Elle revient** : **Tous les 3 jours** ; **Ses prix** : **Correct** (rien à remplir : 10 % à 50 %) |
+| Onglet Lieux | + Nouveau lieu | **Boîte de la poste**, **Un endroit précis**, relevé en jeu juste à côté de la boîte aux lettres (**Depuis mes relevés**, **Ajouter aux lieux**) |
+| 5. Récompenses | Troc : Où a lieu le rendez-vous ? | **Boîte de la poste**, cochée ; **Elle arrive par** : **Une cachette** ; **À quelle heure ?** de 05:00 à 06:00 ; **Elle revient** : **Tous les 3 jours** ; **Ses prix** : **Correct** (rien à remplir : 10 % à 50 %) |
 | | Ce qu'elle vend | Bandage de 1 à 4, Antidouleurs de 0 à 2, Lingettes désinfectantes de 1 à 3, Pile de 1 à 3, Conserve de soupe de 1 à 3, Bouteille de désinfectant de 0 à 1 |
 | | Ce qu'elle prend | les listes entières **Papiers des morts** (`papers_of_the_dead`) et **Argent et objets de valeur** (`cash`) |
 | | Le lieu reste tranquille | **Une heure** (le réglage normal du jeu, rien à changer) |
@@ -437,11 +453,6 @@ actions=say,propose_trade,share_frequency
 state=active
 listen=05:00-07:00
 shares=marisol
-
-[place boite_de_la_poste]
-at=10103,12702,0
-label=Boîte de la poste
-use=landing
 
 [trade]
 landing=boite_de_la_poste

@@ -2,10 +2,12 @@
 // closed choices, value shapes of the parameter kinds, references between sections. The game stays the only judge: a
 // check never blocks a save, the page only shows it. Pure module.
 //
-// check(model, catalog, voiceId) -> [{key, args, where: {block: 'head' | <section kind> | 'prompt', id, field}}]
-// `key` is an i18n message key, `args` its values.
+// check(model, catalog, voiceId, shared) -> [{key, args, where: {block: 'head' | <section kind> | 'prompt', id, field}}]
+// `key` is an i18n message key, `args` its values. `shared`: the shared places of personas/_places.txt (places.js
+// list: [{id, kind}]) the voice may name (E25-T03).
 
 import { categoryIds, categoryTypes } from './categories.js';
+import { PLACE_REFS, ZONE } from './places.js';
 import * as sheet from './sheet.js';
 import { isInteger, isTime, parseHours, parseList, parsePool, parseStockItem, sheetFrequency } from './values.js';
 
@@ -24,21 +26,30 @@ export const KIND_CHECKS = {
   count: (v) => (count(v) ? null : 'check.bad_count'),
   range: (v) => (range(v) ? null : 'check.bad_range'),
   category: (v, ctx) => (ctx.categories.has(v) ? null : 'check.unknown_category'),
-  place: (v, ctx) => (ctx.places.has(v) ? null : 'check.unknown_place'),
+  place: (v, ctx) => pointProblem(v, ctx),
   places: (v, ctx) => {
     const list = parseList(v);
     if (list.length < 2) return 'check.too_few_places';
-    return list.every((p) => ctx.places.has(p)) ? null : 'check.unknown_place';
+    return list.map((p) => pointProblem(p, ctx)).find(Boolean) ?? null;
   },
   item: (v) => (ITEM_RE.test(v) ? null : 'check.bad_item'),
   skill: (v, ctx) => (ctx.skills.has(v) ? null : 'check.unknown_skill'),
   text: (v) => (String(v).trim() ? null : 'check.empty_text'),
 };
 
+// A shared place named by the voice: known, and a point where the player needs an exact spot (`points`, D05).
+function placeProblem(id, ctx, points) {
+  const place = ctx.places.get(id);
+  if (!place) return 'check.unknown_place';
+  return points && place.kind === ZONE ? 'check.place_is_zone' : null;
+}
+function pointProblem(id, ctx) {
+  return placeProblem(id, ctx, true);
+}
+
 // Section key a mission needs when its type declares this voice set-up (catalog missionTypes[*].setups).
 const SETUP_NEEDS = {
-  aimAt: (mission) => (sheet.value(mission, 'target') ? null : 'check.needs_target'),
-  dropAccepts: (mission, ctx) => (ctx.drops.size ? null : 'check.needs_drop'),
+  dropAccepts: (mission) => (parseList(sheet.value(mission, 'drops')).length ? null : 'check.needs_drop'),
 };
 
 function checkKind(kind, value, ctx) {
@@ -46,12 +57,11 @@ function checkKind(kind, value, ctx) {
   return rule ? rule(String(value ?? '').trim(), ctx) : null;
 }
 
-function context(model, catalog) {
-  const placeSections = sheet.sectionsOf(model, 'place');
+function context(model, catalog, shared) {
   return {
     model,
-    places: new Set(placeSections.map((s) => s.id)),
-    drops: new Set(placeSections.filter((s) => parseList(sheet.value(s, 'use')).includes('drop')).map((s) => s.id)),
+    places: new Map((shared ?? []).map((p) => [p.id, p])),
+    distances: new Set(catalog.distances()),
     missions: new Set(sheet.sectionsOf(model, 'mission').map((s) => s.id)),
     categories: new Set(categoryIds(model, catalog)),
     skills: new Set(catalog.skills()),
@@ -119,6 +129,28 @@ function checkHead(model, catalog, voiceId, out) {
   if (sheet.value(head, 'location') === 'fixed' && !sheet.value(head, 'coords')) {
     out.push({ key: 'check.missing_key', args: { name: 'coords' }, where: { ...where, field: 'coords' } });
   }
+  const marks = parseList(sheet.value(head, 'marks'));
+  const max = catalog.sheet.maxMarks;
+  const at = { ...where, field: 'marks' };
+  if (new Set(marks).size !== marks.length) out.push({ key: 'check.duplicate_mark', args: {}, where: at });
+  if (max && marks.length > max) out.push({ key: 'check.too_many_marks', args: { value: max }, where: at });
+}
+
+// Every key of PLACE_REFS (places.js): a known shared place, a point where the player needs an exact spot (D05); a
+// distance (near, far, very_far) is no place. The mission parameters of kind place / places go through KIND_CHECKS.
+function checkPlaceRefs(model, ctx, out) {
+  for (const ref of PLACE_REFS) {
+    const owners = ref.block === 'head' ? [model.head] : sheet.sectionsOf(model, ref.block);
+    for (const owner of owners) {
+      for (const id of sheet.values(owner, ref.key).flatMap(parseList).filter((v) => !ctx.distances.has(v))) {
+        const problem = placeProblem(id, ctx, ref.points);
+        if (problem) {
+          out.push({ key: problem, args: { name: ref.key, value: id },
+            where: { block: ref.block, id: ref.block === 'head' ? null : owner.id, field: ref.key } });
+        }
+      }
+    }
+  }
 }
 
 function checkSections(model, catalog, ctx, out) {
@@ -142,13 +174,6 @@ function checkSections(model, catalog, ctx, out) {
   }
 }
 
-function checkPlace(section, { where, out }) {
-  const at = sheet.value(section, 'at');
-  if (at !== null && !/^\s*\d+\s*,\s*\d+\s*,\s*-?\d+\s*$/.test(at)) {
-    out.push({ key: 'check.bad_at', args: { value: at }, where: { ...where, field: 'at' } });
-  }
-}
-
 function checkMission(section, { ctx, type, where, out }) {
   const typeName = sheet.value(section, 'type');
   if (typeName && !type) out.push({ key: 'check.unknown_type', args: { value: typeName }, where: { ...where, field: 'type' } });
@@ -167,20 +192,19 @@ function checkMission(section, { ctx, type, where, out }) {
   if (after !== null && (!ctx.missions.has(after) || after === section.id)) {
     out.push({ key: 'check.unknown_mission', args: { value: after }, where: { ...where, field: 'after' } });
   }
+  // A building kind is drawn in a zone or around the player, never at a point (RS_Persona missionAim).
   const target = sheet.value(section, 'target');
-  if (target !== null && !ctx.places.has(target)) {
-    out.push({ key: 'check.unknown_place', args: { name: 'target', value: target }, where: { ...where, field: 'target' } });
-  }
-  const drops = sheet.value(section, 'drops');
-  if (drops !== null && drops !== 'any') {
-    for (const id of parseList(drops).filter((p) => !ctx.drops.has(p))) {
-      out.push({ key: 'check.not_a_drop', args: { value: id }, where: { ...where, field: 'drops' } });
-    }
+  if (sheet.value(section, 'building') !== null && ctx.places.get(target)?.kind === 'point') {
+    out.push({ key: 'check.building_needs_zone', args: {}, where: { ...where, field: 'building' } });
   }
 }
 
 function checkRewards(section, { catalog, ctx, where, out }) {
-  for (const row of parsePool(sheet.value(section, 'pool'))) {
+  const rows = parsePool(sheet.value(section, 'pool'));
+  if (rows.some((row) => catalog.rewardKind(row.kind)?.place) && !sheet.value(section, 'cache_place')) {
+    out.push({ key: 'check.needs_cache_place', args: {}, where: { ...where, field: 'cache_place' } });
+  }
+  for (const row of rows) {
     const kind = catalog.rewardKind(row.kind);
     const at = { ...where, field: 'pool' };
     if (!kind) {
@@ -219,17 +243,14 @@ function checkTrade(section, { catalog, ctx, where, out }) {
 }
 
 // Extra checks of a section kind beyond its grammar; a kind missing here gets the grammar checks only.
-const SECTION_CHECKS = { place: checkPlace, mission: checkMission, rewards: checkRewards, trade: checkTrade };
+const SECTION_CHECKS = { mission: checkMission, rewards: checkRewards, trade: checkTrade };
 
-export function check(model, catalog, voiceId = null) {
+export function check(model, catalog, voiceId = null, shared = []) {
   const out = [];
-  const ctx = context(model, catalog);
+  const ctx = context(model, catalog, shared);
   checkHead(model, catalog, voiceId, out);
   checkSections(model, catalog, ctx, out);
-  const maxPlaces = catalog.sheet.maxPlaces;
-  if (maxPlaces && ctx.places.size > maxPlaces) {
-    out.push({ key: 'check.too_many_places', args: { value: maxPlaces }, where: { block: 'place', id: null } });
-  }
+  checkPlaceRefs(model, ctx, out);
   if (!sheet.promptText(model).trim()) out.push({ key: 'check.no_prompt', args: {}, where: { block: 'prompt', id: null } });
   return out;
 }

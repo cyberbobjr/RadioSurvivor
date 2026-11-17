@@ -3,7 +3,9 @@ if isClient() then return end
 CoreAI: building draw by the metagrid and descriptive clues (E18-T05, moved from a rescue
 module, code unchanged). Authority only (dedicated server or solo). Used by the mission templates (scout, clear,
 recover, retrieve_id, signal), by the rescues of the voices (same functions under the same names) and by
-the places of an NPC engine. Details: docs/specifications-techniques/rescue.md.
+the places of an NPC engine. Details: docs/specifications-techniques/rescue.md. E25-T02: Sites.draw (below) draws
+the same kind of building around a point at a distance band or inside a zone, reading only the cells it crosses
+(mission objectives of the radio voices, RS_MissionAim; the scout draw of the templates, CA_MissionScout.pick).
 
     local Sites = require "CoreAI/CA_Sites"
     local site, reason = Sites.pick({ seed = 42, minDistance = 600, avoid = { { x = 100, y = 200 } } })
@@ -39,6 +41,8 @@ Sites.CONFIG = {
     LANDMARK_RADIUS = 160,   -- tiles around the building for the nearby landmarks
     MAX_LANDMARKS = 3,
     VANILLA_MAP = "Muldraugh, KY",
+    DRAW_ATTEMPTS = 40,      -- Sites.draw: buildings examined (habitability) per call
+    DRAW_CELLS = 9,          -- Sites.draw: metagrid cells read per call at most (drawn at random beyond)
 }
 
 -- Habitable building kinds, first match wins. all: every one of these rooms; any: at least one; min: smallest number
@@ -116,8 +120,9 @@ local function log(msg)
 end
 
 local function metaGrid()
+    -- Optional: a world without a metagrid (early boot, bench) draws nothing.
     local world = getWorld and getWorld()
-    return world and world:getMetaGrid()
+    return world and world.getMetaGrid and world:getMetaGrid()
 end
 
 -- Draw: draw(n) -> integer from 0 to n - 1. Seed: Park-Miller (quotients under 2^31, no bitwise operator).
@@ -373,6 +378,192 @@ function Sites.pick(opts)
     local reason = "no suitable building after " .. maxAttempts .. " draw(s): " .. reasonSummary(reasons)
     log(reason)
     return nil, reason
+end
+
+-- Draw around a point or inside a zone (E25-T02) ------------------------------------------------------------------
+--[[
+Sites.draw(opts): a habitable building (Sites.check: same habitability and known-base rules as Sites.pick) drawn
+  - around a point: opts.around = { x, y, min, max }: gap between the footprint and the tile (x, y) from min to max
+    tiles (a mission objective near, far or very far from its caller; the scout draw of an NPC: min 0);
+  - or inside a zone: opts.area = { x1, y1, x2, y2 } (tiles, both ends included): the site point lies in the zone.
+Other opts: kind (a kind of Sites.KINDS: only that kind), minDistance (known bases, as Sites.check), avoid, exclude,
+minArea, seed (reproducible draw, as Sites.pick), maxAttempts (buildings examined, CONFIG.DRAW_ATTEMPTS), maxCells
+(CONFIG.DRAW_CELLS), accept(site) -> ok, reason (a rule of the caller, e.g. the density of the clear template: a
+refused building is skipped and the next one examined), noClues.
+Cost: only the metagrid cells crossing the region are read (IsoMetaCell:getBuildingsIntersecting, one fresh list per
+cell: its Java duplicate check stays within one cell), never a square. When the region crosses at most maxCells cells
+they are all read and the draw is uniform over their buildings (random start, then consecutive ones, as the scout
+draw); beyond (a far ring, a big zone), cells are drawn at random one at a time and the draw stops at the first
+building that fits, or after maxCells cells holding buildings (an empty cell costs only its chunk loop, so the
+countryside is crossed until a building is met). A ring skips the cells wholly inside min or beyond max.
+Returns the site (Sites.check fields, plus attempts = buildings examined, cells = cells read, clues) or nil and the
+reason (cells read, buildings examined, refusals by reason).
+]]
+
+-- Metagrid cells { cx, cy } crossed by the rectangle (x2, y2 exclusive), row by row, kept when useful(cell rect).
+local function cellsOf(rect, useful)
+    local out = {}
+    for cy = math.floor(rect.y1 / CELL), math.floor((rect.y2 - 1) / CELL) do
+        for cx = math.floor(rect.x1 / CELL), math.floor((rect.x2 - 1) / CELL) do
+            local cell = { x1 = cx * CELL, y1 = cy * CELL, x2 = (cx + 1) * CELL, y2 = (cy + 1) * CELL }
+            if useful == nil or useful(cell) then out[#out + 1] = { cx = cx, cy = cy } end
+        end
+    end
+    return out
+end
+
+-- Farthest distance from (x, y) to a point of the rectangle.
+local function farthest(rect, x, y)
+    local fx = math.max(math.abs(x - rect.x1), math.abs(rect.x2 - x))
+    local fy = math.max(math.abs(y - rect.y1), math.abs(rect.y2 - y))
+    return math.sqrt(fx * fx + fy * fy)
+end
+
+-- Region of a ring around (x, y): square of half side max (as the scout draw), cells that may hold a building of the
+-- ring, cheap test of a footprint.
+local function ringRegion(around)
+    local x, y, min, max = around.x, around.y, around.min or 0, around.max
+    local here = pointRect(x, y)
+    local rect = { x1 = math.max(0, math.floor(x - max)), y1 = math.max(0, math.floor(y - max)),
+                   x2 = math.floor(x + max) + 1, y2 = math.floor(y + max) + 1 }
+    local function useful(cell) return gap(cell, here) <= max and farthest(cell, x, y) >= min end
+    return {
+        rect = rect,
+        cells = cellsOf(rect, useful),
+        fits = function(b)
+            local d = gap(b, here)
+            if d < min then return false, "too close" end
+            if d > max then return false, "too far" end
+            return true
+        end,
+    }
+end
+
+-- Region of a zone (both ends included): its cells, footprints crossing it, site point inside it.
+local function areaRegion(area)
+    local rect = { x1 = area.x1, y1 = area.y1, x2 = area.x2 + 1, y2 = area.y2 + 1 }
+    return {
+        rect = rect,
+        cells = cellsOf(rect),
+        fits = function(b)
+            if b.x1 >= rect.x2 or rect.x1 >= b.x2 or b.y1 >= rect.y2 or rect.y1 >= b.y2 then
+                return false, "outside the zone"
+            end
+            return true
+        end,
+        holds = function(site)
+            if site.x < area.x1 or site.x > area.x2 or site.y < area.y1 or site.y > area.y2 then
+                return false, "outside the zone"
+            end
+            return true
+        end,
+    }
+end
+
+Sites.ringCells = function(x, y, min, max) return ringRegion({ x = x, y = y, min = min, max = max }).cells end
+
+-- Buildings of these cells crossing the rectangle (Lua list, each once).
+local function cellBuildings(grid, cells, rect)
+    local out, seen = {}, {}
+    for _, c in ipairs(cells) do
+        local cell = grid:getCellData(c.cx, c.cy)
+        if cell then
+            local found = ArrayList.new()
+            cell:getBuildingsIntersecting(rect.x1, rect.y1, rect.x2 - rect.x1, rect.y2 - rect.y1, found)
+            for i = 0, found:size() - 1 do
+                local b = found:get(i)
+                if not seen[b] then
+                    seen[b] = true
+                    out[#out + 1] = b
+                end
+            end
+        end
+    end
+    return out
+end
+
+-- Rules after Sites.check, in order: the zone, the kind, the caller's own rule.
+local function siteRules(region, opts)
+    local rules = {}
+    if region.holds then rules[#rules + 1] = region.holds end
+    if opts.kind then
+        rules[#rules + 1] = function(site)
+            if site.kind ~= opts.kind then return false, "other kind" end
+            return true
+        end
+    end
+    if opts.accept then
+        rules[#rules + 1] = function(site)
+            local ok, why = opts.accept(site)
+            return ok, why or "refused by the caller"
+        end
+    end
+    return rules
+end
+
+-- First building of the list that fits, from a random start then consecutive ones; nil when none (ctx counts).
+local function examine(list, draw, ctx)
+    local n = #list
+    if n == 0 then return nil end
+    local start = draw(n)
+    for i = 0, n - 1 do
+        if ctx.attempts >= ctx.maxAttempts then return nil end
+        local b = list[(start + i) % n + 1]
+        local ok, why = ctx.region.fits(bounds(b))
+        local site
+        if ok then
+            ctx.attempts = ctx.attempts + 1
+            site, why = Sites.check(b, ctx.bases, ctx.opts, ctx.grid)
+            for _, rule in ipairs(site and ctx.rules or {}) do
+                ok, why = rule(site)
+                if not ok then
+                    site = nil
+                    break
+                end
+            end
+            if site then return site, b end
+        end
+        ctx.reasons[why] = (ctx.reasons[why] or 0) + 1
+    end
+    return nil
+end
+
+function Sites.draw(opts)
+    opts = opts or {}
+    if not opts.area and not opts.around then return nil, "no region" end
+    local grid = metaGrid()
+    if grid == nil then return nil, "no metagrid" end
+    local region = opts.area and areaRegion(opts.area) or ringRegion(opts.around)
+    local ctx = { region = region, opts = opts, grid = grid, bases = Sites.knownBases(opts), rules = siteRules(region, opts),
+                  attempts = 0, maxAttempts = opts.maxAttempts or Sites.CONFIG.DRAW_ATTEMPTS, cells = 0, reasons = {} }
+    local draw = drawer(opts.seed)
+    local maxCells = opts.maxCells or Sites.CONFIG.DRAW_CELLS
+    local cells = region.cells
+    local site, b
+    if #cells <= maxCells then
+        ctx.cells = #cells
+        site, b = examine(cellBuildings(grid, cells, region.rect), draw, ctx)
+    else
+        local left, filled = {}, 0
+        for i, c in ipairs(cells) do left[i] = c end
+        while site == nil and #left > 0 and filled < maxCells and ctx.attempts < ctx.maxAttempts do
+            local i = draw(#left) + 1
+            local c = left[i]
+            left[i] = left[#left]
+            left[#left] = nil
+            ctx.cells = ctx.cells + 1
+            local list = cellBuildings(grid, { c }, region.rect)
+            if #list > 0 then filled = filled + 1 end
+            site, b = examine(list, draw, ctx)
+        end
+    end
+    if site == nil then
+        return nil, "no suitable building (" .. ctx.cells .. " cell(s), " .. ctx.attempts .. " building(s) examined): "
+            .. reasonSummary(ctx.reasons)
+    end
+    site.attempts, site.cells = ctx.attempts, ctx.cells
+    if not opts.noClues then site.clues, site.clueData = Sites.clueData(b, grid) end
+    return site
 end
 
 -- Clues ----------------------------------------------------------------------------------------------------------

@@ -5,7 +5,7 @@
 - Build : 42.21.0 (Java décompilé **J/** = `<decompiled>\42.21.0\java\zombie\`) — Date : 2026-10-13 — Statut : brouillon, testé hors jeu seulement
 
 > **Évolution E20-T07 (2026-11-15, ADR D06/D07)** : un passage par marchand (`Trade.finishRun(id, …)`), lieu du
-> rendez-vous lu dans la fiche (lieu `use=landing` de la section `[trade]`, plus de `Trade.PIER`). La règle « personne à
+> rendez-vous lu dans la fiche (point commun de `personas/_places.txt` nommé par `landing=` de la section `[trade]`, plus de `Trade.PIER`). La règle « personne à
 > moins de 20 cases » et l'attente de 2 heures sont remplacées par celle d'E20-T05 : échange seulement **hors de vue de
 > tout joueur** (aucun joueur à moins de 100 cases en x et en y, ou case déchargée, `RS_OutOfSight`) **depuis
 > `delay_hours` heures de jeu** (fiche, sinon 1) ; dû pendant que la case est déchargée, il se fait au premier sondage où

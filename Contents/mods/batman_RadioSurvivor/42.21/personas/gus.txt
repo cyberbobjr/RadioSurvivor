@@ -25,13 +25,6 @@ call_one_in=8
 call_text=IGUI_RadioSurvivor_Call_Gus
 state=active
 
-# Ponton de Riverside (floors_interior_tilesandwood_01_40, x 6041-6042, y 5215-5220, eau à l'ouest ; bassin ouest de
-# l'Ohio, base knox-geography.md). Rendez-vous seulement : jamais donné comme repère par mark_map.
-[place riverside_pier]
-at=6041,5217,0
-label=Old wooden pier, west end of Riverside
-use=landing
-
 # Troc (E20-T07, docs/specifications-techniques/persona-format.md) : barème docs/specifications-techniques/passeur-table.md
 # section 3 ; poids lu par le serveur dans le script, liquide d'un récipient plein compris. Graines : 3 à 8 sachets,
 # 4 sortes au plus ; alcools : 1 à 4 bouteilles.

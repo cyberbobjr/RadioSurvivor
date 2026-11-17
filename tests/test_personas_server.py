@@ -45,6 +45,7 @@ LK_LUA = Path(__file__).resolve().parents[1] / 'Contents' / 'mods' / 'batman_Liv
 BUNDLED = MOD / 'personas'
 BOM_BYTES = bytes([0xEF, 0xBB, 0xBF])
 CATALOGUE = '_categories.txt'   # catalogue partagé des catégories d'objets (E20-T03)
+PLACES = '_places.txt'          # lieux communs à toutes les voix (E25-T01)
 PERSONAS_LUA = LUA / 'server/RadioSurvivor/RS_Personas.lua'
 sys.path.insert(0, str(ROOT / 'bridge'))
 import persona_store as store  # noqa: E402
@@ -170,8 +171,9 @@ class Harness(unittest.TestCase):
         if self.mod_dir is MOD and self.bundled is not None:
             self.mod_dir = self.tmp / 'mod'
             (self.mod_dir / 'personas').mkdir(parents=True)
-            # Le catalogue partagé est toujours livré avec le mod (E20-T03).
+            # Le catalogue partagé et les lieux communs sont toujours livrés avec le mod (E20-T03, E25-T01).
             shutil.copyfile(BUNDLED / CATALOGUE, self.mod_dir / 'personas' / CATALOGUE)
+            shutil.copyfile(BUNDLED / PLACES, self.mod_dir / 'personas' / PLACES)
             for name in self.bundled:
                 target = self.mod_dir / 'personas' / name
                 if name == 'walt.txt':
@@ -268,15 +270,17 @@ class BundledSheetTests(unittest.TestCase):
     def test_delivered_sheets_are_valid(self):
         # E05-T04 : les six voix, rien d'autre dans le dossier ; chacune valide (lecteur Python, mêmes règles que
         # RS_Persona.lua : tests/test_personas.py), UTF-8 sans BOM.
-        # E20-T03 : plus le catalogue partagé des catégories (_categories.txt), qui n'est pas une voix.
+        # E20-T03 : plus le catalogue partagé des catégories (_categories.txt), qui n'est pas une voix ; E25-T01 : plus
+        # les lieux communs (_places.txt), qui n'en sont pas une non plus.
         files = sorted(p.name for p in BUNDLED.iterdir() if p.is_file())
-        self.assertEqual(files, sorted([CATALOGUE] + [f'{vid}.txt' for vid in DeliveredVoicesServerTests.VOICES]))
-        bundled = [name for name in files if name != CATALOGUE]
+        self.assertEqual(files, sorted([CATALOGUE, PLACES] + [f'{vid}.txt' for vid in DeliveredVoicesServerTests.VOICES]))
+        places = store.load_places(BUNDLED / PLACES)
+        bundled = [name for name in files if name not in (CATALOGUE, PLACES)]
         for name in bundled:
             with self.subTest(name):
                 raw = (BUNDLED / name).read_bytes()
                 self.assertFalse(raw.startswith(BOM_BYTES), name)
-                self.assertEqual(store.parse_bytes(raw, name[:-4]).id, name[:-4])
+                self.assertEqual(store.parse_bytes(raw, name[:-4], places).id, name[:-4])
 
     def test_single_copy_of_the_sheets(self):
         # E05-T10 : plus de copie dans bridge/ (ni bridge/personas/, ni le prompt de secours bridge/persona.txt).
@@ -308,7 +312,7 @@ class InstallTests(Harness):
         self.assertEqual(self.served('walt'), [145000])
         self.assertEqual([int(f) for f in lua_list(self.g.NAMES_REMOVED)], [145000])
         self.assertEqual(self.talk(), [145000])
-        self.assertEqual(len(self.logs_with('installed the bundled sheet')), 1)
+        self.assertEqual(len(self.logs_with('installed the bundled sheet')), 2)   # walt.txt et _places.txt (E25-T01)
         walt = self.P.get('walt')
         self.assertEqual((walt.state, walt.call_one_in, walt.call_text), ('active', 3, 'IGUI_RadioSurvivor_Call'))
 
@@ -319,7 +323,7 @@ class InstallTests(Harness):
         self.load_world()  # second chargement du monde
         self.assertEqual((self.dir / 'walt.txt').read_text(encoding='utf-8'), admin)
         self.assertEqual(self.freqs(), [150000])
-        self.assertEqual(self.logs_with('installed'), [])
+        self.assertEqual(self.logs_with('installed the bundled sheet batman_RadioSurvivor/personas/walt.txt'), [])
 
     def test_invalid_admin_sheet_not_overwritten_either(self):
         self.write('walt.txt', 'broken\n')
@@ -572,7 +576,8 @@ class FingerprintTests(Harness):
     def test_initial_copy_records_the_fingerprints(self):
         self.load_world()
         self.assertEqual(self.installed('walt.txt'), WALT_FIXED)
-        self.assertEqual(self.record(), f'RSFP1\ngus.txt {fingerprint(self.delivered("gus.txt"))}\n'
+        self.assertEqual(self.record(), f'RSFP1\n{PLACES} {fingerprint(self.delivered(PLACES))}\n'
+                                        f'gus.txt {fingerprint(self.delivered("gus.txt"))}\n'
                                         f'walt.txt {fingerprint(WALT_FIXED)}\n')
         # Le fichier d'empreintes est hors du dossier des fiches : jamais lu comme une voix.
         self.assertEqual(self.record_path.parent, self.dir.parent)
@@ -666,6 +671,71 @@ class FingerprintTests(Harness):
         self.load_world()
         self.assertEqual(self.installed('walt.txt'), WALT_FIXED)
         self.assertEqual(len(self.logs_with('is damaged (line 1: expected RSFP1)')), 1)
+
+
+class SharedPlacesTests(Harness):
+    """E25-T01 (ADR lieux communs D06) : le fichier commun des lieux est installé et mis à jour comme une fiche livrée,
+    relu toutes les 30 s avec les fiches ; une voix qui nomme un lieu absent est refusée avec sa ligne ; un fichier des
+    lieux refusé garde les derniers lieux valides."""
+
+    bundled = ('walt.txt', 'gus.txt')
+
+    def places_text(self) -> str:
+        return (self.dir / PLACES).read_text(encoding='utf-8')
+
+    def write_places(self, text: str):
+        self.write(PLACES, text)
+
+    def test_installed_and_read_before_the_voices(self):
+        self.load_world()
+        self.assertEqual((self.dir / PLACES).read_bytes(), (BUNDLED / PLACES).read_bytes())
+        self.assertEqual(self.P.get('gus').trade.landings[1].id, 'riverside_pier')
+        self.assertEqual(self.P.places().riverside_pier.label, 'Old wooden pier, west end of Riverside')
+        self.assertEqual(self.logs_with('refused'), [])
+
+    def test_admin_copy_kept_and_unmodified_copy_updated(self):
+        self.load_world()
+        delivered = (self.mod_dir / 'personas' / PLACES).read_text(encoding='utf-8')
+        (self.mod_dir / 'personas' / PLACES).write_text(delivered + '[place spare]\nat=1,2,0\nlabel=Spare\n',
+                                                       encoding='utf-8')
+        self.load_world()
+        self.assertIn('[place spare]', self.places_text())
+        self.assertEqual(len(self.logs_with("INFO: shared places file '_places.txt' updated to the delivered version")),
+                         1)
+        self.write_places(self.places_text() + '[place admin]\nat=3,4,0\nlabel=Admin place\n')
+        (self.mod_dir / 'personas' / PLACES).write_text(delivered, encoding='utf-8')
+        self.load_world()
+        self.assertIn('[place admin]', self.places_text())
+        self.assertEqual(len(self.logs_with("WARNING: shared places file '_places.txt' modified by the admin, "
+                                            'delivered version not applied')), 1)
+
+    def test_a_removed_place_refuses_the_voice_that_names_it(self):
+        self.load_world()
+        lines = self.places_text().splitlines()
+        start = lines.index('[place riverside_pier]')
+        self.write_places('\n'.join(lines[:start] + lines[start + 3:]) + '\n')
+        self.after(30000)
+        gus = (self.dir / 'gus.txt').read_text(encoding='utf-8').splitlines()
+        line = gus.index('landing=riverside_pier') + 1
+        refused = self.logs_with('gus.txt refused')
+        self.assertEqual(len(refused), 1)
+        self.assertIn(f"line {line}: unknown place 'riverside_pier'; the previous valid version stays in service",
+                      refused[0])
+        self.assertEqual(self.P.get('gus').trade.landings[1].id, 'riverside_pier')
+
+    def test_refused_places_keep_the_last_valid_ones(self):
+        self.load_world()
+        self.write_places(self.places_text() + '[place broken]\nlabel=No spot\n')
+        self.after(30000)
+        line = self.places_text().splitlines().index('[place broken]') + 1
+        refused = self.logs_with('_places.txt refused')
+        self.assertEqual(len(refused), 1)
+        self.assertIn(f"line {line}: missing key 'at' or 'area' in [place broken]; the previous valid places stay in"
+                      ' service', refused[0])
+        self.assertEqual(self.P.places().riverside_pier.x, 6041)
+        self.after(30000)
+        self.assertEqual(len(self.logs_with('_places.txt refused')), 1, 'same error logged again')
+        self.assertEqual(self.logs_with('gus.txt refused'), [])
 
 
 # E20-T11 : marchands des villes, livrés pour la première fois avec le fichier d'empreintes (E05-T11) : jamais
@@ -858,7 +928,7 @@ class DeliveredVoicesServerTests(ServerHarness):
         self.assertEqual(self.talk()[0], 77000)  # Walt d'abord
         self.assertEqual(sorted(self.talk()), everything)  # whitaker (silent) compris
         self.assertEqual(self.P.get('whitaker').state, 'silent')
-        self.assertEqual(len(self.logs_with('installed the bundled sheet')), len(self.VOICES))
+        self.assertEqual(len(self.logs_with('installed the bundled sheet')), len(self.VOICES) + 1)  # + _places.txt
         self.assertEqual(self.logs_with('refused') + self.logs_with('ERROR'), [])
 
     def test_routing_to_the_new_voices(self):

@@ -9,9 +9,10 @@ the test are removed there by the same steps); the notebook character of the cal
 server branch (base rs.actions.map of the phased MP run, below); after-reload stays solo only.
 
 rs.actions.map (tag "world": solo save named rstest*)
-    - a test sheet read by the real parser (RS_Persona.parseLines) with one [place] section, a few squares from the
-      player; RS_Actions.decide accepts mark_map for that place (reason ok): the map of the player gets the vanilla
-      icon (RS_MapActions.ICON) and the label at the centre of the square, once;
+    - a test sheet read by the real parser (RS_Persona.parseLines) naming one shared place (marks=, place read by
+      RS_Persona.parsePlaces), a few squares from the player; RS_Actions.decide accepts mark_map for that place
+      (reason ok): the map of the player gets the vanilla icon (RS_MapActions.ICON) and the label at the centre of
+      the square, once;
     - a second mark of the same place adds nothing (RS_MapActions.mark gives "present"); a second decision within
       the delay of the voice is refused "cooldown";
     - an id that is not a place of the sheet is refused "bad_params", a sheet without mark_map "not_allowed": no
@@ -140,13 +141,16 @@ local function solo(t)
 end
 
 -- Test sheet read by the real parser; voice id unique per run (the delay of a voice is kept for the session).
+-- E25-T01: the place lives in a shared places file (read by Persona.parsePlaces), named by marks= of the sheet.
 local function testSheet(t, x, y, label, actions)
     local Persona = require "RadioSurvivor/RS_Persona"
+    local places, bad = Persona.parsePlaces({ "format=1", "[place " .. PLACE_ID .. "]",
+        "at=" .. tostring(x) .. "," .. tostring(y) .. ",0", "label=" .. label })
+    t:ok(places ~= nil, "test places refused: " .. tostring(bad))
     local id = "rstest_map_" .. string.format("%.0f", getTimestampMs())
     local lines = { "format=1", "id=" .. id, "name=RST Map", "frequency=199.8", "actions=" .. (actions or "say,mark_map"),
-        "[place " .. PLACE_ID .. "]", "at=" .. tostring(x) .. "," .. tostring(y) .. ",0", "label=" .. label,
-        "use=mark", "[prompt]", "Test voice of rs.actions.map." }
-    local sheet, why = Persona.parseLines(lines, id)
+        "marks=" .. PLACE_ID, "[prompt]", "Test voice of rs.actions.map." }
+    local sheet, why = Persona.parseLines(lines, id, { places = places })
     t:ok(sheet ~= nil, "test sheet refused: " .. tostring(why))
     t:defer(function()
         local S = require "RadioSurvivor/RS_State"

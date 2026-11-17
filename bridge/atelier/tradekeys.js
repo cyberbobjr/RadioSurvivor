@@ -12,6 +12,7 @@ import { h } from './dom.js';
 import { hint } from './help.js';
 import { addItemsButton, itemChoice } from './itempicker.js';
 import * as paquets from './paquets.js';
+import { placeChecks } from './placeform.js';
 import * as sheet from './sheet.js';
 import { stepChoice } from './stepchoice.js';
 import { formatList, formatStockItem, formatTimeRange, parseList, parseStockItem, parseTimeRange } from './values.js';
@@ -22,9 +23,6 @@ import { button, checkboxes, lineEditor, rangeStepper, removeButton, stepper, te
 const SELLABLE_NOTE = 'browser.sellable_only';
 // Names of a category's items in its tooltip, at most this many.
 const MAX_TIP_NAMES = 30;
-
-// Use of a place ([place] use=) that makes it a trade meeting point (RS_Persona tradeLanding).
-const LANDING_USE = 'landing';
 
 // Item lines of a list: the item as a read-only label (a click replaces it, itempicker.js), then `cells`; the add button
 // (`addLabel`) opens the item browser in multiple choice, `toLine(type)` making the line of a ticked item. `offered(catalog)`
@@ -157,23 +155,14 @@ function lots(ctx, section) {
       } }, t('lot.add'))));
 }
 
-// Meeting places: check boxes of the voice's places used as trade meeting points, or a button that makes one (its name
-// and use set, its square to give in the places step).
+// Meeting places (landing=, E25-T03): shared points ticked in a list, or made with "New place…" (D05: points only).
 function landing(ctx, section, key) {
-  const { t, model, changed } = ctx;
-  const spots = voice.places(model).filter((p) => p.uses.includes(LANDING_USE));
-  if (!spots.length) {
-    return h('div', { class: 'stack' }, h('p', { class: 'warnline', text: t('trade.no_landing') }),
-      h('div', {}, button('neutral', { class: 'to-places', onClick: () => {
-        const place = voice.addPlace(model, { label: t('use.landing'), at: { x: '', y: '', z: '0' }, uses: [LANDING_USE] });
-        sheet.setValue(section, key, place.id);
-        ctx.ui.new_place = place.id;
-        changed();
-        ctx.show('place');
-      } }, t('trade.make_landing'))));
-  }
-  return checkboxes(spots.map((p) => ({ value: p.id, label: p.label || voice.labelOf(p.id) })), parseList(sheet.value(section, key)),
-    (list) => { sheet.setValue(section, key, formatList(list)); changed(); }, { class: 'checks landing' });
+  const { changed, rerender } = ctx;
+  return placeChecks(ctx, parseList(sheet.value(section, key)), (list) => {
+    sheet.setValue(section, key, formatList(list));
+    changed();
+    rerender();
+  }, { points: true });
 }
 
 function meetingHours(ctx, section, key) {

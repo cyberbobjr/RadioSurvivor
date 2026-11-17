@@ -17,13 +17,6 @@ actions=say,propose_trade,share_frequency
 shares=gus,lamar
 state=active
 
-# Lieu du rendez-vous relevé sur la carte 42.22 (lotheader 46_25 ; ponton floors_interior_tilesandwood_01_41 x 11827-11828, y 6574-6591, eau blends_natural_02_0 (water) de part et d'autre, rive y 6592).
-# Rendez-vous seulement : jamais donné comme repère par mark_map.
-[place westpoint_jetty]
-at=11827,6588,0
-label=Wooden jetty north of West Point
-use=landing
-
 # Troc (E20-T11) : barème docs/specifications-techniques/passeur-table.md section 3.
 [trade]
 landing=westpoint_jetty

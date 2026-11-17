@@ -1,8 +1,8 @@
-// What the assistant does to a sheet model: a new voice, its places, missions and reward pool. Pure module on top of
+// What the assistant does to a sheet model: a new voice, the shared places it names, its missions and reward pool. Pure module on top of
 // sheet.js (syntax) and values.js (value shapes); the page (steps/*.js) and the node benches both use it.
 
 import * as sheet from './sheet.js';
-import { DEFAULT_CHANCE, formatAt, formatList, formatPool, parseAt, parseList, parsePool } from './values.js';
+import { DEFAULT_CHANCE, formatList, formatPool, parseList, parsePool } from './values.js';
 
 const ID_SAFE = /[^a-z0-9_]+/g;
 
@@ -73,24 +73,20 @@ export function uniqueId(model, kind, base) {
   for (let n = 2; ; n += 1) if (!taken.has(`${base}_${n}`)) return `${base}_${n}`;
 }
 
-// --- places ---------------------------------------------------------------------------------------------------------
-export function places(model) {
-  return sheet.sectionsOf(model, 'place').map((s) => ({
-    section: s, id: s.id, label: sheet.value(s, 'label') ?? '', at: parseAt(sheet.value(s, 'at')),
-    uses: parseList(sheet.value(s, 'use')),
-  }));
+// --- places the voice names (E25-T03: shared places of personas/_places.txt, places.js) ----------------------------
+// Marks (marks=): the shared places the voice may give on the map, in order.
+export function marks(model) {
+  return parseList(sheet.value(model.head, 'marks'));
 }
 
-export function addPlace(model, { id, label = '', at = null, uses = [] } = {}) {
-  const created = sheet.addSection(model, 'place', uniqueId(model, 'place', id || slug(label, 'place')));
-  setPlace(created, { label, at, uses });
-  return created;
+export function setMarks(model, ids) {
+  sheet.setValue(model.head, 'marks', formatList(ids));
 }
 
-export function setPlace(section, { label, at, uses }) {
-  if (at !== undefined && at !== null) sheet.setValue(section, 'at', formatAt(at));
-  if (label !== undefined) sheet.setValue(section, 'label', label);
-  if (uses !== undefined) sheet.setValue(section, 'use', formatList(uses));
+// Where the voice hides a cache reward ([rewards] cache_place=, a point); kept only while the voice has a pool.
+export function setCachePlace(model, id) {
+  const rewards = sheet.section(model, 'rewards');
+  if (rewards) sheet.setValue(rewards, 'cache_place', id || null);
 }
 
 // --- missions -------------------------------------------------------------------------------------------------------

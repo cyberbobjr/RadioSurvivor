@@ -4,10 +4,12 @@
 
 The pure ES modules of the page run in node (skipped when node is missing):
 - sheet.js reads and writes back every shipped sheet unchanged (comments, blank lines, unknown keys, order);
-- a voice built from scratch with the assistant's model operations (voice.js: head, two places, a deliver mission
-  with dead drops, a barricade mission after it, a reward pool) is accepted by the REAL game reader (RS_Persona.lua in
-  lupa, loader of tools/gen_atelier_catalog.py with every mission template) and by the bridge reader;
-- checks.js finds the expected message keys on a broken sheet and nothing on the shipped sheets;
+- a voice built from scratch with the assistant's model operations (voice.js: head, marks, a deliver mission with
+  dead drops, a barricade mission after it, objectives in a zone and far from the player with a building kind, a reward
+  pool with its cache place) over shared places made by places.js (E25-T03) is accepted by the REAL game reader
+  (RS_Persona.lua in lupa, loader of tools/gen_atelier_catalog.py with every mission template) and by the bridge reader;
+- checks.js finds the expected message keys on a broken sheet and nothing on the shipped sheets (read with the shipped
+  shared places);
 - every i18n key the scripts use exists in i18n/fr.json and i18n/en.json, which hold the same keys.
 The browser smoke test (Playwright) is tools/atelier_smoke.py, outside the suite.
 """
@@ -52,6 +54,7 @@ def node_prelude() -> str:
             f"import * as sheet from '{module_url('sheet.js')}';\n"
             f"import * as voice from '{module_url('voice.js')}';\n"
             f"import {{ check }} from '{module_url('checks.js')}';\n"
+            f"import * as places from '{module_url('places.js')}';\n"
             f"import {{ createCatalog }} from '{module_url('catalog.js')}';\n"
             f"const catalog = createCatalog(JSON.parse(fs.readFileSync({json.dumps(str(ATELIER / 'catalog.json'))}, 'utf8')));\n")
 
@@ -60,26 +63,31 @@ def shipped_sheets() -> list[Path]:
     return sorted(p for p in SHIPPED.glob('*.txt') if not p.name.startswith('_'))
 
 
-def game_reads(text: str, voice_id: str):
-    """Sheet `text` saved as <voice_id>.txt and read by the real RS_Persona.readFile with the server rules and every
-    mission template of the mod: Lua table, or (None, reason)."""
+def game_reads(text: str, voice_id: str, places: str | None = None):
+    """Sheet `text` saved as <voice_id>.txt next to the shared places `places` (_places.txt; None: the shipped one)
+    and read by the real RS_Persona.readFile with the server rules and every mission template of the mod: Lua table, or
+    (None, reason)."""
     import gen_atelier_catalog as gen
     from test_personas import LuaReader
     with tempfile.TemporaryDirectory() as tmp:
         folder = Path(tmp)
         (folder / f'{voice_id}.txt').write_bytes(text.encode('utf-8'))
+        (folder / '_places.txt').write_bytes(places.encode('utf-8') if places is not None
+                                             else (SHIPPED / '_places.txt').read_bytes())
         lua = gen.load_mod()
         lua.rt.globals().getFileReader = lambda name, create: (
             LuaReader(folder / name) if (folder / name).is_file() else None)
+        lua.folder = folder     # the shared places of this folder (LuaPersona.places)
         result = lua.read(f'{voice_id}.txt')
         return result if isinstance(result, tuple) else ('OK', lua.canonical(result))
 
 
-def bridge_reads(text: str, voice_id: str):
+def bridge_reads(text: str, voice_id: str, places: str):
     import persona_store
     with tempfile.TemporaryDirectory() as tmp:
         path = Path(tmp) / f'{voice_id}.txt'
         path.write_bytes(text.encode('utf-8'))
+        (Path(tmp) / '_places.txt').write_bytes(places.encode('utf-8'))
         return persona_store.load_file(path)
 
 
@@ -88,17 +96,25 @@ const model = voice.newVoice({ id: 'bench_voice', name: 'Bench Voice', radio: ca
   format: catalog.sheet.format });
 sheet.setDescription(model, 'A voice built by the bench, step by step');
 sheet.setValue(model.head, 'listen', '07:00-10:00,22:00-02:00');
-sheet.setValue(model.head, 'actions', 'say,start_mission');
-const mill = voice.addPlace(model, { label: 'Old mill', at: { x: '10600', y: '9300', z: '0' }, uses: ['mark', 'target'] });
-const drop = voice.addPlace(model, { label: 'Dumpster behind the mill', at: { x: '10610', y: '9305', z: '0' }, uses: ['drop'] });
+sheet.setValue(model.head, 'actions', 'say,start_mission,mark_map');
+const shared = places.newPlacesFile(catalog.sheet.format);
+const mill = places.addPlace(shared, { label: 'Old mill', kind: 'point', at: { x: '10600', y: '9300', z: '0' } });
+const drop = places.addPlace(shared, { label: 'Dumpster behind the mill', kind: 'point', at: { x: '10610', y: '9305', z: '0' } });
+const town = places.addPlace(shared, { label: 'Mill town', kind: 'zone', z: '0',
+  area: { x1: '10800', y1: '9500', x2: '10500', y2: '9200' } });
+voice.setMarks(model, [mill.id, town.id]);
 const deliver = voice.addMission(model, 'deliver', { items: 'medical', quantity: '2-4', drops: drop.id,
   story: 'Leave some bandages by the dumpster.' });
 voice.addMission(model, 'barricade', { target: mill.id, count: '4', after: deliver.id, story: 'Board up the mill.' });
+voice.addMission(model, 'scout', { target: town.id, building: 'house', story: 'Look around the mill town.' });
+voice.addMission(model, 'clear', { target: 'far', building: 'church', story: 'Clear a church far away.' });
 voice.setPool(model, [{ kind: 'cache', param: 'medical', weight: '2' }, { kind: 'lesson', param: 'Doctor', weight: '1' },
   { kind: 'stashmap', param: '', weight: '1' }]);
+voice.setCachePlace(model, drop.id);
 const text = sheet.serialize(model);
-console.log(JSON.stringify({ text, checks: check(model, catalog, 'bench_voice'),
-  again: sheet.serialize(sheet.parse(text)) === text, places: voice.places(model).map((p) => p.id),
+console.log(JSON.stringify({ text, places: places.serialize(shared),
+  checks: check(model, catalog, 'bench_voice', places.list(shared)),
+  again: sheet.serialize(sheet.parse(text)) === text, marks: voice.marks(model),
   missions: voice.missions(model).map((m) => m.id) }));
 """
 
@@ -108,11 +124,7 @@ frequency=145.1
 radio=sometimes
 listen=07:00-07:00
 colour=red
-
-[place mill]
-at=1,2
-label=Mill
-use=target
+marks=ghost
 
 [mission m1]
 type=teleport
@@ -121,6 +133,8 @@ type=teleport
 type=barricade
 count=-1
 after=ghost
+target=mill
+building=house
 
 [mission m3]
 type=deliver
@@ -131,19 +145,28 @@ quantity=4-2
 type=route
 points=mill
 
+[mission m5]
+type=retrieve
+drops=town
+target=nowhere
+
 [rewards]
 pool=cache:nothing:1, lesson:Juggling:1, frequency:0, gold:1
 
 [prompt]
 """
 
+# Shared places of the broken sheet: a point and a zone.
+BROKEN_PLACES = 'format=1\n[place mill]\nat=1,2,0\nlabel=Mill\n[place town]\narea=1,1,9,9,0\nlabel=Town\n'
+
 BROKEN_EXPECTED = {
     ('check.missing_key', 'name'), ('check.radio_and_frequency', None), ('check.bad_frequency', None),
     ('check.bad_choice', 'radio'),
-    ('check.bad_hours', None), ('check.unknown_key', 'colour'), ('check.bad_at', None),
-    ('check.unknown_type', None), ('check.needs_target', None), ('check.bad_count', 'count'),
+    ('check.bad_hours', None), ('check.unknown_key', 'colour'), ('check.unknown_place', 'marks'),
+    ('check.unknown_type', None), ('check.bad_count', 'count'), ('check.building_needs_zone', None),
     ('check.unknown_mission', None), ('check.needs_drop', None), ('check.unknown_category', 'items'),
-    ('check.bad_range', 'quantity'), ('check.too_few_places', 'points'), ('check.unknown_category', 'cache'),
+    ('check.bad_range', 'quantity'), ('check.too_few_places', 'points'), ('check.place_is_zone', 'drops'),
+    ('check.unknown_place', 'target'), ('check.unknown_category', 'cache'), ('check.needs_cache_place', None),
     ('check.unknown_skill', 'lesson'), ('check.bad_weight', 'frequency'), ('check.unknown_reward', None),
     ('check.no_prompt', None),
 }
@@ -156,11 +179,12 @@ class AtelierPureModulesTests(unittest.TestCase):
         self.assertEqual(len(sheets), 16)
         script = node_prelude() + f"""
 const out = {{}};
+const shared = places.list(places.parsePlaces(fs.readFileSync({json.dumps(str(SHIPPED / '_places.txt'))}, 'utf8')));
 for (const path of {json.dumps([str(p) for p in sheets])}) {{
   const text = sheet.normalizeText(fs.readFileSync(path, 'utf8'));
   const model = sheet.parse(text);
   out[path] = {{ same: sheet.serialize(model) === text, sections: model.sections.length,
-    prompt: sheet.promptText(model).length, checks: check(model, catalog, path.replace(/^.*[\\\\/]|\\.txt$/g, '')) }};
+    prompt: sheet.promptText(model).length, checks: check(model, catalog, path.replace(/^.*[\\\\/]|\\.txt$/g, ''), shared) }};
 }}
 console.log(JSON.stringify(out));
 """
@@ -176,21 +200,27 @@ console.log(JSON.stringify(out));
         built = run_node(BUILD_SCRIPT)
         self.assertEqual(built['checks'], [])
         self.assertTrue(built['again'])
-        self.assertEqual(built['places'], ['old_mill', 'dumpster_behind_the_mill'])
-        self.assertEqual(built['missions'], ['deliver', 'barricade'])
+        self.assertEqual(built['marks'], ['old_mill', 'mill_town'])
+        self.assertEqual(built['missions'], ['deliver', 'barricade', 'scout', 'clear'])
         text = built['text']
         self.assertIn('[mission barricade]\ntype=barricade\ntarget=old_mill\ncount=4\nafter=deliver', text)
+        self.assertIn('[mission clear]\ntype=clear\ntarget=far\nbuilding=church', text)
+        self.assertIn('\nmarks=old_mill,mill_town\n', text)
+        self.assertIn('[rewards]\npool=cache:medical:2, lesson:Doctor:1, stashmap:1\ncache_place=dumpster_behind_the_mill',
+                      text)
         self.assertTrue(text.startswith('# A voice built by the bench, step by step\nformat=1\nid=bench_voice\n'))
         self.assertIn('\nradio=any_talkie\n', text)   # E24-T01: default radio, everybody hears it
-        status, detail = game_reads(text, 'bench_voice')
-        self.assertEqual(status, 'OK', f'game reader refused the built sheet: {detail}\n{text}')
-        sheet = bridge_reads(text, 'bench_voice')
+        status, detail = game_reads(text, 'bench_voice', built['places'])
+        self.assertEqual(status, 'OK', f'game reader refused the built sheet: {detail}\n{text}\n{built["places"]}')
+        sheet = bridge_reads(text, 'bench_voice', built['places'])
         self.assertEqual((sheet.id, sheet.name), ('bench_voice', 'Bench Voice'))
+        self.assertEqual([p.id for p in sheet.marks], ['old_mill', 'mill_town'])
 
     def test_checks_give_the_expected_message_keys(self):
         script = node_prelude() + f"""
 const model = sheet.parse({json.dumps(BROKEN_SHEET)});
-console.log(JSON.stringify(check(model, catalog, 'broken')));
+const shared = places.list(places.parsePlaces({json.dumps(BROKEN_PLACES)}));
+console.log(JSON.stringify(check(model, catalog, 'broken', shared)));
 """
         found = run_node(script)
         keys = {(c['key'], c['args'].get('name')) for c in found}
@@ -278,24 +308,27 @@ console.log(JSON.stringify(['7966, 11751', '7966, 11751, 1', '7966;11751', ' 796
 
     def test_details_sent_with_a_suggestion_fit_the_server(self):
         """E24-T04: the details of a "Suggest" are flat strings the server takes (16 keys at most, keys [a-z_], values
-        cut at 600 characters, empty ones left out); a place says its uses in words and its square only when known."""
+        cut at 600 characters, empty ones left out); a shared place (E25-T03) says in words whether it is a spot or an
+        area, its square or its corners only when known, and the voices that use it."""
         script = node_prelude() + f"""
 import {{ forAi, placeDetails, suggestDetails }} from '{module_url('ai.js')}';
 const many = Object.fromEntries(Array.from({{ length: 20 }}, (_, i) => ['k_' + String.fromCharCode(97 + i), 'v']));
-const t = (key) => ({{ 'use.drop': 'Dead drop', 'use.mark': 'Map mark' }})[key] ?? key;
+const t = (key) => ({{ 'places.kind.point': 'A spot', 'places.kind.zone': 'An area' }})[key] ?? key;
 console.log(JSON.stringify({{
   cleaned: suggestDetails({{ mission_number: 2, empty: '', none: null, 'Bad-Key': 'x', long: 'a'.repeat(700) }}),
   count: Object.keys(suggestDetails(many)).length,
-  place: placeDetails(t, ['drop', 'mark'], {{ x: '7966', y: '11751', z: '' }}),
-  noSquare: suggestDetails(placeDetails(t, ['drop'], {{ x: '', y: '', z: '0' }})),
+  place: suggestDetails(placeDetails(t, {{ kind: 'point', at: {{ x: '7966', y: '11751', z: '' }} }}, ['Cody', 'Darlene'])),
+  zone: suggestDetails(placeDetails(t, {{ kind: 'zone', area: {{ x1: '1', y1: '2', x2: '30', y2: '40' }}, z: '1' }}, [])),
+  noSquare: suggestDetails(placeDetails(t, {{ kind: 'point', at: {{ x: '', y: '', z: '0' }} }}, [])),
   line: forAi('Tune in %1 tonight'),
 }}));
 """
         got = run_node(script)
         self.assertEqual(got['cleaned'], {'mission_number': '2', 'long': 'a' * 600})
         self.assertEqual(got['count'], 16)
-        self.assertEqual(got['place'], {'uses': 'Dead drop, Map mark', 'map_square': '7966,11751,0'})
-        self.assertEqual(got['noSquare'], {'uses': 'Dead drop'})
+        self.assertEqual(got['place'], {'where': 'A spot', 'map_square': '7966,11751,0', 'used_by': 'Cody, Darlene'})
+        self.assertEqual(got['zone'], {'where': 'An area', 'map_area': '1,2 - 30,40, floor 1'})
+        self.assertEqual(got['noSquare'], {'where': 'A spot'})
         self.assertEqual(got['line'], 'Tune in {frequency} tonight')
 
     def test_chances_stock_lines_and_mission_weights(self):

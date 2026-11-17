@@ -7,7 +7,8 @@
   read from its end, at most 200 records;
 - GET /api/surveys of bridge/atelier_server.py serves them (empty list without a survey source) and never writes;
 - radio_bridge.main puts the survey file next to the voice sheets' folder (Zomboid/Lua/batman_RadioSurvivor);
-- bridge/atelier/surveys.js (node, skipped without it) suggests the name and the uses of a place from a record.
+- bridge/atelier/surveys.js (node, skipped without it) suggests the name of a shared place from a record (E25-T03: the
+  Places tab).
 The format shared with the game is checked against the real Lua writer in tests/test_rs_place_survey.py.
 """
 from __future__ import annotations
@@ -173,18 +174,18 @@ class SuggestionTests(unittest.TestCase):
     def suggest(self, records: list[dict]) -> list[dict]:
         t = {k: v for k, v in json.loads((ATELIER / 'i18n' / 'en.json').read_text(encoding='utf-8')).items()
              if k.startswith('surveys.')}
-        script = (f"import {{ suggestedLabel, suggestedUses, cutBytes }} from '{(ATELIER / 'surveys.js').as_uri()}';\n"
+        script = (f"import {{ suggestedLabel, cutBytes }} from '{(ATELIER / 'surveys.js').as_uri()}';\n"
                   f"const strings = {json.dumps(t)};\n"
                   "const t = (k) => strings[k] ?? k;\n"
                   f"const records = {json.dumps(records)};\n"
-                  "console.log(JSON.stringify(records.map((r) => ({ label: suggestedLabel(r, t), uses: suggestedUses(r),"
+                  "console.log(JSON.stringify(records.map((r) => ({ label: suggestedLabel(r, t),"
                   " bytes: new TextEncoder().encode(suggestedLabel(r, t)).length }))));")
         done = subprocess.run([NODE, '--input-type=module', '-e', script], capture_output=True, text=True,
                               encoding='utf-8', timeout=60)
         self.assertEqual(done.returncode, 0, done.stderr)
         return json.loads(done.stdout)
 
-    def test_label_and_uses_from_what_was_recorded(self):
+    def test_label_from_what_was_recorded(self):
         base = {'at': {'x': 1, 'y': 2, 'z': 0}, 'room': None, 'building': None, 'containers': []}
         out = self.suggest([
             {**base, 'containers': [{'type': 'bin', 'sprite': 'trash_01_0'}]},
@@ -197,8 +198,6 @@ class SuggestionTests(unittest.TestCase):
         ])
         self.assertEqual([o['label'] for o in out[:5]], ['Bin', 'Fridge - Kitchen', 'Living room', 'Building',
                                                          'Outdoor spot'])
-        self.assertEqual([o['uses'] for o in out], [['drop'], ['drop'], ['target', 'mark'], ['target', 'mark'],
-                                                    ['mark'], ['drop']])
         self.assertEqual(out[5]['bytes'], 48)          # cut to the 48 bytes of label=, never inside a character
 
 

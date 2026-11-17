@@ -21,8 +21,9 @@ export function createCatalog(data) {
     name, params: missionTypes[name].params ?? {}, setups: missionTypes[name].setups ?? [],
     voiceText: missionTypes[name].voiceText ?? '',
   } : null);
-  // Reward kind and the kind of its parameter (null: none).
-  const rewardKind = (name) => (rewardKinds[name] ? { name, param: rewardKinds[name].param ?? null } : null);
+  // Reward kind, the kind of its parameter (null: none) and whether it needs the voice's cache_place= (E25-T01).
+  const rewardKind = (name) => (rewardKinds[name]
+    ? { name, param: rewardKinds[name].param ?? null, place: Boolean(rewardKinds[name].place) } : null);
   // Item types a trader can sell (a sale value in CA_TradeValues, E22-T17): RS_Trade refuses every other one.
   const sellable = new Set(data.sellable ?? []);
   let itemIndex = null;
@@ -70,7 +71,11 @@ export function createCatalog(data) {
       } : null;
     },
     sectionKinds: () => Object.keys(sections),
-    placeUses: () => (sections.place?.choices?.use) ?? [],
+    // Shared places file personas/_places.txt (E25-T01): keys, one of at= / area=, zone side and label limits.
+    placeGrammar: () => ({ oneOf: [], maxAreaSide: 1500, maxLabelBytes: 48, ...(data.places ?? {}) }),
+    // Drawn objectives of a mission (target=, E25-T01): near, far, very_far; building kinds of such a draw (building=).
+    distances: () => data.distances ?? [],
+    buildings: () => (sections.mission?.choices?.building) ?? [],
     arrivals: () => (sections.trade?.choices?.arrival) ?? [],
 
     // Radio a voice needs (E24-T01, RS_RadioLevels of the mod): [{id, minKhz, maxKhz, zones}], weakest first. The

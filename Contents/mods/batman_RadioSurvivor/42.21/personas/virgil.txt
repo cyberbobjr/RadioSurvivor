@@ -17,13 +17,6 @@ actions=say,propose_trade,share_frequency
 shares=boone,ezra
 state=active
 
-# Lieu du rendez-vous relevé sur la carte 42.22 (lotheader 10_55 ; herbe blends_natural_01_37 hors de toute pièce, au bord nord de la route blends_street_01_85 (y 14096-14101), sortie est de la ville).
-# Rendez-vous seulement : jamais donné comme repère par mark_map.
-[place irvington_roadside]
-at=2620,14095,0
-label=Roadside east of Irvington
-use=landing
-
 # Troc (E20-T11) : barème docs/specifications-techniques/passeur-table.md section 3.
 [trade]
 landing=irvington_roadside

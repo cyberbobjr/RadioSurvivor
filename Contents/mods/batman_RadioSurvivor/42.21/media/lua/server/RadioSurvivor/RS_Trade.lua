@@ -4,10 +4,11 @@
 -- docs/specifications-techniques/persona-format.md.
 --
 -- Marchand = voix dont la fiche a une section [trade] (RS_Persona : sheet.trade = spec) : lieux de rendez-vous
--- (use=landing), mode d'arrivee (registre RS_TradeArrivals), cadence (every_days), fenetre du rendez-vous (from,
--- hours), delai hors de vue (delayHours), marges (marginMin, marginMax), stock (items { n, t, w, min, max, gr } et
--- groups { id, min, max, kinds }). Les voix chargees viennent d'un port injecte (Trade.useVoices : get(id) -> fiche,
--- ids() -> identifiants ; RS_TradeRun.install branche RS_Personas). Aucune voix ni aucun lieu dans ce code.
+-- (landing=, points des lieux communs, E25-T01), mode d'arrivee (registre RS_TradeArrivals), cadence (every_days),
+-- fenetre du rendez-vous (from, hours), delai hors de vue (delayHours), marges (marginMin, marginMax), stock
+-- (items { n, t, w, min, max, gr } et groups { id, min, max, kinds }). Les voix chargees viennent d'un port injecte
+-- (Trade.useVoices : get(id) -> fiche, ids() -> identifiants ;
+-- RS_TradeRun.install branche RS_Personas). Aucune voix ni aucun lieu dans ce code.
 --
 -- Le LLM du marchand negocie a la radio et propose un accord par l'action `propose_trade` (E23-T06, ADR D01) :
 --     { type = "propose_trade", gives = "Antibiotics:2,Battery:4", wants = "MoneyBundle:3,GoldCoin:1" }

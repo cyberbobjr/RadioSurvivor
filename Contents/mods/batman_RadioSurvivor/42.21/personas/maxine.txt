@@ -17,13 +17,6 @@ actions=say,propose_trade,share_frequency
 shares=odessa,boone
 state=active
 
-# Lieu du rendez-vous relevé sur la carte 42.22 (lotheader 28_32 ; bennes trashcontainers_01_10 à 15 (container dumpster) x 7237-7239, y 8281-8282 sur le parking blends_street_01_103 hors de toute pièce, derrière les magasins (x 7243 et plus)).
-# Rendez-vous seulement : jamais donné comme repère par mark_map.
-[place fallaslake_dumpsters]
-at=7236,8282,0
-label=Dumpsters behind the stores, Fallas Lake
-use=landing
-
 # Troc (E20-T11) : barème docs/specifications-techniques/passeur-table.md section 3.
 [trade]
 landing=fallaslake_dumpsters

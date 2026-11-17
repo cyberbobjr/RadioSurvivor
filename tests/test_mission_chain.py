@@ -23,10 +23,6 @@ name=Scout Voice
 frequency=160.0
 actions=say,start_mission
 budget.start_mission=20
-[place depot]
-at=10600,9300,0
-label=Fuel depot
-use=mark,target,drop
 [mission recon]
 type=scout
 story=Look at my old clinic first.

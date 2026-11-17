@@ -17,13 +17,6 @@ actions=say,propose_trade,share_frequency
 shares=hollis,boone
 state=active
 
-# Lieu du rendez-vous relevé sur la carte 42.22 (lotheader 40_49 ; herbe blends_natural_01_16/21 hors de toute pièce, au bord sud de la route blends_street_01_86 à lignes (y 12616-12623), entre deux allées, à l'entrée nord).
-# Rendez-vous seulement : jamais donné comme repère par mark_map.
-[place marchridge_roadside]
-at=10298,12625,0
-label=Roadside north of March Ridge
-use=landing
-
 # Troc (E20-T11) : barème docs/specifications-techniques/passeur-table.md section 3.
 [trade]
 landing=marchridge_roadside

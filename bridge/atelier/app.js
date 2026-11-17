@@ -2,7 +2,8 @@
 // and the catalogue, lists the voices, runs the five-step assistant over a sheet model, saves, exports, imports,
 // deletes, removes and restores through the server API. Every choice comes from the catalogue; the game stays the only
 // judge (D03): its verdict is polled and shown on the voice and the step of the refused line. The "Dashboard" tab, shown
-// first, sums up every voice (E24-T05); the "Journal" tab shows the live lines of the bridge and the game (D09). The bridge's AI helps to write and lets the voice be tried (D04,
+// first, sums up every voice (E24-T05); the "Places" tab edits the places every voice shares (E25-T03, placestab.js,
+// one place store for the tab and the place lists of the editor); the "Journal" tab shows the live lines of the bridge and the game (D09). The bridge's AI helps to write and lets the voice be tried (D04,
 // ai.js).
 
 import { fillField, proposeButton, tryDrawer } from './ai.js';
@@ -14,6 +15,8 @@ import { confirmBar } from './dialogs.js';
 import { clear, h, select } from './dom.js';
 import { loadI18n } from './i18n.js';
 import { createJournal } from './journal.js';
+import { createPlaceStore } from './placestore.js';
+import { createPlacesView } from './placestab.js';
 import * as sheet from './sheet.js';
 import * as voice from './voice.js';
 import { renderVerdict } from './verdict.js';
@@ -41,6 +44,7 @@ const ACTIONS_BY_STATUS = {
 
 const app = {
   t: null, catalog: null, api: createApi(), voices: [], current: null, step: 0, preview: false, ui: {},
+  places: null,                                     // E25-T03: the shared places (placestore.js)
   verdicts: {}, views: {}, el: {}, login: false, // login: network mode (E22-T15), the header offers to log out
   ai: { available: false, api: null, toast: null }, // E22-T06: the bridge's AI (greyed when not configured)
   chat: { open: false, messages: [] },              // test conversation of the voice being edited
@@ -244,9 +248,12 @@ function stepContext() {
   return {
     model: app.current.model, catalog: app.catalog, t: app.t, voiceId: currentId(), isNew: app.current.isNew,
     voices: app.voices, ui: app.ui, ai: app.ai, api: app.api, changed, rerender: renderStep, show: showBlock,
-    sheetText, toast,
+    sheetText, toast, places: app.places, voiceName: sheet.value(app.current.model.head, 'name') ?? '',
   };
 }
+
+// Checks of the voice being edited, with the shared places it may name.
+const checksOf = (model, id) => check(model, app.catalog, id, app.places.list());
 
 // Opens the step that holds a kind of block ('place', 'trade'...) with its panel open (ui.open_<kind>).
 function showBlock(kind) {
@@ -262,7 +269,7 @@ function changed() {
 
 function refreshStatus() {
   const t = app.t;
-  const checks = check(app.current.model, app.catalog, currentId());
+  const checks = checksOf(app.current.model, currentId());
   const byStep = STEPS.map(() => []);
   for (const item of checks) byStep[stepOf(item)].push(item);
   app.el.pills.forEach((pill, index) => {
@@ -406,7 +413,7 @@ async function save() {
   const result = await app.api.save(id, text);
   toast(codeText(result), !result.ok);
   if (!result.ok) return;
-  const pending = check(current.model, app.catalog, id).length;
+  const pending = checksOf(current.model, id).length;
   if (pending) toast(`${codeText(result)} ${app.t('checks.saved_anyway', { n: pending })}`);
   Object.assign(current, { id, isNew: false, dirty: false, saved: text });
   refreshVerdicts();
@@ -489,8 +496,11 @@ function renderShell() {
   const dashboard = createDashboard({ api: app.api, t, catalog: app.catalog, open: openFromDashboard,
     verdicts: () => app.verdicts });
   const journal = createJournal({ api: app.api, t, voiceIds: () => app.voices.map((v) => v.id) });
-  app.views = { dashboard, voices: { el: app.el.main }, journal };
-  for (const view of [dashboard, journal]) view.el.classList.add('main');
+  const places = createPlacesView({ api: app.api, t, catalog: app.catalog, ai: app.ai, toast, store: app.places,
+    current: () => (app.current && !app.current.empty ? { id: app.current.id,
+      name: sheet.value(app.current.model.head, 'name') || app.current.id, model: app.current.model } : null) });
+  app.views = { dashboard, places, voices: { el: app.el.main }, journal };
+  for (const view of [dashboard, places, journal]) view.el.classList.add('main');
   app.el.tabs = Object.keys(app.views).map((view) => h('button', { type: 'button', role: 'tab', class: 'tab', id: `tab-${view}`,
     'data-view': view, 'aria-selected': 'false', onClick: () => showView(view) }, t(`tab.${view}`)));
   app.el.toast = h('div', { class: 'toast', role: 'status', 'aria-live': 'polite',
@@ -514,6 +524,10 @@ async function boot() {
   if ((await refreshAi()).status === 401) return;   // E22-T15: session gone, the login page opens
   app.catalog = await loadCatalog();
   Object.assign(app.ai, { api: app.api, toast });
+  app.places = createPlaceStore(app.api, app.catalog);
+  await app.places.load();
+  // A place made or removed: the lists and checks of the voice open in the editor follow.
+  app.places.onChange(() => { if (app.current && !app.current.empty && app.el.body?.isConnected) renderStep(); });
   renderShell();
   wireImport();
   showWelcome();

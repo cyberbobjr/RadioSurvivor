@@ -13,7 +13,10 @@ declaration table:
   which a voice set-up is registered (RS_MissionVoice.registerDeclaredSetup, see SETUP_CALL);
 - paramKinds: RS_PersonaParams.kinds(); rewardKinds and skills: RS_Rewards.KINDS and SKILLS (rules);
 - categories: personas/_categories.txt read by RS_Persona.parseCatalogue (rules.categories);
-- header and sections: RS_Persona.grammar(rules) (trade arrival modes: RS_TradeArrivals.NAMES);
+- header and sections: RS_Persona.grammar(rules) (trade arrival modes: RS_TradeArrivals.NAMES, building kinds of a
+  drawn objective: CA_Sites.KINDS); places (E25-T01): the grammar of the shared places file personas/_places.txt (one
+  of at= or area=, zone side and label limits), distances: the drawn objectives of target= (near, far, very_far),
+  sheet.maxPlaces and sheet.maxMarks; rewardKinds[*].place: the kind needs the voice's cache_place=;
 - radioLevels (E24-T01): RS_RadioLevels.LIST, weakest first, {id, minKhz, maxKhz, zones: [[low, high]...]} kHz, and
   radioStepKhz (RS_RadioLevels.STEP_KHZ): the radio a voice needs, its draw zone, the needed radio of a fixed frequency;
 - voices: every shipped sheet (RS_Personas.isSheetName) read by RS_Persona.readFile with the server rules: name, fixed
@@ -137,7 +140,10 @@ def sellable(lua: LuaPersona, items: dict) -> list[str]:
 
 
 def reward_kinds(rules) -> dict:
-    return {name: {'param': (str(rules.rewards[name].param) if rules.rewards[name].param is not None else None)}
+    """Reward kinds: the kind of their parameter (None: none) and whether they need the voice's cache_place= (E25-T01:
+    the kind declares `place`)."""
+    return {name: {'param': (str(rules.rewards[name].param) if rules.rewards[name].param is not None else None),
+                   'place': bool(rules.rewards[name].place)}
             for name in names(rules.rewards)}
 
 
@@ -147,18 +153,25 @@ def categories(rules) -> dict:
             for cid in names(rules.categories)}
 
 
+def section_grammar(s) -> dict:
+    return {'rank': int(s.rank), 'hasId': bool(s.hasId), 'keys': strings(s['keys']), 'required': strings(s.required),
+            'repeatable': strings(s.repeatable), 'choices': choices(s.choices)}
+
+
 def grammar(lua: LuaPersona) -> dict:
     g = require(lua, 'RadioSurvivor/RS_Persona').grammar(lua.rules)
     head = g.head
+    places = g.places
     return {
         'header': {'keys': strings(head['keys']), 'required': strings(head.required),
                    'budgetPrefix': str(head.budgetPrefix),
                    'choices': choices(head.choices)},
-        'sections': {name: {'rank': int(s.rank), 'hasId': bool(s.hasId), 'keys': strings(s['keys']),
-                            'required': strings(s.required), 'repeatable': strings(s.repeatable),
-                            'choices': choices(s.choices)}
-                     for name, s in ((str(k), v) for k, v in g.sections.items())},
-        'sheet': {'format': str(g.format), 'separator': str(g.separator), 'maxPlaces': int(g.maxPlaces)},
+        'sections': {str(name): section_grammar(s) for name, s in g.sections.items()},
+        'places': {**section_grammar(places), 'oneOf': strings(places.oneOf), 'maxAreaSide': int(places.maxAreaSide),
+                   'maxLabelBytes': int(places.maxLabelBytes)},
+        'distances': strings(g.distances),
+        'sheet': {'format': str(g.format), 'separator': str(g.separator), 'maxPlaces': int(g.maxPlaces),
+                  'maxMarks': int(g.maxMarks)},
     }
 
 

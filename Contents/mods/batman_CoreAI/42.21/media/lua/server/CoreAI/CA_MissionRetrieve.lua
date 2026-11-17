@@ -10,7 +10,10 @@ Requester: an NPC fiche of the notebook, or a radio voice under the name `retrie
 where the game can make a corpse (exposed class RandomizedWorldBase; a bench without it offers nothing).
 Place: drawn exactly as the scout template (CA_MissionScout.pick: habitable building of the metagrid at 60-250 tiles
 of the requester's body, 60 tiles at least from any known base, nothing loaded), kept per requester for siteTtlMs in
-a memory of this file so that the offer told by the bridge and the created mission name the same building. The
+a memory of this file so that the offer told by the bridge and the created mission name the same building.
+Aimed place (E25-T02, declaration aimed): an offer that receives `aim` (the objective of a voice's mission section: a
+point, or a building drawn in a zone or at a distance by CA_Sites.draw) takes the building at that place
+(CA_MissionScout.siteAt), wherever the requester stands, kept the same way; no building there: no offer. The
 mission keeps the site point (centre of the main room, m.spot) and the building bounds in the private state.
 Map area: the same approximate circle as the scout template (CA_MissionScout.mapZone, m.mapZone, projected to an
 engaged participant of an active mission only; client/CoreAI/CA_MapZones.lua draws and removes it).
@@ -47,7 +50,7 @@ local function log(msg)
 end
 
 local Retrieve = {idPrefix = 'retrieve', handover = true, voiceName = 'retrieve', mapStyle = 'Search',
-    voiceText = 'bring back the papers of a missing person',
+    voiceText = 'bring back the papers of a missing person', aimed = true,
     -- E20-T06: sheet value of its mission section (game hours before a dead drop is collected).
     params = {collect_hours = 'count'}}
 Retrieve.MARK = 'CA_RetrieveMission'
@@ -94,15 +97,25 @@ function Retrieve.site(npc, body, c)
     return site
 end
 
+-- E25-T02: the building at the aimed place ({ x, y, z, label }), kept like a drawn place; nil when none.
+function Retrieve.aimedSite(npc, place)
+    local site, why = Scout.siteAt(place)
+    if not site then log('retrieve: no building at ' .. tostring(place.label) .. ' (' .. tostring(why) .. ')') end
+    sites[npc.id] = {site = site, at = getTimestampMs()}
+    return site
+end
+
 -- Bench: forget the kept places and the placement attempts.
 function Retrieve.resetForTests()
     sites, tried = {}, {}
 end
 
-function Retrieve.offer(c, npc, record, body)
+-- aim (E25-T02): the objective named or drawn for the giver, or nil (drawn around the body).
+function Retrieve.offer(c, npc, record, body, character, aim)
     -- A radio voice donor has no fiche (npc.incarnation): this template is for NPC fiches only.
     if not Retrieve.available() or not npc or (npc.incarnation == nil and not npc.voice) then return nil end
-    local site = Retrieve.site(npc, body, c)
+    local site
+    if aim then site = Retrieve.aimedSite(npc, aim) else site = Retrieve.site(npc, body, c) end
     if not site then return nil end
     return {kind = 'retrieve_id', item = 'ID card', place = site.label, clues = copyList(site.clues),
         report = 'in_person', durationMs = c.durationMs, rewardType = c.rewardType, rewardCount = c.rewardCount}

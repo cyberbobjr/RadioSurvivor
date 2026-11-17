@@ -7,9 +7,11 @@ mod's folder is only read), opens the page with the locale fr-FR then en-US, che
 a row per voice, the trade filter, an empty filter cleared, a row opening its voice), creates a voice through the assistant with
 nothing technical typed (E24-T02): its name only (the id made from the first name, a tooltip at most), the voice type
 "mission giver" (its action ticked, "Talk" locked), hours from the cards then custom, the spontaneous call as a named
-step with the frequency put in by its button, the personality language French (the starter text follows), two places
-(squares typed, user decision), a deliver mission whose quantity is two steppers, a barricade mission after it with a
-story state written as a sentence, a reward; saves it, checks what the simple controls wrote and that the real game
+step with the frequency put in by its button, the personality language French (the starter text follows), a map mark
+made with "New place…" without leaving the voice (E25-T03: a shared place, its square typed, user decision), a
+deliver mission whose quantity is two steppers and whose dead drop is made the same way (points only), a barricade
+mission after it aimed at the mark's place, with a story state written as a sentence, a scout mission "further away"
+in a church, a reward hidden at the dead drop; saves it, checks what the simple controls wrote and that the real game
 reader (RS_Persona.lua in lupa) accepts it. Where and when (E24-T01): the first radio card is ticked for a new voice;
 another card is picked; the switch "choose the frequency myself" shows one field, filled with a free frequency of that
 radio, whose badge names the radio a typed frequency needs (and no radio at all off the grid); switched off, the radio
@@ -27,10 +29,13 @@ the voice's name and a mission story, "Try the voice" answers from the unsaved s
 file untouched (screenshot atelier-ai-fr.png); in the note panel, "Suggest" fills a line whose frequency shows as the
 word on screen and %1 in the sheet. In English the AI is said unavailable: the buttons, "Suggest" included, are greyed
 with the configuration tooltip.
-Map position pasted (user 2026-11-16), in both languages: "7966, 11751, 1" pasted into the x field of a place fills x, y
-and the floor in the sheet and the map link; the square typed before is pasted back and the voice saved.
-Chances, trade and note (E22-T12), in French: a reward set to "Often" is written with weight 4; the trade panel ticks
-its meeting point (made by its button when there is none: a place marked as such, ticked), picks the arrival card and
+Map position pasted (user 2026-11-16), in both languages, in the Places tab: "7966, 11751, 1" pasted into the x field of
+a place fills x, y and the floor, the map link and the saved places file; the square typed before is pasted back.
+Places tab (E25-T03), in both languages: a place the voice uses says so and its deletion is refused naming the voice;
+an area made from two corners and a floor is saved, then deleted once confirmed; no horizontal scroll at 390 px
+(screenshot atelier-places-<lang>.png).
+Chances, trade and note (E22-T12), in French: a reward set to "Often" is written with weight 4; the trade panel makes
+its meeting point with "New place…" (a shared spot, ticked), picks the arrival card and
 the visits as a named step, adds stock items from the item list (no item name typed: search, category, ticks, "Ajouter
 la sélection"), shows each as its name, no weight, its Module.Type as tooltip only, replaces a line from the same list
 and removes one, ticks a category and adds an item to what the voice accepts (E23-T06), makes a paquet from a typed
@@ -45,10 +50,10 @@ stay ticked across searches, Escape adds nothing, "Ajouter la sélection" adds t
 Sellable stock, older copies and confirmations (E22-T17): the trader's stock offers only the items a trader can sell
 (an axe is not found, the browser says so); a copy of Walt the game wrote from an older version of the mod shows
 "Ancienne version" / "Older version" with its tooltip; the removal asked names the voice, not its id.
-Places recorded in game (E22-T08), in French: a fake survey file of the game (a kitchen, then a dumpster) is listed
-newest first under the voice's places; "Ajouter à cette voix" asks the name prefilled from the dumpster, makes a place
-at its square with the dead drop use ticked, the record then says it is one of her places; the voice is saved and
-accepted by the game reader, the survey file untouched (screenshot atelier-surveys-fr.png).
+Places recorded in game (E22-T08, E25-T03), in French: a fake survey file of the game (a kitchen, then a dumpster) is
+listed newest first in the Places tab; "Ajouter aux lieux" asks the name prefilled from the dumpster, makes a shared
+place at its square, the record then says it is already a place; the places file is accepted by the bridge reader, the
+survey file untouched (screenshot atelier-surveys-fr.png).
 Network mode (E22-T15), in both languages, on a second server behind the password gate: the page goes to the login
 page, a wrong password is said wrong, the right one opens the workshop, its logout button goes back to the login page,
 five failures lock with the seconds to wait; no password in the journal (screenshot atelier-login-<lang>.png).
@@ -75,6 +80,7 @@ sys.path.insert(0, str(ROOT / 'tests'))
 import atelier_auth  # noqa: E402
 import atelier_server  # noqa: E402
 import game_console  # noqa: E402
+import persona_store  # noqa: E402
 import place_surveys  # noqa: E402
 import radio_bridge  # noqa: E402
 from test_atelier_ui import game_reads  # noqa: E402
@@ -88,6 +94,32 @@ LOCALES = (('fr-FR', 'fr'), ('en-US', 'en'))
 
 def strings(lang: str) -> dict:
     return json.loads((ATELIER / 'i18n' / f'{lang}.json').read_text(encoding='utf-8'))
+
+
+def working_places(working: Path) -> str:
+    """Shared places the game reads (E25-T03): the working _places.txt the workshop writes, else the delivered one."""
+    path = working / persona_store.PLACES_FILE
+    return (path if path.is_file() else SHIPPED / persona_store.PLACES_FILE).read_text(encoding='utf-8')
+
+
+def make_place(page, scope, t: dict, label: str, at: tuple[str, str, str], points: bool) -> None:
+    """E25-T03: "New place…" of a list in `scope`: the form opens in the page, a spot named and its square typed (the
+    map link follows), made; only a spot is offered where a point is needed."""
+    scope.locator('button.place-new').first.click()
+    dialog = page.locator('.notice.new-place')
+    expect(dialog).to_be_visible()
+    if points != (dialog.locator('.place-kind').count() == 0):
+        raise AssertionError(f'"New place…" offers an area where a spot is needed ({label})')
+    dialog.get_by_label(t['places.label'], exact=True).fill(label)
+    map_link = dialog.locator('a.maplink')
+    expect(map_link).to_have_attribute('href', 'https://zomboidmap.com/')
+    expect(map_link).to_have_text(t['map.home'])
+    for axis, value in zip(('x', 'y', t['places.floor']), at):
+        dialog.get_by_label(axis, exact=True).fill(value)
+    expect(map_link).to_have_attribute('href', f'https://zomboidmap.com/#11/{at[0]}/{at[1]}/f{at[2]}')
+    expect(map_link).to_have_attribute('target', '_blank')
+    dialog.locator('button.place-create').click()
+    expect(page.locator('.toast')).to_contain_text(t['places.created'].replace('{name}', label))
 
 
 def check_radio_choice(page, t: dict) -> None:
@@ -181,8 +213,9 @@ def show_text(page, t: dict, on: bool) -> None:
 def create_voice(page, t: dict, voice_id: str, name: str) -> None:
     """E24-T02: nothing technical typed. The name only (the id is made from the first name), the voice type "mission
     giver" (its action ticked), hours from the cards then custom, a spontaneous call as a named step with the
-    frequency put in by its button, places with their square (user decision: fields kept), a mission whose quantity is
-    two steppers and whose story state is a sentence."""
+    frequency put in by its button, shared places made from the lists without leaving the voice (their square typed,
+    user decision), a mission whose quantity is two steppers, one whose story state is a sentence, an objective
+    "further away" in a church, a hidden reward's place."""
     page.locator('#new-voice').click()
     page.locator('#new-name').fill(name)
     page.locator('label.choice-card[data-value="missions"]').click()
@@ -211,26 +244,11 @@ def create_voice(page, t: dict, voice_id: str, name: str) -> None:
     page.locator('label.choice-card[data-value="fr"]').click()             # the personality written in French
     expect(page.locator('textarea.prompt')).to_have_value(re.compile('^Tu es '))
 
-    next_button.click()                                                    # 4: places and missions
-    for label, at, uses in (('Old mill', ('10600', '9300', '0'), ('use.target', 'use.mark')),
-                            ('Dumpster behind the mill', ('10610', '9305', '0'), ('use.drop',))):
-        page.get_by_role('button', name=t['places.add']).click()
-        page.locator('.notice').get_by_label(t['places.label'], exact=True).fill(label)
-        page.locator('.notice').get_by_role('button', name=t['places.add_ok']).click()
-        card = page.locator('details.fold').first.locator('.card').last
-        expect(card.get_by_label(t['places.label'], exact=True)).to_have_value(label)
-        map_link = card.locator('a.maplink')                               # Build 42 map: whole map, then the square
-        expect(map_link).to_have_attribute('href', 'https://zomboidmap.com/')
-        expect(map_link).to_have_text(t['map.home'])
-        for axis, value in zip(('x', 'y', t['places.floor']), at):
-            card.get_by_label(axis, exact=True).fill(value)
-        expect(map_link).to_have_attribute('href', f'https://zomboidmap.com/#11/{at[0]}/{at[1]}/f{at[2]}')
-        expect(map_link).to_have_text(t['map.open'])
-        expect(map_link).to_have_attribute('target', '_blank')
-        for use in uses:
-            card.locator('.check', has_text=t[use]).locator('input').check()
-    if page.locator('details.fold').first.locator('code').count():
-        raise AssertionError('a place card shows its id')
+    next_button.click()                                                    # 4: map marks and missions
+    lang = voice_id.removeprefix('smoke')                                  # place names of this run, unique
+    marks = page.locator('section.question.marks')
+    make_place(page, marks, t, f'Old mill {lang}', ('10600', '9300', '0'), points=False)
+    expect(marks.locator('.check', has_text=f'Old mill {lang}').locator('input')).to_be_checked()
     page.locator('.type-card', has_text=t['mission.deliver']).click()
     deliver = page.locator('.card.mission').last
     deliver.get_by_label(t['param.items'], exact=True).select_option('medical')
@@ -238,15 +256,32 @@ def create_voice(page, t: dict, voice_id: str, name: str) -> None:
     deliver.get_by_label(t['field.max'], exact=True).fill('3')
     deliver.get_by_role('button', name=f"{t['field.max']} +", exact=True).click()   # the stepper: 3 -> 4
     deliver.get_by_label(t['mission.story'], exact=True).fill('Leave some bandages by the dumpster.')
+    make_place(page, deliver, t, f'Dumpster behind the mill {lang}', ('10610', '9305', '0'), points=True)
+    deliver = page.locator('.card.mission').last
+    expect(deliver.locator('.check', has_text=f'Dumpster behind the mill {lang}').locator('input')).to_be_checked()
     page.locator('.type-card', has_text=t['mission.barricade']).click()
     barricade = page.locator('.card.mission').last
+    barricade.locator('select.place-select').select_option(f'old_mill_{lang}')
+    barricade = page.locator('.card.mission').last
+    if barricade.locator('select.building-select').count():
+        raise AssertionError('a kind of building is offered for an exact spot')
     barricade.get_by_label(t['param.count'], exact=True).fill('4')
     barricade.get_by_label(t['mission.after'], exact=True).select_option(index=1)
     barricade.get_by_label(t['mission.sets_state'], exact=True).fill('Le moulin est barricadé')
+    page.locator('.type-card', has_text=t['mission.scout']).click()
+    scout = page.locator('.card.mission').last
+    expect(scout.locator('select.place-select')).to_have_value('near')   # no target=: near the player
+    scout.locator('select.place-select').select_option('far')
+    scout = page.locator('.card.mission').last
+    scout.locator('select.building-select').select_option('church')
+    if page.locator('.step-body').get_by_text(f'old_mill_{lang}').count():
+        raise AssertionError('a place shows its id')
 
     next_button.click()                                                    # 5: rewards
     page.locator('.type-card', has_text=t['reward.cache']).click()
     page.locator('.type-card', has_text=t['reward.lesson']).click()
+    cache = page.locator('.row', has_text=t['rewards.cache_place'])
+    cache.locator('select.place-select').select_option(f'dumpster_behind_the_mill_{lang}')
     page.locator('#save').click()
     expect(page.locator('.toast')).to_contain_text(t['code.voice_created'])
 
@@ -256,7 +291,9 @@ def check_simple_sheet(text: str, lang: str, failures: list[str]) -> None:
     language of the personality (E24-T02)."""
     wanted = ('\nquantity=2-4\n', '\ncall_one_in=3\n', '%1', '\nsets_state=le_moulin_est_barricade\n',
               'Story state: when your story state is le_moulin_est_barricade, Le moulin est barricadé',
-              '\nlanguage=fr\n', '\nactions=say,start_mission\n')
+              '\nlanguage=fr\n', '\nactions=say,start_mission\n', f'\nmarks=old_mill_{lang}\n',
+              f'\ndrops=dumpster_behind_the_mill_{lang}\n', f'\ntarget=old_mill_{lang}\n',
+              '\ntarget=far\nbuilding=church\n', f'\ncache_place=dumpster_behind_the_mill_{lang}\n')
     missing = [w for w in wanted if w not in text]
     print(f'{lang}: simple controls written: {"all" if not missing else missing}')
     if missing:
@@ -319,31 +356,85 @@ def paste_position(field, text: str) -> None:
     }""", text)
 
 
-def check_paste(page, t: dict, lang: str, failures: list[str]) -> None:
-    """User 2026-11-16: a position copied on the map ("7966, 11751, 1") pasted into the x field of a place fills x, y
-    and the floor, the sheet and the map link; the square of before is pasted back and the voice saved."""
-    show_text(page, t, True)
-    page.locator('.pill').nth(3).click()                                   # places and missions
-    page.locator('details.fold').first.evaluate('d => d.open = true')
-    card = page.locator('details.fold').first.locator('.card.place').first
-    preview = page.locator('.sheet-preview')
+def check_paste(page, t: dict, lang: str, working: Path, failures: list[str]) -> None:
+    """User 2026-11-16, E25-T03: a position copied on the map ("7966, 11751, 1") pasted into the x field of a place of
+    the Places tab fills x, y and the floor, the map link and the saved places file; the square of before is pasted
+    back."""
+    page.locator('#tab-places').click()
+    card = page.locator(f'.card.place[data-place="old_mill_{lang}"]')
+    status = page.locator('.places-status')
     x, y, floor = (card.get_by_label(axis, exact=True) for axis in ('x', 'y', t['places.floor']))
     before = [x.input_value(), y.input_value(), floor.input_value()]
     paste_position(x, '7966, 11751, 1')
     expect(x).to_have_value('7966')
     expect(y).to_have_value('11751')
     expect(floor).to_have_value('1')
-    expect(preview).to_contain_text('at=7966,11751,1')
     expect(card.locator('a.maplink')).to_have_attribute('href', 'https://zomboidmap.com/#11/7966/11751/f1')
     expect(card.get_by_text(t['map.paste_tip'], exact=True)).to_be_visible()
     if not card.locator('button.paste-square').count():
         failures.append(f'{lang}: no "{t["map.paste"]}" button on localhost')
+    expect(status).to_have_text(t['places.saved'])
+    if 'at=7966,11751,1' not in working_places(working):
+        failures.append(f'{lang}: the pasted square is not in the places file')
     paste_position(y, ', '.join(before))
-    expect(preview).to_contain_text('at=' + ','.join(before))
-    print(f'{lang}: map position "7966, 11751, 1" pasted into x: x, y and floor filled, sheet and map link follow')
-    show_text(page, t, False)
-    page.locator('#save').click()
-    expect(page.locator('.toast').last).to_contain_text(t['code.voice_saved'])
+    expect(status).to_have_text(t['places.saved'])
+    page.wait_for_timeout(700)
+    if 'at=' + ','.join(before) not in working_places(working):
+        failures.append(f'{lang}: the square pasted back is not in the places file')
+    print(f'{lang}: map position "7966, 11751, 1" pasted into x in the Places tab: x, y and floor filled, map link '
+          'and places file follow')
+    page.locator('#tab-voices').click()
+
+
+def check_places(page, t: dict, lang: str, name: str, working: Path, shots: Path, failures: list[str]) -> None:
+    """E25-T03: the Places tab names the voices using a place and refuses its deletion; an area made from two corners
+    and a floor is saved, then deleted once confirmed; phone width without horizontal scroll."""
+    page.set_viewport_size({'width': 1280, 'height': 900})
+    page.locator('#tab-places').click()
+    mill = page.locator(f'.card.place[data-place="old_mill_{lang}"]')
+    expect(mill.locator('.used-by')).to_contain_text(name)
+    mill.get_by_role('button', name=t['places.remove']).click()
+    refused = t['places.in_use'].split('{voices}')[0].replace('{name}', f'Old mill {lang}')
+    expect(page.locator('.toast')).to_contain_text(refused)
+    if f'[place old_mill_{lang}]' not in working_places(working):
+        failures.append(f'{lang}: a used place was deleted')
+    page.locator('#place-new').click()
+    dialog = page.locator('.notice.new-place')
+    label = 'Quartier du moulin' if lang == 'fr' else 'Mill town'
+    dialog.get_by_label(t['places.label'], exact=True).fill(label)
+    dialog.locator('label.choice-card[data-value="zone"]').click()
+    corners = dialog.locator('.square')
+    expect(corners).to_have_count(2)
+    for index, (x, y) in enumerate((('10800', '9500'), ('10500', '9200'))):
+        corners.nth(index).get_by_label('x', exact=True).fill(x)
+        corners.nth(index).get_by_label('y', exact=True).fill(y)
+    dialog.locator('input.place-floor').fill('0')
+    dialog.locator('button.place-create').click()
+    zone_id = 'quartier_du_moulin' if lang == 'fr' else 'mill_town'
+    zone = page.locator(f'.card.place[data-place="{zone_id}"]')
+    expect(zone.locator('.used-by')).to_have_text(t['places.unused'])
+    text = working_places(working)
+    if f'[place {zone_id}]' not in text or 'area=10500,9200,10800,9500,0' not in text:
+        failures.append(f'{lang}: the area is not in the places file\n{text}')
+    try:
+        persona_store.parse_places_lines(persona_store.split_lines(text))
+    except persona_store.PersonaError as err:
+        failures.append(f'{lang}: the bridge reader refuses the places file: {err}')
+    page.screenshot(path=str(shots / f'atelier-places-{lang}.png'), full_page=True)
+    page.set_viewport_size({'width': 390, 'height': 844})
+    width = page.evaluate('document.documentElement.scrollWidth')
+    if width > 390:
+        failures.append(f'{lang}: horizontal scroll of the Places tab at 390 px ({width} px)')
+    page.set_viewport_size({'width': 1280, 'height': 900})
+    zone.get_by_role('button', name=t['places.remove']).click()
+    page.locator('.notice.danger').get_by_role('button', name=t['places.remove']).click()
+    expect(zone).to_have_count(0)
+    expect(page.locator('.places-status')).to_have_text(t['places.saved'])
+    if f'[place {zone_id}]' in working_places(working):
+        failures.append(f'{lang}: the deleted area is still in the places file')
+    print(f'{lang}: Places tab: "Old mill {lang}" used by {name}, deletion refused; area {zone_id} made from two corners, '
+          f'saved, deleted after confirm; width at 390 px = {width}')
+    page.locator('#tab-voices').click()
 
 
 def check_propose(field, button, wanted: str) -> None:
@@ -457,22 +548,13 @@ def check_stock(page, t: dict, lang: str, path: Path, voice_id: str, shots: Path
     trade = page.locator('details.fold', has_text=t['advanced.trade.enable'])
     trade.locator(':scope > summary').click()
     trade.get_by_label(t['advanced.trade.enable']).check()
-    # meeting points: none yet -> "make the meeting place": a place marked as such, ticked, its square in its card
-    expect(trade.locator('.warnline', has_text=t['trade.no_landing'])).to_be_visible()
-    trade.locator('button.to-places').click()
-    expect(page.locator('.pill.on')).to_contain_text(t['step.missions'])
-    places = page.locator('details.fold').first
-    expect(places).to_have_attribute('open', '')
-    card = places.locator('.card.fresh')
-    expect(card.locator('.check', has_text=t['use.landing']).locator('input')).to_be_checked()
-    card.get_by_label(t['places.label'], exact=True).fill('Quai du lac')
-    for axis, value in zip(('x', 'y', t['places.floor']), ('10620', '9310', '0')):
-        card.get_by_label(axis, exact=True).fill(value)
-    page.locator('.pill').nth(4).click()
+    # meeting point: "New place…" in the list (a shared spot), made without leaving the voice and ticked
+    make_place(page, trade, t, 'Quai du lac', ('10620', '9310', '0'), points=True)
+    trade = page.locator('details.fold', has_text=t['advanced.trade.enable'])
     expect(trade).to_have_attribute('open', '')
-    expect(trade.locator('.checks.landing .check', has_text='Quai du lac').locator('input')).to_be_checked()
-    expect(preview).to_contain_text(re.compile(r'landing=[a-z_]+'))
-    print(f'{lang}: no meeting point -> "{t["trade.make_landing"]}" -> place made, marked and ticked')
+    expect(trade.locator('.place-checks .check', has_text='Quai du lac').locator('input')).to_be_checked()
+    expect(preview).to_contain_text('landing=quai_du_lac')
+    print(f'{lang}: meeting point made with "{t["places.new_option"]}" in the trade panel, ticked')
     trade.locator('label.choice-card[data-value="boat"]').click()
     expect(preview).to_contain_text('arrival=boat')
     trade.locator('[data-scale="scale.trade.every_days"] button[data-step="weekly"]').click()
@@ -640,7 +722,7 @@ def check_stock(page, t: dict, lang: str, path: Path, voice_id: str, shots: Path
     page.locator('#save').click()
     expect(page.locator('.toast').last).to_contain_text(t['code.voice_saved'])
     text = path.read_text(encoding='utf-8')
-    verdict = game_reads(text, voice_id)
+    verdict = game_reads(text, voice_id, working_places(path.parent))
     print(f'{lang}: voice with trade and note saved, game reader: {verdict[0]} '
           f'{verdict[1] if verdict[0] != "OK" else ""}'.rstrip())
     if verdict[0] != 'OK':
@@ -819,48 +901,46 @@ SURVEYS = ('# RadioSurvivor places recorded for the voice workshop\n'
            'containers=bin:trash_01_0\n')
 
 
-def check_surveys(page, t: dict, lang: str, voice_id: str, name: str, working: Path, survey_file: Path, shots: Path,
-                  failures: list[str]) -> None:
-    """E22-T08: the places recorded in game listed under the voice's places, one added to the voice."""
+def check_surveys(page, t: dict, lang: str, working: Path, survey_file: Path, shots: Path, failures: list[str]) -> None:
+    """E22-T08, E25-T03: the places recorded in game listed in the Places tab, one made a shared place."""
     page.set_viewport_size({'width': 1280, 'height': 900})
-    page.locator('.voice', has_text=name).first.click()
-    page.locator('.pill').nth(3).click()
-    page.locator('details.fold').first.evaluate('d => d.open = true')
+    page.locator('#tab-places').click()
     items = page.locator('li.survey')
     expect(items).to_have_count(2)
     expect(items.first).to_contain_text('10612, 9307, 0')                  # newest first: the dumpster
     expect(items.nth(1)).to_contain_text('Kitchen')
-    places_before = page.locator('details.fold').first.locator('.card').count()
+    places_before = page.locator('.card.place').count()
     items.first.get_by_role('button', name=t['surveys.add']).click()
     ask = page.locator('.surveys-block .notice')
     label = ask.get_by_label(t['places.label'], exact=True)
     expect(label).to_have_value('Bin')
     label.fill("Benne de l'église")
     ask.get_by_role('button', name=t['places.add_ok']).click()
-    cards = page.locator('details.fold').first.locator('.card')
+    cards = page.locator('.card.place')
     expect(cards).to_have_count(places_before + 1)
-    card = cards.last
+    card = page.locator('.card.place[data-place="benne_de_l_eglise"]')      # its id made from its name
     expect(card.get_by_label(t['places.label'], exact=True)).to_have_value("Benne de l'église")
     for axis, value in zip(('x', 'y', t['places.floor']), ('10612', '9307', '0')):
         expect(card.get_by_label(axis, exact=True)).to_have_value(value)
-    expect(card.locator('.check', has_text=t['use.drop']).locator('input')).to_be_checked()
-    expect(card.locator('.check', has_text=t['use.mark']).locator('input')).not_to_be_checked()
     expect(page.locator('li.survey').first).to_contain_text(t['surveys.known'])
     page.locator('li.survey').first.scroll_into_view_if_needed()
     page.screenshot(path=str(shots / f'atelier-surveys-{lang}.png'), full_page=True)
-    page.locator('#save').click()
-    expect(page.locator('.toast')).to_contain_text(t['code.voice_saved'])
-    text = (working / f'{voice_id}.txt').read_text(encoding='utf-8')
-    verdict = game_reads(text, voice_id)
-    placed = re.search(r"\[place [a-z0-9_]+\]\nat=10612,9307,0\nlabel=Benne de l'église\nuse=drop\n", text)
-    print(f'{lang}: places recorded in game: 2 listed newest first, "{t["surveys.add"]}" made a dead drop at '
-          f'10612,9307,0: {bool(placed)}, game reader: {verdict[0]}')
+    text = working_places(working)
+    placed = re.search(r"\[place [a-z0-9_]+\]\nlabel=Benne de l'église\nat=10612,9307,0\n", text)
+    try:
+        persona_store.parse_places_lines(persona_store.split_lines(text))
+        reader = 'OK'
+    except persona_store.PersonaError as err:
+        reader = str(err)
+    print(f'{lang}: places recorded in game: 2 listed newest first, "{t["surveys.add"]}" made a shared place at '
+          f'10612,9307,0: {bool(placed)}, bridge reader: {reader}')
     if not placed:
-        failures.append(f'{lang}: place from the survey missing in the sheet\n{text}')
-    if verdict[0] != 'OK':
-        failures.append(f'{lang}: game reader refused the place from the survey: {verdict[1]}')
+        failures.append(f'{lang}: place from the survey missing in the places file\n{text}')
+    if reader != 'OK':
+        failures.append(f'{lang}: the bridge reader refused the places file: {reader}')
     if survey_file.read_text(encoding='utf-8') != SURVEYS:
         failures.append(f'{lang}: the survey file was changed by the workshop')
+    page.locator('#tab-voices').click()
 
 
 SMOKE_PASSWORD = 'smoke test password'      # never a real one: the gate is built here, bridge/.env is not read
@@ -935,7 +1015,7 @@ def run(shots: Path) -> int:
         fake, port = start_fake()
         radio_bridge.TOKEN_USAGE = radio_bridge.TokenUsageLog(Path(tmp) / 'token_usage.jsonl')
         ai = radio_bridge.workshop_ai({'OPENAI_BASE_URL': f'http://127.0.0.1:{port}/v1', 'OPENAI_MODEL': 'fake',
-                                       'OPENAI_KEY': 'fake'})
+                                       'OPENAI_KEY': 'fake'}, store.shared_places)
         try:
             with sync_playwright() as pw:
                 browser = pw.chromium.launch()
@@ -954,7 +1034,7 @@ def run(shots: Path) -> int:
                     create_voice(page, t, voice_id, name)
                     path = working / f'{voice_id}.txt'
                     text = path.read_text(encoding='utf-8') if path.is_file() else ''
-                    verdict = game_reads(text, voice_id) if text else ('MISSING', '')
+                    verdict = game_reads(text, voice_id, working_places(working)) if text else ('MISSING', '')
                     print(f'{lang}: {path.name} {"written" if text else "missing"}, game reader: {verdict[0]} '
                           f'{verdict[1] if verdict[0] != "OK" else ""}'.rstrip())
                     if verdict[0] != 'OK':
@@ -977,7 +1057,6 @@ def run(shots: Path) -> int:
                         failures.append(f'{lang}: import with a new id failed')
                     page.locator('.voice', has_text=name).first.click()   # the original, before its copy
                     page.locator('.pill').nth(3).click()                    # missions step for the screenshot
-                    page.locator('details.fold').first.evaluate('d => d.open = true')
                     page.screenshot(path=str(shots / f'atelier-{lang}.png'), full_page=True)
                     if lang == 'fr':
                         check_help(page, t, lang, shots, failures)
@@ -987,12 +1066,13 @@ def run(shots: Path) -> int:
                     if width > 800:
                         failures.append(f'{lang}: horizontal scroll at 800 px ({width} px)')
                     check_live(page, t, lang, voice_id, name, text, console, running, shots, failures)
-                    check_paste(page, t, lang, failures)
+                    check_paste(page, t, lang, working, failures)
+                    check_places(page, t, lang, name, working, shots, failures)
                     check_ai(page, t, lang, path, shots, failures)
                     if lang == 'fr':
                         check_stock(page, t, lang, path, voice_id, shots, failures)
                         check_item_browser(page, t, lang, name, shots, failures)
-                        check_surveys(page, t, lang, voice_id, name, working, survey_file, shots, failures)
+                        check_surveys(page, t, lang, working, survey_file, shots, failures)
                     check_status_and_confirm(page, t, lang, working, failures)
                     errors = [e for e in errors if '409 (Conflict)' not in e]   # the import conflict, expected
                     if errors:

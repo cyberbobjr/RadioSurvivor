@@ -202,6 +202,20 @@ local MC = {
             zoneMargin = 3,        -- tiles kept between the place corners and the circle
         },
     },
+    -- E25-T02: objective of a mission drawn by the server (CA_Sites.draw) when its giver names a zone or a distance
+    -- instead of a fixed point (a radio voice: target= of a [mission] section, RS_MissionAim). One band per distance
+    -- name, in tiles between the building footprint and the caller's server position (ADR shared places D01);
+    -- adding a band here adds a distance to the draw (the sheet readers list the names a sheet may write).
+    Targets = {
+        bands = {
+            near = {min = 100, max = 200},
+            far = {min = 200, max = 500},
+            very_far = {min = 500, max = 1500},
+        },
+        baseDistance = 60,     -- tiles between the drawn building and any known base, as the scout draw
+        maxAttempts = 40,      -- buildings examined per draw
+        maxCells = 9,          -- metagrid cells holding buildings read per draw at most (very_far: ~127 cross the ring)
+    },
     -- E11-T06: caches (server/CoreAI/CA_Caches.lua): a marked bag filled from one closed table of the server,
     -- placed once in the world when its site is loaded. `order` is the closed list (and the draw order) of the tables.
     Caches = {

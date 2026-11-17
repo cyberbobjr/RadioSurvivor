@@ -173,6 +173,28 @@ class AtelierServerTests(unittest.TestCase):
         status, _, _ = self.request("PUT", "/api/voices/rosa", "format=1\nid=rosa\n[mission x]\nid=other\n")
         self.assertEqual(status, 201)
 
+    # --- shared places (E25-T03) -----------------------------------------------------------------------------------
+    def test_shared_places_read_working_then_delivered_and_written_in_the_working_folder(self):
+        """GET /api/places: the working _places.txt the game reads, else the delivered one, else nothing; PUT writes
+        the working copy only (UTF-8, LF), with the size and encoding checks of a voice."""
+        delivered = "format=1\n\n[place mill]\nat=1,2,0\nlabel=Mill\n"
+        status, payload, _ = self.request("GET", "/api/places")
+        self.assertEqual((status, payload["ok"], payload["text"]), (200, True, ""))
+        (self.shipped / "_places.txt").write_text(delivered, encoding="utf-8", newline="")
+        self.shipped_before = snapshot(self.shipped)
+        status, payload, _ = self.request("GET", "/api/places")
+        self.assertEqual((status, payload["text"]), (200, delivered))
+        written = "format=1\r\n\r\n[place mill]\r\nat=1,2,0\r\nlabel=Moulin é\r\n"
+        status, payload, _ = self.request("PUT", "/api/places", written)
+        self.assertEqual((status, payload["code"]), (200, "places_saved"))
+        self.assertEqual((self.working / "_places.txt").read_bytes(), written.replace("\r\n", "\n").encode("utf-8"))
+        status, payload, _ = self.request("GET", "/api/places")
+        self.assertEqual(payload["text"], written.replace("\r\n", "\n"))
+        self.assert_refused(*self.request("PUT", "/api/places", b"format=1\n\xff")[:2], 400, "bad_encoding")
+        big = "format=1\n" + "x" * atelier.MAX_PLACES_BYTES
+        self.assert_refused(*self.request("PUT", "/api/places", big)[:2], 413, "too_large")
+        self.assertEqual(self.voices().keys(), {"walt", "cody"}, "the places file is never a voice")
+
     # --- ids and traversal -----------------------------------------------------------------------------------------
     def test_bad_ids_are_refused_everywhere(self):
         for raw in ("_categories", "Walt", "..", "%2e%2e", "..%5csecret", "a.b", "a%20b", "x" * 33, "9lives",

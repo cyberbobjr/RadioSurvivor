@@ -8,9 +8,11 @@
 #   pont ou, à défaut, texte fixe IGUI_RadioSurvivor_Call_Cody (%1 = fréquence) ;
 # - actions say et start_mission (E11-T13 : il fait reconnaître un bâtiment par l'appelant ; compte rendu à la radio
 #   sur sa fréquence, action report_mission implicite) ; cibles futures : mark_map, reveal_area ; aucun budget propre ;
-# - sections (E20-T03) : le relais [place checkpoint] (repère, objectif, planque de dépôt et de cache), une section
-#   [mission] par type proposé (scout, deliver, retrieve, clear, signal), [rewards] : cache de munitions, fréquence,
-#   carte de planque et leçon de tir, à poids égaux.
+# - sections (E20-T03) : une section [mission] par type proposé (scout, deliver, retrieve, clear, signal ; objectif
+#   tiré près de l'appelant), [rewards] : cache de munitions, fréquence, carte de planque et leçon de tir, à poids
+#   égaux ;
+# - lieux (E25-T01) : le relais checkpoint, lieu commun (personas/_places.txt), est son repère (marks=), la planque des
+#   dépôts de deliver et retrieve (drops=) et le lieu de la cache de récompense (cache_place=).
 format=1
 id=cody
 name=Cody Haskins
@@ -20,23 +22,21 @@ listen=22:00-03:00
 location=none
 actions=say,start_mission,share_frequency
 shares=gus,darlene
+marks=checkpoint
 call_one_in=6
 call_text=IGUI_RadioSurvivor_Call_Cody
 state=active
-
-[place checkpoint]
-at=4827,6277,0
-label=Relay station
-use=mark,target,drop
 
 [mission scout]
 type=scout
 
 [mission deliver]
 type=deliver
+drops=checkpoint
 
 [mission retrieve]
 type=retrieve
+drops=checkpoint
 
 [mission clear]
 type=clear
@@ -46,6 +46,7 @@ type=signal
 
 [rewards]
 pool=cache:ammo:1, frequency:1, stashmap:1, lesson:Aiming:1
+cache_place=checkpoint
 
 # Note de fréquence (E05-T09, E20-T11) : avis de recherche de la Garde nationale ; postes de police, gardiens,
 # réserves de l'armée, surplus militaire.

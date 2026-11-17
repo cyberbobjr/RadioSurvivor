@@ -1,0 +1,96 @@
+# Lieux communs à toutes les voix (E25-T01, ADR lieux communs ; format docs/specifications-techniques/persona-format.md,
+# « Lieux connus »). Une section [place <id>] par lieu : un point (at=x,y,z) ou une zone (area=x1,y1,x2,y2,z), et son
+# libellé (label=), seul nom montré au modèle et sur la carte du joueur. Une voix nomme les lieux dont elle se sert
+# (marks=, target=, drops=, points=, landing=, cache_place=). Installé dans Zomboid/Lua/batman_RadioSurvivor/personas/
+# comme une fiche livrée ; la copie de travail fait foi (atelier des voix, onglet « Lieux »).
+format=1
+
+# Lieu du rendez-vous relevé sur la carte 42.22 (lotheader 13_42 ; herbe blends_natural_01_37 hors de toute pièce, au bord sud de la route blends_street_01_85/87 (y 10921-10928), à l'ouest du ruisseau).
+# Rendez-vous d'un marchand (landing= de sa section [trade]).
+[place echocreek_roadside]
+at=3480,10929,0
+label=Roadside on the main road, Echo Creek
+
+# Relais de Cody : repère (marks=), planque des dépôts (drops=) et lieu de la cache de récompense (cache_place=).
+[place checkpoint]
+at=4827,6277,0
+label=Relay station
+
+# Clinique de West Point, salle d'examen medclinic 11879-11882 x 6876-6880, z 0 : bâtiment 43 du lotheader 46_26
+# (galerie marchande x 11854-11888, y 6857-6886 ; la clinique en occupe x 11879-11888), relevé sur la carte 42.22 par
+# .claude/tools/lotheader_parser.py. Façades de la clinique : quatre vitrines (walls_commercial_02_1, WindowN) et une
+# porte (fixtures_doors_01_49) au sud en y 6887, autant au nord en y 6872 (porte 11884,6872).
+[place clinic]
+at=11880,6878,0
+label=West Point clinic
+
+# Planques dehors, sur le trottoir derrière la galerie (floors_exterior_tilesandstone_01_3), chacune à côté de
+# bennes (trashcontainers_01_14/15, Dumpster) : derrière la clinique (bennes 11872-11875, 6871) et derrière la
+# librairie voisine (bâtiment 35, benne 11893-11894, 6871). Relevé sur la carte 42.22 (lotpack 46_26).
+[place drop_dumpsters]
+at=11874,6870,0
+label=Dumpsters behind the clinic
+
+[place drop_bookstore]
+at=11894,6870,0
+label=Dumpster behind the bookstore
+
+# Lieu du rendez-vous relevé sur la carte 42.22 (lotheader 50_4 ; jetée bétonnée blends_street_01_54/55 x 12897-12902, y 1139-1185, eau des deux côtés (bassin est, en aval du pont Clark Memorial), ouverture du mur du quai en y 1185).
+# Rendez-vous d'un marchand (landing= de sa section [trade]).
+[place louisville_jetty]
+at=12899,1150,0
+label=Concrete jetty, Louisville riverfront
+
+# Lieu du rendez-vous relevé sur la carte 42.22 (lotheader 2_38 ; boîte aux lettres street_decoration_01_18 (container postbox, ContainerCapacity 5) en 643,9739 sur le trottoir, rue blends_street_01_87 en x 644 ; le lieu est la case voisine).
+# Rendez-vous d'un marchand (landing= de sa section [trade]).
+[place ekron_mailbox]
+at=643,9740,0
+label=Street mailbox on the main road, Ekron
+
+# Ponton de Riverside (floors_interior_tilesandwood_01_40, x 6041-6042, y 5215-5220, eau à l'ouest ; bassin ouest de
+# l'Ohio, base knox-geography.md). Rendez-vous d'un marchand (landing= de sa section [trade]).
+[place riverside_pier]
+at=6041,5217,0
+label=Old wooden pier, west end of Riverside
+
+# Lieu du rendez-vous relevé sur la carte 42.22 (lotheader 41_37 ; herbe blends_natural_01_21 hors de toute pièce, au bord ouest de la grande route blends_street_01_86 (x 10584-10598), à l'entrée nord de la ville).
+# Rendez-vous d'un marchand (landing= de sa section [trade]).
+[place muldraugh_shoulder]
+at=10583,9700,0
+label=Highway shoulder north of Muldraugh
+
+# Lieu du rendez-vous relevé sur la carte 42.22 (lotheader 6_21 ; ponton en T floors_interior_tilesandwood_01_41 x 1631-1643, y 5576-5577, passerelle x 1637-1638 jusqu'à la rive y 5596 (route blends_street en 1640-1645, 5598), eau tout autour).
+# Rendez-vous d'un marchand (landing= de sa section [trade]).
+[place brandenburg_pier]
+at=1637,5576,0
+label=T-head of the wooden pier, Brandenburg
+
+# Lieu du rendez-vous relevé sur la carte 42.22 (lotheader 40_49 ; herbe blends_natural_01_16/21 hors de toute pièce, au bord sud de la route blends_street_01_86 à lignes (y 12616-12623), entre deux allées, à l'entrée nord).
+# Rendez-vous d'un marchand (landing= de sa section [trade]).
+[place marchridge_roadside]
+at=10298,12625,0
+label=Roadside north of March Ridge
+
+# Lieu du rendez-vous relevé sur la carte 42.22 (lotheader 28_32 ; bennes trashcontainers_01_10 à 15 (container dumpster) x 7237-7239, y 8281-8282 sur le parking blends_street_01_103 hors de toute pièce, derrière les magasins (x 7243 et plus)).
+# Rendez-vous d'un marchand (landing= de sa section [trade]).
+[place fallaslake_dumpsters]
+at=7236,8282,0
+label=Dumpsters behind the stores, Fallas Lake
+
+# Lieu du rendez-vous relevé sur la carte 42.22 (lotheader 31_45 ; bennes trashcontainers_01_14/15 (container dumpster) x 8154-8157, y 11649, sur un terrain en herbe hors de toute pièce entouré de rues ; le lieu est la case devant les bennes).
+# Rendez-vous d'un marchand (landing= de sa section [trade]).
+[place rosewood_dumpsters]
+at=8155,11650,0
+label=Dumpsters on the lot in Rosewood
+
+# Lieu du rendez-vous relevé sur la carte 42.22 (lotheader 10_55 ; herbe blends_natural_01_37 hors de toute pièce, au bord nord de la route blends_street_01_85 (y 14096-14101), sortie est de la ville).
+# Rendez-vous d'un marchand (landing= de sa section [trade]).
+[place irvington_roadside]
+at=2620,14095,0
+label=Roadside east of Irvington
+
+# Lieu du rendez-vous relevé sur la carte 42.22 (lotheader 46_25 ; ponton floors_interior_tilesandwood_01_41 x 11827-11828, y 6574-6591, eau blends_natural_02_0 (water) de part et d'autre, rive y 6592).
+# Rendez-vous d'un marchand (landing= de sa section [trade]).
+[place westpoint_jetty]
+at=11827,6588,0
+label=Wooden jetty north of West Point

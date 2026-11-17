@@ -1,5 +1,5 @@
 -- Voice mission `route` (E20-T13, ADR D10): three places around the player crossed in order. Real start path of a
--- voice (RS_MissionVoice.start, sheet with one [mission] of type route, points=a,b,c, three places use=target), real
+-- voice (RS_MissionVoice.start, sheet with one [mission] of type route, points=a,b,c, three shared points), real
 -- set-up of the points (RS_MissionWaypoints), real engine poll (CA_Missions.observe: the template reads the server
 -- copy of the player), real radio report (RS_MissionVoice.report).
 -- The server copy of the player is moved point by point (IsoMovingObject setX/setY) and read at once by the poll, in
@@ -27,8 +27,7 @@ local function run(t)
     local at = {a = {px + SIDE, py}, b = {px + SIDE, py + SIDE}, c = {px, py + SIDE}}
     local places = {}
     for _, id in ipairs({'a', 'b', 'c'}) do
-        places[#places + 1] = {id = id, label = 'RST point ' .. id, x = at[id][1], y = at[id][2], z = z0,
-            uses = {'target'}, use = {target = true}}
+        places[id] = {id = id, label = 'RST point ' .. id, x = at[id][1], y = at[id][2], z = z0}
     end
     local sheet = {id = 'rst-voice-route', name = 'RST Voice', actions = {'say', 'start_mission'}, budgets = {},
         missions = {{id = 'route', type = 'route', params = {points = {'a', 'b', 'c'}}}}, places = places}

@@ -154,6 +154,16 @@ class WorkshopAiRoutes(unittest.TestCase):
         self.suggest("paquet_name", sheetText=french_sheet)
         self.assertIn("Write in English", self.sent[-1][0]["content"])
 
+    def test_suggest_a_shared_place_name_without_a_voice(self):
+        """E25-T03: the Places tab asks a place's name with no voice open: where it is and the voices using it."""
+        status, payload = self.post("suggest", {"field": "place_label", "pageLanguage": "fr",
+                                                "details": {"where": "a spot", "used_by": "Cody, Darlene"}})
+        self.assertEqual(status, 200, payload)
+        self.assertEqual(payload["text"], fake_llm.WORKSHOP_SUGGEST_TEXTS["place_label"])
+        system, user = (m["content"] for m in self.sent[0])
+        self.assertIn("shared by every radio voice", user)
+        self.assertIn("- used_by: Cody, Darlene", user)
+
     def test_suggest_frequency_mark(self):
         status, payload = self.suggest("call")
         self.assertEqual(status, 200, payload)
@@ -238,6 +248,25 @@ class WorkshopAiRoutes(unittest.TestCase):
         self.assertEqual(self.usage()[0]["source"], "workshop")
         self.assertEqual(snapshot(self.working), self.before)
 
+    def test_try_reads_the_shared_places_of_the_working_folder(self):
+        """E25-T03: a voice naming shared places (marks=) is read with the working _places.txt (port `places` of the
+        workshop AI, the store's in the bridge): accepted; a place missing from it refuses the sheet."""
+        (self.working / "_places.txt").write_text("format=1\n[place mill]\nat=10,20,0\nlabel=Old mill\n",
+                                                  encoding="utf-8", newline="")
+        store = atelier.VoiceStore(self.working, self.working.parent / "mod")
+        server = self.serve(rb.workshop_ai(self.config, store.shared_places))
+        try:
+            marked = UNSAVED.replace("frequency=146.0\n", "frequency=146.0\nmarks=mill\n")
+            status, payload = self.post("try", {"voiceId": "zed", "sheetText": marked, "text": "Hi"}, server)
+            self.assertEqual(status, 200, payload)
+            status, payload = self.post("try", {"voiceId": "zed", "text": "Hi",
+                                                "sheetText": marked.replace("marks=mill", "marks=barn")}, server)
+            self.assertEqual((status, payload["code"]), (422, "sheet_refused"))
+            self.assertIn("unknown place 'barn'", payload["message"])
+        finally:
+            server.shutdown()
+            server.server_close()
+
     def test_try_refuses_an_invalid_sheet_without_call(self):
         status, payload = self.post("try", {"voiceId": "zed", "sheetText": "format=1\nid=zed\n", "text": "Hi"})
         self.assertEqual((status, payload["code"]), (422, "sheet_refused"))
@@ -321,8 +350,9 @@ class AnswerShapes(unittest.TestCase):
             self.assertIn(spec.sentences, ("one", "line", "paragraph"), name)
         self.assertEqual((book.fields["note_line"].max, book.fields["note_line"].unit), (40, "bytes"))
         self.assertTrue(book.fields["call"].frequency and book.fields["note_line"].frequency)
-        self.assertFalse(book.fields["name"].sheet_required)
-        self.assertTrue(all(spec.sheet_required for name, spec in book.fields.items() if name != "name"))
+        without_sheet = ("name", "place_label")   # a new voice; a shared place of the Places tab (E25-T03)
+        self.assertFalse(any(book.fields[name].sheet_required for name in without_sheet))
+        self.assertTrue(all(spec.sheet_required for name, spec in book.fields.items() if name not in without_sheet))
 
 if __name__ == "__main__":
     unittest.main()

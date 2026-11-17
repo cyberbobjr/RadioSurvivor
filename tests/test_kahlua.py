@@ -112,6 +112,8 @@ LUA_FILES = [
                       key=lambda p: p.name.lower())],
     ('CoreAI/CA_TextCut', CORE_LUA / 'shared' / 'CoreAI' / 'CA_TextCut.lua'),  # E21-T03 : RadioSurvivor_Const.oneLine
     ('RadioSurvivor/RadioSurvivor_Const', MOD_LUA / 'shared' / 'RadioSurvivor' / 'RadioSurvivor_Const.lua'),
+    # E25-T01 : genres de bâtiment du mod commun, lus par RS_Personas.rules (building= d'une mission).
+    ('CoreAI/CA_Sites', CORE_LUA / 'server' / 'CoreAI' / 'CA_Sites.lua'),
     ('RadioSurvivor/RS_Personas', MOD_LUA / 'server' / 'RadioSurvivor' / 'RS_Personas.lua'),
     ('RadioSurvivor/RS_RadioHistory', MOD_LUA / 'client' / 'RadioSurvivor' / 'RS_RadioHistory.lua'),
     ('CoreAI/CA_MapZones', CORE_LUA / 'client' / 'CoreAI' / 'CA_MapZones.lua'),  # E21-T03 : RS_MapActions
@@ -479,19 +481,6 @@ PERSONA_CASES = [
     ('accented-id', (test_personas.HEAD.replace('id=case', 'id=cas\u00e9') + test_personas.PROMPT).encode(), 'case'),
     ('frequency', (test_personas.FIXED_HEAD.replace('145.0', '145.1') + test_personas.PROMPT).encode(), 'case'),
     ('budget', (test_personas.HEAD + 'actions=say\nbudget.signal=1\n' + test_personas.PROMPT).encode(), 'case'),
-    # E07-T04 : libellé de lieu borné en octets UTF-8, comptés depuis les unités UTF-16 de Kahlua.
-    ('place-48', (test_personas.HEAD + test_personas.place('a', label='é' * 24) + test_personas.PROMPT).encode(),
-     'case'),
-    ('place-49', (test_personas.HEAD + test_personas.place('a', label='é' * 24 + 'x')
-                  + test_personas.PROMPT).encode(), 'case'),
-    ('place-cjk', (test_personas.HEAD + test_personas.place('a', label='港' * 16) + test_personas.PROMPT).encode(),
-     'case'),
-    ('place-cjk-long', (test_personas.HEAD + test_personas.place('a', label='港' * 16 + 'x')
-                        + test_personas.PROMPT).encode(), 'case'),
-    ('place-emoji', (test_personas.HEAD + test_personas.place('a', label='\U0001F4FB' * 12)
-                     + test_personas.PROMPT).encode(), 'case'),
-    ('place-emoji-long', (test_personas.HEAD + test_personas.place('a', label='\U0001F4FB' * 12 + 'x')
-                          + test_personas.PROMPT).encode(), 'case'),
     # E22-T07 : appel écrit dans la fiche (call=), borné en octets UTF-8 comme les libellés de lieu.
     ('call-200', (test_personas.HEAD + 'call=' + 'é' * 99 + '%1\n' + test_personas.PROMPT).encode(), 'case'),
     ('call-201', (test_personas.HEAD + 'call=' + 'é' * 100 + 'x\n' + test_personas.PROMPT).encode(), 'case'),
@@ -499,6 +488,21 @@ PERSONA_CASES = [
     ('call-percent', (test_personas.HEAD + 'call=100% sur %1\n' + test_personas.PROMPT).encode(), 'case'),
 ]
 
+
+# E07-T04, E25-T01 : libellé de lieu borné en octets UTF-8, comptés depuis les unités UTF-16 de Kahlua ; les lieux
+# vivent dans le fichier commun _places.txt, lu par RS_Persona.parsePlaces et persona_store.parse_places_lines.
+def places_file(label: str) -> bytes:
+    return ('format=1\n' + test_personas.place('a', label=label)).encode()
+
+
+PLACES_CASES = [
+    ('place-48', places_file('é' * 24)),
+    ('place-49', places_file('é' * 24 + 'x')),
+    ('place-cjk', places_file('港' * 16)),
+    ('place-cjk-long', places_file('港' * 16 + 'x')),
+    ('place-emoji', places_file('📻' * 12)),
+    ('place-emoji-long', places_file('📻' * 12 + 'x')),
+]
 
 def persona_lines(raw: bytes) -> list[str]:
     return persona_store.split_lines(raw.decode('utf-8', errors='replace'))
@@ -521,6 +525,25 @@ def persona_eval(name: str, raw: bytes, expected_id: str) -> str:
 
 
 EXCHANGE_EVALS += [persona_eval(name, raw, expected_id) for name, raw, expected_id in PERSONA_CASES]
+
+
+def places_expected(raw: bytes) -> str:
+    try:
+        return 'OK ' + test_personas.places_canonical(persona_store.parse_places_lines(persona_lines(raw))).encode(
+            'utf-8').hex()
+    except persona_store.PersonaError as exc:
+        return 'ERR ' + str(exc).encode('utf-8').hex()
+
+
+def places_eval(name: str, raw: bytes) -> str:
+    lines = ', '.join(lua_literal(line) for line in persona_lines(raw))
+    canon = ' '.join(test_personas.LUA_PLACES_CANONICAL.split())
+    return ('eval:local P = require("RadioSurvivor/RS_Persona"); local C = require("CoreAI/CA_Codec"); '
+            f'local canon = (function() {canon} end)(); local p, why = P.parsePlaces({{ {lines} }}); '
+            f'return "KR-PLACES-{name} " .. (p and ("OK " .. C.hex(canon(p))) or ("ERR " .. C.hex(why)))')
+
+
+EXCHANGE_EVALS += [places_eval(name, raw) for name, raw in PLACES_CASES]
 
 # E05-T02 : RS_Personas dans la VM réelle (doublures Lua des fichiers, du dossier du mod et du gestionnaire de
 # chaînes) : identifiants de chaîne (tostring d'un nombre Kahlua),
@@ -1093,6 +1116,14 @@ class KahluaBench(unittest.TestCase):
                 self.assertEqual(self.line(f'KR-PERSONA-{name}'), persona_expected(raw, expected_id))
         self.assertTrue(persona_expected(PERSONA_CASES[0][1], 'walt').startswith('OK '))
         self.assertTrue(persona_expected(PERSONA_CASES[2][1], 'case').startswith('ERR '))
+
+    def test_shared_place_labels_read_like_python(self):
+        # E07-T04, E25-T01 : libellés de 48 octets acceptés, 49 refusés, mêmes lieux et mêmes refus des deux côtés.
+        for name, raw in PLACES_CASES:
+            with self.subTest(name):
+                self.assertEqual(self.line(f'KR-PLACES-{name}'), places_expected(raw))
+        self.assertTrue(places_expected(PLACES_CASES[0][1]).startswith('OK '))
+        self.assertTrue(places_expected(PLACES_CASES[1][1]).startswith('ERR '))
 
     def test_map_mark_in_kahlua(self):
         # E07-T04 : repère au centre de la case, libellé nettoyé de 12 unités (« Café  b x /b »), aucun doublon.

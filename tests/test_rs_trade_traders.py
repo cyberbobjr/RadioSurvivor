@@ -24,15 +24,20 @@ from test_rs_trade_run import EN, TraderProxy, lua_list, rb  # noqa: E402
 GUS_PIER = (6041, 5217)
 TESS_DOCK = (7000, 5300)
 
+# E25-T01 : rendez-vous des marchands du banc, ajoutés aux lieux communs livrés (rules.places).
+BENCH_PLACES = '''[place dock]
+at=7000,5300,0
+label=Old ferry dock
+[place gate]
+at=8000,8000,0
+label=Farm gate on the county road
+'''
+
 TESS = '''format=1
 id=tess
 name=Tess Bench
 frequency=161.0
 actions=say,propose_trade
-[place dock]
-at=7000,5300,0
-label=Old ferry dock
-use=landing
 [trade]
 landing=dock
 arrival=boat
@@ -65,10 +70,6 @@ id=carl
 name=Carl Bench
 frequency=162.0
 actions=say,propose_trade
-[place gate]
-at=8000,8000,0
-label=Farm gate on the county road
-use=landing
 [trade]
 landing=gate
 arrival=cart
@@ -82,6 +83,7 @@ You are Carl, a bench trader.
 
 
 class TradersHarness(ExchangeHarness):
+    EXTRA_PLACES = BENCH_PLACES
 
     def setUp(self):
         super().setUp()
@@ -212,7 +214,7 @@ class FakeArrivalModeTests(TradersHarness):
     def test_unknown_or_broken_mode_refused(self):
         bad = CARL.replace('arrival=cart', 'arrival=zeppelin')
         result = self.Persona.parseLines(self.rt.table_from(bad.splitlines()), 'carl', self.rules)
-        self.assertEqual(result[1], "line 12: unknown arrival 'zeppelin' (expected boat, cart)")
+        self.assertEqual(result[1], "line 8: unknown arrival 'zeppelin' (expected boat, cart)")
         registered = self.rt.eval('require("RadioSurvivor/RS_TradeArrivals").register("half", { signals = {} })')
         self.assertFalse(registered)
 

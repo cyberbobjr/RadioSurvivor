@@ -18,8 +18,9 @@ from types import SimpleNamespace
 import test_carnet as carnet_helpers
 from test_carnet import MAP_DOUBLE, NOTEBOOK_UI, bridge_module, convert
 from test_mission_clear import CLEAR_WORLD
+from test_mission_barricade import sheet_double
 from test_personas import LuaPersona
-from test_persona_sections import BASE, PROMPT
+from test_persona_sections import BASE, PLACES, PROMPT
 import npc_protocol as protocol
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -219,10 +220,11 @@ end
 '''
 
 # Fiche d'une voix qui donne la mission relay : la maison à étage, un lieu hors de tout bâtiment, un lieu en hauteur.
-SHEET_PLACES = [
-    {'id': 'house', 'x': 302, 'y': 302, 'z': 0, 'label': 'Hilltop house', 'uses': ['target'], 'use': {'target': True}},
-    {'id': 'deck', 'x': 400, 'y': 400, 'z': 2, 'label': 'Overpass', 'uses': ['target'], 'use': {'target': True}},
-]
+# Lieux communs (E25-T01), table id -> lieu comme sheet.places.
+SHEET_PLACES = {
+    'house': {'id': 'house', 'x': 302, 'y': 302, 'z': 0, 'label': 'Hilltop house'},
+    'deck': {'id': 'deck', 'x': 400, 'y': 400, 'z': 2, 'label': 'Overpass'},
+}
 
 
 class RelayMissionTests(unittest.TestCase):
@@ -239,15 +241,7 @@ class RelayMissionTests(unittest.TestCase):
         return sim, rt.eval("require('RadioSurvivor/RS_MissionVoice')"), rt.eval("require('CoreAI/CA_NotebookStore')")
 
     def sheet(self, sim, section):
-        rt = sim.server.rt
-        places = [rt.table_from({**p, 'uses': rt.table_from(p['uses']), 'use': rt.table_from(p['use'])})
-                  for p in SHEET_PLACES]
-        fields = dict(section)
-        fields['params'] = rt.table_from(section.get('params', {}))
-        fields.setdefault('type', 'relay')
-        fields.setdefault('id', 'relay')
-        return rt.table_from({'id': 'custom', 'name': 'Custom', 'missions': rt.table_from([rt.table_from(fields)]),
-                              'places': rt.table_from(places)})
+        return sheet_double(sim.server.rt, SHEET_PLACES, section, 'relay', 'relay')
 
     def start(self, sim, voice, store, sheet):
         return voice.start(store, sheet, sim.character('alice'), sim.server.g.PLAYERS.alice, 160000, 'relay')
@@ -382,11 +376,6 @@ class RelayMissionTests(unittest.TestCase):
         self.poll(sim, store)
         self.assertTrue(m.relayed)
 
-    def test_start_refused_without_target(self):
-        sim, voice, store = self.world('relay-no-target')
-        self.assertEqual(self.start(sim, voice, store, self.sheet(sim, {})), (None, 'no_target'))
-        self.assertEqual([m for m in sim.state().missions.values() if m.donor == 'voice'], [])
-
     def test_npc_fiches_are_never_offered_a_relay(self):
         sim, _, _ = self.world('relay-npc')
         offer = sim.server.rt.eval("""(function()
@@ -461,7 +450,7 @@ class RelayBriefTests(unittest.TestCase):
     def told(self, voice, ctx):
         field = voice.field(ctx)
         self.assertLessEqual(set(protocol.decode(bytes.fromhex(field))), GENERIC_FIELDS)
-        mission = bridge_module.mission_context({'mission': field}, SimpleNamespace(places=[]))
+        mission = bridge_module.mission_context({'mission': field}, SimpleNamespace(marks=[]))
         return mission, bridge_module.mission_prompt(mission, 'Caller')
 
     def test_job_and_verified_facts_told_to_the_voice(self):
@@ -488,6 +477,7 @@ class RelaySheetTests(unittest.TestCase):
     def setUpClass(cls):
         cls.tmp = tempfile.TemporaryDirectory()
         cls.folder = Path(cls.tmp.name)
+        (cls.folder / '_places.txt').write_text(PLACES, encoding='utf-8')   # E25-T01: shared places of the cases
         cls.lua = LuaPersona(cls.folder)
         cls.lua.rt.eval('require("CoreAI/CA_MissionRelay")')
 
@@ -502,14 +492,12 @@ class RelaySheetTests(unittest.TestCase):
     def test_valid_section(self):
         p = self.read('type=relay\ntarget=clinic\n')
         self.assertFalse(isinstance(p, tuple), p)
-        self.assertEqual((p.missions[1].type, p.missions[1].target), ('relay', 'clinic'))
+        m = p.missions[1]
+        self.assertEqual((m.type, m.target.kind, m.target.id), ('relay', 'place', 'clinic'))
 
     def test_refusals(self):
-        for body, why in (
-                ('type=relay\ntarget=church\n', "line 15: place 'church' has no use=target"),
-                ('type=relay\ntarget=clinic\ncount=2\n', "line 16: unknown key 'count' for mission type 'relay'")):
-            with self.subTest(body=body):
-                self.assertEqual(self.read(body), (None, why))
+        self.assertEqual(self.read('type=relay\ntarget=clinic\ncount=2\n'),
+                         (None, "line 8: unknown key 'count' for mission type 'relay'"))
 
 
 if __name__ == '__main__':

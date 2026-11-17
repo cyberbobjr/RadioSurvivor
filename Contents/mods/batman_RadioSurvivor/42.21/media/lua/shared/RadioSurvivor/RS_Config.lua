@@ -144,7 +144,7 @@ for _, key in ipairs({'MODULE', 'VERSION', 'DELIVERY_RANGE', 'SAVE_INTERVAL_MS',
 end
 -- E18-T05: mission catalogue, caches and mission delays live in the core mod (CA_MissionConfig); same tables.
 for _, key in ipairs({'OFFER_TTL_MS', 'OFFER_COOLDOWN_MS', 'MAX_OFFERS', 'MISSION_RETENTION_MS',
-        'UNCLAIMED_RETENTION_HOURS', 'UNCLAIMED_RETENTION_MS', 'Missions', 'Caches'}) do
+        'UNCLAIMED_RETENTION_HOURS', 'UNCLAIMED_RETENTION_MS', 'Missions', 'Caches', 'Targets'}) do
     C[key] = MissionConfig[key]
 end
 -- E18-T22: rules of the reputation live in the core mod (CA_ReputationConfig); same table.

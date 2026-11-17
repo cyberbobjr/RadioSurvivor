@@ -45,6 +45,24 @@ class AtelierCatalogTests(unittest.TestCase):
                         f'{gen.OUTPUT.relative_to(ROOT).as_posix()} is not up to date with the mod: '
                         'run python tools/gen_atelier_catalog.py')
 
+    def test_shared_places_grammar_distances_and_building_kinds(self):
+        """E25-T03: what the Places tab and the place lists of a voice read: the grammar of _places.txt (a point or a
+        zone, label limit, zone side, number of places), the marks a voice may give, the drawn objectives (distances)
+        and the building kinds of CA_Sites.KINDS, in their order; a reward kind that needs cache_place says so."""
+        catalog = gen.build(gen.load_mod(), gen.previous())
+        kinds = gen.require(gen.load_mod(), 'CoreAI/CA_Sites').KINDS
+        self.assertEqual(catalog['places']['keys'], ['area', 'at', 'label'])
+        self.assertEqual(catalog['places']['oneOf'], ['at', 'area'])
+        self.assertEqual((catalog['places']['maxAreaSide'], catalog['places']['maxLabelBytes']), (1500, 48))
+        self.assertEqual((catalog['sheet']['maxPlaces'], catalog['sheet']['maxMarks']), (500, 12))
+        self.assertEqual(catalog['distances'], ['near', 'far', 'very_far'])
+        self.assertEqual(catalog['sections']['mission']['choices']['building'],
+                         [str(rule.kind) for rule in gen.lua_items(kinds)])
+        self.assertEqual(len(catalog['sections']['mission']['choices']['building']), 11)
+        self.assertIn('marks', catalog['header']['keys'])
+        self.assertTrue(catalog['rewardKinds']['cache']['place'])
+        self.assertFalse(catalog['rewardKinds']['lesson']['place'])
+
     def test_render_is_deterministic(self):
         catalog = gen.build(gen.load_mod(), gen.previous())
         text = gen.render(catalog)

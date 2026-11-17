@@ -2755,14 +2755,7 @@ name=Map Tester
 frequency=161.0
 actions=say,mark_map
 budget.mark_map=2
-[place mill]
-at=10600,9300,0
-label=Old mill
-use=mark,target,drop
-[place pharmacy]
-at=11920,6905,-1
-label=West Point <b>pharmacy</b>
-use=mark,target,drop
+marks=mill,pharmacy
 [prompt]
 You are Map Tester, a voice of the offline test bench who knows places.
 """,
@@ -2771,10 +2764,7 @@ id=mapper2
 name=Second Mapper
 frequency=162.0
 actions=say,mark_map
-[place farm]
-at=8000,8000,0
-label=Farm
-use=mark,target,drop
+marks=farm
 [prompt]
 You are Second Mapper, another voice of the offline test bench.
 """,
@@ -2783,14 +2773,24 @@ id=noplace
 name=No Place
 frequency=163.0
 actions=say
-[place mill]
-at=10600,9300,0
-label=Old mill
-use=mark,target,drop
+marks=mill
 [prompt]
 You are No Place, a voice that does not mark maps.
 """,
 }
+
+# E25-T01: shared places of the map voices (sibling _places.txt of the sheets).
+MAP_PLACES = """format=1
+[place mill]
+at=10600,9300,0
+label=Old mill
+[place pharmacy]
+at=11920,6905,-1
+label=West Point <b>pharmacy</b>
+[place farm]
+at=8000,8000,0
+label=Farm
+"""
 
 
 def write_map(exchange: Path) -> None:
@@ -2798,6 +2798,7 @@ def write_map(exchange: Path) -> None:
     folder.mkdir(parents=True, exist_ok=True)
     for name, text in MAP_SHEETS.items():
         (folder / f"{name}.txt").write_text(text, encoding="utf-8")
+    (folder / "_places.txt").write_text(MAP_PLACES, encoding="utf-8")
 
 
 def scenario_map_bridge(tmp: Path) -> None:
@@ -2811,7 +2812,7 @@ def scenario_map_bridge(tmp: Path) -> None:
     write_map(exchange)
     voices = rb.Voices(exchange / "personas")
     mapper = voices.get("mapper")
-    assert [(p.id, p.x, p.y, p.z, p.label) for p in mapper.places] == [
+    assert [(p.id, p.x, p.y, p.z, p.label) for p in mapper.marks] == [
         ("mill", 10600, 9300, 0, "Old mill"), ("pharmacy", 11920, 6905, -1, "West Point <b>pharmacy</b>")]
     assert rb.offered_actions(mapper) == ["mark_map", "remember"]
     req = {"id": "4-4", "caller": "kate", "name": "Kate", "date": "1993-07-12 21:40", "days": "3.5",
@@ -2845,10 +2846,11 @@ def scenario_map_bridge(tmp: Path) -> None:
     folder = tmp / "map-bridge-empty" / "personas"
     folder.mkdir(parents=True)
     (folder / "empty.txt").write_text(MAP_SHEETS["mapper2"].replace("id=mapper2", "id=empty")
-                                      .replace("[place farm]\nat=8000,8000,0\nlabel=Farm\nuse=mark,target,drop\n", ""),
+                                      .replace("marks=farm\n", ""),
                                       encoding="utf-8")
+    (folder / "_places.txt").write_text(MAP_PLACES, encoding="utf-8")
     empty = rb.Voices(folder).get("empty")
-    assert empty is not None and empty.places == [] and rb.offered_actions(empty) == ["remember"]
+    assert empty is not None and empty.marks == [] and rb.offered_actions(empty) == ["remember"]
 
 
 def scenario_map_client(tmp: Path) -> None:
@@ -3146,14 +3148,7 @@ name=Reveal Tester
 frequency=171.0
 actions=say,reveal_area
 budget.reveal_area=2
-[place mill]
-at=10600,9300,0
-label=Old mill
-use=mark,target,drop
-[place far]
-at=30000,30000,0
-label=Beyond the map
-use=mark,target,drop
+marks=mill,beyond
 [prompt]
 You are Reveal Tester, a voice of the offline test bench who knows neighbourhoods.
 """,
@@ -3162,14 +3157,7 @@ id=both
 name=Both Tester
 frequency=172.0
 actions=say,mark_map,reveal_area
-[place mill]
-at=10600,9300,0
-label=Old mill
-use=mark,target,drop
-[place farm]
-at=8000,8000,0
-label=Farm
-use=mark,target,drop
+marks=mill,farm
 [prompt]
 You are Both Tester, a voice of the offline test bench.
 """,
@@ -3186,14 +3174,24 @@ id=marker
 name=Marker Tester
 frequency=174.0
 actions=say,mark_map
-[place mill]
-at=10600,9300,0
-label=Old mill
-use=mark,target,drop
+marks=mill
 [prompt]
 You are Marker Tester, a voice that only marks.
 """,
 }
+
+# E25-T01: shared places of the reveal voices (sibling _places.txt of the sheets).
+REVEAL_PLACES = """format=1
+[place mill]
+at=10600,9300,0
+label=Old mill
+[place beyond]
+at=30000,30000,0
+label=Beyond the map
+[place farm]
+at=8000,8000,0
+label=Farm
+"""
 
 
 def write_reveal(exchange: Path) -> None:
@@ -3201,6 +3199,7 @@ def write_reveal(exchange: Path) -> None:
     folder.mkdir(parents=True, exist_ok=True)
     for name, text in REVEAL_SHEETS.items():
         (folder / f"{name}.txt").write_text(text, encoding="utf-8")
+    (folder / "_places.txt").write_text(REVEAL_PLACES, encoding="utf-8")
 
 
 def scenario_reveal_bridge(tmp: Path) -> None:
@@ -3238,8 +3237,8 @@ def scenario_reveal_bridge(tmp: Path) -> None:
     assert out["actions"] == [{"type": "reveal_area", "place": "mill"}], out
     assert rb.bounded_actions(revealer, [{"type": "reveal_area"}, {"type": "reveal_area", "place": 3},
                                          {"type": "reveal_area", "place": "Mill"},
-                                         {"type": "reveal_area", "place": "far"}]) == [
-        {"type": "reveal_area", "place": "far"}]
+                                         {"type": "reveal_area", "place": "beyond"}]) == [
+        {"type": "reveal_area", "place": "beyond"}]
     # Lieu d'une autre voix ; fiche qui n'autorise pas reveal_area.
     assert rb.bounded_actions(revealer, [{"type": "reveal_area", "place": "farm"}]) == []
     assert rb.bounded_actions(voices.get("marker"), [{"type": "reveal_area", "place": "mill"}]) == []
@@ -3289,6 +3288,44 @@ def scenario_reveal_rect(tmp: Path) -> None:
     free = marks.revealRect(30000, 31, None)
     assert (free.x1, free.y1, free.x2, free.y2) == (29920, 0, 30080, 96)
     assert marks.revealRect("a", 3, bounds) is None
+
+
+def scenario_reveal_zone(tmp: Path) -> None:
+    """E25-T02 (ADR lieux communs D05), serveur (lupa) : reveal_area d'une zone couvre toute la zone quand ses blocs
+    tiennent dans 5 blocs (160 cases), sinon le carré de 160 cases centré sur son milieu ; jamais plus grand ; un point
+    garde sa règle ; mark_map d'une zone vise son centre."""
+    exchange = tmp / "reveal-zone"
+    exchange.mkdir()
+    game = reveal_game("solo", exchange, Clock())
+    game.load("shared/RadioSurvivor/RadioSurvivor_Const.lua", "server/RadioSurvivor_Server.lua")
+    g = game.g
+    marks = g.require("RadioSurvivor/RS_MapMarks")
+    bounds = marks.mapBounds()
+
+    def zone(x1, y1, x2, y2):
+        return game.rt.table_from({"id": "town", "label": "Old town", "z": 0,
+                                   "area": game.rt.table_from({"x1": x1, "y1": y1, "x2": x2, "y2": y2})})
+
+    def rect(r):
+        return (r.x1, r.y1, r.x2, r.y2)
+    # A zone of 100 x 70 tiles off the block grid: wholly covered, 160 tiles per side.
+    r = marks.revealPlace(zone(1010, 2005, 1109, 2074), bounds)
+    assert r.x1 <= 1010 and 1109 < r.x2 and r.y1 <= 2005 and 2074 < r.y2, rect(r)
+    assert (r.x2 - r.x1, r.y2 - r.y1) == (160, 160), rect(r)
+    assert all(int(e) % 32 == 0 for e in rect(r)), rect(r)
+    # A zone of 150 tiles whose blocks span six: centred on its middle, capped at 160.
+    r = marks.revealPlace(zone(1000, 1000, 1149, 1010), bounds)
+    assert (r.x2 - r.x1, r.y2 - r.y1) == (160, 160), rect(r)
+    assert r.x1 <= (1000 + 1149) // 2 < r.x2, rect(r)
+    # A big zone (1500 tiles): never more than 160 tiles, around its middle.
+    r = marks.revealPlace(zone(3000, 3000, 4499, 4499), bounds)
+    assert (r.x2 - r.x1, r.y2 - r.y1) == (160, 160), rect(r)
+    assert r.x1 <= 3749 < r.x2 and r.y1 <= 3749 < r.y2, rect(r)
+    # A point keeps its rule; the mark of a zone is its centre.
+    point = game.rt.table_from({"id": "mill", "label": "Mill", "x": 1050, "y": 2050, "z": 0})
+    assert rect(marks.revealPlace(point, bounds)) == rect(marks.revealRect(1050, 2050, bounds))
+    cmd = marks.command(zone(1010, 2005, 1109, 2074))
+    assert (cmd.x, cmd.y, cmd.label) == (1059, 2039, "Old town"), dict(cmd.items())
 
 
 def scenario_reveal_client(tmp: Path) -> None:
@@ -3408,7 +3445,7 @@ def scenario_reveal_server(tmp: Path) -> None:
     assert decide("revealer", [{"type": "reveal_area", "place": "mill"}]) == [("reveal_area", "cooldown")]
     clock.offset += 31000
     assert decide("revealer", [{"type": "reveal_area", "place": "mill"}], who=None) == [("reveal_area", "no_player")]
-    assert decide("revealer", [{"type": "reveal_area", "place": "far"}]) == [("reveal_area", "off_map")]
+    assert decide("revealer", [{"type": "reveal_area", "place": "beyond"}]) == [("reveal_area", "off_map")]
     assert known_blocks(g.VISITED.known) == mill
     # Budget du jour (2 : la première révélation compte), puis jour suivant.
     assert decide("revealer", [{"type": "reveal_area", "place": "mill"}]) == [("reveal_area", "ok")]
@@ -3482,12 +3519,16 @@ id=giver
 name=Job Giver
 frequency=164.0
 actions=say,start_mission
+marks=depot
+[prompt]
+You are Job Giver, a voice of the offline test bench who hands out scouting jobs.
+"""
+
+# E25-T01: shared places of the giver (sibling _places.txt of the sheet).
+MISSION_PLACES = """format=1
 [place depot]
 at=10600,9300,0
 label=Fuel depot
-use=mark,target,drop
-[prompt]
-You are Job Giver, a voice of the offline test bench who hands out scouting jobs.
 """
 
 
@@ -3505,6 +3546,7 @@ def scenario_voice_mission_bridge(tmp: Path) -> None:
     folder = exchange / "personas"
     folder.mkdir(parents=True)
     (folder / "giver.txt").write_text(MISSION_SHEET, encoding="utf-8")
+    (folder / "_places.txt").write_text(MISSION_PLACES, encoding="utf-8")
     voices = rb.Voices(folder)
     giver = voices.get("giver")
     # E20-T02 : sans liste de missions de la demande (jobs=), start_mission n'est pas proposée ; E11-T13 : report_mission
@@ -4288,7 +4330,7 @@ def main() -> int:
                          scenario_memory_bridge, scenario_memory_server,
                          scenario_persona_bridge, scenario_persona_server, scenario_action_descriptions,
                          scenario_map_bridge, scenario_map_client, scenario_map_server, scenario_map_mp,
-                         scenario_reveal_bridge, scenario_reveal_rect, scenario_reveal_client, scenario_reveal_server,
+                         scenario_reveal_bridge, scenario_reveal_rect, scenario_reveal_zone, scenario_reveal_client, scenario_reveal_server,
                          scenario_reveal_mp, scenario_voice_mission_bridge, scenario_report_done_bridge,
                          scenario_structured_robust, scenario_npc_reply_cleaning, scenario_provider_errors,
                          scenario_debug_journal,

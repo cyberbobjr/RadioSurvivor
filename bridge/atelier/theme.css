@@ -607,3 +607,26 @@ article.welcome { max-width: 720px; display: grid; gap: 10px; }
 /* Link to the Build 42 map next to the x/y/z fields of a square (maplink.js). */
 .maplink-wrap { display: inline-flex; align-items: center; gap: 0.25rem; white-space: nowrap; }
 .maplink { font-size: 0.9em; }
+
+/* --- shared places (E25-T03, placestab.js, placeform.js) ------------------------------------------------------------ */
+.places-view { align-content: start; }
+.places-list { margin-top: 8px; }
+.places-status { margin: 4px 0; font-size: 0.86rem; }
+.places-status:empty { display: none; }
+.places-status.bad { color: var(--warn); }
+article.card.place .used-by { margin: 0; color: var(--dim); font-size: 0.86rem; overflow-wrap: anywhere; }
+.place-icon { font-size: 1.1rem; line-height: 1; }
+.place-fields { gap: 6px; }
+.notice.new-place { display: grid; gap: 8px; }
+.notice.new-place > h4 { margin: 0; font-size: 1rem; }
+.place-checks { display: flex; flex-wrap: wrap; gap: 6px 12px; }
+.place-floor { max-width: 6rem; }
+.square .inline { flex-wrap: wrap; }
+@media (max-width: 760px) {
+  .square .inline input.num { max-width: 5.5rem; }
+}
+/* Four tabs (E25-T03): at phone width the header wraps, the tabs on their own line. */
+@media (max-width: 560px) {
+  body > header.top { flex-wrap: wrap; }
+  body > header.top .tabs { order: 3; flex: 1 1 100%; margin-left: 0; overflow-x: auto; }
+}

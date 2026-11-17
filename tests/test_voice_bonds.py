@@ -29,6 +29,7 @@ class VoiceBondsTests(unittest.TestCase):
         sim = self.sim = Simulation(self.tmp / 'bonds')
         (sim.path / 'personas').mkdir(parents=True, exist_ok=True)
         shutil.copyfile(MOD / 'personas/darlene.txt', sim.path / 'personas/darlene.txt')
+        shutil.copyfile(MOD / 'personas/_places.txt', sim.path / 'personas/_places.txt')   # E25-T01: her places
         sim.server.load('shared/RadioSurvivor/RadioSurvivor_Const.lua', 'server/RadioSurvivor_Server.lua')
         sim.server.g.fire('OnLoadRadioScripts', sim.server.g.MANAGER, True)
         self.alice = sim.add_client('alice')

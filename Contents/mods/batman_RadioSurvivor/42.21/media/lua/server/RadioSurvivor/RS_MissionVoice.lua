@@ -26,17 +26,18 @@ V.registerSetup(voiceName, { check(sheet, section) -> ok, reason, apply(m, sheet
 template that declares a field: V.registerDeclaredSetup(field, setup) (E20-T06: dead drops of the templates declaring
 dropAccepts, RS_DeadDrops; E20-T16: goods of the templates declaring askFor, RS_MissionGoods); a set-up by name
 replaces them, else every declared set-up of the template applies, in order of registration. Each is checked before
-the mission is created and applied before it is accepted and saved; section = the chosen [mission] section (drops,
-params). The server draws the place
-with the template's offer (CA_MissionScout: habitable building at 60-250 tiles of the caller's server position, same
-rules as E11-T03; E20-T10: the offer also receives the place named by the section's target=, RS_Persona.targetOf,
-and scout and clear then take the building at that place, wherever the caller is), creates and accepts the mission
-for the caller, writes the history line "mission" (kind of place,
-no coordinate) on the frequency of the reply. Refusals (reason): no_player (caller not connected: no server position), storage
-(private state not loaded or blocked), no_character (no notebook character bound), mission_open (this caller already
-has an open mission from this voice), recent_mission (OFFER_COOLDOWN_MS after the previous one), bad_template (no
-section nor type of that name, or a type without template), locked (waits for its after=), no_place, reputation
-(E04-T05: sensitive template refused to a bad reputation; scout is a simple mission, always allowed).
+the mission is created and applied before it is accepted and saved: check(sheet, section, aim), apply(m, sheet, donor,
+section, aim); section = the chosen [mission] section (drops, params, target), aim = its objective resolved once
+(below). E25-T01, E25-T02: the objective of the section (target=, building=; near by default) is resolved once per
+start by RS_MissionAim for a template with an objective: a shared point, or a building drawn in a zone or at a
+distance of the caller's server position (CA_Sites.draw); a refusal of it (no_place) is the refusal of the start.
+The template's offer receives it (aim: scout, clear, retrieve and signal take the building at that place, wherever the
+caller is), then the server creates and accepts the mission for the caller, writes the history line "mission" (kind of
+place, no coordinate) on the frequency of the reply. Refusals (reason): no_player (caller not connected: no server
+position), storage (private state not loaded or blocked), no_character (no notebook character bound), mission_open (this
+caller already has an open mission from this voice), recent_mission (OFFER_COOLDOWN_MS after the previous one),
+bad_template (no section nor type of that name, or a type without template), locked (waits for its after=), no_place,
+reputation (E04-T05: sensitive template refused to a bad reputation; scout is a simple mission, always allowed).
 
 Visit: the same server poll as E11-T03 (CA_Missions.observe from the notebook loop, server copy of the player).
 Report (E11-T13, user decision of 2026-10-14): once the objective is met (CA_Missions.reportReady: zone reached), the
@@ -48,7 +49,7 @@ mission of this voice for this caller, objective met, caller a participant (CA_M
 write-ahead transaction), then success. Before the objective, a call is never a report (turn 'not_yet') and the
 action is refused (not_done). Another frequency reaches another voice (or none): never this mission. Reward
 (V.reward): with a [rewards] pool, RS_Rewards; else reputation by the engine, plus a mark_map of the first place
-with use=mark of the voice sheet not yet given to this character by this voice (MapMarks.give: map mark and history
+of marks= of the voice sheet (E25-T01) not yet given to this character by this voice (MapMarks.give: map mark and history
 line "mark", no budget). A sheet without such a place (or all already given): reputation only. The place that
 would be given is told to the voice with turn 'report_due' (field reward). The mark is sent after the success is
 saved: a crash in between loses the mark, never the success.
@@ -82,7 +83,7 @@ local Log = require "RadioSurvivor/RS_RadioLog"
 local Bonds = require "RadioSurvivor/RS_VoiceBonds" -- E07-T10: exceptional share_frequency
 local Caches = require "CoreAI/CA_Caches" -- E20-T02: cache tables told to the voice (jobs=)
 local MapMarks = require "RadioSurvivor/RS_MapMarks"
-local Persona = require "RadioSurvivor/RS_Persona"
+local Aim = require "RadioSurvivor/RS_MissionAim" -- E25-T01: objective of the section (target=, building=)
 local Chain = require "RadioSurvivor/RS_MissionChain" -- E20-T08: sections available to a caller (after=, weight=)
 
 local V = {}
@@ -188,13 +189,15 @@ function V.start(store, sheet, cid, player, khz, template)
     local c = Config.Missions[name]
     -- E04-T05 (Q11): a sensitive template is never started for a bad reputation.
     if not Rep.offerAllowed(Rep.level(cid), name) then return nil, "reputation" end
-    -- The template's offer draws the place around the caller (server copy of the player: never a client claim);
-    -- E20-T10: or takes the building of the section's target place (aim), for the templates that can (scout, clear).
-    local terms = c and t.offer(c, d, nil, player, cid, Persona.targetOf(sheet, section))
+    -- E25-T01, E25-T02: the objective of the section (a point, or a building drawn in a zone or around the server copy
+    -- of the caller: never a client claim), resolved once for the offer and every set-up (RS_MissionAim).
+    local aim, aimRefused = Aim.resolve(sheet, section, player, t, c)
+    if aimRefused then return nil, aimRefused end
+    local terms = c and t.offer(c, d, nil, player, cid, aim)
     if not terms then return nil, "no_place" end
     local setupList = setupsOf(section.type, t)
     for _, setup in ipairs(setupList) do
-        local ok, reason = setup.check(sheet, section)
+        local ok, reason = setup.check(sheet, section, aim)
         if not ok then return nil, reason end
     end
     local m = M.create(state, d, cid, c.id, terms)
@@ -203,7 +206,7 @@ function V.start(store, sheet, cid, player, khz, template)
     m.rewardType, m.rewardCount = "", 0
     m.section, m.team, m.setsState = section.id, team, section.sets_state -- E20-T08: RS_MissionChain.record
     -- Saved atomically with acceptance below; a set-up never persists a half-created mission.
-    for _, setup in ipairs(setupList) do setup.apply(m, sheet, d, section) end
+    for _, setup in ipairs(setupList) do setup.apply(m, sheet, d, section, aim) end
     M.accept(state, m, cid, record.name or "")
     if type(record.knownMissions) == "table" then record.knownMissions[m.id] = true end
     if not store.save() then
@@ -212,6 +215,11 @@ function V.start(store, sheet, cid, player, khz, template)
         return nil, "storage"
     end
     return m
+end
+
+-- E25-T01: places the voice may give (marks= of the sheet, shared places in its order).
+local function marksOf(sheet)
+    return type(sheet) == "table" and type(sheet.marks) == "table" and sheet.marks or {}
 end
 
 -- Successful missions use RS_Rewards when explicitly enabled by the sheet; legacy sheets retain map marks.
@@ -227,7 +235,7 @@ function V.reward(store, sheet, m, player, cid, khz)
     local d = M.donorOf(store.data, m)
     local given = d and type(d.given) == "table" and d.given or {}
     local place = nil
-    for _, p in ipairs(Persona.placesFor(sheet, "mark")) do
+    for _, p in ipairs(marksOf(sheet)) do
         if type(p.id) == "string" and not given[p.id] then
             place = p
             break
@@ -247,7 +255,7 @@ function V.reward(store, sheet, m, player, cid, khz)
     return place
 end
 
--- Place (use=mark) of the sheet the next success would give (first not yet given to this character by this voice),
+-- Place of marks= of the sheet the next success would give (first not yet given to this character by this voice),
 -- or nil.
 function V.nextPlace(state, sheet, m)
     if type(sheet.rewards) == 'table' and #sheet.rewards > 0 then
@@ -256,7 +264,7 @@ function V.nextPlace(state, sheet, m)
     end
     local d = M.donorOf(state, m)
     local given = d and type(d.given) == "table" and d.given or {}
-    for _, p in ipairs(Persona.placesFor(sheet, "mark")) do
+    for _, p in ipairs(marksOf(sheet)) do
         if type(p.id) == "string" and not given[p.id] then return p end
     end
     return nil

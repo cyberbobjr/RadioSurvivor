@@ -29,7 +29,49 @@ is the end of the sheet, after `[prompt]`) and a short radio exchange to see how
   wrong after a few days of play. The game tells the voice about the world during the game.
 
 These sheets are checked every time the mod's tests run: the game reader and the bridge reader accept them as they
-are. So you can copy one into a `.txt` file and **import** it into the workshop.
+are, with the places below. So you can copy one into a `.txt` file and **import** it into the workshop, once its places
+exist.
+
+### The places of the examples
+
+A place is shared by **every voice**: you make it once in the **Places** tab of the workshop (**+ New place**, **An
+exact spot**, **Name on the map**, **Where on the map?**), or straight from a list of places of a voice with **+ New
+place…**. Each voice then ticks the ones it uses. Here are the seven places of the four examples, as the workshop adds
+them at the end of the places file of every voice (`personas/_places.txt`):
+
+```places
+[place rosewood_fire_station]
+label=Rosewood fire station
+at=8140,11738,0
+
+[place rosewood_town_center]
+label=Rosewood town center
+at=8114,11607,0
+
+[place riverside_high_school]
+label=Riverside high school
+at=6510,5450,0
+
+[place football_field]
+label=Football field
+at=6424,5460,0
+
+[place gym_dumpster]
+label=Gym dumpster
+at=6489,5458,0
+
+[place west_point_lay_by]
+label=West Point lay-by
+at=12150,6905,0
+
+[place post_office_mailbox]
+label=Post office mailbox
+at=10103,12702,0
+```
+
+They are all **exact spots** (one square): a dead drop, a meeting place or the bag of a reward always needs one,
+because the player must find the very square. An **area** (a rectangle) is for map marks and missions: the game picks
+a building in it for each mission.
 
 ## 1. Opal, the Rosewood chatterbox
 
@@ -52,13 +94,14 @@ with her cat, she calls to chat, remembers everything you tell her and shows you
 | | What she says when she calls | "Hello, hello? This is Opal on [frequency]. Anybody up for a chat? Over." The word **[frequency]** comes from the **+ Add my frequency** button |
 | 3. Personality | What can she do? | **Talk** (already ticked), then **Mark the map**, **Show a neighbourhood**, **Have a mood** |
 | | Who is she really? | The text after `[prompt]` in the sheet below, written **In English** |
-| 4. Places and missions | Her places | **Rosewood fire station** and **Rosewood town center**, both with **Landmark** ticked under "It is used as" |
+| 4. Places and missions | Which places can she mark on the map? | **Rosewood fire station** and **Rosewood town center**, ticked |
 | | Her missions | none |
 | 5. Rewards | Rewards | none (she gives no mission) |
 | | Frequency note | ticked: three lines, "It is found in": bedside and living room tables (**Normally**) |
 
-With **Mark the map** and **Show a neighbourhood**, she needs at least one place with **Landmark** ticked under "It is
-used as": those are the only places she can show you.
+With **Mark the map** and **Show a neighbourhood**, she needs at least one place ticked under **Which places can she
+mark on the map?**: those are the only places she can show you. She knows nothing of the other places of the Places
+tab.
 
 ### The whole sheet
 
@@ -75,16 +118,7 @@ state=active
 listen=09:00-12:00,19:00-22:00
 call_one_in=3
 call=Hello, hello? This is Opal on %1. Anybody up for a chat? Over.
-
-[place rosewood_fire_station]
-at=8140,11738,0
-label=Rosewood fire station
-use=mark
-
-[place rosewood_town_center]
-at=8114,11607,0
-label=Rosewood town center
-use=mark
+marks=rosewood_fire_station,rosewood_town_center
 
 [note]
 text=Opal, the switchboard lady
@@ -149,11 +183,11 @@ lessons or Walt's frequency.
 | | The calls: Does she call by herself? | **Never** (he never calls on his own) |
 | 3. Personality | What can she do? | **Talk**, **Mark the map**, **Give missions** (already ticked), **Give a contact** |
 | | She can give the contact of… | **Walt Hensley** (a voice of the mod) |
-| 4. Places and missions | Her places | **Riverside high school** (**Landmark** and **Job place**), **Football field** (**Job place**), **Gym dumpster** (**Dead drop**) |
-| | Mission 1 | kind **Keep watch** at the **Football field**, **How long to keep watch?**: **A morning** (6 hours) |
-| | Mission 2 | kind **Find a personal item** at the **Riverside high school**, **Which item?**: **Whistle**, **What she calls it**: "my lucky whistle", **Dead drops**: **Gym dumpster**, **Only after the mission**: **1 · Keep watch**, **What changes in her story**: "He got his whistle back" (see below) |
+| 4. Places and missions | Which places can she mark on the map? | **Riverside high school** |
+| | Mission 1 | kind **Keep watch**, **Where does it happen?**: **Football field**, **How long to keep watch?**: **A morning** (6 hours) |
+| | Mission 2 | kind **Find a personal item**, **Where does it happen?**: **Riverside high school**, **Which item?**: **Whistle**, **What she calls it**: "my lucky whistle", **Dead drops**: **Gym dumpster**, **Only after the mission**: **1 · Keep watch**, **What changes in her story**: "He got his whistle back" (see below) |
 | 5. Rewards | Advanced settings: Her own item lists | a list `team_kit` (type "team kit" in **Name of the list**): water bottles, granola bars, bandages |
-| | Rewards | **Supply bag** on the list `team_kit` **Often**, **A lesson** First aid **Normally**, **A radio contact** **Rarely** |
+| | Rewards | **Supply bag** on the list `team_kit` **Often**, **A lesson** First aid **Normally**, **A radio contact** **Rarely**; **Where does she hide the supply bag?**: **Gym dumpster** |
 
 For the list: open **Advanced settings** (at the bottom of step 5), then **Her own item lists**: type `team kit` in
 **Name of the list**, click **+ Add a list**, then add the items. Then go back to the **Supply bag** reward and pick your
@@ -178,21 +212,7 @@ actions=say,mark_map,start_mission,share_frequency
 state=active
 listen=06:00-08:00,18:00-21:00
 shares=walt
-
-[place riverside_high_school]
-at=6510,5450,0
-label=Riverside high school
-use=mark,target
-
-[place football_field]
-at=6424,5460,0
-label=Football field
-use=target
-
-[place gym_dumpster]
-at=6489,5458,0
-label=Gym dumpster
-use=drop
+marks=riverside_high_school
 
 [mission watch]
 type=watch
@@ -212,6 +232,7 @@ sets_state=whistle_back
 
 [rewards]
 pool=cache:team_kit:4, lesson:Doctor:2, frequency:1
+cache_place=gym_dumpster
 
 [category team_kit]
 item=Base.WaterBottle:2
@@ -282,8 +303,8 @@ week, on the road east of West Point, with batteries, coffee, canned food and se
 | | The hours: When does she listen? | **Custom**: from 22:00 to 01:00 (a range can go past midnight) |
 | | The calls: Does she call by herself? | **Sometimes** (about one call every six game hours), and her call sentence |
 | 3. Personality | What can she do? | **Talk**, **Have a mood**, **Trade** (ticked by itself at step 5) |
-| 4. Places and missions | Her places | **West Point lay-by**, ticked **Trade meeting place** only |
-| 5. Rewards | Trade: This voice trades | **This voice trades**; **Where is the meeting?**: West Point lay-by; **She comes by**: **Road**; **At what time?** from 02:00 to 04:00; **She comes back**: **Every week** |
+| 4. Places and missions | Which places can she mark on the map? | none: her meeting place is picked in the trade |
+| 5. Rewards | Trade: This voice trades | **This voice trades**; **Where is the meeting?**: **West Point lay-by**, ticked (or made right there with **+ New place…**); **She comes by**: **Road**; **At what time?** from 02:00 to 04:00; **She comes back**: **Every week** |
 | | What she sells | Battery from 2 to 6, Cigarette Pack from 1 to 4, Coffee from 0 to 2, Peanut Butter from 1 to 3, Canned Fruit Cocktail from 0 to 2, and four kinds of seeds in the bundle `seeds` |
 | | Bundles | `seeds`: "between 3 and 8 items in all", "No more than 3 different items" |
 | | What she takes | the whole lists **Cash and valuables** (`cash`) and **Jewelry** (`jewelry`) |
@@ -311,11 +332,6 @@ state=active
 listen=22:00-01:00
 call_one_in=6
 call=Sol here, on %1. The truck comes by soon, get your orders ready. Over.
-
-[place west_point_lay_by]
-at=12150,6905,0
-label=West Point lay-by
-use=landing
 
 [trade]
 landing=west_point_lay_by
@@ -408,8 +424,8 @@ frequency.
 | | The place: Where is she? | **Nobody knows where she is** |
 | 3. Personality | What can she do? | **Talk**, **Trade**, **Give a contact** |
 | | She can give the contact of… | **Marisol Vega** (example 3: create her first) |
-| 4. Places and missions | Her places | **Post office mailbox**, ticked **Trade meeting place**, recorded in game right next to the mailbox |
-| 5. Rewards | Trade: Where is the meeting? | **Post office mailbox**; **She comes by**: **A hiding spot**; **At what time?** from 05:00 to 06:00; **She comes back**: **Every 3 days**; **Her prices**: **Fair** (nothing to fill in: 10 % to 50 %) |
+| Places tab | + New place | **Post office mailbox**, **An exact spot**, recorded in game right next to the mailbox (**From my records**, **Add to the places**) |
+| 5. Rewards | Trade: Where is the meeting? | **Post office mailbox**, ticked; **She comes by**: **A hiding spot**; **At what time?** from 05:00 to 06:00; **She comes back**: **Every 3 days**; **Her prices**: **Fair** (nothing to fill in: 10 % to 50 %) |
 | | What she sells | Bandage from 1 to 4, Painkillers from 0 to 2, Alcohol Wipes from 1 to 3, Battery from 1 to 3, Canned Vegetable Soup from 1 to 3, Bottle of Disinfectant from 0 to 1 |
 | | What she takes | the whole lists **Papers of the dead** (`papers_of_the_dead`) and **Cash and valuables** (`cash`) |
 | | The place stays quiet | **One hour** (the usual setting, nothing to change) |
@@ -434,11 +450,6 @@ actions=say,propose_trade,share_frequency
 state=active
 listen=05:00-07:00
 shares=marisol
-
-[place post_office_mailbox]
-at=10103,12702,0
-label=Post office mailbox
-use=landing
 
 [trade]
 landing=post_office_mailbox

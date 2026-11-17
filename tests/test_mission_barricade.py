@@ -19,7 +19,7 @@ import test_carnet as carnet_helpers
 from test_carnet import MAP_DOUBLE, NOTEBOOK_UI, bridge_module, convert
 from test_mission_clear import CLEAR_WORLD
 from test_personas import LuaPersona
-from test_persona_sections import BASE, PROMPT
+from test_persona_sections import BASE, PLACES, PROMPT
 import npc_protocol as protocol
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -219,12 +219,26 @@ function barricade(name, opposite, metal)
 end
 '''
 
-# Fiche d'une voix qui donne la mission barricade : la clinique (use=target) et une planque (use=drop).
-SHEET_PLACES = [
-    {'id': 'clinic', 'x': 202, 'y': 202, 'z': 0, 'label': 'West Point clinic', 'uses': ['target'],
-     'use': {'target': True}},
-    {'id': 'field', 'x': 400, 'y': 400, 'z': 0, 'label': 'Empty field', 'uses': ['target'], 'use': {'target': True}},
-]
+# Lieux communs (E25-T01) connus de la fiche d'une voix qui donne la mission barricade : la clinique et un champ vide,
+# deux points, table id -> lieu comme sheet.places.
+SHEET_PLACES = {
+    'clinic': {'id': 'clinic', 'x': 202, 'y': 202, 'z': 0, 'label': 'West Point clinic'},
+    'field': {'id': 'field', 'x': 400, 'y': 400, 'z': 0, 'label': 'Empty field'},
+}
+
+
+def sheet_double(rt, shared, section, mission_type, mission_id):
+    """Parsed sheet double (E25-T01 shape) with one mission section: places = map id -> place (shared: dict of plain
+    dicts), target = {kind='place', id} for a place id (absent: {kind='near'}, as RS_Persona sets it)."""
+    places = {k: rt.table_from(p) for k, p in shared.items()}
+    fields = dict(section)
+    fields['params'] = rt.table_from(section.get('params', {}))
+    target = section.get('target')
+    fields['target'] = rt.table_from({'kind': 'place', 'id': target} if target else {'kind': 'near'})
+    fields.setdefault('type', mission_type)
+    fields.setdefault('id', mission_id)
+    return rt.table_from({'id': 'custom', 'name': 'Custom', 'missions': rt.table_from([rt.table_from(fields)]),
+                          'places': rt.table_from(places)})
 
 
 class BarricadeMissionTests(unittest.TestCase):
@@ -241,15 +255,7 @@ class BarricadeMissionTests(unittest.TestCase):
         return sim, rt.eval("require('RadioSurvivor/RS_MissionVoice')"), rt.eval("require('CoreAI/CA_NotebookStore')")
 
     def sheet(self, sim, section):
-        rt = sim.server.rt
-        places = [rt.table_from({**p, 'uses': rt.table_from(p['uses']), 'use': rt.table_from(p['use'])})
-                  for p in SHEET_PLACES]
-        fields = dict(section)
-        fields['params'] = rt.table_from(section.get('params', {}))
-        fields.setdefault('type', 'barricade')
-        fields.setdefault('id', 'secure')
-        return rt.table_from({'id': 'custom', 'name': 'Custom', 'missions': rt.table_from([rt.table_from(fields)]),
-                              'places': rt.table_from(places)})
+        return sheet_double(sim.server.rt, SHEET_PLACES, section, 'barricade', 'secure')
 
     def start(self, sim, voice, store, sheet):
         return voice.start(store, sheet, sim.character('alice'), sim.server.g.PLAYERS.alice, 160000, 'barricade')
@@ -349,8 +355,8 @@ class BarricadeMissionTests(unittest.TestCase):
         self.poll(sim, store)
         self.assertEqual(m.barricaded, 1)
 
-    def test_start_refused_without_target_building_or_count(self):
-        for section, why in (({}, 'no_target'), ({'target': 'field'}, 'no_building'),
+    def test_start_refused_without_building_or_count(self):
+        for section, why in (({'target': 'field'}, 'no_building'),
                              ({'target': 'clinic', 'params': {'count': 0}}, 'bad_count')):
             with self.subTest(section=section):
                 sim, voice, store = self.world('barricade-refused-' + why)
@@ -434,7 +440,7 @@ class BarricadeBriefTests(unittest.TestCase):
     def told(self, voice, ctx):
         field = voice.field(ctx)
         self.assertLessEqual(set(protocol.decode(bytes.fromhex(field))), GENERIC_FIELDS)
-        mission = bridge_module.mission_context({'mission': field}, SimpleNamespace(places=[]))
+        mission = bridge_module.mission_context({'mission': field}, SimpleNamespace(marks=[]))
         return mission, bridge_module.mission_prompt(mission, 'Caller')
 
     def test_job_and_verified_facts_told_to_the_voice(self):
@@ -461,6 +467,7 @@ class BarricadeSheetTests(unittest.TestCase):
     def setUpClass(cls):
         cls.tmp = tempfile.TemporaryDirectory()
         cls.folder = Path(cls.tmp.name)
+        (cls.folder / '_places.txt').write_text(PLACES, encoding='utf-8')   # E25-T01: shared places of the cases
         cls.lua = LuaPersona(cls.folder)
         # Registered as at game load (every server file before the sheets): the reader looks the type up when it reads.
         cls.lua.rt.eval('require("CoreAI/CA_MissionBarricade")')
@@ -477,16 +484,15 @@ class BarricadeSheetTests(unittest.TestCase):
         p = self.read('type=barricade\ntarget=clinic\ncount=3\n')
         self.assertFalse(isinstance(p, tuple), p)
         m = p.missions[1]
-        self.assertEqual((m.type, m.target, m.params['count']), ('barricade', 'clinic', 3))
+        self.assertEqual((m.type, m.target.kind, m.target.id, m.params['count']), ('barricade', 'place', 'clinic', 3))
 
     def test_refusals(self):
         for body, why in (
-                ('type=barricade\ntarget=mill\n', "line 15: unknown place 'mill'"),
-                ('type=barricade\ntarget=church\n', "line 15: place 'church' has no use=target"),
+                ('type=barricade\ntarget=mill\n', "line 7: unknown place 'mill'"),
                 ('type=barricade\ntarget=clinic\ncount=many\n',
-                 "line 16: bad count 'many' (whole number from 0 to 999999)"),
+                 "line 8: bad count 'many' (whole number from 0 to 999999)"),
                 ('type=barricade\ntarget=clinic\nwindows=3\n',
-                 "line 16: unknown key 'windows' for mission type 'barricade'")):
+                 "line 8: unknown key 'windows' for mission type 'barricade'")):
             with self.subTest(body=body):
                 self.assertEqual(self.read(body), (None, why))
 

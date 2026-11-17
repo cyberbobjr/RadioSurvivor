@@ -78,14 +78,15 @@
         ]
       },
       "place_label": {
-        "meaning": "the short name of one of the voice's places",
+        "meaning": "the short name of a place shared by every radio voice",
         "max": 48,
         "unit": "chars",
         "language": "voice",
         "frequency": false,
         "sentences": "line",
+        "sheet_required": false,
         "task": [
-          "Write the short name the voice uses for this place (like \"the shed behind the church\" or \"Dad's garage\"), fitting what the place is used for. No coordinates, no numbers."
+          "Write the short name every radio voice and the player's map use for this place (like \"the shed behind the church\" or \"Riverside docks\"), fitting where it is (a spot or an area) and what the voices that use it do there, given in the details. No coordinates, no numbers."
         ]
       },
       "mission_story": {

@@ -5,7 +5,7 @@ by the giver. Authority only. Catalogue: CA_MissionConfig.Missions.barricade (of
 CA_Missions (M.register); required by CA_NotebookServer.
 
 Giver: a radio voice only, under the name `barricade` (declaration voiceName); an NPC fiche is never offered one. The
-building is the one at the place `target` of the voice sheet (use=target), handed over by the voice set-up of
+building is the one at the objective `target` of the voice sheet (a shared place, E25-T01), handed over by the set-up of
 the templates that declare aimAt: Barricade.aimAt(m, place, params) finds the building on the
 metagrid (IsoMetaGrid:getBuildingAt(x, y, z), by the room of the tile, loaded or not: IsoMetaGrid.java:271-280) and
 keeps its bounds (BuildingDef getX/getY, getX2/getY2 exclusive, getMinLevel..getMaxLevel: BuildingDef.java:82-100,
@@ -42,7 +42,7 @@ local Clear = require 'CoreAI/CA_MissionClear' -- Clear.zone: circle around a bu
 
 local Barricade = {idPrefix = 'barricade', reportBySpeech = true, voiceName = 'barricade', mapStyle = 'Barricade',
     voiceText = 'barricade the outside windows and doors of a building',
-    -- E20-T03: sheet values of its mission section; the building is the common key target (a place with use=target).
+    -- E20-T03: sheet values of its mission section; the building is the objective of the common key target.
     params = {count = 'count'}}
 
 local scannedAt = {} -- mission id -> real ms of its last reading (memory only)

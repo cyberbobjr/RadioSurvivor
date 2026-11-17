@@ -6,8 +6,8 @@ CA_MissionConfig.Missions.relay (offer id relay_v1). Registered in CA_Missions (
 CA_NotebookServer.
 
 Giver: a radio voice only, under the name `relay` (declaration voiceName); an NPC fiche is never offered one. The spot
-is the place `target` of the voice sheet (use=target), handed over by the voice set-up of the templates that
-declare aimAt. No parameter of its own.
+is the objective `target` of the voice sheet (a shared place, E25-T01), handed over by the voice set-up of the
+templates that declare aimAt. No parameter of its own.
 Spot (Relay.locate): the building at the place (IsoMetaGrid:getBuildingAt(x, y, z), by the room of the tile, loaded or
 not: IsoMetaGrid.java:271-280), its whole footprint (BuildingDef getX/getY, getX2/getY2 exclusive: BuildingDef.java
 82-100, 189-202) from the lowest level allowed up to its roof (getMaxLevel() + 1, the roof level of the engine:

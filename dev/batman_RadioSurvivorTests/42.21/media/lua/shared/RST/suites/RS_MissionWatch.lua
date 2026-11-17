@@ -1,5 +1,5 @@
 -- Voice mission `watch` (E20-T14, ADR D10) at the square of the player. Real start path of a voice
--- (RS_MissionVoice.start, sheet with one [mission] of type watch and one place use=target where the player stands),
+-- (RS_MissionVoice.start, sheet with one [mission] of type watch and target= a shared point where the player stands),
 -- real set-up of the target place (RS_MissionTarget), real engine poll (CA_Missions.observe: the template reads the
 -- server copy of the player and the world age), real radio report (RS_MissionVoice.report).
 -- The game clock is moved forward by GameTime.setTimeOfDay (world age = nights * 24 + hours since 7:00,
@@ -57,8 +57,8 @@ local function run(t)
     end
     local x, y, z = math.floor(p:getX()), math.floor(p:getY()), math.floor(p:getZ())
     local sheet = {id = 'rst-voice-watch', name = 'RST Voice', actions = {'say', 'start_mission'}, budgets = {},
-        missions = {{id = 'watch', type = 'watch', target = 'post', params = {hours = HOURS}}},
-        places = {{id = 'post', label = 'RST post', x = x, y = y, z = z, uses = {'target'}, use = {target = true}}}}
+        missions = {{id = 'watch', type = 'watch', target = {kind = 'place', id = 'post'}, params = {hours = HOURS}}},
+        places = {post = {id = 'post', label = 'RST post', x = x, y = y, z = z}}}
     local state = {missions = {}, npcs = {}, voiceDonors = {}, characters = {}, outcomes = {}}
     state.characters.char1 = {name = 'Tester', contacts = {}, knownMissions = {}}
     local store = {data = state, save = function() return true end}

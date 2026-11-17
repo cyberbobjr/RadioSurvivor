@@ -108,11 +108,13 @@ class DarleneChainTests(unittest.TestCase):
         self.assertEqual([(m.id, m.type, m.after) for m in missions],
                          [('scout_clinic', 'scout', None), ('clear_clinic', 'clear', 'scout_clinic'),
                           ('secure_clinic', 'barricade', 'clear_clinic'), ('meds', 'deliver', 'secure_clinic')])
-        self.assertEqual([m.target for m in missions], ['clinic', 'clinic', 'clinic', None])
+        self.assertEqual([(m.target.kind, m.target.id) for m in missions],
+                         [('place', 'clinic'), ('place', 'clinic'), ('place', 'clinic'), ('near', None)])
         self.assertEqual([m.sets_state for m in missions], [None, None, None, 'returned'])
         self.assertTrue(all(m.story for m in missions), 'every section tells her reason')
-        places = {p.id: p for p in (sheet.places[i] for i in sorted(sheet.places))}
-        self.assertEqual((places['clinic'].x, places['clinic'].y, places['clinic'].z), (11880, 6878, 0))
+        self.assertEqual([sheet.marks[i].id for i in sorted(sheet.marks)], ['clinic'])
+        clinic = sheet.places['clinic']
+        self.assertEqual((clinic.x, clinic.y, clinic.z), (11880, 6878, 0))
         meds = missions[3]
         self.assertEqual([meds.drops[i] for i in sorted(meds.drops)], ['drop_dumpsters', 'drop_bookstore'])
         self.assertEqual(meds.params['items'], 'medical')
@@ -195,14 +197,6 @@ name=Scout Voice
 frequency=160.0
 actions=say,start_mission
 budget.start_mission=20
-[place home]
-at=3005,3005,0
-label=Old home
-use=target
-[place field]
-at=3500,3500,0
-label=Empty field
-use=target
 [mission look]
 type=scout
 target=home
@@ -218,9 +212,22 @@ type=scout
 You are Scout Voice, a voice of the offline test bench.
 """
 
+    # Shared places of the bench (E25-T01), named by target= of the sections.
+    PLACES = """format=1
+[place home]
+at=3005,3005,0
+label=Old home
+[place field]
+at=3500,3500,0
+label=Empty field
+"""
+
     def world(self, name):
         sim = self.voice_sim(name, sheet=self.SHEET)
         rt = sim.server.rt
+        # The shared places of this bench replace those of voice_sim, read again with every voice (RS_Personas.reload).
+        (sim.path / 'personas' / '_places.txt').write_text(self.PLACES, encoding='utf-8')
+        self.assertTrue(rt.eval("require('RadioSurvivor/RS_Personas').reload()"))
         rt.execute(CLEAR_WORLD)
         rt.execute(CLINIC_WORLD.replace('scoutHouse(43, 11854, 6857, 35, 30)', 'scoutHouse(77, 3000, 3000, 12, 10)'))
         self.voice = rt.eval("require('RadioSurvivor/RS_MissionVoice')")

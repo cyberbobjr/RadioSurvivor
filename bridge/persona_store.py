@@ -1,12 +1,14 @@
-"""Radio voice sheets (E05-T01, sections E20-T03, radio levels E24-T01): read and validate one `.txt` sheet per voice.
+"""Radio voice sheets (E05-T01, sections E20-T03, radio levels E24-T01, shared places E25-T01): read and validate one
+`.txt` sheet per voice and the shared places file `_places.txt`.
 
-    python bridge/persona_store.py FILE.txt [...]     validate sheets, one line per file, exit code 1 on error
+    python bridge/persona_store.py FILE.txt [...]     validate sheets (and _places.txt), one line per file, exit code 1
+                                                     on error; a sheet is read with the _places.txt of its folder
 
 Format: docs/specifications-techniques/persona-format.md. The server reads the same files with
 Contents/mods/batman_RadioSurvivor/42.21/media/lua/server/RadioSurvivor/RS_Persona.lua, the only full validator (ADR
-D03, E20-T03). This reader takes the head, the [place] sections and the prompt with the same rules and messages
-("line N: reason"), checked by tests/test_personas.py; it skips the [mission], [rewards], [category], [trade] and
-[note] sections without reading them. Lines are split like Java's BufferedReader.readLine (the game's getFileReader): "\\r\\n", "\\r"
+D03, E20-T03). This reader takes the head (marks= included), the shared places file and the prompt with the same rules
+and messages ("line N: reason"), checked by tests/test_personas.py; it skips the [mission], [rewards], [category],
+[trade] and [note] sections without reading them. Lines are split like Java's BufferedReader.readLine (the game's getFileReader): "\\r\\n", "\\r"
 or "\\n". Invalid UTF-8 is decoded as U+FFFD, as Java's InputStreamReader does, then refused. Standard library only.
 """
 from __future__ import annotations
@@ -31,17 +33,22 @@ ACTIONS = ('say', 'mark_map', 'reveal_area', 'signal', 'place_cache', 'place_sce
 RADIOS = ('any_talkie', 'good_talkie', 'pro_talkie', 'tactical', 'military')
 LOCATIONS = ('none', 'fixed', 'rescue')
 STATES = ('active', 'silent', 'gone', 'dead')
-# Uses of a place (ADR D04): mark (mark_map, reveal_area), target (mission goal), drop (dead drop), landing (trade).
-USES = ('mark', 'target', 'drop', 'landing')
+# E25-T01: distances of an objective drawn around the caller (target= of [mission]), never a place id.
+DISTANCES = ('near', 'far', 'very_far')
 REQUIRED = ('format', 'id', 'name')   # then radio or frequency (exactly one of them: E24-T01)
 MIN_KHZ, MAX_KHZ, STEP_KHZ = 200, 1000000, 200   # every radio of the game (RS_RadioLevels.lua, level military)
 MAX_COUNT = 999999
 MAX_CALL_ONE_IN = 1000
 MAX_CALL_BYTES = 200   # call= written in the sheet (E22-T07), UTF-8 bytes as RS_Persona.lua
-# Known places of the voice: at most MAX_PLACES [place] sections, label of at most MAX_PLACE_LABEL_BYTES bytes in
-# UTF-8 (the Lua reader counts the same bytes from the UTF-16 units of Kahlua).
-MAX_PLACES = 12
+# Shared places (E25-T01): at most MAX_PLACES [place] sections in _places.txt, label of at most MAX_PLACE_LABEL_BYTES
+# bytes in UTF-8 (the Lua reader counts the same bytes from the UTF-16 units of Kahlua), zone sides of 1 to
+# MAX_AREA_SIDE tiles; a sheet gives at most MAX_MARKS marks (marks=).
+PLACES_FILE = '_places.txt'
+PLACES_SEPARATOR = '[place <id>]'
+MAX_PLACES = 500
 MAX_PLACE_LABEL_BYTES = 48
+MAX_AREA_SIDE = 1500
+MAX_MARKS = 12
 
 ID_RE = re.compile(r'[a-z][a-z0-9_]{0,31}')
 SECTION_ID_RE = re.compile(r'[a-z0-9_]{1,32}')
@@ -50,6 +57,7 @@ LANGUAGE_RE = re.compile(r'[a-z][a-z]')
 FREQUENCY_RE = re.compile(r'([0-9]{1,4})\.([0-9])')
 RANGE_RE = re.compile(r'([0-9][0-9]):([0-9][0-9])-([0-9][0-9]):([0-9][0-9])')
 COORDS_RE = re.compile(r'([0-9]{1,6}),([0-9]{1,6}),(-?[0-9]{1,2})')
+AREA_RE = re.compile(r'([0-9]{1,6}),([0-9]{1,6}),([0-9]{1,6}),([0-9]{1,6}),(-?[0-9]{1,2})')
 COUNT_RE = re.compile(r'[0-9]{1,6}')
 TEXT_KEY_RE = re.compile(r'[A-Za-z0-9_]+')
 KEY_RE = re.compile(r'[a-z_]+')
@@ -64,17 +72,21 @@ class PersonaError(ValueError):
         self.line, self.reason = line, reason
 
 
-@dataclass
+@dataclass(frozen=True)
 class Place:
-    """Known place of a voice ([place <id>] section): id offered to the LLM with its label when its uses allow it
-    (mark: mark_map, reveal_area); coordinates kept by the server and sent only to the caller of an accepted
-    action."""
+    """Shared place (E25-T01, [place <id>] section of _places.txt): a point (x, y, z) or a zone (area = x1, y1, x2, y2,
+    lowest corner first, both included, at level z). A voice offers the LLM the id and label of its marks only; the
+    coordinates stay with the server and go only to the caller of an accepted action."""
     id: str
-    x: int = 0
-    y: int = 0
-    z: int = 0
-    label: str = ''
-    uses: tuple[str, ...] = ()
+    label: str
+    z: int
+    x: int | None = None
+    y: int | None = None
+    area: tuple[int, int, int, int] | None = None
+
+    @property
+    def is_zone(self) -> bool:
+        return self.area is not None
 
 
 @dataclass
@@ -89,7 +101,7 @@ class Persona:
     listen: list[tuple[int, int]] = field(default_factory=list)   # (from, to) minutes of the game day; [] = always
     location: str = 'none'
     coords: tuple[int, int, int] | None = None
-    places: list[Place] = field(default_factory=list)       # [place] sections, in file order
+    marks: list[Place] = field(default_factory=list)        # marks= (E25-T01): shared places it may give, in order
     actions: list[str] = field(default_factory=lambda: ['say'])
     budget: int = 0                            # requests per real hour for this voice, 0 = global cap only
     budgets: dict[str, int] = field(default_factory=dict)          # action -> uses per game day, 0 = no cap
@@ -99,10 +111,6 @@ class Persona:
     shares: list[str] = field(default_factory=list)
     state: str = 'active'
     trade_accepts: list[str] = field(default_factory=list)   # [trade] accept= values, in file order (E23-T06)
-
-    def places_for(self, use: str) -> list[Place]:
-        """Places of the sheet with this use, in file order."""
-        return [p for p in self.places if use in p.uses]
 
 
 def split_lines(text: str) -> list[str]:
@@ -258,6 +266,23 @@ HEAD: dict[str, tuple[str, Callable[[str, int], object]]] = {
 }
 
 
+def _marks(value: str, line: int, places: dict[str, Place]) -> list[Place]:
+    """marks= (E25-T01, ADR D04): shared places (points or zones) the voice may give, in order, no duplicate, at most
+    MAX_MARKS (same checks and order as headMarks of RS_Persona.lua)."""
+    marks: list[Place] = []
+    for part in _list(value):
+        if not SECTION_ID_RE.fullmatch(part):
+            raise PersonaError(line, f"bad marks entry '{part}'")
+        if any(m.id == part for m in marks):
+            raise PersonaError(line, f"duplicate marks entry '{part}'")
+        if part not in places:
+            raise PersonaError(line, f"unknown place '{part}'")
+        marks.append(places[part])
+    if len(marks) > MAX_MARKS:
+        raise PersonaError(line, f'too many marks ({MAX_MARKS} at most)')
+    return marks
+
+
 @dataclass
 class Section:
     """An open section: name, id ('' when the section takes none), header line, key -> line of its value."""
@@ -265,7 +290,7 @@ class Section:
     id: str
     line: int
     lines: dict[str, int] = field(default_factory=dict)
-    place: Place | None = None
+    values: dict[str, object] = field(default_factory=dict)
     accepts: list[str] = field(default_factory=list)
 
     @property
@@ -273,36 +298,71 @@ class Section:
         return f'[{self.name} {self.id}]' if self.id else f'[{self.name}]'
 
 
+def _key_value(text: str, line: int, dotted: bool, separator: str = SEPARATOR) -> tuple[str, str]:
+    if '=' not in text:
+        raise PersonaError(line, f'expected key=value or {separator}')
+    key, value = text.split('=', 1)
+    key, value = trim(key), trim(value)
+    if not (DOTTED_KEY_RE if dotted else KEY_RE).fullmatch(key):
+        raise PersonaError(line, f"bad key '{key}'")
+    return key, value
+
+
+def _place_where(sec: Section, key: str, line: int) -> None:
+    other = 'area' if key == 'at' else 'at'
+    if other in sec.lines:
+        raise PersonaError(line, f"place '{sec.id}' has both at and area")
+
+
 def _place_at(sec: Section, value: str, line: int) -> None:
+    _place_where(sec, 'at', line)
     coords = _parse_coords(value)
     if coords is None:
         raise PersonaError(line, f"bad place coords '{value}' (x,y,z whole numbers, z from -32 to 31)")
-    sec.place.x, sec.place.y, sec.place.z = coords
+    sec.values['x'], sec.values['y'], sec.values['z'] = coords
+
+
+def _parse_area(value: str) -> tuple[tuple[int, int, int, int], int] | None:
+    match = AREA_RE.fullmatch(value)
+    if not match or not -32 <= int(match.group(5)) <= 31:
+        return None
+    x1, y1, x2, y2 = (int(g) for g in match.groups()[:4])
+    area = (min(x1, x2), min(y1, y2), max(x1, x2), max(y1, y2))
+    if area[2] - area[0] + 1 > MAX_AREA_SIDE or area[3] - area[1] + 1 > MAX_AREA_SIDE:
+        return None
+    return area, int(match.group(5))
+
+
+def _place_area(sec: Section, value: str, line: int) -> None:
+    _place_where(sec, 'area', line)
+    parsed = _parse_area(value)
+    if parsed is None:
+        raise PersonaError(line, f"bad place area '{value}' (x1,y1,x2,y2,z whole numbers, sides 1 to {MAX_AREA_SIDE})")
+    sec.values['area'], sec.values['z'] = parsed
 
 
 def _place_label(sec: Section, value: str, line: int) -> None:
     if len(value.encode('utf-8')) > MAX_PLACE_LABEL_BYTES:
         raise PersonaError(line, f"place label of '{sec.id}' too long ({MAX_PLACE_LABEL_BYTES} bytes of UTF-8 at "
                                  'most)')
-    sec.place.label = value
-
-
-def _place_use(sec: Section, value: str, line: int) -> None:
-    sec.place.uses = tuple(_closed_list(value, 'use', USES, line, f" (expected {', '.join(USES)})"))
+    sec.values['label'] = value
 
 
 class PlaceSection:
-    """[place <id>]: at=x,y,z, label=text, use=list among USES; the only section this reader reads."""
+    """[place <id>] of the shared places file (E25-T01): at=x,y,z (a point) or area=x1,y1,x2,y2,z (a zone), and
+    label=text."""
     example = 'mill'
-    KEYS: dict[str, Callable[[Section, str, int], None]] = {'at': _place_at, 'label': _place_label, 'use': _place_use}
+    KEYS: dict[str, Callable[[Section, str, int], None]] = {'at': _place_at, 'area': _place_area,
+                                                           'label': _place_label}
 
-    def open(self, sec: Section, places: list[Place]) -> None:
+    def open(self, sec: Section, places: dict[str, Place]) -> None:
+        if sec.id in DISTANCES:
+            raise PersonaError(sec.line, f"place id '{sec.id}' is reserved (near, far and very_far are distances)")
         if len(places) >= MAX_PLACES:
             raise PersonaError(sec.line, f'too many places ({MAX_PLACES} at most)')
-        sec.place = Place(sec.id)
 
     def line(self, sec: Section, text: str, number: int) -> None:
-        key, value = _key_value(text, number, dotted=False)
+        key, value = _key_value(text, number, dotted=False, separator=PLACES_SEPARATOR)
         if key in sec.lines:
             raise PersonaError(number, f"duplicate key '{key}' in {sec.title} (first set on line {sec.lines[key]})")
         if value == '':
@@ -313,11 +373,12 @@ class PlaceSection:
             raise PersonaError(number, f"unknown key '{key}' in {sec.title}")
         reader(sec, value, number)
 
-    def close(self, sec: Section, places: list[Place]) -> None:
-        for key in self.KEYS:
-            if key not in sec.lines:
-                raise PersonaError(sec.line, f"missing key '{key}' in {sec.title}")
-        places.append(sec.place)
+    def close(self, sec: Section, places: dict[str, Place]) -> None:
+        if 'at' not in sec.lines and 'area' not in sec.lines:
+            raise PersonaError(sec.line, f"missing key 'at' or 'area' in {sec.title}")
+        if 'label' not in sec.lines:
+            raise PersonaError(sec.line, f"missing key 'label' in {sec.title}")
+        places[sec.id] = Place(sec.id, **sec.values)
 
 
 class SkippedSection:
@@ -326,13 +387,13 @@ class SkippedSection:
     def __init__(self, example: str | None):
         self.example = example
 
-    def open(self, sec: Section, places: list[Place]) -> None:
+    def open(self, sec: Section, places: dict[str, Place]) -> None:
         pass
 
     def line(self, sec: Section, text: str, number: int) -> None:
         pass
 
-    def close(self, sec: Section, places: list[Place]) -> None:
+    def close(self, sec: Section, places: dict[str, Place]) -> None:
         pass
 
 
@@ -348,28 +409,21 @@ class TradeSection(SkippedSection):
                 sec.accepts.append(trim(value))
 
 
-# Sections of a sheet, in the order of the Lua reader's messages; example None = section without id.
-SECTIONS: dict[str, PlaceSection | SkippedSection] = {
-    'place': PlaceSection(), 'mission': SkippedSection('meds'), 'rewards': SkippedSection(None),
-    'category': SkippedSection('snacks'), 'trade': TradeSection(None), 'note': SkippedSection(None),
+# Sections of a sheet, in the order of the Lua reader's messages; example None = section without id. E25-T01: no
+# [place] in a sheet (shared places file, PLACES_SECTIONS).
+SECTIONS: dict[str, SkippedSection] = {
+    'mission': SkippedSection('meds'), 'rewards': SkippedSection(None), 'category': SkippedSection('snacks'),
+    'trade': TradeSection(None), 'note': SkippedSection(None),
 }
 SECTIONS_EXPECTED = ', '.join(SECTIONS) + ' or prompt'
+PLACES_SECTIONS: dict[str, PlaceSection] = {'place': PlaceSection()}
 
 
-def _key_value(text: str, line: int, dotted: bool) -> tuple[str, str]:
-    if '=' not in text:
-        raise PersonaError(line, f'expected key=value or {SEPARATOR}')
-    key, value = text.split('=', 1)
-    key, value = trim(key), trim(value)
-    if not (DOTTED_KEY_RE if dotted else KEY_RE).fullmatch(key):
-        raise PersonaError(line, f"bad key '{key}'")
-    return key, value
-
-
-def _open_section(name: str, ident: str, line: int, first_lines: dict[tuple[str, str], int]) -> Section:
-    handler = SECTIONS.get(name)
+def _open_section(name: str, ident: str, line: int, first_lines: dict[tuple[str, str], int],
+                  sections: dict, expected: str) -> Section:
+    handler = sections.get(name)
     if handler is None:
-        raise PersonaError(line, f"unknown section '{name}' (expected {SECTIONS_EXPECTED})")
+        raise PersonaError(line, f"unknown section '{name}' (expected {expected})")
     if handler.example and not ident:
         raise PersonaError(line, f'section [{name}] needs an id, e.g. [{name} {handler.example}]')
     if not handler.example and ident:
@@ -385,14 +439,23 @@ def _open_section(name: str, ident: str, line: int, first_lines: dict[tuple[str,
     return Section(name, ident, line)
 
 
-class _Head:
-    """Values of the head lines: one field of Persona per key, `seen` gives the line of each key."""
+def _check_raw(raw: str, number: int) -> None:
+    if number == 1 and raw.startswith(BOM):
+        raise PersonaError(1, 'file starts with a byte order mark (save it as UTF-8 without BOM)')
+    if REPLACEMENT in raw:
+        raise PersonaError(number, 'invalid UTF-8 (save the file as UTF-8)')
 
-    def __init__(self):
+
+class _Head:
+    """Values of the head lines: one field of Persona per key, `seen` gives the line of each key. places: the shared
+    places the sheet may name (marks=)."""
+
+    def __init__(self, places: dict[str, Place]):
         self.fields: dict[str, object] = {}
         self.seen: dict[str, int] = {}
         self.budgets: dict[str, int] = {}
         self.budget_lines: list[tuple[str, int]] = []
+        self.readers = {**HEAD, 'marks': ('marks', lambda value, line: _marks(value, line, places))}
 
     def line(self, text: str, number: int) -> None:
         key, value = _key_value(text, number, dotted=True)
@@ -401,7 +464,7 @@ class _Head:
             action = key[len('budget.'):]
             if action not in ACTIONS:
                 raise PersonaError(number, f"unknown action '{action}' in key '{key}'")
-        elif key not in HEAD:
+        elif key not in self.readers:
             raise PersonaError(number, f"unknown key '{key}'")
         if key in self.seen:
             raise PersonaError(number, f"duplicate key '{key}' (first set on line {self.seen[key]})")
@@ -412,23 +475,20 @@ class _Head:
             self.budgets[action] = _count(value, key, number)
             self.budget_lines.append((action, number))
             return
-        target, reader = HEAD[key]
+        target, reader = self.readers[key]
         self.fields[target] = reader(value, number)
 
 
-def parse_lines(lines: list[str], expected_id: str | None = None) -> Persona:
-    """Validate a sheet given as lines; raise PersonaError on the first error. expected_id = file name stem."""
-    head = _Head()
-    places: list[Place] = []
+def parse_lines(lines: list[str], expected_id: str | None = None, places: dict[str, Place] | None = None) -> Persona:
+    """Validate a sheet given as lines; raise PersonaError on the first error. expected_id = file name stem; places =
+    the shared places it may name (E25-T01; None: none)."""
+    head = _Head(places or {})
     accepts: list[str] = []
     first_lines: dict[tuple[str, str], int] = {}
     current: Section | None = None
     separator = 0
     for number, raw in enumerate(lines, 1):
-        if number == 1 and raw.startswith(BOM):
-            raise PersonaError(1, 'file starts with a byte order mark (save it as UTF-8 without BOM)')
-        if REPLACEMENT in raw:
-            raise PersonaError(number, 'invalid UTF-8 (save the file as UTF-8)')
+        _check_raw(raw, number)
         if separator:
             continue
         text = trim(raw)
@@ -437,14 +497,13 @@ def parse_lines(lines: list[str], expected_id: str | None = None) -> Persona:
         header = HEADER_RE.fullmatch(text)
         if header:
             if current is not None:
-                SECTIONS[current.name].close(current, places)
                 accepts += current.accepts
             current = None
             if header.group(1) == 'prompt' and not header.group(2):
                 separator = number
             else:
-                current = _open_section(header.group(1), header.group(2), number, first_lines)
-                SECTIONS[current.name].open(current, places)
+                current = _open_section(header.group(1), header.group(2), number, first_lines, SECTIONS,
+                                        SECTIONS_EXPECTED)
         elif current is not None:
             SECTIONS[current.name].line(current, text, number)
         else:
@@ -486,29 +545,86 @@ def parse_lines(lines: list[str], expected_id: str | None = None) -> Persona:
     for action, number in head.budget_lines:
         if action not in actions:
             raise PersonaError(number, f"budget.{action} set but action '{action}' is not in actions")
-    return Persona(prompt='\n'.join(body), places=places, budgets=head.budgets, trade_accepts=accepts, **fields)
+    return Persona(prompt='\n'.join(body), budgets=head.budgets, trade_accepts=accepts, **fields)
 
 
-def parse_bytes(raw: bytes, expected_id: str | None = None) -> Persona:
+def parse_places_lines(lines: list[str]) -> dict[str, Place]:
+    """Validate the shared places file (E25-T01) given as lines: a format=1 head, then [place <id>] sections only.
+    Returns id -> Place in file order; raises PersonaError on the first error (same messages as RS_Persona.lua)."""
+    places: dict[str, Place] = {}
+    first_lines: dict[tuple[str, str], int] = {}
+    seen: dict[str, int] = {}
+    current: Section | None = None
+    first_section = 0
+    for number, raw in enumerate(lines, 1):
+        _check_raw(raw, number)
+        text = trim(raw)
+        if text == '' or text.startswith('#'):
+            continue
+        header = HEADER_RE.fullmatch(text)
+        if header:
+            if current is not None:
+                PLACES_SECTIONS[current.name].close(current, places)
+            first_section = first_section or number
+            current = _open_section(header.group(1), header.group(2), number, first_lines, PLACES_SECTIONS, 'place')
+            PLACES_SECTIONS[current.name].open(current, places)
+        elif current is not None:
+            PLACES_SECTIONS[current.name].line(current, text, number)
+        else:
+            key, value = _key_value(text, number, dotted=False, separator=PLACES_SEPARATOR)
+            if key != 'format':
+                raise PersonaError(number, f"unknown key '{key}'")
+            if key in seen:
+                raise PersonaError(number, f"duplicate key '{key}' (first set on line {seen[key]})")
+            seen[key] = number
+            if value == '':
+                raise PersonaError(number, f"empty value for key '{key}'")
+            _format(value, number)
+    if current is not None:
+        PLACES_SECTIONS[current.name].close(current, places)
+    if 'format' not in seen:
+        raise PersonaError(first_section or max(len(lines), 1), "missing key 'format'")
+    return places
+
+
+def parse_places_bytes(raw: bytes) -> dict[str, Place]:
+    """Decode as the game does (UTF-8, invalid bytes -> U+FFFD, BOM kept), then validate the shared places."""
+    return parse_places_lines(split_lines(raw.decode('utf-8', errors='replace')))
+
+
+def load_places(path: Path | str) -> dict[str, Place]:
+    """Read and validate a shared places file (OSError when it cannot be read)."""
+    return parse_places_bytes(Path(path).read_bytes())
+
+
+def parse_bytes(raw: bytes, expected_id: str | None = None, places: dict[str, Place] | None = None) -> Persona:
     """Decode as the game does (UTF-8, invalid bytes -> U+FFFD, BOM kept), then validate."""
-    return parse_lines(split_lines(raw.decode('utf-8', errors='replace')), expected_id)
+    return parse_lines(split_lines(raw.decode('utf-8', errors='replace')), expected_id, places)
 
 
-def load_file(path: Path | str) -> Persona:
-    """Read and validate one sheet; its `id` must equal the file name without `.txt`."""
+def load_file(path: Path | str, places: dict[str, Place] | None = None) -> Persona:
+    """Read and validate one sheet; its `id` must equal the file name without `.txt`. places: the shared places it may
+    name; None reads the _places.txt of the sheet's folder (none when absent), as the server does."""
     path = Path(path)
-    return parse_bytes(path.read_bytes(), path.stem if path.suffix == '.txt' else None)
+    raw = path.read_bytes()
+    if places is None:
+        shared = path.parent / PLACES_FILE
+        places = load_places(shared) if shared.is_file() else {}
+    return parse_bytes(raw, path.stem if path.suffix == '.txt' else None, places)
 
 
 def main(argv: list[str]) -> int:
     if isinstance(sys.stdout, io.TextIOWrapper):
         sys.stdout.reconfigure(encoding='utf-8', errors='replace')
     if not argv:
-        print((__doc__ or '').strip().splitlines()[2].strip())
+        print((__doc__ or '').strip().splitlines()[3].strip())
         return 2
     failed = 0
     for name in argv:
         try:
+            if Path(name).name == PLACES_FILE:
+                print(f'{name}: OK ({len(load_places(name))} places)')
+                continue
             persona = load_file(name)
         except (OSError, PersonaError) as exc:
             failed += 1

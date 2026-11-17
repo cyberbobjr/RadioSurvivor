@@ -21,6 +21,7 @@ Muldraugh. Elle appelle le matin et le soir, demande à manger, puis qu'on netto
 - [Ouvrir l'atelier](#ouvrir-latelier) · [depuis une tablette](#louvrir-depuis-une-tablette-ou-un-autre-ordinateur)
 - [L'écran de l'atelier](#lécran-de-latelier) · [le tableau de bord](#le-tableau-de-bord) · [la liste des voix](#la-liste-des-voix) ·
   [créer une voix](#créer-une-voix) · [les boutons d'une voix](#les-boutons-dune-voix)
+- [L'onglet Lieux](#longlet-lieux) · [relever un lieu en jeu](#relever-un-lieu-en-jeu)
 - Les cinq étapes : [1. Qui](#étape-1--qui) · [2. Où et quand](#étape-2--où-et-quand) ·
   [3. Personnalité](#étape-3--personnalité) · [4. Lieux et missions](#étape-4--lieux-et-missions) ·
   [5. Récompenses](#étape-5--récompenses)
@@ -85,8 +86,9 @@ ordinateur du réseau de la maison :
 
 ## L'écran de l'atelier
 
-- **En haut** : trois onglets, **Tableau de bord** ([toutes les voix d'un coup d'œil](#le-tableau-de-bord), ouvert au
-  démarrage), **Voix** (l'éditeur) et **Journal** ([le journal en direct](#le-journal-en-direct)) ;
+- **En haut** : quatre onglets, **Tableau de bord** ([toutes les voix d'un coup d'œil](#le-tableau-de-bord), ouvert au
+  démarrage), **Lieux** ([les lieux de toutes les voix](#longlet-lieux)), **Voix** (l'éditeur) et **Journal**
+  ([le journal en direct](#le-journal-en-direct)) ;
   à droite, **Ouvrir une voix (fichier)** ([partager une voix](#partager-une-voix)) et, sur le réseau, **Se déconnecter**.
 - **À gauche** : **Tes voix** et le bouton **+ Nouvelle voix**. Sous 900 px de large, la liste devient une bande de
   pastilles au-dessus de l'éditeur.
@@ -168,6 +170,73 @@ En haut de la voix ouverte : son nom, sa pastille et le badge **Sauvegardé** ou
 Sous ces boutons, les **cinq étapes** sont des pastilles avec leur icône : cliquez pour sauter à une étape, ou utilisez
 **Retour** et **Suivant** en bas. Un chiffre sur une pastille compte les [points à vérifier](#enregistrer-et-le-verdict-du-jeu)
 de cette étape (« À vérifier : N »).
+
+## L'onglet Lieux
+
+![L'onglet Lieux : les lieux de toutes les voix, et les voix qui s'en servent](../../images/screenshots/atelier/atelier-fr-places.png)
+
+Un lieu sert à **toutes les voix** : vous le créez une fois ici, puis chaque voix choisit les siens dans une liste. Le
+mod en livre déjà quelques-uns (ceux de ses voix). Rosie se sert de deux lieux : le **Château d'eau de Muldraugh** et la
+**Cabane près du château d'eau**, dont le casier sert de planque.
+
+- **+ Nouveau lieu** ouvre une petite fenêtre : un nom, ce que c'est, où il est, puis **Créer le lieu**. Aucun
+  identifiant à taper.
+- Chaque lieu est une carte : son icône (📍 un endroit précis, 🗺️ un quartier), son nom, et **Utilisé par : …** (les
+  voix qui s'en servent) ou « Aucune voix ne l'utilise encore. »
+- **Rien à enregistrer à la main** : un lieu terminé s'enregistre tout seul (« Lieux enregistrés. Le jeu les lit dans
+  30 secondes. »). Un lieu sans nom ou sans case attend : « Pas encore enregistré : termine le lieu « … ». »
+- **Supprimer ce lieu** (la croix de la carte) marche seulement si aucune voix ne s'en sert. Sinon l'atelier dit
+  lesquelles : retirez-le d'abord de ces voix.
+- 500 lieux au plus.
+
+| Réglage | Ce que ça change |
+|---|---|
+| **Nom sur la carte** | Ce que voient les joueurs sur leur carte, et le seul nom que l'IA lit : pas de secret ici. Un compteur « 12 / 48 » indique la place restante. **✨ Proposer** demande un nom à l'IA. |
+| **C'est…** | Deux cartes. **📍 Un endroit précis** : une case (une porte, une benne, un quai). **🗺️ Un quartier** : un rectangle, où le jeu tire un bâtiment à chaque mission. |
+| **Où sur la carte ?** (endroit précis) | x, y et l'étage (0 = rez-de-chaussée). L'IA ne voit jamais ces nombres. Relevez-les en jeu (ci-dessous), ou lisez-les sur la carte. Une position copiée sur la carte (`7966, 11751`) se colle dans n'importe laquelle des trois cases : x, y (et l'étage s'il y a un troisième nombre) se remplissent d'un coup. |
+| **Un coin du quartier**, **Le coin opposé**, **Étage** (quartier) | Collez deux positions de la carte, en diagonale. 1 500 cases de côté au plus. |
+
+**Endroit précis ou quartier ?** Une planque, un rendez-vous de troc, une étape d'itinéraire ou le sac d'une récompense
+demandent toujours un **endroit précis** : le joueur doit trouver la case exacte. Un **quartier** sert aux repères (il
+est marqué en son milieu) et aux missions : « nettoie une maison du centre de Muldraugh », et ce n'est pas toujours la
+même.
+
+**Créer un lieu sans quitter une voix.** Chaque liste de lieux d'une voix finit par **+ Nouveau lieu…** : la même
+fenêtre s'ouvre (« Il rejoint les lieux de toutes les voix, puis tu reviens ici. ») et le nouveau lieu est choisi tout
+de suite. Là où il faut un endroit précis, la fenêtre le dit : « Ici il faut un endroit précis : le joueur doit trouver
+la case exacte. »
+
+**Trouver x et y.** Le plus sûr est de relever le lieu en jeu (ci-dessous) : la carte de la B42 peut différer des sites
+faits d'après une carte plus ancienne. Pour repérer avant de jouer, la [carte de Project Zomboid B42](https://zomboidmap.com/)
+montre tout le comté de Knox : passez la souris sur une case pour lire son X et son Y, ou copiez la position et collez-la
+dans x (le bouton **📋 Coller la position** fait pareil quand le navigateur l'autorise, sur l'ordinateur du pont), puis
+vérifiez l'endroit en jeu.
+Placez une planque, ou le rendez-vous d'une cachette, sur la case d'un conteneur (benne, boîte aux lettres) ou juste à
+côté, et le lieu d'une mission sur une case à l'intérieur du bâtiment.
+
+À côté des champs x, y et z d'un lieu (et de la position d'une voix placée à un endroit précis), le lien « Voir sur la
+carte ↗ » ouvre dans un nouvel onglet la carte communautaire de Build 42 (zomboidmap.com), zoomée sur la case. Tant que
+x et y ne sont pas remplis, le lien « Ouvrir la carte ↗ » montre la carte entière : la case sous la souris y affiche ses
+coordonnées. Cette carte est faite d'après Build 42.20 et peut différer un peu de votre version ; pour une case sûre,
+relevez-la en jeu par un clic droit « Atelier des voix : relever ce lieu » (en solo avec le mode debug, ou par un admin
+en multijoueur).
+
+![Le château d'eau de Rosie et son lien « Voir sur la carte »](../../images/screenshots/atelier/atelier-fr-04c-place-map.png)
+
+### Relever un lieu en jeu
+
+Plutôt que de chercher des coordonnées, marchez jusqu'à l'endroit dans le jeu, faites un clic droit sur la case et
+choisissez **« Atelier des voix : relever ce lieu »**. Le menu n'apparaît qu'en solo avec le mode debug du jeu, et sur
+un serveur seulement pour un admin ou un modérateur. Le lieu apparaît ensuite en bas de l'onglet Lieux, sous **Depuis
+mes relevés** (les plus récents d'abord), avec la date, qui l'a relevé, la pièce et le conteneur trouvé (une benne, une
+boîte aux lettres), en noms clairs.
+
+![Depuis mes relevés : le casier de la cabane déjà dans les lieux, une cuisine à ajouter](../../images/screenshots/atelier/atelier-fr-04b-places.png)
+
+**Ajouter aux lieux** demande un nom (« Nom du lieu sur la carte (tu pourras le changer) : ») et crée un endroit précis
+à cette case. Un relevé déjà présent est marqué **Déjà dans les lieux**. Les relevés sont gardés dans
+`Zomboid/Lua/batman_RadioSurvivor/workshop-places.txt` de la machine qui fait tourner le jeu ou le serveur (les 200
+derniers).
 
 ## Étape 1 — Qui
 
@@ -252,8 +321,8 @@ parle quand même.
 | Carte | Ce que vit le joueur | À savoir |
 |---|---|---|
 | **Parler** | Elle répond à la radio. | Toujours cochée, et elle ne se décoche pas. |
-| **Marquer la carte** | « Je te le marque sur ta carte » : un symbole apparaît à l'un de ses lieux. | Il faut un lieu **Repère**. Seul le joueur qui parle le voit. |
-| **Montrer un quartier** | Le quartier autour d'un de ses lieux se découvre sur la carte du joueur. | Il faut un lieu **Repère**. |
+| **Marquer la carte** | « Je te le marque sur ta carte » : un symbole apparaît à l'un de ses lieux. | Cochez ses lieux à l'étape 4 (**Quels lieux peut-elle marquer sur la carte ?**). Seul le joueur qui parle le voit. |
+| **Montrer un quartier** | Le quartier autour d'un de ses lieux se découvre sur la carte du joueur. | Les mêmes lieux cochés à l'étape 4. |
 | **Donner des missions** | Elle donne les missions de l'étape 4. | Le joueur doit avoir le carnet. Une mission en cours à la fois par joueur et par voix. |
 | **Avoir un moral** | Son moral et ses provisions changent au fil des appels ; elle en parle d'elle-même. | Du récit seulement : rien ne change dans le jeu. |
 | **Faire du troc** | Elle vend des marchandises et fixe un rendez-vous. | Remplissez aussi le [troc](#le-troc) de l'étape 5 : l'un sans l'autre est refusé. Cochée toute seule quand vous cochez **Cette voix fait du troc**. |
@@ -291,55 +360,15 @@ Conseils :
 
 ![Étape 4 : les missions de Rosie](../../images/screenshots/atelier/atelier-fr-04-missions.png)
 
-« Où se trouve-t-elle, et quelles missions confie-t-elle ? » L'étape a deux parties : **Ses lieux**, puis **Ses missions**.
+« Quels lieux montre-t-elle, et quelles missions confie-t-elle ? » L'étape a deux parties : **Quels lieux peut-elle
+marquer sur la carte ?**, puis **Ses missions**. Les lieux eux-mêmes se créent dans l'[onglet Lieux](#longlet-lieux).
 
-### Ses lieux
+### Quels lieux peut-elle marquer sur la carte ?
 
-Les endroits que la voix connaît (12 au plus). Le panneau **Ses lieux (n)** s'ouvre et se ferme d'un clic. Sans lieu,
-une phrase le dit : « Elle n'a encore aucun lieu. Commence par un endroit que tu connais. » **+ Nouveau lieu** demande
-d'abord le nom du lieu (« Nom du lieu (vu sur la carte) : »). Aucun identifiant n'est demandé : chaque carte de lieu
-porte seulement son nom. **Supprimer ce lieu** (la croix de la carte) l'enlève.
-
-| Réglage | Ce que ça change |
-|---|---|
-| **Nom sur la carte** | Ce que voient les joueurs sur leur carte : pas de secret ici. Un compteur « 12 / 48 » indique la place restante. |
-| **Où sur la carte ?** | x, y et l'étage (0 = rez-de-chaussée). L'IA ne voit jamais ces nombres. Relevez-les en jeu (ci-dessous), ou lisez-les sur la carte. Le lien **Voir sur la carte ↗** ouvre la case. Une position copiée sur la carte (`7966, 11751`) se colle dans n'importe laquelle des trois cases : x, y (et l'étage s'il y a un troisième nombre) se remplissent d'un coup. |
-| **Il sert à** | Quatre pastilles avec leur icône, à cocher : **🗺️ Repère** (elle peut le marquer sur la carte d'un joueur ; sans récompense réglée, elle offre aussi ce repère après une mission), **🎯 Lieu de mission** (une case à l'intérieur du bâtiment visé ; il est entouré sur la carte pendant la mission), **📦 Planque** (le joueur y dépose des affaires, et les sacs de récompense y sont posés), **🤝 Rendez-vous de troc** (là où vient le marchand). |
-
-Rosie a deux lieux : le château d'eau au sud de Muldraugh (repère et lieu de mission) et la cabane voisine, dont le
-casier sert de planque.
-
-**Trouver x et y.** Le plus sûr est de relever le lieu en jeu (ci-dessous) : la carte de la B42 peut différer des sites
-faits d'après une carte plus ancienne. Pour repérer avant de jouer, la [carte de Project Zomboid B42](https://zomboidmap.com/)
-montre tout le comté de Knox : passez la souris sur une case pour lire son X et son Y, ou copiez la position et collez-la
-dans x (le bouton **📋 Coller la position** fait pareil quand le navigateur l'autorise, sur l'ordinateur du pont), puis
-vérifiez l'endroit en jeu.
-Placez une planque, ou le rendez-vous d'une cachette, sur la case d'un conteneur (benne, boîte aux lettres) ou juste à
-côté, et un lieu de mission sur une case à l'intérieur du bâtiment.
-
-À côté des champs x, y et z d'un lieu (et de la position d'une voix placée à un endroit précis), le lien « Voir sur la
-carte ↗ » ouvre dans un nouvel onglet la carte communautaire de Build 42 (zomboidmap.com), zoomée sur la case. Tant que
-x et y ne sont pas remplis, le lien « Ouvrir la carte ↗ » montre la carte entière : la case sous la souris y affiche ses
-coordonnées. Cette carte est faite d'après Build 42.20 et peut différer un peu de votre version ; pour une case sûre,
-relevez-la en jeu par un clic droit « Atelier des voix : relever ce lieu » (en solo avec le mode debug, ou par un admin
-en multijoueur).
-
-![Un lieu de Rosie et son lien « Voir sur la carte »](../../images/screenshots/atelier/atelier-fr-04c-place-map.png)
-
-### Relever un lieu en jeu
-
-Plutôt que de chercher des coordonnées, marchez jusqu'à l'endroit dans le jeu, faites un clic droit sur la case et
-choisissez **« Atelier des voix : relever ce lieu »**. Le menu n'apparaît qu'en solo avec le mode debug du jeu, et sur
-un serveur seulement pour un admin ou un modérateur. Le lieu apparaît ensuite dans l'atelier, sous **Depuis mes
-relevés** (les plus récents d'abord), avec la date, qui l'a relevé, la pièce et le conteneur trouvé (une benne, une
-boîte aux lettres), en noms clairs.
-
-![Depuis mes relevés : le casier de la cabane déjà dans ses lieux, une cuisine à ajouter](../../images/screenshots/atelier/atelier-fr-04b-places.png)
-
-**Ajouter à cette voix** demande un nom et crée le lieu avec des usages proposés : un conteneur devient une planque,
-un bâtiment un lieu de mission et un repère. Tout se change ensuite sur la carte du lieu. Un relevé déjà présent est
-marqué **Déjà dans ses lieux**. Les relevés sont gardés dans `Zomboid/Lua/batman_RadioSurvivor/workshop-places.txt`
-de la machine qui fait tourner le jeu ou le serveur (les 200 derniers).
+Cochez les **repères** qu'elle donne aux joueurs (12 au plus), parmi les lieux de toutes les voix. Elle ne connaît
+qu'eux : elle peut les marquer sur la carte (**Marquer la carte**), montrer le quartier autour (**Montrer un
+quartier**) et, sans récompense réglée, en offrir un après une mission réussie. Un quartier est marqué en son milieu.
+**+ Nouveau lieu…** en crée un sans quitter la voix. Rosie coche le **Château d'eau de Muldraugh**.
 
 ### Ses missions
 
@@ -349,12 +378,13 @@ mission devient une carte numérotée, avec l'icône de son genre, sans aucun id
 | Réglage | Ce que ça change |
 |---|---|
 | **Ce que dit la voix** | La raison qu'elle donne, dans la langue de sa personnalité (en anglais par défaut), 200 caractères au plus, avec un compteur « N / 200 ». L'IA la raconte au joueur. **✨ Proposer** demande une phrase à l'IA. |
-| **Où ça se passe ?** | Un de ses lieux marqué **Lieu de mission**. Une pastille rouge **à remplir** apparaît quand il en faut un. |
+| **Où ça se passe ?** | Une liste : **🚶 Près du joueur** (le choix déjà pris), **🚲 Plus loin**, **🚗 Très loin**, puis les lieux de toutes les voix et **+ Nouveau lieu…**. Près, plus loin ou très loin : le jeu tire un bâtiment à chaque mission, à 100-200, 200-500 ou 500-1 500 cases du joueur. Un quartier : un bâtiment tiré dedans. Un endroit précis : toujours le même bâtiment. Pas affiché pour **Livrer des affaires** et **Suivre un itinéraire**, qui ont leurs propres lieux. |
+| **Quel genre de bâtiment ?** | Seulement pour une distance ou un quartier : **N'importe lequel** (le jeu choisit), ou Une église, Une école, Un commissariat, Une caserne de pompiers, Un hôpital, Une clinique, Un motel, Une ferme, Un immeuble, Une maison avec garage, Une maison. |
 | **Réglages du genre** | Dans une seule boîte. Quantités : « entre [− n +] et [− m +] ». Nombres d'objets : un compteur − / +. **Elle ramasse au bout de** : **Vite** (2 h), **Quelques heures** (6 h, le réglage normal), **Une demi-journée**, **Un jour**. **Combien de temps faire le guet ?** : **Une heure**, **Deux heures** (le réglage normal), **Une matinée** (6), **Une nuit entière** (12). Chaque crans a sa **Valeur exacte**. |
-| **Planques** | Pour les genres qui en demandent une : rien de coché, c'est toutes ses planques. |
+| **Planques** | Pour les genres qui en demandent (Livrer, Rapporter des papiers, Retrouver un objet) : cochez une ou plusieurs planques, des endroits précis ; le joueur dépose où il veut parmi elles. Une pastille rouge **à remplir** apparaît tant qu'aucune n'est cochée. |
 | **Seulement après la mission** | **Tout de suite**, ou une de ses autres missions, par exemple **1 · Faire le guet** : le numéro et le genre, jamais un identifiant. Celle-ci n'est proposée qu'une fois l'autre réussie. |
 | **Ce qui change dans son histoire** | Une phrase courte, par exemple « Elle est rentrée à sa clinique ». Vous l'écrivez, l'atelier en fait un nom pour le jeu et écrit la phrase à la fin de sa personnalité (`Story state: when your story state is <nom>, <phrase>`) : l'IA sait ainsi ce que veut dire ce nom. Deux missions avec la même phrase partagent le même état. |
-| **Réglages en plus** (replié) | Changer le genre de mission ; le lieu, pour les genres qui n'en exigent pas (**Près du joueur** : le jeu choisit un bâtiment proche du joueur, pour reconnaître ou nettoyer) ; **Proposée** (Rarement, Normalement, Souvent) ; **Qui débloque la suivante** (Le joueur, ou Toute l'équipe). |
+| **Réglages en plus** (replié) | Changer le genre de mission ; **Proposée** (Rarement, Normalement, Souvent) ; **Qui débloque la suivante** (Le joueur, ou Toute l'équipe). |
 
 À la fin d'une mission réussie, le joueur gagne de la réputation et une récompense de l'étape 5.
 
@@ -362,23 +392,25 @@ mission devient une carte numérotée, avec l'icône de son genre, sans aucun id
 
 | Genre | Ce que fait le joueur | Réglages propres | Il faut |
 |---|---|---|---|
-| **Reconnaître un bâtiment** | Visite un bâtiment, puis lui raconte ce qu'il a vu. | — | Rien (lieu facultatif) |
-| **Nettoyer les morts** | Tue les zombies autour d'un lieu. | — | Rien (lieu facultatif) |
-| **Barricader** | Condamne des fenêtres et portes extérieures avec des planches ou de la tôle. Seules les barricades posées pendant la mission comptent. | **Fenêtres et portes** (4 par défaut, 1 au moins) | Un **Lieu de mission** |
+| **Reconnaître un bâtiment** | Visite un bâtiment, puis lui raconte ce qu'il a vu. | — | Rien |
+| **Nettoyer les morts** | Tue les zombies autour d'un lieu. | — | Rien |
+| **Barricader** | Condamne des fenêtres et portes extérieures avec des planches ou de la tôle. Seules les barricades posées pendant la mission comptent. | **Fenêtres et portes** (4 par défaut, 1 au moins) | Rien |
 | **Livrer des affaires** | Dépose à une planque les objets demandés ; les dépôts à plusieurs planques s'additionnent. | **Elle ramasse au bout de** (heures de jeu sans personne autour avant que les affaires soient ramassées, 6 par défaut), **Quoi apporter ?** (une catégorie ; sans catégorie, 6 bandages ou draps déchirés), **Combien ?** (« de … à … », tiré au début de la mission) | Une **Planque** |
 | **Rapporter des papiers** | Retrouve la carte d'identité d'une personne disparue et la dépose à une planque. | **Elle ramasse au bout de** | Une **Planque** |
-| **Retrouver un objet personnel** | Le jeu pose un objet précieux au lieu choisi ; le joueur le trouve et le dépose à une planque. | **Elle ramasse au bout de**, **Quel objet ?** (**Choisir un objet** ouvre la liste des objets, un clic choisit), **Comment elle l'appelle** (facultatif) | Un **Lieu de mission** et une **Planque** |
-| **Installer un relais radio** | Pose en hauteur (étage ou toit) une radio qui émet, allumée et alimentée. Éteinte, sans courant ou retirée, elle ne compte plus. | — | Un **Lieu de mission** |
-| **Suivre un itinéraire** | Passe par plusieurs lieux dans l'ordre, à pied ou en véhicule (à moins de 8 cases du centre), puis fait son compte rendu. Seule la prochaine étape est entourée sur la carte. | **Étapes, dans l'ordre** : de 2 à 8 lieux **Lieu de mission**, jamais deux fois le même de suite (**+ Ajouter une étape**, **Monter**, **Retirer**) | Deux lieux de mission |
+| **Retrouver un objet personnel** | Le jeu pose un objet précieux au lieu choisi ; le joueur le trouve et le dépose à une planque. | **Elle ramasse au bout de**, **Quel objet ?** (**Choisir un objet** ouvre la liste des objets, un clic choisit), **Comment elle l'appelle** (facultatif) | Une **Planque** |
+| **Installer un relais radio** | Pose en hauteur (étage ou toit) une radio qui émet, allumée et alimentée. Éteinte, sans courant ou retirée, elle ne compte plus. | — | Rien |
+| **Suivre un itinéraire** | Passe par plusieurs lieux dans l'ordre, à pied ou en véhicule (à moins de 8 cases du centre), puis fait son compte rendu. Seule la prochaine étape est entourée sur la carte. | **Par où passer ?** : de 2 à 8 endroits précis, jamais deux fois le même de suite (**+ Ajouter une étape**, la flèche ↑ pour monter, la croix pour retirer) | Deux endroits précis |
 | **Allumer un signal de fumée** | Allume un signal Signal Smoke au lieu demandé. | — | Le mod Signal Smoke |
-| **Faire le guet** | Reste à moins de 6 cases d'un lieu pendant quelques heures de jeu (le temps s'arrête quand le jeu est en pause), puis raconte ce qu'il a vu. | **Combien de temps faire le guet ?** (une heure à une nuit entière, deux heures par défaut) | Un **Lieu de mission** |
+| **Faire le guet** | Reste à moins de 6 cases d'un lieu pendant quelques heures de jeu (le temps s'arrête quand le jeu est en pause), puis raconte ce qu'il a vu. | **Combien de temps faire le guet ?** (une heure à une nuit entière, deux heures par défaut) | Rien |
 
 Les champs à remplir portent une étoile, et une pastille rouge **à remplir** s'ajoute quand il manque quelque chose.
-Ceux qui ont besoin d'une planque montrent la case **Planques** (rien de coché : toutes ses planques). Rosie demande
-d'abord à manger (**Livrer des affaires** à la cabane), et seulement après, de nettoyer les morts autour de la tour.
+Ceux qui ont besoin d'une planque montrent la case **Planques**. « Rien » dans la dernière colonne : sans autre choix,
+la mission se passe **près du joueur**. Rosie demande d'abord à manger (**Livrer des affaires**, planque : la cabane),
+et seulement après, de nettoyer les morts autour de la tour (**Où ça se passe ?** : le château d'eau).
 
-**Erreurs fréquentes.** Une mission **Livrer** ou **Rapporter des papiers** sans aucun lieu **Planque** ; un **Lieu**
-qui n'est pas coché **Lieu de mission** ; une mission « Seulement après » une mission supprimée depuis.
+**Erreurs fréquentes.** Une mission **Livrer**, **Rapporter des papiers** ou **Retrouver un objet** sans planque
+cochée ; un **genre de bâtiment** avec un endroit précis (il va avec une distance ou un quartier) ; une mission
+« Seulement après » une mission supprimée depuis.
 
 ## Étape 5 — Récompenses
 
@@ -389,7 +421,7 @@ jeu tire une récompense dans cette liste. Cliquez sur une carte **+ …**, avec
 
 | Récompense | Ce que reçoit le joueur | Réglage |
 |---|---|---|
-| **🎒 Sac de matériel** | Un sac de vrais objets, en quantités tirées au hasard, posé à sa première planque ; le joueur reçoit le repère de la planque, que lui seul voit. Il faut au moins un lieu. | **Catégorie** : Munitions (balles de 9 mm et cartouches), **Nourriture** (haricots, soupe, maïs en conserve, par défaut), Soins (bandages, désinfectant, pilules), Matériel radio (un talkie et des piles), Outils (marteau, tournevis, clous), ou [une liste à elle](#ses-propres-listes-dobjets). |
+| **🎒 Sac de matériel** | Un sac de vrais objets, en quantités tirées au hasard, posé à l'endroit choisi dans **Où cache-t-elle le sac de matériel ?** (un endroit précis, à remplir dès qu'il y a un sac) ; le joueur reçoit son repère, que lui seul voit. | **Catégorie** : Munitions (balles de 9 mm et cartouches), **Nourriture** (haricots, soupe, maïs en conserve, par défaut), Soins (bandages, désinfectant, pilules), Matériel radio (un talkie et des piles), Outils (marteau, tournevis, clous), ou [une liste à elle](#ses-propres-listes-dobjets). |
 | **📇 Un contact radio** | La fréquence d'une voix qu'elle peut faire connaître (étape 3), écrite dans son carnet. | — |
 | **🗺️ Carte de planque** | Une carte qui mène à une réserve cachée du jeu, pas encore fouillée. Une seule par joueur et par voix. | — |
 | **📘 Une leçon** | De l'expérience dans une compétence : 25 points de base, avec un plafond de 100 par jour ; un personnage sans bonus dans cette compétence n'en reçoit qu'un quart. | **Compétence** : Secourisme, Visée, Rechargement, Menuiserie, Mécanique, Électricité, Travail du métal, Cuisine, Agriculture, Pêche, Piégeage, Cueillette. |
@@ -397,12 +429,13 @@ jeu tire une récompense dans cette liste. Cliquez sur une carte **+ …**, avec
 Pour chacune, **Elle sort** : **Rarement**, **Normalement** ou **Souvent** (Souvent sort deux fois plus que
 Normalement, qui sort deux fois plus que Rarement). À côté du nom, l'atelier affiche la chance qui en découle
 (« environ 1 fois sur 3 », « à chaque fois »). Une récompense impossible sur le moment (aucune voix à faire connaître,
-carte déjà donnée) n'est pas tirée. **Sans récompense**, elle marque un de ses lieux **Repère** sur la carte du joueur.
+carte déjà donnée) n'est pas tirée. **Sans récompense**, elle marque sur la carte du joueur un des lieux cochés à
+l'étape 4.
 
 **Déposer et récupérer.** Pour une mission avec planques, le joueur laisse les objets à moins de 3 cases d'une planque :
 quand le jeu y désigne un conteneur (une mission sur deux, s'il y en a un), les objets vont dedans ; sinon dans un sac
 **au sol** qui ne contient que les objets demandés ; le carnet dit lequel. La récompense **Sac de matériel** est
-différente : le jeu pose lui-même le sac **au sol** à la planque (la case libre la plus proche, dans le bâtiment si le
+différente : le jeu pose lui-même le sac **au sol** à l'endroit choisi (la case libre la plus proche, dans le bâtiment si le
 lieu en est un) et le marque sur la carte du joueur ; vous ne posez rien, le joueur n'a qu'à le ramasser.
 
 Sous **Pour aller plus loin**, deux panneaux facultatifs, fermés par défaut : le **troc** et la **note de fréquence**.
@@ -457,7 +490,7 @@ Le panneau a trois groupes. Chaque réglage à remplir porte une étoile, et « 
 
 | Réglage | Ce que ça change |
 |---|---|
-| **Où a lieu le rendez-vous ?** | Cochez ses lieux **Rendez-vous de troc** ; s'il y en a plusieurs, un est tiré à chaque passage. S'il n'y en a aucun, **Créer le lieu de rendez-vous** crée un lieu marqué comme tel, le coche et ouvre l'étape des lieux pour lui donner sa case. |
+| **Où a lieu le rendez-vous ?** | Cochez un ou plusieurs endroits précis ; s'il y en a plusieurs, un est tiré à chaque passage. **+ Nouveau lieu…** en crée un et le coche. |
 | **Elle arrive par** | **Le bateau** (une barque accoste), **Une cachette** (personne ne vient, comme les marchands de Rosewood, Ekron ou Fallas Lake) ou **La route** (un fourgon se gare au bord de la route). |
 | **À quelle heure ?** | Début et fin du rendez-vous, en heure du jeu : la fin peut passer minuit (23:00 à 01:00). |
 | **Elle revient** | **Tous les jours**, **Tous les 3 jours**, **Chaque semaine**, **Toutes les 2 semaines**, **Une fois par mois**. **Valeur exacte** règle un nombre de jours de 1 à 28. Un seul passage par période pour tout le serveur. |
@@ -526,7 +559,7 @@ Si l'IA du pont est configurée (voir [Fournisseur d'IA](08-fournisseur-ia.md)),
   personnalité, nom d'un lieu, phrase d'une mission et ce qu'elle change dans l'histoire, appel spontané, lignes d'une
   note, nom d'un paquet ou d'une liste. L'IA lit toute la fiche en cours (même pas encore enregistrée) : personnalité,
   lieux, missions déjà écrites et ce qu'elles changent, notes, troc ; plus ce que vise le champ (genre de mission et ce
-  que fait le joueur, usages du lieu, objets du paquet, autres lignes de la note). Elle reste cohérente avec le reste et
+  que fait le joueur, lieu de la mission, objets du paquet, autres lignes de la note). Elle reste cohérente avec le reste et
   ne répète pas une autre mission. Les textes lus en jeu sont écrits dans la langue de la personnalité, les autres dans
   celle de la page. Recliquez pour une autre idée. Pour l'appel et les notes, la fréquence est toujours dans la
   proposition (sinon l'atelier le dit : recliquez). Vous pouvez ensuite retoucher le texte.
@@ -552,7 +585,7 @@ sans redémarrer : prenez la radio qu'il lui faut, cherchez sa fréquence pendan
 
 **Les points à vérifier.** Pendant que vous remplissez, l'atelier signale ce qui lui semble faux, étape par étape
 (« À vérifier : 2 »), par exemple : une fréquence choisie à la main déjà prise par une autre voix, des heures d'écoute
-dont le début égale la fin, un lieu sans ses trois nombres, une mission sans lieu ou sans planque, « Seulement après »
+dont le début égale la fin, un lieu sans sa case, une mission sans planque, un quartier là où il faut un endroit précis, « Seulement après »
 qui cite une mission disparue, une personnalité vide. **Ce ne sont que des conseils** : vous pouvez enregistrer quand
 même. **C'est le jeu qui décide.**
 
@@ -579,7 +612,7 @@ puis il disparaît quand le jeu l'accepte.
 | Il faut soit la radio nécessaire, soit une fréquence fixe | Une seule des deux : une carte de radio, ou **Choisir moi-même la fréquence**. |
 | Les heures d'écoute ne vont pas | Choisissez-les avec les cartes de « Quand écoute-t-elle ? ». |
 | Le bloc « […] » n'existe pas | Une partie de fiche mal nommée : retirez-la ou corrigez son nom. |
-| « … » n'est défini nulle part | Un lieu, une mission ou une liste citée mais absente : ajoutez-la ou changez le choix. |
+| « … » n'est défini nulle part | Un lieu, une mission ou une liste citée mais absente : ajoutez-la (un lieu : dans l'onglet Lieux) ou changez le choix. |
 | Le type de mission « … » n'existe pas | Choisissez un genre dans la liste. |
 | La personnalité manque ou est vide | Écrivez-la à l'étape Personnalité. |
 | Le fichier n'est pas enregistré en UTF-8 simple | Enregistrez-le depuis l'atelier. |
@@ -667,7 +700,7 @@ sait qu'il est mort et peut en parler. Détails : [Se souvenir de vous](10-creer
 - La personnalité s'écrit en anglais ou en français, au choix de l'auteur, et rien n'est traduit. Les phrases des
   missions suivent la langue de la personnalité. La note, la phrase d'appel et les noms des lieux s'écrivent dans la
   langue de votre choix.
-- 12 lieux au plus par voix, 48 octets par nom de lieu ; 8 lignes de 40 octets pour la note ; 200 octets pour la
+- 500 lieux en tout, 12 repères au plus par voix, 48 octets par nom de lieu ; 8 lignes de 40 octets pour la note ; 200 octets pour la
   phrase d'appel et pour la phrase d'une mission ; 40 marchandises au plus par marchand.
 - L'avertissement « Déjà prise par » d'une fréquence choisie à la main ne connaît que les voix du mod, pas vos propres
   voix ; le jeu, lui, ne met jamais deux voix sur la même fréquence tirée.

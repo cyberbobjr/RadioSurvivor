@@ -41,6 +41,15 @@ export function textInput(id, value, onInput, attrs = {}) {
   return h('input', { id, type: 'text', value: value ?? '', ...attrs, onInput: (e) => onInput(e.target.value) });
 }
 
+// A text field with its live count "12 / 48" (charter: limits said, never in bytes): {input, counter}.
+export function countedInput(id, value, max, onInput, attrs = {}) {
+  const counter = h('small', { class: 'counter', 'aria-live': 'polite' });
+  const show = (text) => { counter.textContent = `${[...String(text ?? '')].length} / ${max}`; };
+  const input = textInput(id, value, (v) => { show(v); onInput(v); }, { maxlength: max, ...attrs });
+  show(value);
+  return { input, counter };
+}
+
 // Editable list of sentences (item=, text=...): one line each, add, remove. Redraws itself only, so a new empty
 // line stays on screen until it is filled (the sheet keeps no empty value).
 export function listEditor(t, values, onChange, placeholder = '') {

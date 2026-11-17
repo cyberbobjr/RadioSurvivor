@@ -1,5 +1,5 @@
 -- Voice mission `barricade` (E20-T09, ADR D10) on a real building near the player. Real start path of a voice
--- (RS_MissionVoice.start, sheet with one [mission] of type barricade, count 2, and one place use=target inside the
+-- (RS_MissionVoice.start, sheet with one [mission] of type barricade, count 2, and target= a shared point inside the
 -- building), real set-up of the target place (RS_MissionTarget), real engine poll (CA_Missions.observe: the template
 -- reads the building's openings on the server), real radio report (RS_MissionVoice.report).
 -- The barricades are put up as the server part of the player's gesture does (vanilla ISBarricadeAction:complete,
@@ -86,9 +86,9 @@ local function run(t)
     t:note('building ' .. defKey(openings[1].def) .. ', target place ' .. inside:getX() .. ',' .. inside:getY())
     t:ok(nail(openings[1].o, p, false, made) ~= nil, 'barricade before the start not put up')
     local sheet = {id = 'rst-voice-barricade', name = 'RST Voice', actions = {'say', 'start_mission'}, budgets = {},
-        missions = {{id = 'secure', type = 'barricade', target = 'site', params = {count = 2}}},
-        places = {{id = 'site', label = 'RST building', x = inside:getX(), y = inside:getY(), z = inside:getZ(),
-            uses = {'target'}, use = {target = true}}}}
+        missions = {{id = 'secure', type = 'barricade', target = {kind = 'place', id = 'site'}, params = {count = 2}}},
+        places = {site = {id = 'site', label = 'RST building', x = inside:getX(), y = inside:getY(),
+            z = inside:getZ()}}}
     local state = {missions = {}, npcs = {}, voiceDonors = {}, characters = {}, outcomes = {}}
     state.characters.char1 = {name = 'Tester', contacts = {}, knownMissions = {}}
     local store = {data = state, save = function() return true end}

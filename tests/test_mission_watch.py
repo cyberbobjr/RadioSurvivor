@@ -19,8 +19,9 @@ from types import SimpleNamespace
 
 import test_carnet as carnet_helpers
 from test_carnet import MAP_DOUBLE, NOTEBOOK_UI, bridge_module, convert
+from test_mission_barricade import sheet_double
 from test_personas import LuaPersona
-from test_persona_sections import BASE, PROMPT
+from test_persona_sections import BASE, PLACES, PROMPT
 import npc_protocol as protocol
 
 # Doublures du monde, fidèles au Java 42.22 (E:\pz-source-42.22\java\zombie, relevé du 2026-11-15) :
@@ -62,10 +63,9 @@ function worldSound(x, y, radius, volume)
 end
 '''
 
-# Fiche d'une voix qui donne la mission watch : le château d'eau (lieu target), un lieu sans use=target.
-SHEET_PLACES = [
-    {'id': 'post', 'x': 60, 'y': 60, 'z': 0, 'label': 'Water tower', 'uses': ['target'], 'use': {'target': True}},
-]
+# Lieu commun (E25-T01) de la fiche d'une voix qui donne la mission watch : le château d'eau (target=post), table
+# id -> lieu comme sheet.places.
+SHEET_PLACES = {'post': {'id': 'post', 'x': 60, 'y': 60, 'z': 0, 'label': 'Water tower'}}
 POST = (60, 60)
 FACT_SOURCES = ('CA_WatchHelicopter', 'CA_WatchHorde')
 HELICOPTER = (500, 500)   # rayon et volume du son de l'hélicoptère vanilla (Helicopter.java:218)
@@ -87,15 +87,7 @@ class WatchMissionTests(unittest.TestCase):
         return sim, rt.eval("require('RadioSurvivor/RS_MissionVoice')"), rt.eval("require('CoreAI/CA_NotebookStore')")
 
     def sheet(self, sim, section):
-        rt = sim.server.rt
-        places = [rt.table_from({**p, 'uses': rt.table_from(p['uses']), 'use': rt.table_from(p['use'])})
-                  for p in SHEET_PLACES]
-        fields = dict(section)
-        fields['params'] = rt.table_from(section.get('params', {}))
-        fields.setdefault('type', 'watch')
-        fields.setdefault('id', 'watch')
-        return rt.table_from({'id': 'custom', 'name': 'Custom', 'missions': rt.table_from([rt.table_from(fields)]),
-                              'places': rt.table_from(places)})
+        return sheet_double(sim.server.rt, SHEET_PLACES, section, 'watch', 'watch')
 
     def start(self, sim, voice, store, sheet):
         return voice.start(store, sheet, sim.character('alice'), sim.server.g.PLAYERS.alice, 160000, 'watch')
@@ -254,8 +246,8 @@ class WatchMissionTests(unittest.TestCase):
         self.assertIsNone(m2.facts.helicopter)
         self.assertIsNone(m2.facts.horde)
 
-    def test_start_refused_without_target_or_with_bad_hours(self):
-        for section, why in (({}, 'no_target'), ({'target': 'post', 'params': {'hours': 0}}, 'bad_hours'),
+    def test_start_refused_with_bad_hours(self):
+        for section, why in (({'target': 'post', 'params': {'hours': 0}}, 'bad_hours'),
                              ({'target': 'post', 'params': {'hours': 99}}, 'bad_hours')):
             with self.subTest(section=section):
                 sim, voice, store = self.world('watch-refused-' + why + str(len(section)))
@@ -315,7 +307,7 @@ class WatchBriefTests(unittest.TestCase):
     def told(self, voice, ctx):
         field = voice.field(ctx)
         self.assertLessEqual(set(protocol.decode(bytes.fromhex(field))), GENERIC_FIELDS)
-        mission = bridge_module.mission_context({'mission': field}, SimpleNamespace(places=[]))
+        mission = bridge_module.mission_context({'mission': field}, SimpleNamespace(marks=[]))
         return mission, bridge_module.mission_prompt(mission, 'Caller')
 
     def test_job_and_verified_facts_told_to_the_voice(self):
@@ -348,6 +340,7 @@ class WatchSheetTests(unittest.TestCase):
     def setUpClass(cls):
         cls.tmp = tempfile.TemporaryDirectory()
         cls.folder = Path(cls.tmp.name)
+        (cls.folder / '_places.txt').write_text(PLACES, encoding='utf-8')   # E25-T01: shared places of the cases
         cls.lua = LuaPersona(cls.folder)
         cls.lua.rt.eval('require("CoreAI/CA_MissionWatch")')
 
@@ -363,14 +356,13 @@ class WatchSheetTests(unittest.TestCase):
         p = self.read('type=watch\ntarget=clinic\nhours=3\n')
         self.assertFalse(isinstance(p, tuple), p)
         m = p.missions[1]
-        self.assertEqual((m.type, m.target, m.params['hours']), ('watch', 'clinic', 3))
+        self.assertEqual((m.type, m.target.kind, m.target.id, m.params['hours']), ('watch', 'place', 'clinic', 3))
 
     def test_refusals(self):
         for body, why in (
-                ('type=watch\ntarget=church\n', "line 15: place 'church' has no use=target"),
                 ('type=watch\ntarget=clinic\nhours=long\n',
-                 "line 16: bad count 'long' (whole number from 0 to 999999)"),
-                ('type=watch\ntarget=clinic\ncount=2\n', "line 16: unknown key 'count' for mission type 'watch'")):
+                 "line 8: bad count 'long' (whole number from 0 to 999999)"),
+                ('type=watch\ntarget=clinic\ncount=2\n', "line 8: unknown key 'count' for mission type 'watch'")):
             with self.subTest(body=body):
                 self.assertEqual(self.read(body), (None, why))
 

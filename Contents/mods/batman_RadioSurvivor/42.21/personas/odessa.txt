@@ -17,13 +17,6 @@ actions=say,propose_trade,share_frequency
 shares=hollis,maxine
 state=active
 
-# Lieu du rendez-vous relevé sur la carte 42.22 (lotheader 31_45 ; bennes trashcontainers_01_14/15 (container dumpster) x 8154-8157, y 11649, sur un terrain en herbe hors de toute pièce entouré de rues ; le lieu est la case devant les bennes).
-# Rendez-vous seulement : jamais donné comme repère par mark_map.
-[place rosewood_dumpsters]
-at=8155,11650,0
-label=Dumpsters on the lot in Rosewood
-use=landing
-
 # Troc (E20-T11) : barème docs/specifications-techniques/passeur-table.md section 3.
 [trade]
 landing=rosewood_dumpsters

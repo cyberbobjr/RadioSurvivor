@@ -3,8 +3,8 @@
 -- retrieve_id = the card of the mission by item id) gets dead drops when a voice gives it: the set-up is registered for
 -- that declaration (RS_MissionVoice.registerDeclaredSetup), the poll and projection are the voice giver's drop hooks
 -- (RS_MissionHooks: observeDrops, projectDrops, dropsWhere, dropsRule, called by the engine).
--- The mission carries all the drops of its sheet section (`drops=`: a list of places, or `any`/none = every place
--- with use=drop), all marked on the participant's map; the player leaves items at any of them and deposits add up
+-- The mission carries all the drops of its sheet section (`drops=`: a list of points of the shared places, required
+-- by these templates, E25-T01), all marked on the participant's map; the player leaves items at any of them and deposits add up
 -- toward the quantity, each item credited once (m.credited: ids saved with the mission). Only items the template's
 -- strategy accepts are taken. A drop is collected only out of everyone's view and after m.collectHours game hours
 -- (RS_OutOfSight; default RS_Config.DeadDrops.collectDelayHours, section parameter collect_hours). A drop whose delay
@@ -322,14 +322,13 @@ function D.rule(m)
         .. 'goods: the whole bag is taken. Never claim collection before the server confirms it.'
 end
 
--- Set-up of a voice mission with dead drops: every drop of its section (E20-T03 places with use=drop).
+-- Set-up of a voice mission with dead drops: every drop of its section (drops=, points of the shared places, E25-T01).
 local function dropPlaces(sheet, section)
     local wanted = type(section) == 'table' and type(section.drops) == 'table' and section.drops or {}
-    if #wanted == 0 then return Persona.placesFor(sheet, 'drop') end
-    local byId, out = {}, {}
-    for _, p in ipairs(Persona.placesFor(sheet, 'drop')) do byId[p.id] = p end
+    local out = {}
     for _, id in ipairs(wanted) do
-        if byId[id] then out[#out + 1] = byId[id] end
+        local place = Persona.placeOf(sheet, id)
+        if place and not place.area then out[#out + 1] = place end
     end
     return out
 end

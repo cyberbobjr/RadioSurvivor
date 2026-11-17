@@ -54,7 +54,8 @@ end
 
 -- Section given by a sheet without any [mission] section (a fresh table each time: set-ups may read it).
 local function defaultSection()
-    return {id = "scout", type = "scout", weight = 1, scope = "character", drops = {}, params = {}}
+    return {id = "scout", type = "scout", weight = 1, scope = "character", drops = {}, params = {},
+        target = {kind = "near"}} -- E25-T01: objective near the caller, as a section without target=
 end
 
 -- [mission] sections of the sheet in file order, or the default scout.

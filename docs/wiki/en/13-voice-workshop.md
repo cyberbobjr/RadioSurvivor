@@ -20,6 +20,7 @@ tower. She calls in the morning and the evening, asks for food, then for the dea
 - [Opening the workshop](#opening-the-workshop) · [from a tablet](#opening-it-from-a-tablet-or-another-computer)
 - [The workshop screen](#the-workshop-screen) · [the dashboard](#the-dashboard) · [the voice list](#the-voice-list) ·
   [making a voice](#making-a-voice) · [the buttons of a voice](#the-buttons-of-a-voice)
+- [The Places tab](#the-places-tab) · [recording a place in game](#recording-a-place-in-game)
 - The five steps: [1. Who](#step-1--who) · [2. Where & when](#step-2--where--when) ·
   [3. Personality](#step-3--personality) · [4. Places and missions](#step-4--places-and-missions) ·
   [5. Rewards](#step-5--rewards)
@@ -82,8 +83,9 @@ home network:
 
 ## The workshop screen
 
-- **At the top**: three tabs, **Dashboard** ([every voice at a glance](#the-dashboard), opened at start), **Voices**
-  (the editor) and **Journal** ([the live journal](#the-live-journal)); on the
+- **At the top**: four tabs, **Dashboard** ([every voice at a glance](#the-dashboard), opened at start), **Places**
+  ([the places of every voice](#the-places-tab)), **Voices** (the editor) and **Journal**
+  ([the live journal](#the-live-journal)); on the
   right, **Open a voice (file)** ([sharing a voice](#sharing-a-voice)) and, on the network, **Log out**.
 - **On the left**: **Your voices** and the **+ New voice** button. Under 900 px wide, the list becomes a strip of chips
   above the editor.
@@ -161,6 +163,67 @@ At the top of the open voice: its name, its badge and "Saved" or "Not saved".
 Below these buttons, the **five steps** are numbered pills with their icon: click one to jump to a step, or use **Back**
 and **Next** at the bottom. A number on a pill counts the [things to check](#saving-and-the-games-verdict) of that step
 ("To check: N").
+
+## The Places tab
+
+![The Places tab: the places of every voice, and the voices that use them](../../images/screenshots/atelier/atelier-en-places.png)
+
+A place is shared by **every voice**: you make it once here, then each voice picks its own from a list. The mod already
+ships a few (those of its voices). Rosie uses two places: the **Muldraugh water tower** and the **Shed by the water
+tower**, whose locker is her dead drop.
+
+- **+ New place** opens a small window: a name, what it is, where it is, then **Make the place**. No id to type.
+- Each place is a card: its icon (📍 an exact spot, 🗺️ an area), its name, and **Used by: …** (the voices that use it)
+  or "No voice uses it yet."
+- **Nothing to save by hand**: a finished place saves itself ("Places saved. The game reads them within 30 seconds.").
+  A place with no name or no square waits: "Not saved yet: finish the place "…"."
+- **Delete this place** (the cross on the card) only works when no voice uses it. Otherwise the workshop names them:
+  take it out of those voices first.
+- 500 places at most.
+
+| Setting | What it changes |
+|---|---|
+| **Name on the map** | What players see on their map, and the only name the AI reads: no secret here. A "12 / 48" counter shows the room left. **✨ Suggest** asks the AI for a name. |
+| **It is…** | Two cards. **📍 An exact spot**: one square (a door, a dumpster, a pier). **🗺️ An area**: a rectangle where the game picks a building for each mission. |
+| **Where on the map?** (exact spot) | x, y and floor (0 = ground floor). The AI never sees these numbers. Record them in game (below), or read them on the map. A position copied on the map (`7966, 11751`) can be pasted into any of the three fields: x, y (and the floor when there is a third number) fill at once. |
+| **One corner of the area**, **The opposite corner**, **Floor** (area) | Paste two positions from the map, across the diagonal. 1,500 squares a side at most. |
+
+**Exact spot or area?** A dead drop, a trade meeting place, a route stop or the bag of a reward always needs an **exact
+spot**: the player must find the very square. An **area** is for map markers (marked in its middle) and missions:
+"clear a house in downtown Muldraugh", and not always the same one.
+
+**Making a place without leaving a voice.** Every list of places of a voice ends with **+ New place…**: the same window
+opens ("It joins the places of every voice, then you come back here.") and the new place is picked at once. Where an
+exact spot is needed, the window says so: "An exact spot is needed here: the player must find the very square."
+
+**Finding x and y.** The most reliable way is to record the place in game (below): the B42 map can differ from the
+sites made from an older map. To look before playing, the [Project Zomboid B42 map](https://zomboidmap.com/) shows the
+whole Knox Country: move the mouse over a square to read its X and Y, or copy the
+position and paste it into x (the **📋 Paste position** button does the same when the browser allows it, on the bridge's
+computer), then check the spot in game. Put a dead drop or the
+meeting point of a hiding spot on the square of a container (dumpster, mailbox) or right next to it, and the place of
+a mission on a square inside the building.
+
+Next to the x, y and z fields of a place (and of the position of a voice set at a precise place), the "See on the map
+↗" link opens the community Build 42 map (zomboidmap.com) in a new tab, zoomed on the square. While x and y are empty,
+the "Open the map ↗" link shows the whole map: the square under the mouse shows its coordinates there. That map is made
+from Build 42.20 and may differ slightly from your version; for a sure square, record it in the game with a right
+click, "Voice workshop: record this place" (in solo with debug mode on, or by an admin in multiplayer).
+
+![Rosie's water tower and its "See on the map" link](../../images/screenshots/atelier/atelier-en-04c-place-map.png)
+
+### Recording a place in game
+
+Rather than looking for coordinates, walk to the spot in the game, right-click the square and choose **"Voice
+workshop: record this place"**. The menu only shows in singleplayer with the game's debug mode on, and on a server only
+for an admin or a moderator. The place then shows at the bottom of the Places tab, under **From my records** (newest
+first), with the date, who recorded it, the room and the container found (a dumpster, a mailbox), in plain names.
+
+!["From my records": the shed's locker already among the places, a kitchen to add](../../images/screenshots/atelier/atelier-en-04b-places.png)
+
+**Add to the places** asks for a name ("Name of the place on the map (you can change it later):") and makes an exact
+spot on that square. A record already present is marked **Already in the places**. Records are kept in
+`Zomboid/Lua/batman_RadioSurvivor/workshop-places.txt` on the machine running the game or the server (the last 200).
 
 ## Step 1 — Who
 
@@ -244,8 +307,8 @@ use an action when the situation calls for it. The game then checks each action;
 | Card | What the player lives | Good to know |
 |---|---|---|
 | **Talk** | She answers on the radio. | Always ticked, and it cannot be unticked. |
-| **Mark the map** | "I'll mark it on your map": a symbol appears at one of her places. | Needs a **Landmark** place. Only the player talking sees it. |
-| **Show a neighbourhood** | The neighbourhood around one of her places is revealed on the player's map. | Needs a **Landmark** place. |
+| **Mark the map** | "I'll mark it on your map": a symbol appears at one of her places. | Tick her places at step 4 (**Which places can she mark on the map?**). Only the player talking sees it. |
+| **Show a neighbourhood** | The neighbourhood around one of her places is revealed on the player's map. | The same places ticked at step 4. |
 | **Give missions** | She gives the jobs of step 4. | The player needs the notebook. One mission in progress at a time per player and per voice. |
 | **Have a mood** | Her mood and supplies change from call to call; she talks about it herself. | Story only: nothing changes in the game. |
 | **Trade** | She sells goods and sets up a meeting. | Also fill in [trade](#trade) at step 5: one without the other is refused. Ticked by itself when you tick **This voice trades**. |
@@ -282,53 +345,15 @@ Tips:
 
 ![Step 4: Rosie's missions](../../images/screenshots/atelier/atelier-en-04-missions.png)
 
-"Where is she, and what jobs does she give?" The step has two parts: **Her places**, then **Her missions**.
+"Which places does she show, and what jobs does she give?" The step has two parts: **Which places can she mark on the
+map?**, then **Her missions**. The places themselves are made in the [Places tab](#the-places-tab).
 
-### Her places
+### Which places can she mark on the map?
 
-The places the voice knows (12 at most). The **Her places (n)** panel opens and closes with a click. Without a place, a
-sentence says so: "She has no place yet. Start with a spot you know." **+ New place** asks first for the place's name
-("Name of the place (seen on the map):"). No id is asked: each place card only carries its name. **Delete this place**
-(the cross on the card) removes it.
-
-| Setting | What it changes |
-|---|---|
-| **Name on the map** | What players see on their map: no secret here. A "12 / 48" counter shows the room left. |
-| **Where on the map?** | x, y and floor (0 = ground floor). The AI never sees these numbers. Record them in game (below), or read them on the map. The **See on the map ↗** link opens the square. A position copied on the map (`7966, 11751`) can be pasted into any of the three fields: x, y (and the floor when there is a third number) fill at once. |
-| **It is used as** | Four chips with their icon, to tick: **🗺️ Landmark** (she can mark it on a player's map; with no reward set, she also offers this marker after a job), **🎯 Job place** (a square inside the targeted building; it is circled on the map during the job), **📦 Dead drop** (the player leaves goods there, and reward bags are put there), **🤝 Trade meeting place** (where the trader comes). |
-
-Rosie has two places: the water tower south of Muldraugh (landmark and job place) and the shed next to it, whose locker
-is the dead drop.
-
-**Finding x and y.** The most reliable way is to record the place in game (below): the B42 map can differ from the
-sites made from an older map. To look before playing, the [Project Zomboid B42 map](https://zomboidmap.com/) shows the
-whole Knox Country: move the mouse over a square to read its X and Y, or copy the
-position and paste it into x (the **📋 Paste position** button does the same when the browser allows it, on the bridge's
-computer), then check the spot in game. Put a dead drop or the
-meeting point of a hiding spot on the square of a container (dumpster, mailbox) or right next to it, and a job place on
-a square inside the building.
-
-Next to the x, y and z fields of a place (and of the position of a voice set at a precise place), the "See on the map
-↗" link opens the community Build 42 map (zomboidmap.com) in a new tab, zoomed on the square. While x and y are empty,
-the "Open the map ↗" link shows the whole map: the square under the mouse shows its coordinates there. That map is made
-from Build 42.20 and may differ slightly from your version; for a sure square, record it in the game with a right
-click, "Voice workshop: record this place" (in solo with debug mode on, or by an admin in multiplayer).
-
-![One of Rosie's places and its "See on the map" link](../../images/screenshots/atelier/atelier-en-04c-place-map.png)
-
-### Recording a place in game
-
-Rather than looking for coordinates, walk to the spot in the game, right-click the square and choose **"Voice
-workshop: record this place"**. The menu only shows in singleplayer with the game's debug mode on, and on a server only
-for an admin or a moderator. The place then shows in the workshop under **From my records** (newest first), with the
-date, who recorded it, the room and the container found (a dumpster, a mailbox), in plain names.
-
-!["From my records": the shed's locker already among the places, a kitchen to add](../../images/screenshots/atelier/atelier-en-04b-places.png)
-
-**Add to this voice** asks for a name and creates the place with suggested uses: a container becomes a dead drop, a
-building a job place and a landmark. Everything can then be changed on the place's card. A record already present is
-marked **Already one of the voice's places**. Records are kept in `Zomboid/Lua/batman_RadioSurvivor/workshop-places.txt` on
-the machine running the game or the server (the last 200).
+Tick the **markers** she gives to players (12 at most), among the places of every voice. She knows only those: she can
+mark them on the map (**Mark the map**), reveal the neighbourhood around them (**Show a neighbourhood**) and, with no
+reward set, give one after a successful job. An area is marked in its middle. **+ New place…** makes one without
+leaving the voice. Rosie ticks the **Muldraugh water tower**.
 
 ### Her missions
 
@@ -338,12 +363,13 @@ with the icon of its kind, with no id. Common settings:
 | Setting | What it changes |
 |---|---|
 | **What the voice says** | The reason she gives, in the language of her personality (English by default), 200 characters at most, with a "N / 200" counter. The AI tells it to the player. **✨ Suggest** asks the AI for a sentence. |
-| **Where does it happen?** | One of her places marked **Job place**. A red **to fill in** pill appears when one is needed. |
+| **Where does it happen?** | A list: **🚶 Near the player** (picked already), **🚲 Further away**, **🚗 Far away**, then the places of every voice and **+ New place…**. Near, further or far: the game picks a building for each mission, 100-200, 200-500 or 500-1,500 squares from the player. An area: a building picked in it. An exact spot: always the same building. Not shown for **Deliver goods** and **Follow a route**, which have places of their own. |
+| **What kind of building?** | Only for a distance or an area: **Any** (the game chooses), or A church, A school, A police station, A fire station, A hospital, A clinic, A motel, A farmhouse, An apartment building, A house with a garage, A house. |
 | **Type settings** | In one box. Quantities: "between [− n +] and [− m +]". Counts: a − / + stepper. **She picks it up after**: **Soon** (2 h), **A few hours** (6 h, the usual setting), **Half a day**, **One day**. **How long to keep watch?**: **One hour**, **Two hours** (the usual setting), **A morning** (6), **A whole night** (12). Each step has its **Exact value**. |
-| **Dead drops** | For the kinds that need one: nothing ticked means all her dead drops. |
+| **Dead drops** | For the kinds that need them (Deliver, Bring back papers, Find a personal item): tick one or more dead drops, exact spots; the player drops off at any of them. A red **to fill in** pill shows while none is ticked. |
 | **Only after the mission** | **Right away**, or one of her other missions, for example **1 · Keep watch**: the number and the kind, never an id. This one is only offered once the other has succeeded. |
 | **What changes in her story** | A short sentence, for example "She went back to her clinic". You write it, the workshop makes a name for the game from it and writes the sentence at the end of her personality (`Story state: when your story state is <name>, <sentence>`): the AI knows what that name means. Two missions with the same sentence share the same state. |
-| **More settings** (folded) | Change the kind of mission; the place, for the kinds that do not require one (**Picked around the player**: the game picks a building near the player, to scout or clear); **Offered** (Rarely, Normally, Often); **Who unlocks the next one** (The player, or The whole team). |
+| **More settings** (folded) | Change the kind of mission; **Offered** (Rarely, Normally, Often); **Who unlocks the next one** (The player, or The whole team). |
 
 At the end of a successful mission, the player gains reputation and a reward of step 5.
 
@@ -351,23 +377,25 @@ At the end of a successful mission, the player gains reputation and a reward of 
 
 | Kind | What the player does | Own settings | Needs |
 |---|---|---|---|
-| **Scout a building** | Visits a building, then tells her what they saw. | — | Nothing (place optional) |
-| **Clear the dead** | Kills the zombies around a place. | — | Nothing (place optional) |
-| **Barricade** | Boards up outside windows and doors with planks or sheet metal. Only barricades put up during the job count. | **Windows and doors** (4 by default, 1 at least) | A **Job place** |
+| **Scout a building** | Visits a building, then tells her what they saw. | — | Nothing |
+| **Clear the dead** | Kills the zombies around a place. | — | Nothing |
+| **Barricade** | Boards up outside windows and doors with planks or sheet metal. Only barricades put up during the job count. | **Windows and doors** (4 by default, 1 at least) | Nothing |
 | **Deliver goods** | Leaves the requested items at a dead drop; drops at several dead drops add up. | **She picks it up after** (game hours with nobody around before the goods are picked up, 6 by default), **What to bring?** (a category; without one, 6 bandages or ripped sheets), **How many?** ("from … to …", drawn at the start of the job) | A **Dead drop** |
 | **Bring back papers** | Finds a missing person's ID card and leaves it at a dead drop. | **She picks it up after** | A **Dead drop** |
-| **Find a personal item** | The game puts a precious item at the chosen place; the player finds it and leaves it at a dead drop. | **She picks it up after**, **Which item?** (**Pick an item** opens the list of items, one click picks), **What she calls it** (optional) | A **Job place** and a **Dead drop** |
-| **Set up a radio relay** | Puts up high (upper floor or roof) a transmitting radio, turned on and powered. Turned off, unpowered or taken away, it no longer counts. | — | A **Job place** |
-| **Follow a route** | Goes through several places in order, on foot or by vehicle (within 8 squares of the centre), then reports. Only the next stop is circled on the map. | **Stops, in order**: 2 to 8 **Job place** places, never the same twice in a row (**+ Add a stop**, **Move up**, **Remove**) | Two job places |
+| **Find a personal item** | The game puts a precious item at the chosen place; the player finds it and leaves it at a dead drop. | **She picks it up after**, **Which item?** (**Pick an item** opens the list of items, one click picks), **What she calls it** (optional) | A **Dead drop** |
+| **Set up a radio relay** | Puts up high (upper floor or roof) a transmitting radio, turned on and powered. Turned off, unpowered or taken away, it no longer counts. | — | Nothing |
+| **Follow a route** | Goes through several places in order, on foot or by vehicle (within 8 squares of the centre), then reports. Only the next stop is circled on the map. | **Which way?**: 2 to 8 exact spots, never the same twice in a row (**+ Add a stop**, the ↑ arrow to move up, the cross to remove) | Two exact spots |
 | **Light a smoke signal** | Lights a Signal Smoke signal at the requested place. | — | The Signal Smoke mod |
-| **Keep watch** | Stays within 6 squares of a place for a few game hours (time stops when the game is paused), then tells what they saw. | **How long to keep watch?** (one hour to a whole night, two hours by default) | A **Job place** |
+| **Keep watch** | Stays within 6 squares of a place for a few game hours (time stops when the game is paused), then tells what they saw. | **How long to keep watch?** (one hour to a whole night, two hours by default) | Nothing |
 
 The fields to fill in carry a star, and a red **to fill in** pill appears when something is missing. The kinds that need
-a dead drop show the **Dead drops** box (nothing ticked: all her dead drops). Rosie first asks for food (**Deliver
-goods** at the shed), and only after that for the dead around the tower to be cleared.
+a dead drop show the **Dead drops** box. "Nothing" in the last column: with no other choice, the job happens **near the
+player**. Rosie first asks for food (**Deliver goods**, dead drop: the shed), and only after that for the dead around
+the tower to be cleared (**Where does it happen?**: the water tower).
 
-**Common mistakes.** A **Deliver goods** or **Bring back papers** mission with no **Dead drop** place; a **Place**
-that is not ticked **Job place**; a mission "Only after" a mission deleted since.
+**Common mistakes.** A **Deliver goods**, **Bring back papers** or **Find a personal item** mission with no dead drop
+ticked; a **kind of building** with an exact spot (it goes with a distance or an area); a mission "Only after" a
+mission deleted since.
 
 ## Step 5 — Rewards
 
@@ -378,7 +406,7 @@ one reward from this list. Click a **+ …** card, with its icon, to add one.
 
 | Reward | What the player gets | Setting |
 |---|---|---|
-| **🎒 Supply bag** | A bag of real items, in quantities drawn at random, put at her first dead drop; the player gets the dead drop's marker, which only they see. Needs at least one place. | **Category**: Ammo (9 mm rounds and shotgun shells), **Food** (canned beans, soup and corn, by default), Medical (bandages, disinfectant, pills), Radio gear (a walkie-talkie and batteries), Tools (hammer, screwdriver, nails), or [one of her own](#her-own-item-lists). |
+| **🎒 Supply bag** | A bag of real items, in quantities drawn at random, left at the spot picked in **Where does she hide the supply bag?** (an exact spot, to fill in as soon as there is a bag); the player gets its marker, which only they see. | **Category**: Ammo (9 mm rounds and shotgun shells), **Food** (canned beans, soup and corn, by default), Medical (bandages, disinfectant, pills), Radio gear (a walkie-talkie and batteries), Tools (hammer, screwdriver, nails), or [one of her own](#her-own-item-lists). |
 | **📇 A radio contact** | The frequency of a voice she can pass on (step 3), written in their notebook. | — |
 | **🗺️ Stash map** | A map that leads to a hidden stash of the game, not looted yet. One per player and per voice. | — |
 | **📘 A lesson** | Experience in a skill: 25 base points, capped at 100 per day; a character with no bonus in that skill only gets a quarter. | **Skill**: First aid, Aiming, Reloading, Carpentry, Mechanics, Electrical, Metalworking, Cooking, Agriculture, Fishing, Trapping, Foraging. |
@@ -386,12 +414,12 @@ one reward from this list. Click a **+ …** card, with its icon, to add one.
 For each one, **Comes out**: **Rarely**, **Normally** or **Often** (Often comes out twice as much as Normally, which
 comes out twice as much as Rarely). Next to the name, the workshop shows the resulting chance ("about 1 time in 3",
 "every time"). A reward impossible at the moment (no voice to pass on, map already given) is not drawn. **With no
-reward**, she marks one of her **Landmark** places on the player's map.
+reward**, she marks one of the places ticked at step 4 on the player's map.
 
 **Dropping off and picking up.** For a mission with dead drops, the player leaves the goods within 3 squares of a dead
 drop: when the game designates a container there (one mission in two, if there is one), the goods go in it; otherwise
 in a bag **on the ground** holding only the requested goods; the notebook says which. A **Supply bag** reward is
-different: the game itself puts the bag **on the ground** at the dead drop (the nearest free square, inside the
+different: the game itself puts the bag **on the ground** at the chosen spot (the nearest free square, inside the
 building when the place is in one) and marks it on the player's map; you place nothing, the player just picks it up.
 
 Under **To go further**, two optional panels, closed by default: **trade** and the **frequency note**. The **Advanced
@@ -443,7 +471,7 @@ three groups. Each setting to fill in carries a star, and "* to fill in" is said
 
 | Setting | What it changes |
 |---|---|
-| **Where is the meeting?** | Tick her **Trade meeting place** places; with several, one is drawn at each run. With none, **Make the meeting place** creates a place marked as such, ticks it and opens the places step to give it its square. |
+| **Where is the meeting?** | Tick one or more exact spots; with several, one is drawn at each run. **+ New place…** makes one and ticks it. |
 | **She comes by** | **Boat** (a boat lands), **A hiding spot** (nobody comes, like the traders of Rosewood, Ekron or Fallas Lake) or **Road** (a van parks by the road). |
 | **At what time?** | Start and end of the meeting, in game time: the end can go past midnight (23:00 to 01:00). |
 | **She comes back** | **Every day**, **Every 3 days**, **Every week**, **Every 2 weeks**, **Once a month**. **Exact value** sets a number of days from 1 to 28. One run per period for the whole server. |
@@ -509,8 +537,8 @@ help you:
 - **✨ Suggest**, next to every field you write in: voice name (also when creating it), description, personality
   idea, place name, the sentence of a job and what it changes in the story, spontaneous call, note lines, name of a
   paquet or of a list. The AI reads the whole sheet being written (even unsaved): personality, places, jobs already
-  written and what they change, notes, trade; plus what the field is for (kind of job and what the player does, uses of
-  the place, items of the paquet, other lines of the note). It stays consistent with the rest and never repeats another
+  written and what they change, notes, trade; plus what the field is for (kind of job and what the player does, place of
+  the job, items of the paquet, other lines of the note). It stays consistent with the rest and never repeats another
   job. Texts read in game are written in the language of the personality, the others in the page's language. Click
   again for another idea. For the call and the notes, the frequency is always in the proposal (otherwise the workshop
   says so: click again). You can then edit the text.
@@ -536,7 +564,7 @@ without a restart: take the radio she needs, look for her frequency during her l
 
 **Things to check.** While you fill in, the workshop flags what looks wrong to it, step by step ("To check: 2"), for
 example: a frequency chosen by hand that another voice already uses, listening hours whose start equals their end, a
-place without its three numbers, a mission without a place or a dead drop, "Only after" naming a mission that is gone,
+place without its square, a mission without a dead drop, an area where an exact spot is needed, "Only after" naming a mission that is gone,
 an empty personality. **These are tips only**: you can save anyway. **The game decides.**
 
 ### When the game refuses a voice
@@ -561,7 +589,7 @@ once the game accepts it.
 | Give either the radio needed or one fixed frequency | Only one of them: a radio card, or **Choose the frequency myself**. |
 | The listening hours are wrong | Choose them with the cards of "When does she listen?". |
 | The block "[…]" does not exist | A badly named part of the sheet: remove it or fix its name. |
-| "…" is not defined anywhere | A place, mission or list named but missing: add it or change the choice. |
+| "…" is not defined anywhere | A place, mission or list named but missing: add it (a place: in the Places tab) or change the choice. |
 | The mission type "…" does not exist | Pick a kind in the list. |
 | The personality is missing or empty | Write it at the Personality step. |
 | The file is not saved as plain UTF-8 | Save it from the workshop. |
@@ -648,7 +676,7 @@ Details: [Remember you](10-creating-radio-voices.md#remember-you--always).
 - The personality is written in English or in French, as the author chooses, and nothing is translated. The mission
   sentences follow the language of the personality. The note, the call sentence and the place names are written in the
   language of your choice.
-- 12 places at most per voice, 48 bytes per place name; 8 lines of 40 bytes for the note; 200 bytes for the call
+- 500 places in all, 12 markers at most per voice, 48 bytes per place name; 8 lines of 40 bytes for the note; 200 bytes for the call
   sentence and for a mission's sentence; 40 goods at most per trader.
 - The "Already used by" warning of a frequency chosen by hand only knows the voices of the mod, not your own voices;
   the game itself never puts two voices on the same drawn frequency.

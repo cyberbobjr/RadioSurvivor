@@ -7,8 +7,8 @@ Registered in CA_Missions (M.register); required by CA_NotebookServer.
 Giver: a radio voice only, under the name `route` (declaration voiceName); an NPC fiche is never offered one. The
 points come with the set-up: declaration alongPoints(m, points) -> ok, reason, called by the voices'
 set-up with the places { id, label, x, y, z } named in order by the section's parameter points= (kind
-`places` of the sheet parameters: 2 to 8 places of the sheet with use=target, never the same twice in a row); also called
-on a scratch table to check a section before the mission exists (fewer than 2 points: false, 'no_points').
+`places` of the sheet parameters: 2 to 8 points of the shared places, E25-T01, never the same twice in a row); also
+called on a scratch table to check a section before the mission exists (fewer than 2 points: false, 'no_points').
 Crossing (server authority, read on the server copy of each participant, never a claim; CA_Missions.observe, once a
 second): the position is the participant's vehicle when they sit in one (IsoGameCharacter.getVehicle; BaseVehicle
 .update puts each passenger on its seat, BaseVehicle.java:3369-3378), else the participant. The next point (m.next)

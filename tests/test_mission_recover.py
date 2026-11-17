@@ -161,6 +161,15 @@ class RecoverMissionTests(unittest.TestCase):
         sim.server.rt.eval("require('CoreAI/CA_MissionRecover')").resetForTests()
         sim.server.rt.eval("require('RadioSurvivor/RS_CacheAction')").resetForTests()
 
+    @staticmethod
+    def voice_start(voice, store, sheet, char, alice):
+        """Voice scout started while alice calls from (250, 15): E25-T02, a voice draws near its caller (100-200 tiles),
+        house 5002 lies 140 tiles away, 5001 222; she is back at (10, 10) afterwards."""
+        alice.x, alice.y = 250, 15
+        m = voice.start(store, sheet, char, alice, 91200, 'scout')
+        alice.x, alice.y = 10, 10
+        return m
+
     def recover_sim(self, name='recover'):
         sim = Simulation(self.path / name)
         self.world(sim)
@@ -443,7 +452,7 @@ class RecoverMissionTests(unittest.TestCase):
         self.assertEqual(decide({'type': 'place_cache', 'table': 'food'}), [('place_cache', False, 'no_mission')])
         self.assertEqual(decide({'type': 'place_cache', 'table': 'gold'}), [('place_cache', False, 'bad_params')])
         self.assertEqual(decide({'type': 'place_cache', 'table': 'food', 'x': 3}), [('place_cache', False, 'bad_params')])
-        m = voice.start(store, sheet, char, g.PLAYERS.alice, 91200, 'scout')
+        m = self.voice_start(voice, store, sheet, char, g.PLAYERS.alice)
         self.assertIsNotNone(m)
         self.assertEqual(decide({'type': 'place_cache', 'table': 'food'}), [('place_cache', False, 'not_done')])
         m.state = 'success'
@@ -477,7 +486,7 @@ class RecoverMissionTests(unittest.TestCase):
         voice = rt.eval("require('RadioSurvivor/RS_MissionVoice')")
         store = g.CoreAI.notebookServer.store
         sheet = rt.eval("{id = 'walt', name = 'Walt', actions = {'say', 'start_mission'}, budgets = {}}")
-        m = voice.start(store, sheet, char, g.PLAYERS.alice, 91200, 'scout')
+        m = self.voice_start(voice, store, sheet, char, g.PLAYERS.alice)
         self.assertIsNotNone(m)
         caches = rt.eval("require('CoreAI/CA_Caches')")
         spot, bounds = caches.siteOf(m)
@@ -506,7 +515,7 @@ class RecoverMissionTests(unittest.TestCase):
         voice = rt.eval("require('RadioSurvivor/RS_MissionVoice')")
         store = g.CoreAI.notebookServer.store
         sheet = rt.eval("{id = 'walt', name = 'Walt', actions = {'say', 'start_mission'}, budgets = {}}")
-        m = voice.start(store, sheet, char, g.PLAYERS.alice, 91200, 'scout')
+        m = self.voice_start(voice, store, sheet, char, g.PLAYERS.alice)
         # Default bench day: the world age follows the play clock, one real ms is one play ms.
         def advance(ms):
             sim.clock.offset += ms

@@ -46,14 +46,15 @@ async function clipboardText() {
 
 // x, y and floor fields of a square, the map link, the "Paste position" button and its tip. `at` {x, y, z} as text;
 // `onChange(square)` after each change (a typed field or a pasted position); `toast(text, bad)` says when the
-// clipboard holds no position; `id` goes to the box (the row's label).
-export function squareEditor(t, at, onChange, { id = null, toast = () => {} } = {}) {
+// clipboard holds no position; `id` goes to the box (the row's label); `floor: false` hides the floor field (a corner
+// of a zone, E25-T03: the zone has one floor of its own), a pasted floor is then ignored.
+export function squareEditor(t, at, onChange, { id = null, toast = () => {}, floor = true } = {}) {
   const square = Object.fromEntries(AXES.map((k) => [k, at?.[k] ?? '']));
   const map = mapLink(t, () => square);
   const inputs = {};
   const write = () => { onChange({ ...square }); map.refresh(); };
   const fill = (found) => {
-    for (const k of AXES) if (found[k] !== undefined) { square[k] = found[k]; inputs[k].value = found[k]; }
+    for (const k of AXES) if (found[k] !== undefined && inputs[k]) { square[k] = found[k]; inputs[k].value = found[k]; }
     write();
   };
   const coord = (key, label) => {
@@ -72,7 +73,7 @@ export function squareEditor(t, at, onChange, { id = null, toast = () => {} } = 
     if (found) fill(found); else toast(t('map.paste_none'), true);
   } }, t('map.paste'));
   return h('div', { class: 'stack square' },
-    h('div', { class: 'inline', id }, 'x', coord('x', 'x'), 'y', coord('y', 'y'), t('places.floor'),
-      coord('z', t('places.floor')), map.el, paste),
+    h('div', { class: 'inline', id }, 'x', coord('x', 'x'), 'y', coord('y', 'y'), floor && t('places.floor'),
+      floor && coord('z', t('places.floor')), map.el, paste),
     h('p', { class: 'help', text: t('map.paste_tip') }));
 }

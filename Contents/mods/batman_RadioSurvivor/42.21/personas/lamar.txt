@@ -17,13 +17,6 @@ actions=say,propose_trade,share_frequency
 shares=wanda,gus
 state=active
 
-# Lieu du rendez-vous relevé sur la carte 42.22 (lotheader 6_21 ; ponton en T floors_interior_tilesandwood_01_41 x 1631-1643, y 5576-5577, passerelle x 1637-1638 jusqu'à la rive y 5596 (route blends_street en 1640-1645, 5598), eau tout autour).
-# Rendez-vous seulement : jamais donné comme repère par mark_map.
-[place brandenburg_pier]
-at=1637,5576,0
-label=T-head of the wooden pier, Brandenburg
-use=landing
-
 # Troc (E20-T11) : barème docs/specifications-techniques/passeur-table.md section 3.
 [trade]
 landing=brandenburg_pier

@@ -3,7 +3,7 @@ tests/test_rescue.py pour que les bancs de Living Knox les lisent sans le banc d
 
 DOUBLES : IsoMetaGrid (getBuildings, isValidSquare, getCellData, getZonesAt, getBuildingAt(x, y, z) par les pièces,
 getBuildingAt(x, y) et getBuildingsIntersecting comptés comme appels lents), IsoMetaCell (getBuildingsIntersecting
-sans doublon), BuildingDef, RoomDef et RoomRect, SafeHouse, joueurs (solo et serveur), ArrayList, getLotDirectories,
+sans doublon, chaque lecture d'une cellule comptée : COUNT.cellReads, E25-T02), BuildingDef, RoomDef et RoomRect, SafeHouse, joueurs (solo et serveur), ArrayList, getLotDirectories,
 Events.LoadChunk ; toute lecture de case (getCell, getGridSquare, getChunk) est comptée. WORLD : la carte de test.
 """
 from __future__ import annotations
@@ -17,7 +17,7 @@ getTimestampMs = function() return CLOCK end
 SIDE = "solo"
 isServer = function() return SIDE == "server" end
 isClient = function() return SIDE == "client" end
-COUNT = { get = 0, cell = 0, square = 0, slow = 0 }
+COUNT = { get = 0, cell = 0, square = 0, slow = 0, cellReads = 0 }
 
 function JList(items)
     local l = { items = items or {} }
@@ -94,6 +94,7 @@ local function metaCell(cx, cy)
     local c = { cx = cx, cy = cy }
     -- IsoMetaCell:getBuildingsIntersecting: buildings of this cell's chunks crossing the rectangle, no duplicate.
     function c:getBuildingsIntersecting(x, y, w, h, result)
+        COUNT.cellReads = COUNT.cellReads + 1
         local cx1, cy1 = self.cx * 256, self.cy * 256
         local ix1, iy1 = math.max(x, cx1), math.max(y, cy1)
         local ix2, iy2 = math.min(x + w, cx1 + 256), math.min(y + h, cy1 + 256)

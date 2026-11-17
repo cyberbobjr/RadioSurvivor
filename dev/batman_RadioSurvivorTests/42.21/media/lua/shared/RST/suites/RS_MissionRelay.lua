@@ -1,5 +1,5 @@
 -- Voice mission `relay` (E20-T12, ADR D10) on a real building with an upper floor near the player. Real start path of
--- a voice (RS_MissionVoice.start, sheet with one [mission] of type relay and one place use=target on the upper floor),
+-- a voice (RS_MissionVoice.start, sheet with one [mission] of type relay and target= a shared point upstairs),
 -- real set-up of the target place (RS_MissionTarget), real engine poll (CA_Missions.observe: the template reads the
 -- radios of the spot on the server), real radio report (RS_MissionVoice.report).
 -- The radio is placed as the server part of the player's placement does (vanilla ISDropWorldItemAction:complete,
@@ -70,9 +70,8 @@ local function run(t)
     end, 'remove the radio of the suite')
     t:note('upper floor ' .. sq:getX() .. ',' .. sq:getY() .. ',' .. sq:getZ())
     local sheet = {id = 'rst-voice-relay', name = 'RST Voice', actions = {'say', 'start_mission'}, budgets = {},
-        missions = {{id = 'relay', type = 'relay', target = 'site', params = {}}},
-        places = {{id = 'site', label = 'RST building', x = sq:getX(), y = sq:getY(), z = sq:getZ(),
-            uses = {'target'}, use = {target = true}}}}
+        missions = {{id = 'relay', type = 'relay', target = {kind = 'place', id = 'site'}, params = {}}},
+        places = {site = {id = 'site', label = 'RST building', x = sq:getX(), y = sq:getY(), z = sq:getZ()}}}
     local state = {missions = {}, npcs = {}, voiceDonors = {}, characters = {}, outcomes = {}}
     state.characters.char1 = {name = 'Tester', contacts = {}, knownMissions = {}}
     local store = {data = state, save = function() return true end}

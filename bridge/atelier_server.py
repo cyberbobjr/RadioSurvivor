@@ -22,6 +22,10 @@ on the sheets of the working folder, the one the game reads again every 30 s (D0
                                            whether the bridge loop runs
     GET    /api/surveys                    E22-T08: places recorded in game (place_surveys.py), newest first, and
                                            where the survey file is
+    GET    /api/places                     E25-T03: {text} of the shared places file _places.txt (working copy, else
+                                           the delivered one, else empty)
+    PUT    /api/places                     body = text of the shared places file: written in the working folder
+                                           (UTF-8, LF); the page refuses to drop a place a voice names (D06)
     POST   /api/ai/personality             E22-T06 (D04): {voiceId, description, name, knows[], ignores[], secret[]}
                                            -> {prompt}: English personality text ([prompt] of the sheet)
     POST   /api/ai/suggest                 E24-T04: {field, voiceId?, sheetText, pageLanguage, current, details{}}
@@ -70,6 +74,7 @@ HOST = '127.0.0.1'
 DEFAULT_PORT = 8765
 PORT_TRIES = 10                      # busy port: the next ones are tried
 MAX_SHEET_BYTES = 256 * 1024
+MAX_PLACES_BYTES = 1024 * 1024        # _places.txt: 500 places with their comments
 MAX_JSON_BYTES = 2 * MAX_SHEET_BYTES  # an import carries a whole sheet in JSON
 MAX_DISCARD_BYTES = 16 * 1024 * 1024  # unread body still drained up to this size
 STATIC_ROOT = Path(__file__).resolve().parent / 'atelier'
@@ -273,11 +278,39 @@ class VoiceStore:
         return normalize(text)
 
     def _write(self, voice_id: str, text: str) -> None:
-        path = self.working_file(voice_id)
+        self._replace(self.working_file(voice_id), text)
+
+    def _replace(self, path: Path, text: str) -> None:
+        """`text` written to `path` of the working folder at once: never a half written file read by the game."""
         self.working.mkdir(parents=True, exist_ok=True)
         temp = path.with_name(path.name + '.tmp')   # not *.txt: never read by the game
         temp.write_bytes(text.encode('utf-8'))
         os.replace(temp, path)
+
+    # --- shared places (E25-T03, ADR lieux communs D02, D06) ---------------------------------------------------------
+    def places_text(self) -> str:
+        """Text of the shared places file the game reads: the working copy, else the delivered one (the game copies it
+        at the next world load), else empty."""
+        for folder in (self.working, self.shipped):
+            path = folder / persona_store.PLACES_FILE
+            if path.is_file():
+                return self._read(path)
+        return ''
+
+    def shared_places(self) -> dict[str, persona_store.Place]:
+        """Shared places of places_text() as the bridge reads them; none when the file is refused (the voices naming
+        a place are then refused too, as in game)."""
+        try:
+            return persona_store.parse_places_lines(persona_store.split_lines(self.places_text()))
+        except persona_store.PersonaError:
+            return {}
+
+    def write_places(self, text: str) -> Done:
+        if len(text.encode('utf-8')) > MAX_PLACES_BYTES:
+            raise AtelierError(413, 'too_large', f"places file larger than {MAX_PLACES_BYTES // 1024} KB")
+        with self._lock:
+            self._replace(self.working / persona_store.PLACES_FILE, normalize(text))
+        return Done('places_saved', "places saved; the game reads them again within 30 s")
 
     def write(self, voice_id: str, text: str) -> Done:
         text = self.check_text(self.check_id(voice_id), text)
@@ -475,6 +508,8 @@ ROUTES: list[tuple[str, re.Pattern, str]] = [
     ('GET', re.compile(r'/api/verdicts'), 'game_verdicts'),
     ('GET', re.compile(r'/api/log'), 'journal'),
     ('GET', re.compile(r'/api/surveys'), 'place_surveys'),
+    ('GET', re.compile(r'/api/places'), 'read_places'),
+    ('PUT', re.compile(r'/api/places'), 'write_places'),
     ('POST', re.compile(r'/api/ai/([a-z]+)'), 'ai_request'),
 ]
 AUTH_ROUTES: tuple[tuple[str, re.Pattern, str], ...] = (    # E22-T15: network mode only (NetworkGate.routes)
@@ -718,6 +753,13 @@ class AtelierHandler(BaseHTTPRequestHandler):
         self._json(200, {'ok': True, 'records': surveys.records() if surveys is not None else [],
                          'surveysFile': str(surveys.path) if surveys is not None else None,
                          'surveysFound': bool(surveys is not None and surveys.found)})
+
+    # --- shared places (E25-T03) -----------------------------------------------------------------------------------
+    def read_places(self) -> None:
+        self._json(200, {'ok': True, 'text': self.server.store.places_text()})
+
+    def write_places(self) -> None:
+        self._done(self.server.store.write_places(self._body(MAX_PLACES_BYTES)))
 
     # --- workshop AI (E22-T06) -------------------------------------------------------------------------------------
     def ai_request(self, kind: str) -> None:

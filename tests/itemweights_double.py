@@ -41,14 +41,23 @@ ITEM_WEIGHTS = f'require("RadioSurvivor/RS_ItemWeights").use({lua_table(WEIGHTS)
 
 # E23-T06 : règles du lecteur des fiches pour une section [trade] (modes d'arrivée inscrits, poids ci-dessus, catalogue
 # partagé de catégories livré : accept=<catégorie>), comme RS_Personas.rules les donne en jeu. Expression Lua, à évaluer
-# après ITEM_WEIGHTS et l'inscription des modes d'arrivée.
-CATEGORIES = Path(__file__).resolve().parents[1] / 'Contents/mods/batman_RadioSurvivor/42.21/personas/_categories.txt'
+# après ITEM_WEIGHTS et l'inscription des modes d'arrivée. E25-T01 : rules.places = lieux communs livrés (_places.txt,
+# rendez-vous des marchands livrés), plus les sections [place <id>] propres au banc (extra_places).
+PERSONAS = Path(__file__).resolve().parents[1] / 'Contents/mods/batman_RadioSurvivor/42.21/personas'
+CATEGORIES = PERSONAS / '_categories.txt'
+PLACES = PERSONAS / '_places.txt'
 
 
-def trade_rules_lua() -> str:
-    lines = CATEGORIES.read_text(encoding='utf-8').splitlines()
-    text = '{' + ', '.join('[==[' + line + ']==]' for line in lines) + '}'
+def lua_lines(lines: list[str]) -> str:
+    """Table Lua de chaînes longues (une par ligne)."""
+    return '{' + ', '.join('[==[' + line + ']==]' for line in lines) + '}'
+
+
+def trade_rules_lua(extra_places: str = '') -> str:
+    categories = lua_lines(CATEGORIES.read_text(encoding='utf-8').splitlines())
+    places = lua_lines(PLACES.read_text(encoding='utf-8').splitlines() + extra_places.splitlines())
     return ('{ arrivals = require("RadioSurvivor/RS_TradeArrivals").NAMES,'
             ' itemWeight = require("RadioSurvivor/RS_ItemWeights").of,'
-            f' categories = require("RadioSurvivor/RS_Persona").parseCatalogue({text}) }}')
+            f' categories = require("RadioSurvivor/RS_Persona").parseCatalogue({categories}),'
+            f' places = assert(require("RadioSurvivor/RS_Persona").parsePlaces({places})) }}')
 

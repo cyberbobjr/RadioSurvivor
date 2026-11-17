@@ -1,7 +1,7 @@
 -- Radio Survivor : actions `mark_map`, repère sur la carte de l'appelant (E07-T04), et `reveal_area`, quartier révélé
 -- sur sa carte (E07-T05, plus bas).
--- La fiche de la voix liste ses lieux connus (sections [place <id>], RS_Persona) ; seuls ceux qui ont use=mark se
--- donnent (E20-T03). Le pont ne montre au LLM que leurs identifiants et libellés, jamais les coordonnées ; le LLM
+-- La fiche de la voix nomme les lieux communs qu'elle peut donner (marks=, E25-T01 : fichier personas/_places.txt,
+-- RS_Persona). Le pont ne montre au LLM que leurs identifiants et libellés, jamais les coordonnées ; le LLM
 -- choisit un lieu par son identifiant (paramètre unique `place`). RS_Actions juge (catalogue, fiche, paramètres,
 -- budget.mark_map du jour,
 -- délai), puis l'exécuteur ci-dessous envoie les coordonnées exactes et le libellé de ce seul lieu au seul appelant
@@ -19,7 +19,8 @@
 -- paramètre `place` : le quartier autour d'un lieu devient « connu » sur la carte du monde du seul appelant
 -- (WorldMapVisited, bit « connu » par bloc de 32 x 32 cases). Le serveur calcule le rectangle (MapMarks.revealRect) :
 -- nombre impair de blocs entiers qui tient dans Const.MAP_REVEAL_MAX_SIDE (160 cases = 5 blocs), centré sur le bloc
--- du lieu, rogné aux bornes de la carte (métagrille, multiples de 256 : l'alignement reste) ; jamais plus grand,
+-- du lieu (une zone, E25-T02 : couverte en entier quand elle tient dans ces blocs, sinon centré sur son milieu), rogné
+-- aux bornes de la carte (métagrille, multiples de 256 : l'alignement reste) ; jamais plus grand,
 -- quel que soit le lieu. Envoi au seul appelant (Const.CMD.MAP_REVEAL), budget.reveal_area de la fiche par jour de
 -- jeu, délai Const.MAP_REVEAL_COOLDOWN_MS par voix, journal de RS_Actions ; ligne « reveal » de l'historique radio
 -- (« Quartier révélé : <libellé> ») comme la ligne « mark ».
@@ -38,20 +39,26 @@ if isClient() then return end
 local Const = require "RadioSurvivor/RadioSurvivor_Const"
 local Actions = require "RadioSurvivor/RS_Actions"
 local Log = require "RadioSurvivor/RS_RadioLog"
-local Persona = require "RadioSurvivor/RS_Persona"
 
 local MapMarks = {}
 
 -- Délai réel entre deux repères d'une même voix (RS_Actions : par voix, tous appelants confondus).
 MapMarks.COOLDOWN_MS = Const.MAP_MARK_COOLDOWN_MS
 
--- Lieu `id` de la fiche qui peut se donner (use=mark), ou nil.
+-- Lieu `id` que la fiche peut donner (marks=), ou nil.
 function MapMarks.placeOf(sheet, id)
-    if type(id) ~= "string" then return nil end
-    for _, place in ipairs(Persona.placesFor(sheet, "mark")) do
+    if type(id) ~= "string" or type(sheet) ~= "table" then return nil end
+    for _, place in ipairs(type(sheet.marks) == "table" and sheet.marks or {}) do
         if place.id == id then return place end
     end
     return nil
+end
+
+-- Case du repère d'un lieu : le point même, ou le centre d'une zone (E25-T01, ADR D05).
+function MapMarks.spot(place)
+    local area = place.area
+    if not area then return place.x, place.y, place.z end
+    return math.floor((area.x1 + area.x2) / 2), math.floor((area.y1 + area.y2) / 2), place.z
 end
 
 -- Paramètre unique `place` : identifiant d'un lieu de la fiche de la voix.
@@ -64,7 +71,8 @@ end
 
 -- Commande envoyée à l'appelant : coordonnées entières et libellé du lieu, rien d'autre de la fiche.
 function MapMarks.command(place)
-    return { x = place.x, y = place.y, z = place.z, label = place.label }
+    local x, y, z = MapMarks.spot(place)
+    return { x = x, y = y, z = z, label = place.label }
 end
 
 -- Repère d'un lieu de fiche envoyé au seul joueur, ligne « mark » de l'historique de son personnage (cid, peut être
@@ -105,16 +113,25 @@ function MapMarks.mapBounds()
              x2 = (grid:getMaxX() + 1) * 256, y2 = (grid:getMaxY() + 1) * 256 }
 end
 
--- Rectangle révélé autour de la case (x, y) : { x1, y1, x2, y2 } en cases, x2 et y2 exclus, chaque bord multiple de
--- 32, côté d'au plus MapMarks.revealBlocks() blocs ; rogné à bounds (sans bornes : aux coordonnées positives). nil si
--- rien ne reste (lieu hors de la carte).
-function MapMarks.revealRect(x, y, bounds)
-    if type(x) ~= "number" or type(y) ~= "number" then return nil end
-    local size = Const.MAP_REVEAL_BLOCK
-    local radius = (MapMarks.revealBlocks() - 1) / 2
-    local bx, by = math.floor(x / size), math.floor(y / size)
-    local rect = { x1 = (bx - radius) * size, y1 = (by - radius) * size,
-                   x2 = (bx + radius + 1) * size, y2 = (by + radius + 1) * size }
+-- Premier bloc de la fenêtre de n blocs sur un axe pour les cases a1..a2 (bornes comprises) : la fenêtre centrée sur
+-- leurs blocs quand ils y tiennent (un point : son bloc au milieu), sinon centrée sur le bloc du milieu des cases.
+local function windowStart(a1, a2, n, size)
+    local b1, b2 = math.floor(a1 / size), math.floor(a2 / size)
+    if b2 - b1 + 1 <= n then return b1 - math.floor((n - (b2 - b1 + 1)) / 2) end
+    return math.floor(math.floor((a1 + a2) / 2) / size) - (n - 1) / 2
+end
+
+-- Rectangle révélé pour les cases x1..x2, y1..y2 (bornes comprises ; un point : x1 = x2, y1 = y2) : { x1, y1, x2, y2 }
+-- en cases, x2 et y2 exclus, chaque bord multiple de 32, côté de MapMarks.revealBlocks() blocs (160 cases), qui couvre
+-- ces cases quand elles y tiennent, sinon centré sur leur milieu (E25-T02, ADR D05 : une zone est révélée en entier
+-- dans cette limite) ; rogné à bounds (sans bornes : aux coordonnées positives). nil si rien ne reste.
+function MapMarks.revealSpan(x1, y1, x2, y2, bounds)
+    for _, v in ipairs({ x1, y1, x2, y2 }) do
+        if type(v) ~= "number" then return nil end
+    end
+    local size, n = Const.MAP_REVEAL_BLOCK, MapMarks.revealBlocks()
+    local sx, sy = windowStart(x1, x2, n, size), windowStart(y1, y2, n, size)
+    local rect = { x1 = sx * size, y1 = sy * size, x2 = (sx + n) * size, y2 = (sy + n) * size }
     local b = bounds or { x1 = 0, y1 = 0 }
     if b.x1 and rect.x1 < b.x1 then rect.x1 = b.x1 end
     if b.y1 and rect.y1 < b.y1 then rect.y1 = b.y1 end
@@ -122,6 +139,18 @@ function MapMarks.revealRect(x, y, bounds)
     if b.y2 and rect.y2 > b.y2 then rect.y2 = b.y2 end
     if rect.x2 <= rect.x1 or rect.y2 <= rect.y1 then return nil end
     return rect
+end
+
+-- Rectangle révélé autour de la case (x, y) (même règle, un seul point), ou nil.
+function MapMarks.revealRect(x, y, bounds)
+    return MapMarks.revealSpan(x, y, x, y, bounds)
+end
+
+-- Rectangle révélé pour un lieu : autour de son point, ou sur sa zone (E25-T02).
+function MapMarks.revealPlace(place, bounds)
+    local area = place.area
+    if not area then return MapMarks.revealRect(place.x, place.y, bounds) end
+    return MapMarks.revealSpan(area.x1, area.y1, area.x2, area.y2, bounds)
 end
 
 -- Inscription dans la carte connue du compte de l'appelant, tenue par le serveur multijoueur (voir l'en-tête). Bord
@@ -136,7 +165,7 @@ local function reveal(params, ctx)
     local place = MapMarks.placeOf(ctx.sheet, params.place)
     if place == nil then return false, "failed" end
     if ctx.player == nil then return false, "no_player" end
-    local rect = MapMarks.revealRect(place.x, place.y, MapMarks.mapBounds())
+    local rect = MapMarks.revealPlace(place, MapMarks.mapBounds())
     if rect == nil then return false, "off_map" end
     storeOnServer(ctx.player, rect)
     Const.toClient(ctx.player, Const.CMD.MAP_REVEAL, rect)

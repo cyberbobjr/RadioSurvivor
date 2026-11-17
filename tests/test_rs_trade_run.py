@@ -165,6 +165,8 @@ PIER = (6041, 5217)
 
 
 class RunHarness(unittest.TestCase):
+    # E25-T01 : lieux propres au banc ([place <id>] du fichier commun), ajoutés aux lieux livrés dans rules.places.
+    EXTRA_PLACES = ''
 
     def setUp(self):
         self.rt = lupa.LuaRuntime(unpack_returned_tuples=True)
@@ -178,7 +180,7 @@ class RunHarness(unittest.TestCase):
         self.rt.eval('require("RadioSurvivor/TradeArrivals/RS_TradeArrival_Boat")')
         self.Persona = self.rt.eval('require("RadioSurvivor/RS_Persona")')
         self.rt.execute(ITEM_WEIGHTS)  # E22-T12 : poids des objets du troc, à la place des scripts du jeu
-        self.rules = self.rt.eval(trade_rules_lua())
+        self.rules = self.rt.eval(trade_rules_lua(self.EXTRA_PLACES))
         self.gus = self.add_voice(GUS.read_text(encoding='utf-8'), 'gus')
         self.Trade = self.rt.eval('require("RadioSurvivor/RS_Trade")')
         self.T = TraderProxy(self.Trade, 'gus')

@@ -1,25 +1,27 @@
-// Step 4, places and missions: the places of the voice ([place]: name, square, uses) and her missions ([mission]). Every
-// mission form is generated from the catalogue: its type's parameters (field by kind, or named steps when scales.js has
-// a scale "mission.<key>"), its voice set-ups (target place, dead drops) and the [mission] keys. A mission type added to
-// the mod shows up here without any change. Ids of places and missions are made by the page and never shown (E24-T02).
+// Step 4, map marks and missions: the shared places the voice may give on the map (marks=, E25-T03) and her missions
+// ([mission]). Every mission form is generated from the catalogue: its type's parameters (field by kind, or named steps
+// when scales.js has a scale "mission.<key>"), its voice set-ups (dead drops) and the [mission] keys. Where a mission
+// happens is a shared place, or a building drawn near, further or far from the player (E25-T01), of a kind in plain
+// words. A mission type added to the mod shows up here without any change. Ids of missions are made by the page and
+// never shown (E24-T02); places are picked in lists of the shared places (placeform.js), with "New place…".
 
-import { inputPropose, placeDetails } from '../ai.js';
-import { askBar } from '../dialogs.js';
+import { inputPropose } from '../ai.js';
 import { h, select } from '../dom.js';
 import { field, fieldOptions } from '../fields.js';
 import { choiceTopics, hint, selectHelp } from '../help.js';
-import { squareEditor } from '../maplink.js';
+import { placeChecks, placeSelect } from '../placeform.js';
+import { ZONE } from '../places.js';
 import { scaleOf } from '../scales.js';
 import * as sheet from '../sheet.js';
 import { stepChoice } from '../stepchoice.js';
 import * as story from '../story.js';
-import { surveysBlock } from '../surveys.js';
 import { formatList, parseList } from '../values.js';
 import * as voice from '../voice.js';
-import { button, chanceChoice, checkboxes, choice, fold, removeButton, row, textInput } from '../widgets.js';
+import { button, chanceChoice, choice, countedInput, fold, removeButton, row, textInput } from '../widgets.js';
 
 const STORY_MAX = 200;
-const LABEL_MAX = 48;
+// Set-ups that give a mission type places of its own (dead drops to deliver to, route points): no objective then.
+const OWN_PLACES_SETUPS = ['askFor', 'alongPoints'];
 
 const typeTitle = (t, type) => t(`mission.${type.name}`, {}, type.name);
 const typeIcon = (t, type) => t(`mission.${type.name}.icon`, {}, '');
@@ -32,89 +34,50 @@ const typeHint = (t, type) => hint(t, `help.mission_type.${type.name}`, { label:
   choicesTitle: t('hint.settings'),
   choices: Object.entries(type.params).map(([key, kind]) => ({ label: paramLabel(t, key), topic: paramTopics(type, key, kind) })) });
 
-// A text field with its live count "12 / 48" (charter: limits said, never in bytes).
-function countedInput(id, value, max, onInput, attrs = {}) {
-  const counter = h('small', { class: 'counter', 'aria-live': 'polite' });
-  const show = (text) => { counter.textContent = `${[...String(text ?? '')].length} / ${max}`; };
-  const input = textInput(id, value, (v) => { show(v); onInput(v); }, { maxlength: max, ...attrs });
-  show(value);
-  return { input, counter };
-}
-
-// Where the mission happens (target=): one label for every type, a red "needed" pill when the type needs a place.
-function targetRow(ctx, mission, opts, needed) {
-  const { t, changed } = ctx;
-  const label = h('span', {}, t('mission.target'), needed && h('span', { class: 'pill-needed', text: t('field.needed') }));
-  return row(label, (id) => select([{ value: '', label: needed ? t('field.choose') : t('mission.target_any') }, ...opts.places],
-    sheet.value(mission, 'target') ?? '', (v) => { sheet.setValue(mission, 'target', v || null); changed(); }, { id }),
-  needed ? t('mission.target_help') : t('mission.target_optional'),
-  hint(t, 'help.mission.target', { label: t('mission.target') }));
+// Where the mission happens (target=, E25-T01): near the player when nothing is written (the game's default), further,
+// far, or a shared place; a building kind ("Any" or one of CA_Sites.KINDS in words) for an area or a distance.
+function objectiveRows(ctx, mission) {
+  const { t, catalog, changed, rerender } = ctx;
+  const distances = catalog.distances();
+  const target = sheet.value(mission, 'target') ?? distances[0];
+  const drawn = distances.includes(target) || ctx.places.find(target)?.kind === ZONE;
+  const extra = distances.map((d) => ({ value: d, label: `${t(`objective.${d}.icon`)} ${t(`objective.${d}`)}` }));
+  const kinds = [{ value: '', label: t('building.any') }, ...catalog.buildings().map((k) => ({ value: k, label: t(`building.${k}`) }))];
+  return [
+    row(t('mission.target'), (id) => placeSelect(ctx, target, (v) => {
+      sheet.setValue(mission, 'target', v === distances[0] ? null : v);
+      if (!(distances.includes(v) || ctx.places.find(v)?.kind === ZONE)) sheet.setValue(mission, 'building', null);
+      changed();
+      rerender();
+    }, { extra, id }), t('mission.target_help'), hint(t, 'help.mission.target', { label: t('mission.target') })),
+    drawn && row(t('mission.building'), (id) => select(kinds, sheet.value(mission, 'building') ?? '', (v) => {
+      sheet.setValue(mission, 'building', v || null);
+      changed();
+    }, { id, class: 'building-select' }), t('mission.building_help'),
+    hint(t, 'help.mission.building', { label: t('mission.building') })),
+  ];
 }
 
 // Set-up of a mission type -> the [mission] key it reads (shown only for the types that declare it).
 const SETUP_FIELDS = {
-  aimAt: (ctx, mission, opts) => targetRow(ctx, mission, opts, true),
-  dropAccepts: (ctx, mission, opts) => row(ctx.t('mission.drops'), () => (opts.drops.length
-    ? checkboxes(opts.drops, parseList(sheet.value(mission, 'drops')), (list) => {
+  dropAccepts: (ctx, mission) => row(h('span', {}, ctx.t('mission.drops'),
+    h('span', { class: 'pill-needed', text: ctx.t('field.needed') })), (id) => placeChecks(ctx,
+    parseList(sheet.value(mission, 'drops')), (list) => {
       sheet.setValue(mission, 'drops', formatList(list));
       ctx.changed();
-    }) : h('p', { class: 'warnline', text: ctx.t('mission.no_drop') })), ctx.t('mission.drops_help'),
+      ctx.rerender();
+    }, { points: true, id }), ctx.t('mission.drops_help'),
   hint(ctx.t, 'help.mission.drops', { label: ctx.t('mission.drops') })),
 };
 
-function placeCard(ctx, place, index) {
-  const { catalog, t, changed, rerender, model } = ctx;
-  const at = { ...place.at };
-  const uses = catalog.placeUses().map((u) => ({ ...choice(t, 'use', u), label: `${t(`use.${u}.icon`, {}, '')} ${t(`use.${u}`)}`.trim() }));
-  const name = countedInput(null, place.label, LABEL_MAX, (v) => { voice.setPlace(place.section, { label: v }); changed(); });
-  const propose = inputPropose(ctx, 'place_label', name.input, { details: () => placeDetails(t, place.uses, at) });
-  return h('article', { class: `card place${ctx.ui.new_place === place.id ? ' fresh' : ''}`, title: place.id },
-    h('header', { class: 'card-head' },
-      h('b', { text: place.label || t('places.unnamed', { n: index + 1 }) }),
-      removeButton(t, () => { sheet.removeSection(model, place.section); changed(); rerender(); }, t('places.remove'))),
-    row(t('places.label'), (id) => h('div', { class: 'inline grow' }, Object.assign(name.input, { id }), name.counter, propose),
-      t('places.label_help'), hint(t, 'help.place.label', { label: t('places.label') })),
-    row(t('places.at'), (id) => squareEditor(t, at, (square) => {
-      Object.assign(at, square);
-      voice.setPlace(place.section, { at });
-      changed();
-    }, { id, toast: ctx.toast }),
-    t('places.at_help'), hint(t, 'help.place.at', { label: t('places.at') })),
-    row(t('places.uses'), () => checkboxes(uses, place.uses, (list) => {
-      voice.setPlace(place.section, { uses: list });
-      changed();
-      rerender();
-    }, { class: 'checks chips' }), null, hint(t, 'help.place.use', { label: t('places.uses'), choices: choiceTopics('help.place.use', uses) })));
-}
-
-// A new place: its name asked, its square typed in its card (user decision 2026-11-16) or taken from the places
-// recorded in game (surveys.js). `uses` are ticked from the start (a trade meeting point made from the trade panel).
-async function newPlace(ctx, host, uses = []) {
-  const { model, t } = ctx;
-  const label = await askBar(host, t, { message: t('places.ask'), label: t('places.label'), ok: t('places.add_ok'),
-    value: uses.length ? t(`use.${uses[0]}`) : '', check: (v) => (v ? null : t('places.ask')),
-    propose: (input) => inputPropose(ctx, 'place_label', input, { details: () => placeDetails(t, uses) }) });
-  if (label === null) return null;
-  const created = voice.addPlace(model, { label, at: { x: '', y: '', z: '0' }, uses });
-  Object.assign(ctx.ui, { open_place: true, new_place: created.id });
-  ctx.changed();
-  ctx.rerender();
-  return created;
-}
-
-function placesPanel(ctx) {
-  const { model, catalog, t } = ctx;
-  const list = voice.places(model);
-  const max = catalog.sheet.maxPlaces;
-  const ask = h('div', { class: 'notice-host' });
-  const panel = fold(t('places.title', { n: list.length }), list.length === 0 || ctx.ui.open_place,
-    list.length === 0 && h('p', { class: 'empty', text: t('places.empty') }),
-    h('div', { class: 'cards' }, list.map((place, index) => placeCard(ctx, place, index))),
-    ask,
-    button('add', { id: 'place-new', disabled: max && list.length >= max, onClick: () => newPlace(ctx, ask) }, t('places.add')),
-    surveysBlock(ctx));
-  panel.addEventListener('toggle', () => { ctx.ui.open_place = panel.open; });
-  return panel;
+// The map marks the voice may give (marks=, E25-T01): shared places, spots or areas, ticked in a list.
+function marksQuestion(ctx) {
+  const { t, model, changed, rerender } = ctx;
+  return h('section', { class: 'question marks' },
+    h('h3', {}, t('marks.question'), ' ', hint(t, 'help.head.marks', { label: t('marks.question') })),
+    h('p', { class: 'help', text: t('marks.help') }),
+    placeChecks(ctx, voice.marks(model), (list) => { voice.setMarks(model, list); changed(); rerender(); },
+      { id: 'marks' }));
 }
 
 // Settings of a mission type, in one box: named steps when the parameter has a scale, else the field of its kind.
@@ -131,14 +94,15 @@ function paramRows(ctx, mission, type, opts) {
 // What the AI is told of a mission when it proposes its story or its story state: which mission, its type and what the
 // player does, its place and its settings in words.
 function missionDetails(ctx, mission, type, index) {
-  const { t, model } = ctx;
-  const target = voice.places(model).find((p) => p.id === sheet.value(mission, 'target'));
+  const { t } = ctx;
+  const aim = sheet.value(mission, 'target') ?? ctx.catalog.distances()[0];
+  const target = ctx.places.find(aim);
   const settings = Object.keys(type?.params ?? {}).map((key) => [paramLabel(t, key), sheet.value(mission, key)])
     .filter(([, value]) => value).map(([label, value]) => `${label}: ${value}`).join('; ');
   return { mission_id: mission.id, mission_number: String(index + 1),
     mission_type: type ? typeTitle(t, type) : sheet.value(mission, 'type'),
     what_the_player_does: type ? [type.voiceText, typeHelp(t, type)].filter(Boolean).join(' / ') : null,
-    target_place: target?.label || null, settings };
+    target_place: target?.label || t(`objective.${aim}`, {}, aim ?? '') || null, settings };
 }
 
 // story= of the mission: the text, its count and the AI's "Suggest" (E22-T06, E24-T04).
@@ -191,6 +155,7 @@ function missionCard(ctx, mission, index, opts) {
     type && h('p', { class: 'help', text: typeHelp(t, type) }),
     row(t('mission.story'), (id) => storyField(ctx, mission, type, index, id), t('mission.story_help'),
       hint(t, 'help.mission.story', { label: t('mission.story') })),
+    type && !type.setups.some((setup) => OWN_PLACES_SETUPS.includes(setup)) && objectiveRows(ctx, mission),
     type && type.setups.map((setup) => SETUP_FIELDS[setup]?.(ctx, mission, opts)),
     type && Object.keys(type.params).length > 0 && h('div', { class: 'settings' }, paramRows(ctx, mission, type, opts)),
     row(t('mission.after'), (id) => select([{ value: '', label: t('mission.after_none') }, ...others],
@@ -200,7 +165,6 @@ function missionCard(ctx, mission, index, opts) {
     fold(t('mission.more'), false,
       row(t('missions.type'), (id) => select(typeOptions, sheet.value(mission, 'type') ?? '', changeType, { id }), null,
         hint(t, 'help.mission.type', { label: t('missions.type'), choices: typeChoices })),
-      !type?.setups.includes('aimAt') && targetRow(ctx, mission, opts, false),
       row(t('mission.weight'), (id) => chanceChoice(t, voice.missionWeight(model, mission),
         (v) => { voice.setMissionWeight(model, mission, v); changed(); }, { id }), t('mission.weight_help'),
       hint(t, 'help.mission.weight', { label: t('mission.weight') })),
@@ -218,10 +182,7 @@ function addMissionPanel(ctx) {
     h('h3', { text: t('missions.add') }),
     h('div', { class: 'type-cards' }, catalog.missionTypes().map((type) => h('div', { class: 'type-card-wrap' },
       button('neutral', { class: 'type-card', 'data-type': type.name, onClick: () => {
-        const created = voice.addMission(model, type.name);
-        if (type.setups.includes('aimAt') && voice.places(model).some((p) => p.uses.includes('target'))) {
-          sheet.setValue(created, 'target', voice.places(model).find((p) => p.uses.includes('target')).id);
-        }
+        voice.addMission(model, type.name);
         changed();
         rerender();
       } }, h('span', { class: 'card-icon', 'aria-hidden': 'true', text: typeIcon(t, type) }),
@@ -231,15 +192,15 @@ function addMissionPanel(ctx) {
 
 export default {
   id: 'missions',
-  fields: [],
-  blocks: ['place', 'mission'],
+  fields: ['marks'],
+  blocks: ['mission'],
   render(ctx) {
     const { model, t } = ctx;
-    const opts = fieldOptions(model, ctx.catalog, t);
+    const opts = fieldOptions(ctx, t);
     const missions = voice.missions(model);
     const adding = addMissionPanel(ctx);
     return h('div', { class: 'form' },
-      placesPanel(ctx),
+      marksQuestion(ctx),
       h('h3', { class: 'step-sub', text: t('missions.question') }),
       missions.length === 0 && h('p', { class: 'empty', text: t('missions.none') }),
       missions.length === 0 && adding,

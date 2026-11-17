@@ -3,7 +3,8 @@ rs.trade_exchange - contactless exchange at the landing of a trader (E13-T04; E2
 state per trader, exchange only out of everyone's view and after a delay in game hours, rule of RS_OutOfSight):
 real items counted with the table of the smuggler (named ID card counts, blank card, card named after a player and
 hammer do not), then Gus' full run (E23-T06/T07: a deal of two lists, all or nothing on what is added after the
-booking): every online player is moved to his landing (place use=landing of personas/gus.txt), the deal is struck for
+booking): every online player is moved to his landing (landing= of personas/gus.txt, a point of
+personas/_places.txt), the deal is struck for
 three money bundles and the server notes the landing, the boat arrives (RS_TradeRun.arrive: the signal itself is
 checked by rs.trade_run and the benches), a bag with three money bundles and a hammer is put on the landing, nothing is
 exchanged while the players stand there,

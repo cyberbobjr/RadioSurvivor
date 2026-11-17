@@ -1,15 +1,18 @@
 -- Radio Survivor : fiches des voix radio (E05-T01), lecture et validation stricte cote serveur.
 -- Format : docs/specifications-techniques/persona-format.md. Le serveur est le seul lecteur complet (E20-T03, ADR D03) :
--- tete (lignes cle=valeur), sections [place <id>], [mission <id>], [rewards], [category <id>], [trade], [note], puis
--- [prompt].
--- bridge/persona_store.py lit la tete, les lieux et le prompt avec les memes regles et les memes messages
--- (« line N: raison », en anglais) et passe les autres sections sans les lire ; tests/test_personas.py compare les deux
--- lecteurs, tests/test_persona_sections.py couvre ce que seul le serveur valide.
+-- tete (lignes cle=valeur), sections [mission <id>], [rewards], [category <id>], [trade], [note], puis [prompt].
+-- E25-T01 (ADR lieux communs) : les lieux vivent dans le fichier commun personas/_places.txt (Persona.parsePlaces :
+-- sections [place <id>], un point at= ou une zone area=) ; une fiche nomme ceux dont elle se sert (marks= de la tete,
+-- target=, drops= et points= de [mission], landing= de [trade], cache_place= de [rewards]).
+-- bridge/persona_store.py lit la tete (marks= compris), le fichier des lieux et le prompt avec les memes regles et les
+-- memes messages (« line N: raison », en anglais) et passe les sections sans les lire ; tests/test_personas.py compare
+-- les deux lecteurs, tests/test_persona_sections.py couvre ce que seul le serveur valide.
 -- Regles injectees (RS_Personas.rules, racine de composition) : template(nom) -> gabarit de mission donne par une
 -- voix (CA_Missions.voiceTemplate, schema `params` declare par le gabarit), rewards (natures de recompense de
 -- RS_Rewards.KINDS), skills (RS_Rewards.SKILLS), categories (catalogue partage personas/_categories.txt), arrivals
 -- (modes d'arrivee des marchands, RS_TradeArrivals.NAMES), itemWeight(type) -> kg ou nil (poids d'un objet du troc lu
--- dans son script, RS_ItemWeights.of, E22-T12).
+-- dans son script, RS_ItemWeights.of, E22-T12), places (lieux communs en service, id -> lieu, E25-T01), buildings
+-- (genres de batiment d'un objectif tire, CA_Sites.KINDS, dans leur ordre, E25-T01).
 -- Valeurs des parametres : RS_PersonaParams, un validateur par genre.
 -- Aucun loadstring : chaque ligne est decoupee et controlee a la main.
 -- Seulement de l'ASCII dans ce fichier : le lexeur Kahlua change les litteraux non ASCII en U+FFFD. Les
@@ -33,9 +36,10 @@ local ACTION_LIST = { "say", "mark_map", "reveal_area", "signal", "place_cache",
 local RADIO_LIST = Levels.ids()
 local LOCATION_LIST = { "none", "fixed", "rescue" }
 local STATE_LIST = { "active", "silent", "gone", "dead" }
--- Usages d'un lieu (ADR D04) : mark (repere donnable : mark_map, reveal_area, repere de fin de mission), target
--- (objectif d'une mission), drop (planque : depot de deliver, cache de recompense), landing (rendez-vous du troc).
-local USE_LIST = { "mark", "target", "drop", "landing" }
+-- E25-T01 (ADR D01) : distances d'un objectif tire autour de l'appelant (target=), jamais un identifiant de lieu.
+-- Bandes en cases : CA_MissionConfig (E25-T02).
+local DISTANCE_LIST = { "near", "far", "very_far" }
+Persona.DISTANCES = DISTANCE_LIST
 -- Portee d'un enchainement de missions (E20-T08, RS_MissionChain) : reussite par personnage ou par equipe.
 local SCOPE_LIST = { "character", "team" }
 -- Texte story= d'une mission, ajoute a la description du travail dite au modele (jobs=, RS_MissionVoice.jobs).
@@ -50,11 +54,16 @@ local REQUIRED = { "format", "id", "name" }
 local MIN_KHZ, MAX_KHZ, STEP_KHZ = Levels.minKhz(), Levels.maxKhz(), Levels.STEP_KHZ
 local MAX_COUNT = 999999
 local MAX_CALL_ONE_IN = 1000
--- Lieux connus de la voix : au plus MAX_PLACES sections [place], libelle d'au plus MAX_PLACE_LABEL_BYTES octets en
--- UTF-8 (comptes comme le pont, voir utf8Bytes).
-local MAX_PLACES = 12
+-- Lieux communs (E25-T01) : au plus MAX_PLACES sections [place] dans _places.txt, libelle d'au plus
+-- MAX_PLACE_LABEL_BYTES octets en UTF-8 (comptes comme le pont, voir utf8Bytes), zone de cote 1 a MAX_AREA_SIDE cases ;
+-- une fiche donne au plus MAX_MARKS reperes (marks=).
+local MAX_PLACES = 500
 local MAX_PLACE_LABEL_BYTES = 48
+local MAX_AREA_SIDE = 1500
+local MAX_MARKS = 12
 Persona.MAX_PLACES = MAX_PLACES
+Persona.MAX_MARKS = MAX_MARKS
+Persona.PLACES_SEPARATOR = "[place <id>]"
 -- Kahlua : un litteral d'octets UTF-8 devient un seul caractere (une unite UTF-16) ; Lua 5.1 (banc lupa) : 2 octets.
 local KAHLUA = string.len("\195\169") == 1
 local function set(list)
@@ -67,9 +76,9 @@ local ACTIONS = set(ACTION_LIST)
 -- Cle de tete budget.<action> : budget par jour de jeu d'une action de la liste actions.
 local BUDGET_PREFIX = "budget."
 Persona.ACTIONS = ACTION_LIST
--- Sans regles (banc, fiche sans section) : aucun gabarit, aucune nature de recompense, aucune categorie.
+-- Sans regles (banc, fiche sans section) : aucun gabarit, aucune nature de recompense, aucune categorie, aucun lieu.
 local function noTemplate() return nil end
-local NO_RULES = { template = noTemplate, rewards = {}, skills = {}, categories = {} }
+local NO_RULES = { template = noTemplate, rewards = {}, skills = {}, categories = {}, places = {}, buildings = {} }
 
 -- Erreur : levee par error({ line, reason }) dans l'analyse, rendue en « line N: reason ».
 local function fail(line, reason)
@@ -227,6 +236,11 @@ local function isName(value)
     return string.match(value, "^[a-z][a-z0-9_]*$") ~= nil and string.len(value) <= 32
 end
 
+-- Identifiant de section (lieu, mission, categorie) : a-z, 0-9, _, 32 caracteres au plus.
+local function isSectionId(value)
+    return string.match(value, "^[a-z0-9_]+$") ~= nil and string.len(value) <= 32
+end
+
 -- Liste sans doublon ; allowed nil : chaque entree est un nom (isName).
 local function closedList(value, key, allowed, line, hint)
     local result = {}
@@ -298,11 +312,27 @@ local function headCall(values, value, line) values.call = writtenText(value, "c
 
 local function headState(values, value, line) values.state = choice(value, "state", STATE_LIST, line) end
 
+-- E25-T01 (ADR D04) : reperes que la voix peut donner (mark_map, reveal_area, repere d'une mission sans [rewards]),
+-- lieux communs (points ou zones) dans l'ordre de la ligne, sans doublon, MAX_MARKS au plus.
+local function headMarks(values, value, line, ctx)
+    local marks, seen = {}, {}
+    for _, id in ipairs(splitList(value)) do
+        if not isSectionId(id) then fail(line, "bad marks entry '" .. id .. "'") end
+        if seen[id] then fail(line, "duplicate marks entry '" .. id .. "'") end
+        local place = ctx.shared[id]
+        if not place then fail(line, "unknown place '" .. id .. "'") end
+        seen[id] = true
+        marks[#marks + 1] = place
+    end
+    if #marks > MAX_MARKS then fail(line, "too many marks (" .. tostring(MAX_MARKS) .. " at most)") end
+    values.marks = marks
+end
+
 local HEAD = {
     format = headFormat, id = headId, name = headName, language = headLanguage, frequency = headFrequency,
     radio = headRadio, listen = headListen, location = headLocation,
     coords = headCoords, shares = headShares, actions = headActions, budget = headBudget,
-    call_one_in = headCallOneIn, call_text = headCallText, call = headCall, state = headState,
+    call_one_in = headCallOneIn, call_text = headCallText, call = headCall, state = headState, marks = headMarks,
 }
 
 -- Sections ----------------------------------------------------------------------------------------------------
@@ -329,7 +359,8 @@ end
 
 -- Contexte des validateurs de RS_PersonaParams.
 local function paramsContext(ctx)
-    return { places = ctx.placeById, categories = ctx.categories, skills = ctx.rules.skills or {}, split = splitList }
+    return { places = ctx.shared, categories = ctx.categories, skills = ctx.rules.skills or {},
+        split = splitList }
 end
 
 local function param(kind, value, line, ctx)
@@ -338,11 +369,48 @@ local function param(kind, value, line, ctx)
     return parsed
 end
 
--- [place <id>] : at, label, use.
+-- Point des lieux communs (planque, rendez-vous, cache : ADR D05) nomme par id, ou erreur a cette ligne.
+local function pointAt(id, line, ctx)
+    local place, reason = Params.point(id, paramsContext(ctx))
+    if not place then fail(line, reason) end
+    return place
+end
+
+-- [place <id>] du fichier commun _places.txt (E25-T01) : un point (at=x,y,z) ou une zone (area=x1,y1,x2,y2,z : deux
+-- coins opposes dans n'importe quel ordre, ranges du plus petit au plus grand, cotes de 1 a MAX_AREA_SIDE cases,
+-- bornes comprises), et label. Point : { id, label, x, y, z } ; zone : { id, label, z, area = { x1, y1, x2, y2 } }.
+local function placeWhere(sec, key, line)
+    local other = key == "at" and "area" or "at"
+    if sec.lines[other] then fail(line, "place '" .. sec.id .. "' has both at and area") end
+end
+
 local function placeAt(sec, value, line)
+    placeWhere(sec, "at", line)
     local c = parseCoords(value)
     if not c then fail(line, "bad place coords '" .. value .. "' (x,y,z whole numbers, z from -32 to 31)") end
     sec.place.x, sec.place.y, sec.place.z = c.x, c.y, c.z
+end
+
+-- x1,y1,x2,y2,z -> { x1, y1, x2, y2 } (plus petit d'abord) et z, ou nil.
+local function parseArea(value)
+    local a, b, c, d, z = string.match(value, "^([0-9]+),([0-9]+),([0-9]+),([0-9]+),(%-?[0-9]+)$")
+    local corners = parseCoords((a or "") .. "," .. (b or "") .. "," .. (z or ""))
+    local other = parseCoords((c or "") .. "," .. (d or "") .. "," .. (z or ""))
+    if not corners or not other then return nil end
+    local area = { x1 = math.min(corners.x, other.x), y1 = math.min(corners.y, other.y),
+        x2 = math.max(corners.x, other.x), y2 = math.max(corners.y, other.y) }
+    if area.x2 - area.x1 + 1 > MAX_AREA_SIDE or area.y2 - area.y1 + 1 > MAX_AREA_SIDE then return nil end
+    return area, corners.z
+end
+
+local function placeArea(sec, value, line)
+    placeWhere(sec, "area", line)
+    local area, z = parseArea(value)
+    if not area then
+        fail(line, "bad place area '" .. value .. "' (x1,y1,x2,y2,z whole numbers, sides 1 to "
+            .. tostring(MAX_AREA_SIDE) .. ")")
+    end
+    sec.place.area, sec.place.z = area, z
 end
 
 local function placeLabel(sec, value, line)
@@ -353,14 +421,12 @@ local function placeLabel(sec, value, line)
     sec.place.label = value
 end
 
-local function placeUse(sec, value, line)
-    local uses = closedList(value, "use", USE_LIST, line, " (expected " .. table.concat(USE_LIST, ", ") .. ")")
-    sec.place.uses, sec.place.use = uses, set(uses)
-end
-
-local PLACE_KEYS = { at = placeAt, label = placeLabel, use = placeUse }
+local PLACE_KEYS = { at = placeAt, area = placeArea, label = placeLabel }
 
 local function placeOpen(sec, ctx)
+    if contains(DISTANCE_LIST, sec.id) then
+        fail(sec.line, "place id '" .. sec.id .. "' is reserved (near, far and very_far are distances)")
+    end
     if #ctx.places >= MAX_PLACES then
         fail(sec.line, "too many places (" .. tostring(MAX_PLACES) .. " at most)")
     end
@@ -373,9 +439,12 @@ local function placeKey(sec, key, value, line)
     reader(sec, value, line)
 end
 
-local PLACE_REQUIRED = { "at", "label", "use" }
+local PLACE_REQUIRED = { "label" }
 
 local function placeClose(sec, ctx)
+    if not sec.lines.at and not sec.lines.area then
+        fail(sec.line, "missing key 'at' or 'area' in " .. title(sec))
+    end
     requireKeys(sec, PLACE_REQUIRED)
     ctx.places[#ctx.places + 1] = sec.place
     ctx.placeById[sec.id] = sec.place
@@ -402,34 +471,50 @@ local function missionSetsState(m, value, line)
     m.sets_state = value
 end
 
+-- drops= : planques de la mission, des points (ADR D05), sans doublon ; identifiants dans l'ordre de la ligne.
 local function missionDrops(m, value, line, ctx)
-    if value == "any" then
-        for _, p in ipairs(ctx.places) do
-            if p.use.drop then m.drops[#m.drops + 1] = p.id end
-        end
-        if #m.drops == 0 then fail(line, "drops=any needs a place with use=drop") end
-        return
-    end
     for _, id in ipairs(splitList(value)) do
-        local p = ctx.placeById[param("place", id, line, ctx)]
-        if not p.use.drop then fail(line, "place '" .. id .. "' has no use=drop") end
+        param("place", id, line, ctx)
         if contains(m.drops, id) then fail(line, "duplicate drops entry '" .. id .. "'") end
         m.drops[#m.drops + 1] = id
     end
 end
 
+-- E25-T01 (ADR D01) : target= : un lieu commun (point ou zone) -> { kind = 'place', id }, ou une distance de
+-- l'appelant (near, far, very_far) -> { kind = <distance> }. Sans la cle : near.
 local function missionTarget(m, value, line, ctx)
-    local p = ctx.placeById[param("place", value, line, ctx)]
-    if not p.use.target then fail(line, "place '" .. value .. "' has no use=target") end
-    m.target = value
+    if contains(DISTANCE_LIST, value) then
+        m.target = { kind = value }
+        return
+    end
+    if not ctx.shared[value] then fail(line, "unknown place '" .. value .. "'") end
+    m.target = { kind = "place", id = value }
+end
+
+-- E25-T01 (ADR D03) : building= : genre de batiment tire (CA_Sites.KINDS), avec une zone ou une distance seulement.
+local function missionBuilding(m, value, line, ctx)
+    m.building = choice(value, "building", ctx.buildings, line)
+    m.buildingLine = line
 end
 
 local MISSION_KEYS = { type = missionType, weight = missionWeight, after = missionAfter, story = missionStory,
-    drops = missionDrops, target = missionTarget, scope = missionScope, sets_state = missionSetsState }
+    drops = missionDrops, target = missionTarget, building = missionBuilding, scope = missionScope,
+    sets_state = missionSetsState }
 
 local function missionKey() end  -- cles connues seulement avec le type : missionResolve
 local MISSION_REQUIRED = { "type" }
 local function missionClose(sec) requireKeys(sec, MISSION_REQUIRED) end
+
+-- Objectif complet (target et building) ; un point ne prend pas de genre de batiment.
+local function missionAim(m, ctx)
+    m.target = m.target or { kind = DISTANCE_LIST[1] }
+    if m.building then
+        local place = m.target.kind == "place" and ctx.shared[m.target.id]
+        if place and not place.area then fail(m.buildingLine, "building needs a zone or a distance target") end
+        m.target.building = m.building
+    end
+    m.building, m.buildingLine = nil, nil
+end
 
 local function missionResolve(sec, ctx)
     local voiceType = sec.values.type
@@ -447,6 +532,11 @@ local function missionResolve(sec, ctx)
             fail(line, "unknown key '" .. key .. "' for mission type '" .. voiceType .. "'")
         end
     end
+    -- E25-T01 : un gabarit a planques (declaration dropAccepts du mod commun : deliver, retrieve, item) les exige.
+    if template.dropAccepts ~= nil and #m.drops == 0 then
+        fail(sec.line, "missing key 'drops' in " .. title(sec))
+    end
+    missionAim(m, ctx)
     ctx.missions[#ctx.missions + 1] = m
     ctx.missionById[m.id] = m
 end
@@ -469,8 +559,9 @@ local function missionFinish(ctx)
     for _, m in ipairs(ctx.missions) do m.afterLine = nil end
 end
 
--- [rewards] : pool= entrees nature:poids ou nature:parametre:poids, dans l'ordre de la fiche.
-local REWARDS_KEYS = { pool = true }
+-- [rewards] : pool= entrees nature:poids ou nature:parametre:poids, dans l'ordre de la fiche ; E25-T01 : cache_place=,
+-- point ou une nature qui declare `place` (cache) est laissee, obligatoire avec une telle nature.
+local REWARDS_KEYS = { pool = true, cache_place = true }
 local REWARDS_REQUIRED = { "pool" }
 
 local function rewardsKey(sec, key, _, line)
@@ -508,8 +599,10 @@ local function rewardsResolve(sec, ctx)
         end
         if seen[key] then fail(line, "duplicate reward '" .. key .. "'") end
         seen[key] = true
+        if def.place and not sec.values.cache_place then fail(line, kind .. " reward needs cache_place") end
         ctx.rewards[#ctx.rewards + 1] = reward
     end
+    if sec.values.cache_place then ctx.cachePlace = pointAt(sec.values.cache_place, sec.lines.cache_place, ctx) end
 end
 
 -- [category <id>] : item=Module.Type:quantite (quantite : genre range de RS_PersonaParams), repetable.
@@ -544,7 +637,7 @@ local function categoryClose(sec, ctx)
     ctx.categories[sec.id] = sec.category
 end
 
--- [trade] (E20-T07, ADR D07) : troc de la voix. landing (lieux use=landing), arrival (mode d'arrivee inscrit,
+-- [trade] (E20-T07, ADR D07) : troc de la voix. landing (points des lieux communs), arrival (mode d'arrivee inscrit,
 -- regles arrivals), every_days (un passage tous les N jours de jeu), hours (fenetre du rendez-vous), delay_hours
 -- (facultatif : heures de jeu hors de vue avant l'echange), margin (facultatif : marge la plus basse et la plus
 -- haute), item= repetable (Module.Type:quantite ; quantite : fourchette, ou nom d'un groupe ; E22-T12 : poids lu dans
@@ -575,10 +668,10 @@ local function minutesOf(h, m)
     return tonumber(h) * 60 + tonumber(m)
 end
 
+-- landing= : rendez-vous du marchand, des points des lieux communs (ADR D05), un tire par passage s'il y en a plusieurs.
 local function tradeLanding(trade, value, line, ctx)
     for _, id in ipairs(splitList(value)) do
-        local p = ctx.placeById[param("place", id, line, ctx)]
-        if not p.use.landing then fail(line, "place '" .. id .. "' has no use=landing") end
+        local p = pointAt(id, line, ctx)
         for _, other in ipairs(trade.landings) do
             if other.id == id then fail(line, "duplicate landing entry '" .. id .. "'") end
         end
@@ -844,9 +937,10 @@ end
 -- sont les valeurs admises) ne servent qu'a Persona.grammar (E22-T01) : les memes tables que les lecteurs ci-dessus.
 local SECTIONS = {
     place = { rank = 1, example = "mill", open = placeOpen, key = placeKey, close = placeClose,
-        keys = PLACE_KEYS, required = PLACE_REQUIRED, choices = { use = USE_LIST } },
+        keys = PLACE_KEYS, required = PLACE_REQUIRED },
     mission = { rank = 2, example = "meds", key = missionKey, close = missionClose, resolve = missionResolve,
-        finish = missionFinish, keys = MISSION_KEYS, required = MISSION_REQUIRED, choices = { scope = SCOPE_LIST } },
+        finish = missionFinish, keys = MISSION_KEYS, required = MISSION_REQUIRED,
+        choices = { scope = SCOPE_LIST }, ruleChoices = { building = "buildings" } },
     rewards = { rank = 3, key = rewardsKey, close = rewardsClose, resolve = rewardsResolve,
         keys = REWARDS_KEYS, required = REWARDS_REQUIRED },
     category = { rank = 4, example = "snacks", repeatable = { item = true }, open = categoryOpen, key = categoryKey,
@@ -869,10 +963,11 @@ local function header(text)
     return string.match(text, "^%[[ \t]*([^ \t%]]*)[ \t]*(.-)[ \t]*%]$")
 end
 
--- Ligne cle=valeur -> cle, valeur (cle de forme [a-z_]+, ou a.b si dotted).
-local function keyValue(text, line, dotted)
+-- Ligne cle=valeur -> cle, valeur (cle de forme [a-z_]+, ou a.b si dotted). separator : ligne qui peut aussi venir
+-- ici, dite par le message d'une ligne sans = ([prompt] dans une fiche, [place <id>] dans le fichier des lieux).
+local function keyValue(text, line, dotted, separator)
     local eq = string.find(text, "=", 1, true)
-    if not eq then fail(line, "expected key=value or " .. Persona.SEPARATOR) end
+    if not eq then fail(line, "expected key=value or " .. separator) end
     local key, value = trim(string.sub(text, 1, eq - 1)), trim(string.sub(text, eq + 1))
     if not string.match(key, "^[a-z_]+$") and not (dotted and string.match(key, "^[a-z_]+%.[a-z_]+$")) then
         fail(line, "bad key '" .. key .. "'")
@@ -884,11 +979,14 @@ local function emptyValue(key, value, line)
     if value == "" then fail(line, "empty value for key '" .. key .. "'") end
 end
 
-local function newContext(rules)
+local function newContext(rules, separator)
     local categories = {}
     for id, category in pairs(rules.categories or {}) do categories[id] = category end
-    return { rules = rules, sections = {}, firstLine = {}, places = {}, placeById = {}, missions = {},
-        missionById = {}, rewards = {}, ownCategories = {}, categories = categories }
+    -- shared : lieux communs que la fiche peut nommer (rules.places, aucun sans la regle) ; places et placeById : lieux
+    -- lus dans le fichier commun lui-meme (parsePlaces).
+    return { rules = rules, separator = separator or Persona.SEPARATOR, sections = {}, firstLine = {}, places = {},
+        placeById = {}, shared = rules.places or {}, buildings = rules.buildings or {}, missions = {}, missionById = {},
+        rewards = {}, ownCategories = {}, categories = categories }
 end
 
 -- Ouvre la section de l'en-tete (allowed : noms permis ; expected : texte du message d'une section inconnue).
@@ -899,7 +997,7 @@ local function openSection(name, id, line, ctx, allowed, expected)
         fail(line, "section [" .. name .. "] needs an id, e.g. [" .. name .. " " .. handler.example .. "]")
     end
     if not handler.example and id ~= "" then fail(line, "section [" .. name .. "] takes no id") end
-    if id ~= "" and (not string.match(id, "^[a-z0-9_]+$") or string.len(id) > 32) then
+    if id ~= "" and not isSectionId(id) then
         fail(line, "bad " .. name .. " id '" .. id .. "' (a to z, 0 to 9 and _, 32 characters at most)")
     end
     local first = ctx.firstLine[name] or {}
@@ -921,7 +1019,7 @@ end
 
 local function sectionLine(sec, text, line, ctx)
     local handler = SECTIONS[sec.name]
-    local key, value = keyValue(text, line, false)
+    local key, value = keyValue(text, line, false, ctx.separator)
     if sec.lines[key] and not (handler.repeatable and handler.repeatable[key]) then
         fail(line, "duplicate key '" .. key .. "' in " .. title(sec) .. " (first set on line "
             .. tostring(sec.lines[key]) .. ")")
@@ -958,15 +1056,16 @@ local function checkRaw(raw, number)
     end
 end
 
-local SHEET_SECTIONS = { place = true, mission = true, rewards = true, category = true, trade = true, note = true }
+-- E25-T01 : plus de [place] dans une fiche (fichier commun _places.txt, parsePlaces).
+local SHEET_SECTIONS = { mission = true, rewards = true, category = true, trade = true, note = true }
 local SHEET_EXPECTED = (function()
     local names = {}
     for name in pairs(SHEET_SECTIONS) do names[#names + 1] = name end
     return table.concat(ranked(names), ", ") .. " or prompt"
 end)()
 
-local function headLine(values, seen, budgetLines, text, number)
-    local key, value = keyValue(text, number, true)
+local function headLine(values, seen, budgetLines, text, number, ctx)
+    local key, value = keyValue(text, number, true, Persona.SEPARATOR)
     local action = nil
     if startsWith(key, BUDGET_PREFIX) then
         action = string.sub(key, string.len(BUDGET_PREFIX) + 1)
@@ -985,7 +1084,7 @@ local function headLine(values, seen, budgetLines, text, number)
         values.budgets[action] = count(value, key, number)
         budgetLines[#budgetLines + 1] = { action = action, line = number }
     else
-        HEAD[key](values, value, number)
+        HEAD[key](values, value, number, ctx)
     end
 end
 
@@ -1011,7 +1110,7 @@ local function parse(lines, expectedId, rules)
             elseif current then
                 sectionLine(current, text, number, ctx)
             else
-                headLine(values, seen, budgetLines, text, number)
+                headLine(values, seen, budgetLines, text, number, ctx)
             end
         end
     end
@@ -1076,7 +1175,10 @@ local function parse(lines, expectedId, rules)
         radio = values.radio or Levels.levelOf(values.frequency),
         prompt = table.concat(body, "\n"), language = values.language or "en",
         listen = values.listen or {}, location = location, coords = values.coords,
-        places = ctx.places, actions = allowed,
+        -- E25-T01 : reperes (marks=, lieux communs dans leur ordre) ; places : lieux communs en service a la lecture
+        -- (id -> lieu), table de resolution des identifiants nommes par la fiche (Persona.placeOf) ; cachePlace : point
+        -- de cache_place= de [rewards].
+        marks = values.marks or {}, places = ctx.shared, cachePlace = ctx.cachePlace, actions = allowed,
         budget = values.budget or 0, budgets = values.budgets, call_one_in = values.call_one_in or 0,
         call_text = values.call_text or "", call = values.call or "", state = values.state or "active",
         shares = values.shares or {},
@@ -1110,6 +1212,42 @@ local function parseCatalogue(lines)
     return ctx.ownCategories
 end
 
+-- E25-T01 : fichier commun des lieux (personas/_places.txt) : une tete format=1, puis des sections [place <id>]
+-- seulement. Tete absente : refus a la ligne de la premiere section (a la derniere ligne sans section).
+local PLACES_FILE_SECTIONS = { place = true }
+local PLACES_FILE_HEAD = { format = headFormat }
+
+local function parsePlaces(lines)
+    local ctx = newContext(NO_RULES, Persona.PLACES_SEPARATOR)
+    local values, seen, current, firstSection = {}, {}, nil, nil
+    for number, raw in ipairs(lines) do
+        checkRaw(raw, number)
+        local text = trim(raw)
+        if text ~= "" and string.sub(text, 1, 1) ~= "#" then
+            local name, id = header(text)
+            if name then
+                closeSection(current, ctx)
+                firstSection = firstSection or number
+                current = openSection(name, id, number, ctx, PLACES_FILE_SECTIONS, "place")
+            elseif current then
+                sectionLine(current, text, number, ctx)
+            else
+                local key, value = keyValue(text, number, false, Persona.PLACES_SEPARATOR)
+                if not PLACES_FILE_HEAD[key] then fail(number, "unknown key '" .. key .. "'") end
+                if seen[key] then
+                    fail(number, "duplicate key '" .. key .. "' (first set on line " .. tostring(seen[key]) .. ")")
+                end
+                seen[key] = number
+                emptyValue(key, value, number)
+                PLACES_FILE_HEAD[key](values, value, number)
+            end
+        end
+    end
+    closeSection(current, ctx)
+    if values.format == nil then fail(firstSection or math.max(#lines, 1), "missing key 'format'") end
+    return ctx.placeById
+end
+
 -- Erreur de fiche -> nil, « line N: raison » ; toute autre erreur est une erreur de programmation, relevee telle quelle.
 local function guarded(fn, ...)
     local ok, result = pcall(fn, ...)
@@ -1130,6 +1268,12 @@ end
 -- Catalogue de categories en lignes -> table id -> { id, items = { { type, min, max } } }, ou nil et « line N: raison ».
 function Persona.parseCatalogue(lines)
     return guarded(parseCatalogue, lines)
+end
+
+-- E25-T01 : fichier commun des lieux en lignes -> table id -> lieu (point { id, label, x, y, z } ou zone { id, label,
+-- z, area = { x1, y1, x2, y2 } }), ou nil et « line N: raison ».
+function Persona.parsePlaces(lines)
+    return guarded(parsePlaces, lines)
 end
 
 -- Fichier sous Zomboid\Lua (chemin relatif, ex. « batman_RadioSurvivor/personas/walt.txt »). Son id doit etre
@@ -1173,46 +1317,46 @@ local function copyChoices(choices)
     return out
 end
 
+-- Noms admis d'un champ des regles : une liste (dans son ordre) ou les cles d'une table (triees).
+local function ruleNames(value)
+    if type(value) == "table" and value[1] ~= nil then return copyList(value) end
+    return sortedKeys(value)
+end
+
+-- Grammaire d'une section de SECTIONS.
+local function sectionGrammar(s, rules)
+    local choices = copyChoices(s.choices)
+    for key, field in pairs(s.ruleChoices or {}) do choices[key] = ruleNames(rules[field]) end
+    return { rank = s.rank, hasId = s.example ~= nil, keys = sortedKeys(s.keys), required = copyList(s.required),
+        repeatable = sortedKeys(s.repeatable), choices = choices }
+end
+
+-- E25-T01 : sections : celles d'une fiche ; places : le fichier commun des lieux (tete format=, sections [place],
+-- une cle at ou area obligatoire, MAX_PLACES lieux) ; maxMarks : reperes d'une fiche ; distances : objectifs tires
+-- (target=, en plus d'un lieu).
 function Persona.grammar(rules)
     rules = rules or NO_RULES
     local sections = {}
-    for name, s in pairs(SECTIONS) do
-        local choices = copyChoices(s.choices)
-        for key, field in pairs(s.ruleChoices or {}) do choices[key] = sortedKeys(rules[field]) end
-        sections[name] = { rank = s.rank, hasId = s.example ~= nil, keys = sortedKeys(s.keys),
-            required = copyList(s.required), repeatable = sortedKeys(s.repeatable), choices = choices }
-    end
+    for name in pairs(SHEET_SECTIONS) do sections[name] = sectionGrammar(SECTIONS[name], rules) end
+    local places = sectionGrammar(SECTIONS.place, rules)
+    places.oneOf = { "at", "area" }
+    places.maxAreaSide, places.maxLabelBytes = MAX_AREA_SIDE, MAX_PLACE_LABEL_BYTES
     return {
-        format = Persona.FORMAT, separator = Persona.SEPARATOR, maxPlaces = MAX_PLACES,
+        format = Persona.FORMAT, separator = Persona.SEPARATOR, maxPlaces = MAX_PLACES, maxMarks = MAX_MARKS,
+        distances = copyList(DISTANCE_LIST),
         head = { keys = sortedKeys(HEAD), required = copyList(REQUIRED),
             budgetPrefix = BUDGET_PREFIX, choices = copyChoices({ actions = ACTION_LIST, radio = RADIO_LIST,
                 location = LOCATION_LIST, state = STATE_LIST }) },
         sections = sections,
+        places = places,
     }
 end
 
--- Lieux de la fiche qui ont cet usage (mark, target, drop, landing), dans l'ordre de la fiche.
-function Persona.placesFor(sheet, use)
-    local out = {}
-    for _, p in ipairs(type(sheet) == "table" and type(sheet.places) == "table" and sheet.places or {}) do
-        if type(p) == "table" and type(p.use) == "table" and p.use[use] then out[#out + 1] = p end
-    end
-    return out
-end
-
--- Premier lieu de la fiche qui a cet usage, ou nil.
-function Persona.placeFor(sheet, use)
-    return Persona.placesFor(sheet, use)[1]
-end
-
--- E20-T10 : lieu de la fiche (use=target) nomme par la cle target= d une section [mission], ou nil.
-function Persona.targetOf(sheet, section)
-    local id = type(section) == "table" and section.target or nil
-    if type(id) ~= "string" then return nil end
-    for _, p in ipairs(Persona.placesFor(sheet, "target")) do
-        if p.id == id then return p end
-    end
-    return nil
+-- E25-T01 : lieu commun d'identifiant id tel que la fiche l'a lu (point ou zone), ou nil. Les identifiants nommes par
+-- une fiche valide (target=, drops=, points=) existent toujours dans sheet.places.
+function Persona.placeOf(sheet, id)
+    local places = type(sheet) == "table" and type(sheet.places) == "table" and sheet.places or nil
+    return places and type(id) == "string" and places[id] or nil
 end
 
 return Persona
