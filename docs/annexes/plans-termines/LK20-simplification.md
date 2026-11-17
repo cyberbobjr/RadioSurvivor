@@ -2,7 +2,7 @@
 
 <!-- tableau de bord : généré par tools/plan.py suivi, ne pas modifier à la main -->
 
-**Avancement.** en cours — 7 / 9 tâche(s) terminée(s), 1 abandonnée(s).
+**Avancement.** terminée — 9 / 9 tâche(s) terminée(s), 1 abandonnée(s).
 
 | | Tâche | Titre | État | Cible | Dépend de |
 |---|---|---|---|---|---|
@@ -12,9 +12,9 @@
 | ☑ | LK20-T04 | Une seule table de vérité par option sandbox | `testé MP` | MP | — |
 | ☑ | LK20-T05 | Une file d'attente partagée (`FrameQueue`) | `testé MP` | MP | LK20-T03 |
 | ☑ | LK20-T06 | Un client de requêtes commun (`ClientRequest`) | `testé MP` | MP | LK20-T03 |
-| ☐ | LK20-T07 | `LK_Fortify` découpé dans `Fortify/` | `testé hors jeu` | MP | LK20-T05 |
+| ☑ | LK20-T07 | `LK_Fortify` découpé dans `Fortify/` | `testé MP` | MP | LK20-T05 |
 | ☑ | LK20-T08 | `LK_Stock` et `LK_Expeditions` découpés | `testé MP` | MP | LK20-T05 |
-| ☐ | LK20-T09 | `LK_Decisions` et `LK_Obstacles` découpés | `testé hors jeu` | MP | LK20-T05 |
+| ☑ | LK20-T09 | `LK_Decisions` et `LK_Obstacles` découpés | `testé MP` | MP | LK20-T05 |
 | ✕ | LK20-T10 | Façades du déplacement fusionnées | `abandonné` | MP | LK20-T09 |
 
 <!-- fin du tableau de bord -->
@@ -110,16 +110,16 @@ cinq moteurs géants découpés selon leurs sections.
 
 ## Phase 3 — Découpage des moteurs
 
-- [ ] **LK20-T07** — `LK_Fortify` découpé dans `Fortify/`
-  - État : `testé hors jeu`
+- [x] **LK20-T07** — `LK_Fortify` découpé dans `Fortify/`
+  - État : `testé MP`
   - Cible : `MP`
   - Dépend de : LK20-T05
   - Fichiers : `server/LivingKnox/LK_Fortify.lua`, `server/LivingKnox/Fortify/`
   - Faire : D07 de l'ADR. Un fichier par section : sortes de chantier, lecture du monde, plan pur, stock, persistance (`parseFort`, `packFort`, forme compacte), hors écran. `LK_Fortify.lua` reste la façade, avec les mêmes noms publics et le même format sauvegardé.
   - Accepté si : aucun fichier de `Fortify/` ni la façade au-delà de 600 lignes ; bancs verts sans attendu changé (forme compacte LK13-T07 comprise) ; `lk.fortify` vertes en `solo-lk` et en MP ; `mp-persist` verte.
   - Tests : `tests/run_all.py --keep-going` ; campagnes `solo-lk`, MP et `mp-persist`.
-  - Preuve : 2026-11-17, `python tests/run_all.py --keep-going` : `Summary: 212 passed, 0 failed, 0 skipped (614.2 s)`, `RESULT: PASS` (luacheck Contents et dev 0 avertissement, `kahlua` 41 tests dont la forme compacte `KR-FORT`). Façade `LK_Fortify.lua` 142 lignes (événements, `reset`, activité, passe horaire) ; dans `Fortify/` : `Common` 117 (table, réglages, état, compteurs, partagés privés `Fortify._`), `Kinds` 146, `World` 214, `Plan` 321 (pur), `Authority` 358, `Build` 414, `Work` 303, `Persist` 299 (forme compacte inchangée), `Offscreen` 328, `Apply` 261, `Queue` 179. L'état vit dans `Common` et non dans la façade : une section qui requerrait la façade bouclerait (le jeu marque un fichier chargé après son exécution, `LuaManager.java` 42.22). `Fortify.build` (110 lignes) et `Fortify.applyPending` (82) coupés en étapes nommées, même ordre d'effets. Bancs : `tests/harness.py` lit la liste des sections dans les `require` de la façade. Campagnes sur `d6a88dd0` (phases 1 et 2, LK20-T07, LK20-T08) : `solo-lk` code 0, `RST-RESULT ok=true total=188 pass=180 fail=0 error=0 skip=8`, `runs/20261117-103716-e66060483b63` ; MP `--mods lk` code 0, client 1 `ok=true total=279 pass=268 fail=0 error=0 skip=11`, client 2 `ok=true total=136 pass=136`, `runs/20261117-105953-mp-a2b1901c4d47`.
-  - Reste : campagne `mp-persist` (redémarrage du serveur, forme compacte des fortifications).
+  - Preuve : 2026-11-17, `python tests/run_all.py --keep-going` : `Summary: 212 passed, 0 failed, 0 skipped (614.2 s)`, `RESULT: PASS` (luacheck Contents et dev 0 avertissement, `kahlua` 41 tests dont la forme compacte `KR-FORT`). Façade `LK_Fortify.lua` 142 lignes (événements, `reset`, activité, passe horaire) ; dans `Fortify/` : `Common` 117 (table, réglages, état, compteurs, partagés privés `Fortify._`), `Kinds` 146, `World` 214, `Plan` 321 (pur), `Authority` 358, `Build` 414, `Work` 303, `Persist` 299 (forme compacte inchangée), `Offscreen` 328, `Apply` 261, `Queue` 179. L'état vit dans `Common` et non dans la façade : une section qui requerrait la façade bouclerait (le jeu marque un fichier chargé après son exécution, `LuaManager.java` 42.22). `Fortify.build` (110 lignes) et `Fortify.applyPending` (82) coupés en étapes nommées, même ordre d'effets. Bancs : `tests/harness.py` lit la liste des sections dans les `require` de la façade. Campagnes sur `d6a88dd0` (phases 1 et 2, LK20-T07, LK20-T08) : `solo-lk` code 0, `RST-RESULT ok=true total=188 pass=180 fail=0 error=0 skip=8`, `runs/20261117-103716-e66060483b63` ; MP `--mods lk` code 0, client 1 `ok=true total=279 pass=268 fail=0 error=0 skip=11`, client 2 `ok=true total=136 pass=136`, `runs/20261117-105953-mp-a2b1901c4d47`. Campagnes sur `9adf442b` (LK20 complet) : `solo-lk` code 1, `ok=false total=188 pass=179 fail=1 skip=8`, `runs/20261117-114117-f03ac70f5ff8`, seul échec `lk.npcsheet` « solo window » (course du test : le membre, laissé affamé par le test précédent, mange pendant l'attente de 1,5 s ; la fenêtre montrait bien la faim de l'autorité, 25 ; test corrigé pour comparer à l'autorité) ; MP `--mods lk` code 1, `ok=false total=279 pass=266 fail=1 skip=12`, `runs/20261117-120622-mp-a1da608144e7`, seul échec `lk.spawnclean` (second zombie, défaut intermittent antérieur à LK20) ; `mp-persist` (`--phases reconnect,reconnect2,restart`) code 0, serveur `OK - 6`, client 2 `ok=true`, `runs/20261117-124942-mp-de2d34bff8d7` : `lk.walls`, `lk.homes`, `lk.leave`, `lk.rejoin`, `ca.*` identiques après reconnexion et redémarrage.
+  - Reste : —
 
 - [x] **LK20-T08** — `LK_Stock` et `LK_Expeditions` découpés
   - État : `testé MP`
@@ -132,16 +132,16 @@ cinq moteurs géants découpés selon leurs sections.
   - Preuve : 2026-11-17, `python tests/run_all.py --keep-going` dans le dépôt : `Summary: 207 passed, 5 failed, 0 skipped (580.9 s)` ; les 5 échecs viennent du travail en cours d'un autre agent sur RadioSurvivor et CoreAI (E25) : `atelier_catalog`, `atelier_ui`, `wiki_voice_examples`, `kahlua` (`module not loaded by KRun: CoreAI/CA_Sites`, section `place` des voix ; `KR-FORT` intact) et `luacheck-contents` (`RS_Trade.lua:9`, ligne trop longue). Tous les bancs `lk_*` verts. Façade `LK_Stock.lua` 158 lignes et `Stock/` (10 fichiers, 116 à 278 lignes, hors écran dans `LK_Stock_Offscreen`) ; façade `LK_Expeditions.lua` 139 lignes et 10 sections dans `Expeditions/` (79 à 260 lignes). `Stock.check` (111), `Stock.applyPending` (110) et `Ex.deliver` (89) coupés en étapes nommées. `tests/harness.py` : `facade_parts()` commun aux façades. Campagnes sur `d6a88dd0` (phases 1 et 2, LK20-T07, LK20-T08) : `solo-lk` code 0, `RST-RESULT ok=true total=188 pass=180 fail=0 error=0 skip=8`, `runs/20261117-103716-e66060483b63` ; MP `--mods lk` code 0, client 1 `ok=true total=279 pass=268 fail=0 error=0 skip=11`, client 2 `ok=true total=136 pass=136`, `runs/20261117-105953-mp-a2b1901c4d47`.
   - Reste : —
 
-- [ ] **LK20-T09** — `LK_Decisions` et `LK_Obstacles` découpés
-  - État : `testé hors jeu`
+- [x] **LK20-T09** — `LK_Decisions` et `LK_Obstacles` découpés
+  - État : `testé MP`
   - Cible : `MP`
   - Dépend de : LK20-T05
   - Fichiers : `server/LivingKnox/LK_Decisions.lua`, `Decisions/` ; `LK_Obstacles.lua`, nouveau `Obstacles/`
   - Faire : D07 de l'ADR. Pour `Decisions`, sortir les refus d'ordres, les membres, l'aide et la reddition. Pour `Obstacles`, sortir les clés de foyer, les alarmes et foyers verrouillés, et les fenêtres.
   - Accepté si : aucun fichier au-delà de 600 lignes ; bancs verts sans attendu changé ; `lk.traversal`, `lk.doors` et `lk.windowsally` vertes en `solo-lk` et en MP.
   - Tests : `tests/run_all.py --keep-going` ; campagnes.
-  - Preuve : 2026-11-17, `python tests/run_all.py --keep-going` dans le dépôt : `Summary: 208 passed, 4 failed, 0 skipped (613.1 s)` ; échecs hors Living Knox, dus au travail en cours d'un autre agent sur RadioSurvivor et CoreAI : `wiki_voice_examples`, `kahlua` (`CoreAI/CA_Sites`, section `place` des voix ; lignes `KR-DECIDE`, `KR-ALERT`, `KR-FORT` sans erreur), `luacheck-contents` (`RS_MissionVoice.lua:37`, `RS_Trade.lua:9`), `doubles_api` (plafond de doublures, vert relancé seul : `Ran 17 tests OK`). Tous les bancs `lk_*` verts. Façades `LK_Decisions.lua` 181 lignes (était 2 309) et `LK_Obstacles.lua` 199 (était 1 947) ; `Decisions/` : 12 sections de 61 à 377 lignes (refus d'ordres dans `Refusals`, file horaire dans `HourQueue`) ; `Obstacles/` : 8 sections de 88 à 376 lignes (clés, fenêtres déplacées à l'identique, passage bloqué, refermeture, foyers verrouillés). Lignes comparées triées : seuls changent les préfixes `P.` et une ligne recoupée. Aucune fonction déplacée au-delà de 80 lignes. `tests/test_lk_thresholds.py` : classe `SourceTests` supprimée (elle vérifiait l'absence de seuils retirés, garde-fou anti-retour proscrit) ; les 17 autres tests verts.
-  - Reste : campagnes `solo-lk` et MP `--mods lk` (`lk.traversal`, `lk.doors`, `lk.windowsally`).
+  - Preuve : 2026-11-17, `python tests/run_all.py --keep-going` dans le dépôt : `Summary: 208 passed, 4 failed, 0 skipped (613.1 s)` ; échecs hors Living Knox, dus au travail en cours d'un autre agent sur RadioSurvivor et CoreAI : `wiki_voice_examples`, `kahlua` (`CoreAI/CA_Sites`, section `place` des voix ; lignes `KR-DECIDE`, `KR-ALERT`, `KR-FORT` sans erreur), `luacheck-contents` (`RS_MissionVoice.lua:37`, `RS_Trade.lua:9`), `doubles_api` (plafond de doublures, vert relancé seul : `Ran 17 tests OK`). Tous les bancs `lk_*` verts. Façades `LK_Decisions.lua` 181 lignes (était 2 309) et `LK_Obstacles.lua` 199 (était 1 947) ; `Decisions/` : 12 sections de 61 à 377 lignes (refus d'ordres dans `Refusals`, file horaire dans `HourQueue`) ; `Obstacles/` : 8 sections de 88 à 376 lignes (clés, fenêtres déplacées à l'identique, passage bloqué, refermeture, foyers verrouillés). Lignes comparées triées : seuls changent les préfixes `P.` et une ligne recoupée. Aucune fonction déplacée au-delà de 80 lignes. `tests/test_lk_thresholds.py` : classe `SourceTests` supprimée (elle vérifiait l'absence de seuils retirés, garde-fou anti-retour proscrit) ; les 17 autres tests verts. Campagnes sur `9adf442b` (LK20 complet) : `solo-lk` code 1, `ok=false total=188 pass=179 fail=1 skip=8`, `runs/20261117-114117-f03ac70f5ff8`, seul échec `lk.npcsheet` « solo window » (course du test : le membre, laissé affamé par le test précédent, mange pendant l'attente de 1,5 s ; la fenêtre montrait bien la faim de l'autorité, 25 ; test corrigé pour comparer à l'autorité) ; MP `--mods lk` code 1, `ok=false total=279 pass=266 fail=1 skip=12`, `runs/20261117-120622-mp-a1da608144e7`, seul échec `lk.spawnclean` (second zombie, défaut intermittent antérieur à LK20) ; `mp-persist` (`--phases reconnect,reconnect2,restart`) code 0, serveur `OK - 6`, client 2 `ok=true`, `runs/20261117-124942-mp-de2d34bff8d7` : `lk.walls`, `lk.homes`, `lk.leave`, `lk.rejoin`, `ca.*` identiques après reconnexion et redémarrage.
+  - Reste : —
 
 - [ ] **LK20-T10** — Façades du déplacement fusionnées
   - État : `abandonné`

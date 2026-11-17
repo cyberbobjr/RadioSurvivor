@@ -5,7 +5,7 @@
 | Date | 2026-11-17 |
 | Statut | Accepté |
 | Décideur | utilisateur (« lance la passe de simplification de Living Knox », 2026-11-17, après l'audit du 2026-11-16) ; options recommandées de l'audit retenues par défaut |
-| Plan associé | [LK20 — Simplification de Living Knox](../../annexes/plans/LK20-simplification.md) |
+| Plan associé | [LK20 — Simplification de Living Knox](../../annexes/plans-termines/LK20-simplification.md) |
 | Références | [Audit de complexité du 2026-11-16](../../annexes/audits/audit-complexite-livingknox-2026-11-16.md) (constats F01 à F10) ; [ADR remise en ordre SOLID](adr-remise-en-ordre-solid.md) (D04, ce qu'il ne faut pas faire) ; [ADR bords des cases](adr-bords-des-cases.md) |
 
 ## Contexte

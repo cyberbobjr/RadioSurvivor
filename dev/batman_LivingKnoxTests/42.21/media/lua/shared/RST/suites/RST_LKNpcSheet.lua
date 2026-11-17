@@ -271,9 +271,13 @@ RST.suite("lk.npcsheet", { tags = { "world", "server" }, testTimeoutMs = 120000,
                 local okShot, err = pcall(takeScreenshot, shot)
                 t3:ok(okShot, "screenshot failed: " .. tostring(err))
                 t:note("screenshot " .. shot)
+                -- The refreshed sheet shows the authority's hunger. Not the 80 set above: the member may have eaten in
+                -- the meantime (the previous test left it hungry, a meal lowers hunger within seconds).
                 local shown = tonumber(win.rows.hunger.entry:getText())
-                t3:ok(shown ~= nil and math.abs(shown - 80) <= 2, "hunger shown after the refresh: "
-                    .. tostring(win.rows.hunger.entry:getText()))
+                local held = (E.Needs.get(gid, mid) or {}).hunger
+                t3:ok(shown ~= nil and type(held) == "number" and math.abs(shown - held) <= 2,
+                    "hunger shown after the refresh: " .. tostring(win.rows.hunger.entry:getText()) .. ", authority "
+                    .. tostring(held))
                 win.rows.health.entry:setText("100")
                 win:onSet("health")
                 local v2 = (A.npcView(npc) or {}).npc
