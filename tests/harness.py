@@ -1128,9 +1128,20 @@ def routine_files():
 FORTIFY_KINDS_DIR = LK_LUA / 'server' / 'LivingKnox' / 'Fortify'
 
 
+FORTIFY_PART_REQUIRE = re.compile(r'^require "LivingKnox/Fortify/(\w+)"', re.M)
+
+
+def fortify_parts():
+    """Noms des fichiers de Fortify/ que la façade LK_Fortify.lua requiert (LK20-T07 : socle et sections du moteur),
+    dans l'ordre de ses require ; les autres fichiers du dossier sont les sortes de chantier."""
+    facade = LK_LUA / 'server' / 'LivingKnox' / 'LK_Fortify.lua'
+    return FORTIFY_PART_REQUIRE.findall(facade.read_text(encoding='utf-8'))
+
+
 def fortify_files():
-    """Fichiers de la fortification (LK16-T02) comme le jeu les charge : moteur, puis chaque sorte de chantier du
-    dossier Fortify/ (triée par nom, comme le chargement du jeu ; l'ordre entre sortes vient de leur order)."""
+    """Fichiers de la fortification (LK16-T02) comme le jeu les charge : façade (qui requiert le socle et les
+    sections du moteur, LK20-T07), puis chaque fichier du dossier Fortify/ (trié par nom, comme le chargement du jeu ;
+    l'ordre entre sortes vient de leur order ; un fichier du moteur relu ainsi ne fait que se redéfinir)."""
     names = sorted((p.name for p in FORTIFY_KINDS_DIR.glob('*.lua')), key=str.lower)
     return ['server/LivingKnox/LK_Fortify.lua'] + [f'server/LivingKnox/Fortify/{name}' for name in names]
 

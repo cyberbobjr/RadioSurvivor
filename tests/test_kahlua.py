@@ -34,7 +34,7 @@ import pz_paths  # noqa: E402  (vanilla folders: PZ_STEAM_LIBRARY, PZ_MEDIA or S
 
 ROOT = Path(__file__).resolve().parents[1]
 BENCH = ROOT / 'tests' / 'kahlua'
-from harness import tests_lua  # noqa: E402  (E21-T07: media/lua of the test mods)
+from harness import fortify_parts, tests_lua  # noqa: E402  (E21-T07: media/lua of the test mods; LK20-T07)
 TESTS_LUA = tests_lua()
 MOD_LUA = ROOT / 'Contents' / 'mods' / 'batman_RadioSurvivor' / '42.21' / 'media' / 'lua'
 CORE_LUA = ROOT / 'Contents' / 'mods' / 'batman_CoreAI' / '42.21' / 'media' / 'lua'  # mod commun (E18)
@@ -724,11 +724,16 @@ EXCHANGE_EVALS += [
 ] + [   # LK16-T10 : aménagements des foyers (Furnishings/), triés par nom comme au chargement du jeu
     f'load:LivingKnox/Furnishings/{p.stem}={p}'
     for p in sorted((LK_LUA / 'server' / 'LivingKnox' / 'Furnishings').glob('*.lua'), key=lambda p: p.name.lower())
+] + [   # LK20-T07 : socle et sections du moteur (Fortify/), dans l'ordre des require de la façade (KRun ne charge
+    # pas un module à la demande : chacun doit être chargé avant le fichier qui le requiert)
+    f'load:LivingKnox/Fortify/{name}={LK_LUA / "server" / "LivingKnox" / "Fortify" / (name + ".lua")}'
+    for name in fortify_parts()
 ] + [
     'load:LivingKnox/LK_Fortify=' + str(LK_LUA / 'server' / 'LivingKnox' / 'LK_Fortify.lua'),
 ] + [   # LK16-T02 : sortes de chantier (Fortify/), triées par nom comme au chargement du jeu
     f'load:LivingKnox/Fortify/{p.stem}={p}'
     for p in sorted((LK_LUA / 'server' / 'LivingKnox' / 'Fortify').glob('*.lua'), key=lambda p: p.name.lower())
+    if p.stem not in fortify_parts()
 ] + [
     'eval:Events = nil return nil',
 ]

@@ -12,7 +12,7 @@
 | ☐ | LK20-T04 | Une seule table de vérité par option sandbox | `testé hors jeu` | MP | — |
 | ☐ | LK20-T05 | Une file d'attente partagée (`FrameQueue`) | `testé hors jeu` | MP | LK20-T03 |
 | ☐ | LK20-T06 | Un client de requêtes commun (`ClientRequest`) | `testé hors jeu` | MP | LK20-T03 |
-| ☐ | LK20-T07 | `LK_Fortify` découpé dans `Fortify/` | `à faire` | MP | LK20-T05 |
+| ☐ | LK20-T07 | `LK_Fortify` découpé dans `Fortify/` | `testé hors jeu` | MP | LK20-T05 |
 | ☐ | LK20-T08 | `LK_Stock` et `LK_Expeditions` découpés | `à faire` | MP | LK20-T05 |
 | ☐ | LK20-T09 | `LK_Decisions` et `LK_Obstacles` découpés | `à faire` | MP | LK20-T05 |
 | ☐ | LK20-T10 | Façades du déplacement fusionnées | `à faire` | MP | LK20-T09 |
@@ -111,13 +111,15 @@ cinq moteurs géants découpés selon leurs sections.
 ## Phase 3 — Découpage des moteurs
 
 - [ ] **LK20-T07** — `LK_Fortify` découpé dans `Fortify/`
-  - État : `à faire`
+  - État : `testé hors jeu`
   - Cible : `MP`
   - Dépend de : LK20-T05
   - Fichiers : `server/LivingKnox/LK_Fortify.lua`, `server/LivingKnox/Fortify/`
   - Faire : D07 de l'ADR. Un fichier par section : sortes de chantier, lecture du monde, plan pur, stock, persistance (`parseFort`, `packFort`, forme compacte), hors écran. `LK_Fortify.lua` reste la façade, avec les mêmes noms publics et le même format sauvegardé.
   - Accepté si : aucun fichier de `Fortify/` ni la façade au-delà de 600 lignes ; bancs verts sans attendu changé (forme compacte LK13-T07 comprise) ; `lk.fortify` vertes en `solo-lk` et en MP ; `mp-persist` verte.
   - Tests : `tests/run_all.py --keep-going` ; campagnes `solo-lk`, MP et `mp-persist`.
+  - Preuve : 2026-11-17, `python tests/run_all.py --keep-going` : `Summary: 212 passed, 0 failed, 0 skipped (614.2 s)`, `RESULT: PASS` (luacheck Contents et dev 0 avertissement, `kahlua` 41 tests dont la forme compacte `KR-FORT`). Façade `LK_Fortify.lua` 142 lignes (événements, `reset`, activité, passe horaire) ; dans `Fortify/` : `Common` 117 (table, réglages, état, compteurs, partagés privés `Fortify._`), `Kinds` 146, `World` 214, `Plan` 321 (pur), `Authority` 358, `Build` 414, `Work` 303, `Persist` 299 (forme compacte inchangée), `Offscreen` 328, `Apply` 261, `Queue` 179. L'état vit dans `Common` et non dans la façade : une section qui requerrait la façade bouclerait (le jeu marque un fichier chargé après son exécution, `LuaManager.java` 42.22). `Fortify.build` (110 lignes) et `Fortify.applyPending` (82) coupés en étapes nommées, même ordre d'effets. Bancs : `tests/harness.py` lit la liste des sections dans les `require` de la façade.
+  - Reste : campagnes `solo-lk`, MP `--mods lk` et `mp-persist`.
 
 - [ ] **LK20-T08** — `LK_Stock` et `LK_Expeditions` découpés
   - État : `à faire`
