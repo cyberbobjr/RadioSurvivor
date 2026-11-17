@@ -966,7 +966,7 @@ s'arrête à la première erreur, et la dernière version valide de la voix rest
 | `note text too long (40 bytes of UTF-8 at most)` | Couper la ligne en deux lignes `text=`. |
 | `item and key cannot be used with text in [note] …` | Garder `text` (note manuscrite) ou `item` et `key`, pas les deux. |
 | `unknown key 'radio' in [mission meds]` | Une ligne de l'en-tête écrite sous une section : la remonter au-dessus de la première section. |
-| `unknown section 'place' (expected mission, rewards, category, trade, note or prompt)` | Un lieu écrit dans la fiche : déplacez-le dans `_places.txt` (voir [Lieux](#lieux--fichier-commun-_placestxt)). Aussi pour une faute de frappe dans un titre de section. |
+| `unknown section 'place' (expected mission, rewards, category, trade, note, help or prompt)` | Un lieu écrit dans la fiche : déplacez-le dans `_places.txt` (voir [Lieux](#lieux--fichier-commun-_placestxt)). Aussi pour une faute de frappe dans un titre de section. |
 | `unknown place 'mill'` | Le lieu nommé (`marks`, `target`, `drops`, `points`, `landing`, `cache_place`) n'est pas dans `_places.txt` : ajoutez-le ou corrigez l'id. |
 | `place 'muldraugh' is a zone, a point is needed here` | Une planque, un rendez-vous, une étape ou le sac d'une récompense demande un point (`at=`). |
 | `too many marks (12 at most)` | 12 repères au plus dans `marks=`. |

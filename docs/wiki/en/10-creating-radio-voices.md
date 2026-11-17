@@ -954,7 +954,7 @@ first error, and the last valid version of the voice stays in service until you 
 | `note text too long (40 bytes of UTF-8 at most)` | Split the line into two `text=` lines. |
 | `item and key cannot be used with text in [note] …` | Keep `text` (handwritten note) or `item` and `key`, not both. |
 | `unknown key 'radio' in [mission meds]` | A header line written below a section: move it above the first section. |
-| `unknown section 'place' (expected mission, rewards, category, trade, note or prompt)` | A place written in the sheet: move it to `_places.txt` (see [Places](#places--shared-file-_placestxt)). Also for a typo in a section title. |
+| `unknown section 'place' (expected mission, rewards, category, trade, note, help or prompt)` | A place written in the sheet: move it to `_places.txt` (see [Places](#places--shared-file-_placestxt)). Also for a typo in a section title. |
 | `unknown place 'mill'` | The named place (`marks`, `target`, `drops`, `points`, `landing`, `cache_place`) is not in `_places.txt`: add it or fix the id. |
 | `place 'muldraugh' is a zone, a point is needed here` | A dead drop, a meeting place, a route stop or the bag of a reward needs a spot (`at=`). |
 | `too many marks (12 at most)` | 12 markers at most in `marks=`. |

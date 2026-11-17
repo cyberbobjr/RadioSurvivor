@@ -324,6 +324,22 @@ use an action when the situation calls for it. The game then checks each action;
 **She can give the contact of…**: tick the voices whose frequency she can give. The game itself picks, among them, a
 voice that is on the air. Also used by the **A radio contact** reward. Rosie knows Darlene, the nurse.
 
+### Recipe help
+
+**The trades she knows**: tick the ones her job and her past explain (Sewing, Cooking, Carpentry, Smithing and metal,
+Electrical, Mechanics, Farming, Medical, Weapons, Pottery and glass, Makeshift). The player can then ask her, in their
+own language, how to make an item of these trades, recipes of mods included; Makeshift covers everything that is in no
+other trade. No trade ticked: she does not help with recipes.
+
+As soon as a trade is ticked, two questions as cards:
+
+- **Helps from**: Everyone, Neutral reputation or better (the usual choice), Good reputation only. Below that, she
+  says no in her own way.
+- **When she answers**: Right away, or she searches for an hour, half a day or a day (game hours); the player then
+  calls her back.
+
+Darlene, the nurse, helps with Medical; Hollis, the trucker, with Mechanics, and he searches for a day.
+
 ### Who is she really?
 
 The only text that describes the voice. The AI reads it to play her: who she is, her past, what she knows how to do,

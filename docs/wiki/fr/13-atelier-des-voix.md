@@ -337,6 +337,22 @@ parle quand même.
 **Elle peut donner le contact de…** : cochez les voix dont elle peut donner la fréquence. Le jeu choisit lui-même,
 parmi elles, une voix à l'antenne. Sert aussi à la récompense **Un contact radio**. Rosie connaît Darlene, l'infirmière.
 
+### Aide aux recettes
+
+**Les métiers qu'elle connaît** : cochez ceux que son métier et son passé expliquent (Couture, Cuisine, Menuiserie,
+Forge et métal, Électricité, Mécanique, Agriculture, Soins, Armes, Poterie et verre, Débrouille). Le joueur lui demande
+alors, dans sa langue, comment fabriquer un objet de ces métiers, recettes des mods comprises ; Débrouille couvre tout ce
+qui n'entre dans aucun autre métier. Aucun métier coché : elle n'aide pas sur les recettes.
+
+Dès qu'un métier est coché, deux questions en cartes :
+
+- **Aide à partir de** : Tout le monde, Réputation neutre ou mieux (le choix habituel), Bonne réputation seulement.
+  En dessous, elle refuse à sa façon.
+- **Quand elle répond** : Tout de suite, ou elle cherche une heure, une demi-journée ou un jour (heures du jeu) ; le
+  joueur la rappelle ensuite.
+
+Darlene, l'infirmière, aide en Soins ; Hollis, le camionneur, en Mécanique, et il cherche un jour.
+
 ### Qui est-elle vraiment ?
 
 Le seul texte qui décrit la voix. L'IA le lit pour la jouer : qui elle est, son passé, ce qu'elle sait faire, ce

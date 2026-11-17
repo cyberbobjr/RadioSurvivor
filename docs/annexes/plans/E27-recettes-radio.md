@@ -2,12 +2,12 @@
 
 <!-- tableau de bord : généré par tools/plan.py suivi, ne pas modifier à la main -->
 
-**Avancement.** en cours — 1 / 5 tâche(s) terminée(s).
+**Avancement.** en cours — 2 / 5 tâche(s) terminée(s).
 
 | | Tâche | Titre | État | Cible | Dépend de |
 |---|---|---|---|---|---|
 | ☑ | E27-T01 | Index des recettes exporté par le serveur | `testé hors jeu` | hors jeu | — |
-| ☐ | E27-T02 | Section `[help]` des voix et réglages dans l'atelier | `à faire` | hors jeu | E27-T01 |
+| ☑ | E27-T02 | Section `[help]` des voix et réglages dans l'atelier | `testé hors jeu` | hors jeu | E27-T01 |
 | ☐ | E27-T03 | Recherche dans la langue du joueur et réponse en personnage | `à faire` | hors jeu | E27-T02 |
 | ☐ | E27-T04 | Délai, rappel, carnet et apprentissage | `à faire` | solo | E27-T03 |
 | ☐ | E27-T05 | Wiki, exemples et CHANGELOG des recettes par la radio | `à faire` | hors jeu | E27-T04 |
@@ -53,8 +53,8 @@ conversation ; selon la réputation, tout de suite ou après un délai, et parfo
     « Débrouille ») et du lecteur du pont ; taille et durée de l'export mesurées.
   - Preuve : 2026-11-17, `RS_RecipeCatalog` (recettes lues par `ScriptManager.getAllCraftRecipes`, ingrédients et produits en listes `items` ou `fluids`, fluides des récipients compris, en litres ; `RightClickOnly`, énergie, automatisation et « n'importe quel objet/fluide » écartés), `RS_RecipeJobs` (11 métiers, `makeshift` par défaut), `RS_Json` (ASCII, `\uXXXX`), `RS_RecipeIndex` (`batman_CoreAI/recipes.json` à `OnServerStarted` ou `OnGameStart`, une ligne de console nombre/octets/ms), classe `RecipeIndex` de `bridge/recipe_index.py` (lue au lancement du pont, relue quand l'heure ou la taille du fichier change, index précédent gardé si le fichier est illisible) ; `docs/specifications-techniques/index-recettes.md`. Bancs : `recipe_index` 14 tests OK, `recipe_index_bridge` 6 tests OK, luacheck 0 ; coût mesuré hors jeu : 965 recettes synthétiques ≈ 521 Ko, encodage ≈ 0,15 ms par recette dans la VM Kahlua du jeu (durée réelle : ligne de console au prochain passage en jeu) ; `python tests/run_all.py --mod radiosurvivor --keep-going` `Summary: 111 passed, 0 failed, 0 skipped` (259,7 s).
 
-- [ ] **E27-T02** — Section `[help]` des voix et réglages dans l'atelier
-  - État : `à faire`
+- [x] **E27-T02** — Section `[help]` des voix et réglages dans l'atelier
+  - État : `testé hors jeu`
   - Cible : `hors jeu`
   - Dépend de : E27-T01
   - Faire : D02 à D04, D06 ; `[help]` : métiers, palier (tout le monde, Neutre, Bonne), délai (tout de suite, une
@@ -63,6 +63,7 @@ conversation ; selon la réputation, tout de suite ou après un délai, et parfo
     s'y prête.
   - Accepté si : bancs des lecteurs (métier inconnu, palier ou délai inconnus, mêmes messages des deux côtés), fiches
     livrées acceptées, atelier vérifié par `atelier_smoke`.
+  - Preuve : 2026-11-17, code entré par erreur dans le commit Living Knox `6be23fdf` (choix de l'utilisateur : laissé tel quel), docs, wiki et aides des métiers dans le commit E27-T02. `[help]` (`jobs=` obligatoire, `from=` défaut `neutral`, `delay=` défaut `now`, 1, 12 et 24 heures de jeu) lu par `RS_Persona.lua` et `persona_store.py` avec les mêmes messages ; liste des métiers `persona_store.JOBS` comparée à `RS_RecipeJobs.ids()` ; atelier : bloc « Aide aux recettes » (`recipehelp.js`, `recipehelpform.js`), métiers à cocher, palier et délai en cartes, aide « ? » de chaque métier ; 7 voix livrées dotées d'un métier (darlene, odessa, cody, delphine, virgil, hollis, maxine), Walt attend que `tests/coreai/test_kahlua.py` charge `RS_RecipeJobs`. `python tools/atelier_smoke.py` `summary: OK (2 locales, 0 failure(s))` ; `python tests/run_all.py --mod radiosurvivor --keep-going` `Summary: 110 passed, 1 failed` (252,6 s), seul échec `atelier_help` (aides des 11 métiers absentes, ajoutées) ; `--only atelier_help --only atelier_ui --only atelier_catalog` `Summary: 3 passed, 0 failed`.
 
 - [ ] **E27-T03** — Recherche dans la langue du joueur et réponse en personnage
   - État : `à faire`

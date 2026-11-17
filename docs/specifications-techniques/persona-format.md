@@ -14,8 +14,8 @@ D01, D03, D04). Deux lecteurs :
   des catégories, lieux communs en service, genres de bâtiment) ;
 - le pont : `bridge/persona_store.py` (`load_file`, `parse_bytes`, `parse_lines` ; `load_places`, `parse_places_bytes`,
   `parse_places_lines`), qui lit l'en-tête (repères `marks=` compris), le fichier commun des lieux et le prompt avec
-  **les mêmes règles et les mêmes messages**, et passe les sections `[mission]`, `[rewards]`, `[category]`, `[trade]`
-  et `[note]` sans les lire (le serveur les valide). `load_file` lit les lieux du `_places.txt` du dossier de la
+  **les mêmes règles et les mêmes messages**, lit aussi `[help]` (E27-T02) avec les mêmes règles, et passe les
+  sections `[mission]`, `[rewards]`, `[category]`, `[trade]` et `[note]` sans les lire (le serveur les valide). `load_file` lit les lieux du `_places.txt` du dossier de la
   fiche, comme le serveur.
 
 `tests/radiosurvivor/test_personas.py` compare les deux lecteurs sur les mêmes fichiers (lupa) ; `tests/radiosurvivor/test_persona_sections.py`
@@ -50,7 +50,7 @@ choisit un par son identifiant et le serveur le marque sur la carte du seul appe
 - Texte **UTF-8 sans BOM**. Fins de ligne `\n`, `\r\n` ou `\r` (découpage de `BufferedReader.readLine`, celui de
   `getFileReader`).
 - Trois parties, dans cet ordre : un en-tête de lignes `clé=valeur`, des sections facultatives (`[mission <id>]`,
-  `[rewards]`, `[category <id>]`, `[trade]`, `[note]`, dans n'importe quel ordre), puis une ligne `[prompt]` suivie du
+  `[rewards]`, `[category <id>]`, `[trade]`, `[note]`, `[help]`, dans n'importe quel ordre), puis une ligne `[prompt]` suivie du
   texte libre du prompt. Une ligne `clé=valeur` placée après un en-tête de section appartient à cette section. Une
   section `[place]` n'appartient plus à une fiche (E25-T01) : elle y est refusée comme toute section inconnue.
 - Un fichier dont le nom commence par `_` n'est pas une voix : c'est le catalogue partagé des catégories
@@ -84,10 +84,10 @@ You are Walt Hensley, 54, ...
 
 ### Sections
 
-- Une section commence par une ligne d'en-tête `[nom id]` (`[mission meds]`), ou `[nom]` pour `[rewards]`, `[trade]`
-  et `[note]`, qui n'ont pas d'identifiant ; espaces tolérés autour du nom et de l'identifiant. Elle finit à l'en-tête suivant ou à `[prompt]`.
+- Une section commence par une ligne d'en-tête `[nom id]` (`[mission meds]`), ou `[nom]` pour `[rewards]`, `[trade]`,
+  `[note]` et `[help]`, qui n'ont pas d'identifiant ; espaces tolérés autour du nom et de l'identifiant. Elle finit à l'en-tête suivant ou à `[prompt]`.
 - Identifiant : `a`-`z`, `0`-`9`, `_`, 32 caractères au plus, unique par genre de section dans la fiche
-  (`duplicate mission 'meds' (first set on line 5)`) ; `[rewards]`, `[trade]` et `[note]` une fois au plus.
+  (`duplicate mission 'meds' (first set on line 5)`) ; `[rewards]`, `[trade]`, `[note]` et `[help]` une fois au plus.
 - Corps : lignes vides, commentaires `#` et lignes `clé=valeur`, coupées comme celles de l'en-tête ; clés en minuscules
   (`a` à `z`, `_`), une fois chacune sauf `item` de `[category]`, `item` et `group` de `[trade]`, `loot` et `glovebox` de `[note]`, valeur non vide. Une clé inconnue de la section est
   refusée (`unknown key 'colour' in [rewards]`).
@@ -636,7 +636,7 @@ Erreurs sur une ligne (dans l'ordre du fichier) :
 | Plage horaire mal écrite | `line N: bad listening hours '8:00-12:00' (always, or HH:MM-HH:MM ranges separated by commas)` |
 | Plage vide | `line N: empty listening range '06:00-06:00'` |
 | `coords` | `line N: bad coords '10600,9300' (x,y,z whole numbers, z from -32 to 31)` |
-| Section inconnue (`[place]` compris depuis E25-T01) | `line N: unknown section 'shop' (expected mission, rewards, category, trade, note or prompt)` |
+| Section inconnue (`[place]` compris depuis E25-T01) | `line N: unknown section 'shop' (expected mission, rewards, category, trade, note, help or prompt)` |
 | Section sans identifiant, ou `[rewards]` avec un identifiant | `line N: section [mission] needs an id, e.g. [mission meds]`, `line N: section [rewards] takes no id` |
 | Identifiant de section | `line N: bad mission id 'Meds' (a to z, 0 to 9 and _, 32 characters at most)` (même forme pour `category`, et `place` dans `_places.txt`) |
 | Section répétée | `line N: duplicate mission 'meds' (first set on line 5)`, `line N: duplicate section [rewards] (first set on line 5)` |
@@ -725,7 +725,8 @@ fichier, code de sortie 1 si une fiche est refusée).
 - En Kahlua, une chaîne compte des unités UTF-16 ; sous Lua 5.1 (lupa), des octets. Aucune règle ne mesure donc la
   longueur d'un texte libre (`name`, `call`, prompt) : seules les valeurs ASCII contrôlées (`id`, nombres) ont une
   longueur maximale.
-- Le pont ne lit pas les sections `[mission]`, `[rewards]` et `[category]` (ADR D03) : il accepte une fiche que le
+- Le pont ne lit pas les sections `[mission]`, `[rewards]`, `[category]`, `[trade]` et `[note]` (ADR D03 ; il lit
+  `[help]`, E27-T02) : il accepte une fiche que le
   serveur refuse pour une de ces sections. Le serveur garde alors la dernière version valide de la voix et écrit la
   ligne et la raison dans son journal ; le pont répond avec le prompt du fichier, sans action qui dépende de ces
   sections (les missions permises arrivent du serveur, champ `jobs=` de la demande).
@@ -1018,6 +1019,35 @@ Exemple d'une note écrite dans la fiche (voix créée avec l'atelier) :
 text=Need a hand? Call Mae
 text=on %1 MHz, after dark.
 loot=OfficeDesk:2
+```
+
+### Section `[help]` (E27-T02, ADR [recettes par la radio](../architecture/decisions/adr-recettes-radio.md) D02 à D04, D06)
+
+L'aide aux recettes : la voix aide le joueur à trouver une recette de ses métiers. Une section `[help]` au plus, sans
+identifiant ; absente, la voix n'aide jamais sur les recettes. **Lue par les deux lecteurs**, mêmes règles et mêmes
+messages (`helpKey` / `helpClose` de `RS_Persona`, `HelpSection` de `persona_store`) ; résultat `help = { jobs, from,
+delay }` côté serveur, `Persona.help` (`Help`) côté pont, `nil` / `None` sans section.
+
+| Clé | Obligatoire | Valeur |
+|---|---|---|
+| `jobs` | oui | Métiers, séparés par des virgules, sans doublon : identifiants de `RS_RecipeJobs.JOBS` (`carpentry`, `cooking`, `electrical`, `farming`, `makeshift`, `mechanics`, `medical`, `pottery`, `smithing`, `tailoring`, `weapons` ; [index des recettes](index-recettes.md)). Le pont garde la même liste (`persona_store.JOBS`, contrôlée par `tests/radiosurvivor/test_recipe_index.py`). |
+| `from` | non | Palier de réputation à partir duquel elle aide : `all` (tout le monde), `neutral` (neutre ou mieux, défaut), `good` (bonne seulement). |
+| `delay` | non | Quand elle répond : `now` (tout de suite, défaut), ou elle cherche d'abord `hour` (1 heure de jeu), `half_day` (12 heures), `day` (24 heures). |
+
+| Erreur | Message |
+|---|---|
+| Clé absente (ligne de l'en-tête) | `line N: missing key 'jobs' in [help]` |
+| Métier | `line N: unknown job 'baking' (expected carpentry, cooking, electrical, farming, makeshift, mechanics, medical, pottery, smithing, tailoring, weapons)`, `line N: duplicate job 'cooking'` |
+| Palier, délai | `line N: bad from 'friends' (expected all, neutral, good)`, `line N: bad delay 'week' (expected now, hour, half_day, day)` |
+| Clé inconnue, répétée, vide ; section répétée ou avec identifiant | messages communs des sections (« Erreurs ») : `line N: unknown key 'colour' in [help]`, `line N: duplicate key 'jobs' in [help] (first set on line 6)`, `line N: empty value for key 'from'`, `line N: duplicate section [help] (first set on line 5)`, `line N: section [help] takes no id` |
+
+Atelier : bloc « Aide aux recettes » de l'étape « Personnalité » (métiers à cocher, palier et délai en cartes,
+`from=` et `delay=` écrits seulement s'ils diffèrent du défaut ; aucun métier coché, aucune section).
+
+```text
+[help]
+jobs=medical
+from=all
 ```
 
 ### Exemple
