@@ -572,7 +572,7 @@
 | ☐ | [LK21-T04](LK21-blessures-soins.md#L72) | Infection de plaie et virus de Knox | `à faire` | MP | — |
 | ☐ | [LK21-T05](LK21-blessures-soins.md#L83) | Registre des soins, branchement par extension | `à faire` | MP | — |
 | ☐ | [LK21-T06](LK21-blessures-soins.md#L92) | Trousse de soins du soignant | `à faire` | MP | — |
-| ☐ | [LK21-T07](LK21-blessures-soins.md#L101) | Tâches du soignant : déchirer, laver, stériliser, remplir | `à faire` | MP | — |
+| ☐ | [LK21-T07](LK21-blessures-soins.md#L101) | Tâches du soignant : déchirer, laver, stériliser, attelle, remplir | `à faire` | MP | — |
 | ☐ | [LK21-T08](LK21-blessures-soins.md#L110) | Soins en expédition | `à faire` | MP | — |
 | ☐ | [LK21-T09](LK21-blessures-soins.md#L121) | Sang, trous et bandages visibles chez tous les joueurs | `à faire` | MP | — |
 | ☐ | [LK21-T10](LK21-blessures-soins.md#L130) | Gestes de pansement | `à faire` | MP | — |

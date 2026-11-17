@@ -12,7 +12,7 @@
 | ☐ | LK21-T04 | Infection de plaie et virus de Knox | `à faire` | MP | LK21-T02 |
 | ☐ | LK21-T05 | Registre des soins, branchement par extension | `à faire` | MP | LK21-T02 |
 | ☐ | LK21-T06 | Trousse de soins du soignant | `à faire` | MP | LK21-T05 |
-| ☐ | LK21-T07 | Tâches du soignant : déchirer, laver, stériliser, remplir | `à faire` | MP | LK21-T06 |
+| ☐ | LK21-T07 | Tâches du soignant : déchirer, laver, stériliser, attelle, remplir | `à faire` | MP | LK21-T06 |
 | ☐ | LK21-T08 | Soins en expédition | `à faire` | MP | LK21-T06 |
 | ☐ | LK21-T09 | Sang, trous et bandages visibles chez tous les joueurs | `à faire` | MP | LK21-T02 |
 | ☐ | LK21-T10 | Gestes de pansement | `à faire` | MP | LK21-T05 |
@@ -98,12 +98,12 @@ sang se voit. Un soignant de groupe fabrique son matériel, porte une trousse et
   - Accepté si : au banc, remplissage et ordre de prise ; aucun objet créé ; trousse retrouvée sur le cadavre du soignant.
   - Tests : `test_lk_medkit` (rouge d'abord).
 
-- [ ] **LK21-T07** — Tâches du soignant : déchirer, laver, stériliser, remplir
+- [ ] **LK21-T07** — Tâches du soignant : déchirer, laver, stériliser, attelle, remplir
   - État : `à faire`
   - Cible : `MP`
   - Dépend de : LK21-T06
-  - Fichiers : nouveaux `server/LivingKnox/Jobs/LK_Job_RipCloth.lua`, `LK_Job_WashBandage.lua`, `LK_Job_Sterilize.lua`, `LK_Job_RefillKit.lua` ; `LK_Config.lua` (rôle affiché « soignant ») ; traductions
-  - Faire : D07 de l'ADR. Chaque tâche est inscrite par `Upkeep.registerJob`. Déchirer suit le calcul de `RipClothing` du vanilla (types de tissu, ciseaux pour le jean et le cuir) sur des vêtements du stock ou d'un cadavre proche (retrait du conteneur du cadavre). Laver demande de l'eau ; stériliser, de l'eau bouillante ou de l'alcool. Les soins passent avant les tâches quand une plaie saigne.
+  - Fichiers : nouveaux `server/LivingKnox/Jobs/LK_Job_RipCloth.lua`, `LK_Job_WashBandage.lua`, `LK_Job_Sterilize.lua`, `LK_Job_MakeSplint.lua`, `LK_Job_RefillKit.lua` ; `LK_Config.lua` (rôle affiché « soignant ») ; traductions
+  - Faire : D07 de l'ADR. Chaque tâche est inscrite par `Upkeep.registerJob`. Déchirer suit le calcul de `RipClothing` du vanilla (types de tissu, ciseaux pour le jean et le cuir) sur des vêtements du stock ou d'un cadavre proche (retrait du conteneur du cadavre). Laver demande de l'eau ; stériliser, de l'eau bouillante ou de l'alcool. Une attelle est fabriquée (recette `MakeSplint` : tissu déchiré et planche, branche ou bâton) quand une fracture en demande une et qu'il n'y en a ni dans la trousse ni au stock. Les soins passent avant les tâches quand une plaie saigne.
   - Accepté si : au banc, chaque tâche consomme et produit de vrais objets selon les recettes vanilla ; en jeu, suite `lk.healer` : un soignant déchire un vêtement d'un cadavre et range le tissu dans sa trousse.
   - Tests : `test_lk_healer` (rouge d'abord) ; suite `lk.healer`.
 
@@ -112,8 +112,8 @@ sang se voit. Un soignant de groupe fabrique son matériel, porte une trousse et
   - Cible : `MP`
   - Dépend de : LK21-T06
   - Fichiers : `server/LivingKnox/Expeditions/` (halte), `LK_Care.lua`
-  - Faire : D09 de l'ADR. Une plaie qui saigne fort arrête l'équipe dans un lieu sans menace perçue ; le soin puise dans la trousse ou sur le blessé, puis l'équipe reprend.
-  - Accepté si : au banc, halte, soin puis reprise ; en jeu, un membre blessé en expédition est soigné sur place (suite `lk.expedition` ou `lk.care`).
+  - Faire : D08 (départ) et D09 de l'ADR. Au départ d'une expédition, le matériel médical du foyer est réservé d'abord à la trousse du soignant de l'équipe, avant les provisions des autres. Une plaie qui saigne fort arrête l'équipe dans un lieu sans menace perçue ; le soin puise dans la trousse ou sur le blessé, puis l'équipe reprend.
+  - Accepté si : au banc, matériel médical réservé au soignant au départ, puis halte, soin et reprise ; en jeu, un membre blessé en expédition est soigné sur place (suite `lk.expedition` ou `lk.care`).
   - Tests : `test_lk_expeditions`, `test_lk_care` ; campagnes.
 
 ## Phase 3 — Ce qui se voit

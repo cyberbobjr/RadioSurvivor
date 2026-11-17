@@ -73,6 +73,7 @@ Faits du moteur (recherche du 2026-11-17, confirmés statiquement) :
   - **déchirer des vêtements** en tissu déchiré. Les vêtements viennent du stock du foyer ou d'un cadavre proche, et le calcul est celui de `RipClothing` du vanilla (coton : tissu ; jean et cuir : bandes, avec ciseaux) ;
   - **laver** les bandes et bandages sales à l'eau (`CleanBandage`) ;
   - **stériliser** : eau bouillante ou alcool (`DisinfectBandage`, `DisinfectRag`) ;
+  - **fabriquer une attelle** quand une fracture en demande une et qu'il n'y en a pas : recette `MakeSplint` du vanilla (tissu déchiré, plus une planche, une branche ou un bâton) ;
   - **remplir la trousse** (D08) ;
   - **soigner** (D05), en priorité sur les autres tâches quand une plaie saigne.
 
@@ -81,6 +82,7 @@ Faits du moteur (recherche du 2026-11-17, confirmés statiquement) :
   - Le soignant porte un contenant vanilla (`FirstAidKit`), rempli au stock du foyer selon une liste cible déclarée.
   - En expédition, les soins puisent dans la trousse, sinon dans ce que porte le blessé. Au foyer, ils puisent dans la trousse, puis dans le stock.
   - Les objets sont réels : rien n'est créé hors d'une recette.
+  - **Départ en expédition (utilisateur, 2026-11-17) :** quand le soignant part en expédition, le matériel médical du foyer lui est réservé en priorité. Sa trousse est complétée d'abord, avant les provisions des autres membres.
 - **D09 — Soins hors du foyer.**
   - Le soin se donne aussi en expédition, pendant une halte au calme, quand aucune menace n'est perçue.
   - Une plaie qui saigne fort fait faire une halte à l'équipe.
