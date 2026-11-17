@@ -49,6 +49,7 @@ function Edges.windowFacts(w, kind)
         barricaded = function() return w:isBarricaded() == true end,
         open = function() return isWindow and w:IsOpen() == true end,
         destroyed = function() return isWindow and w:isDestroyed() == true end,
+        glassRemoved = function() return isWindow and w:isGlassRemoved() == true end,   -- LK21-T12
     })
 end
 

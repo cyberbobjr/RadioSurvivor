@@ -10,7 +10,7 @@
 | ☐ | LK21-T02 | Les coups font des plaies ; la santé suit les plaies | `testé hors jeu` | MP | LK21-T01 |
 | ☐ | LK21-T03 | La simulation hors écran utilise les mêmes plaies | `testé hors jeu` | MP | LK21-T02 |
 | ☐ | LK21-T04 | Infection de plaie et virus de Knox | `à faire` | MP | LK21-T02 |
-| ☐ | LK21-T12 | Retirer le verre brisé avant d'enjamber | `à faire` | MP | LK21-T02 |
+| ☐ | LK21-T12 | Retirer le verre brisé avant d'enjamber | `testé hors jeu` | MP | LK21-T02 |
 | ☐ | LK21-T05 | Registre des soins, branchement par extension | `à faire` | MP | LK21-T02 |
 | ☐ | LK21-T06 | Trousse de soins du soignant | `à faire` | MP | LK21-T05 |
 | ☐ | LK21-T07 | Tâches du soignant : déchirer, laver, stériliser, attelle, remplir | `à faire` | MP | LK21-T06 |
@@ -86,13 +86,15 @@ sang se voit. Un soignant de groupe fabrique son matériel, porte une trousse et
   - Tests : `test_lk_infection` (rouge d'abord) ; suite `lk.wounds`.
 
 - [ ] **LK21-T12** — Retirer le verre brisé avant d'enjamber
-  - État : `à faire`
+  - État : `testé hors jeu`
   - Cible : `MP`
   - Dépend de : LK21-T02
   - Fichiers : `server/LivingKnox/Obstacles/LK_Obstacles_Windows.lua`, exécutant client (geste), source `Wounds/LK_WoundSource_Glass.lua`
   - Faire : D03 de l'ADR (verre brisé). Devant une fenêtre brisée dont le verre reste, un PNJ qui n'est ni en fuite ni en combat retire le verre (même effet et même synchronisation que l'action vanilla, fenêtre marquée verre retiré), puis enjambe. En fuite ou en urgence, il enjambe tout de suite et court le risque du vanilla (1 sur 2, main ou avant-bras, éclats 1 fois sur 7, sinon griffure).
   - Accepté si : au banc, retrait avant passage hors urgence, risque appliqué en fuite ; en jeu, `lk.traversal` « broken window » : verre retiré, aucune plaie, fenêtre vue sans verre par les deux clients en MP.
   - Tests : `test_lk_obstacles`, `test_lk_wounds` ; suite `lk.traversal`.
+  - Preuve : 2026-11-17, rouge d'abord : nouveaux `GlassTests` et `MultiplayerGlassTests` de `tests/livingknox/test_lk_obstacles.py` `Ran 7 tests FAILED (failures=4, errors=8)`, puis `Ran 139 tests OK`. Règles pures `EdgeRules.glassLeft` et `EdgeRules.glassStep(window, hurry)` (« remove », « risk » ou rien) ; fait de bord `glassRemoved` (`IsoWindow.isGlassRemoved`, `IsoWindow.java:1280`). Nouveau `server/LivingKnox/Obstacles/LK_Obstacles_Glass.lua` : PNJ calme -> geste `removeglass` (clip `rummage`, celui de `ISRemoveBrokenGlass`), verre retiré par l'autorité à 2080 ms (durée vanilla 100 / 48 par seconde) par `removeBrokenGlass()` puis `sync()`, comme `ISRemoveBrokenGlass:complete` ; PNJ pressé (priorité de passage de son comportement >= 70 : alerte, défense, combat, fuite, soin...) -> enjambe, tirage 1 sur 2 au passage puis `Health.applyHit(..., 10, ..., { source = "glass", risk = false })`. Geste gardé par le relais (`Config.RELAY.KEEP_GESTURES.removeglass`). Suite `lk.traversal` : cas « broken window with glass ». Suite complète : voir le commit de LK21-T03.
+  - Reste : suite `lk.traversal` en solo et en MP (fenêtre vue sans verre par les deux clients : confirmé statiquement, `IsoWindow.syncIsoObjectSend`, `IsoWindow.java:744`, et au banc) ; risque en MP lu sur l'état `climbwindow` de la copie serveur, à confirmer en jeu.
 
 ## Phase 2 — Soins et soignant
 

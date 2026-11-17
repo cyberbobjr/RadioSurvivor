@@ -352,6 +352,7 @@ local Sq = H.classes.IsoGridSquare
 local Obj = H.classes.IsoObject
 WINDOWS, FENCES, STAIRS = {}, {}, {}
 WTOGGLES, SMASHES, ALARMS = 0, 0, 0
+GLASS_REMOVALS, GLASS_REQUESTS = 0, 0   -- LK21-T12 : removeBrokenGlass appliqué ici, demandé par un client
 TOGGLED_BY, CLIMBS = {}, {}
 CLIMB_TICKS = 30
 local function key(x, y, z, kind) return x .. ',' .. y .. ',' .. z .. ',' .. kind end
@@ -394,7 +395,23 @@ function Win:isSmashed() return self.destroyed == true end
 function Win:setSmashed(b) self.destroyed = b; self.glassRemoved = false end
 function Win:setGlassRemoved(b) self.glassRemoved = b end
 function Win:setIsLocked(b) self.locked = b end
-function Win:sync() end
+-- LK21-T12 (IsoWindow.java:1280-1306) : verre d'une fenêtre brisée ; removeBrokenGlass envoie depuis un client la
+-- demande au serveur (SmashWindowPacket, GameClient.java:509-516 : comptée dans GLASS_REQUESTS, jamais appliquée
+-- ici), sinon setGlassRemoved(true), sans effet sur une fenêtre intacte.
+function Win:isGlassRemoved() return self.glassRemoved == true end
+function Win:removeBrokenGlass()
+    if isClient() then GLASS_REQUESTS = GLASS_REQUESTS + 1 return end
+    GLASS_REMOVALS = GLASS_REMOVALS + 1
+    if self.destroyed then self.glassRemoved = true end
+end
+-- IsoObject.java:982-1008, IsoWindow.java:733-760 : état absolu (ouverte, détruite, verre retiré) envoyé par le serveur
+-- à toutes les connexions, par un client au serveur qui le relaie ; rien en solo.
+function Win:sync()
+    if isServer() or isClient() then
+        SYNCS[#SYNCS + 1] = { key = self.key, win = true, open = self.open == true, destroyed = self.destroyed == true,
+            glass = self.glassRemoved == true }
+    end
+end
 function Sq:RecalcProperties() end
 -- Une seule surcharge ToggleWindow(IsoGameCharacter) : Kahlua refuse tout autre nombre d'arguments
 -- (MethodArguments.assertValid : "expected 1 argument, got 2").
@@ -425,9 +442,10 @@ function NEW_WINDOW(x, y, z, kind, cls, fields)
     WINDOWS[w.key] = w
     return w
 end
-function APPLY_WINDOW(k, open, destroyed)
+function APPLY_WINDOW(k, open, destroyed, glass)
     local w = WINDOWS[k]
     if w ~= nil then w.open, w.destroyed = open, destroyed end
+    if w ~= nil and glass ~= nil then w.glassRemoved = glass end   -- LK21-T12 : verre retiré (sync seulement)
 end
 function WINDOW_STATE(k)
     local w = WINDOWS[k]
@@ -645,8 +663,9 @@ class ObstacleBase(DirectiveBase):
                     if dst == src:
                         continue
                     if s.win:
+                        glass = 'nil' if s.glass is None else str(s.glass).lower()   # LK21-T12
                         self.h.eval(dst, f'APPLY_WINDOW("{s.key}", {str(s.open).lower()}, '
-                                         f'{str(s.destroyed).lower()})')
+                                         f'{str(s.destroyed).lower()}, {glass})')
                     else:
                         self.h.eval(dst, f'APPLY_DOOR("{s.key}", {str(s.open).lower()}, {str(s.locked).lower()}, '
                                          f'{str(s.lockedByKey).lower()})')
@@ -1215,7 +1234,8 @@ class SoloTraversalTests(ObstacleBase):
         self.assertEqual(self.o('stats.windowsClosed'), 0)
 
     def test_broken_window_empty_frame_and_low_fence_are_crossed_by_the_engine_alone(self):
-        cases = [('window', {'destroyed': True}, 'climbwindow'), ('frame', {}, 'climbwindow'),
+        # LK21-T12 : fenêtre brisée au verre retiré (le verre restant est retiré d'abord : GlassTests).
+        cases = [('window', {'destroyed': True, 'glassRemoved': True}, 'climbwindow'), ('frame', {}, 'climbwindow'),
                  ('built', {}, 'climbwindow'), (None, {}, 'climbfence')]
         for cls, fields, kind in cases:
             with self.subTest(cls=cls):
@@ -1640,8 +1660,9 @@ class TraversalSuiteTests(ObstacleBase):
         self.assertEqual(listed.name, 'lk.traversal')
         self.assertEqual(lua_list(listed.tags), ['world', 'server'])
         self.assertIsNone(listed.error)
-        self.assertEqual(listed.count, 16)   # LK04-T17 : porte verrouillée ouverte de l'intérieur ; LK04-T19 : porte
-        #                                      intérieure reverrouillée ou non ; LK04-T20 : PNJ enfermé ; LK17-T01 : détour
+        self.assertEqual(listed.count, 17)   # LK04-T17 : porte verrouillée ouverte de l'intérieur ; LK04-T19 : porte
+        #                                      intérieure reverrouillée ou non ; LK04-T20 : PNJ enfermé ; LK17-T01 : détour ;
+        #                                      LK21-T12 : fenêtre brisée au verre restant
 
 
 class TraversalFix1011Tests(ObstacleBase):
@@ -2930,6 +2951,182 @@ function APPLY_HEALTH(k, h)
     if d ~= nil then d.health = h end
 end
 '''
+
+
+class GlassBase(WindowGestureBase):
+    """LK21-T12 (ADR adr-blessures-soins.md D03, « Verre brisé ») : devant une fenêtre brisée dont le verre reste, un
+    PNJ ni en fuite ni en urgence retire le verre (geste, durée et synchronisation de l'action vanilla
+    ISRemoveBrokenGlass) puis enjambe ; pressé, il enjambe aussitôt et court le risque du vanilla (source "glass",
+    ClimbThroughWindowState.java:532-534). Espion de LivingKnox.Health.applyHit (HITS) : LK_Health n'est pas chargé ici.
+    """
+
+    @property
+    def auth(self):
+        return 'solo' if self.mode == 'solo' else 'server'
+
+    def spies(self, rnd=0.0):
+        """Source "glass" inscrite, tirage des blessures fixé à rnd, coups notés dans HITS."""
+        a = self.auth
+        self.h.load(a, 'server/LivingKnox/LK_WoundContext.lua')
+        self.h.load(a, 'server/LivingKnox/Wounds/LK_WoundSource_Glass.lua')
+        self.h.load(a, f'LivingKnox.WoundContext.rnd = function() return {rnd} end')
+        self.h.load(a, 'HITS = {}; LivingKnox.Health = LivingKnox.Health or {}; '
+                       'LivingKnox.Health.applyHit = function(id, z, amount, part, wielder, weapon, opts) '
+                       'HITS[#HITS + 1] = { id = id, amount = amount, part = part, source = opts and opts.source, '
+                       'risk = opts and opts.risk } return 50 end')
+
+    def hurry(self, kind='flee', n=100, held=False):
+        """Comportement kind de priorité de passage n au cadre de décision de lk-1 (LK_PassageAuthority.kindOf).
+        held : genre tenu pendant la marche (lk-1 n'est membre d'aucun groupe : la passe des décisions l'oublierait)."""
+        a = self.auth
+        self.h.load(a, 'server/LivingKnox/LK_PassageAuthority.lua')
+        self.h.load(a, f'LivingKnox.Passage.priority("{kind}", {n}); '
+                       f'LivingKnox.Decisions.state.members["lk-1"] = {{ b = "{kind}" }}')
+        if held:
+            self.h.load(a, f'LivingKnox.PassageAuthority.kindOf = function() return "{kind}" end')
+
+    def glass(self, m=None):
+        return self.h.eval(m or self.auth, f'WINDOWS["{DOOR_KEY}"].glassRemoved == true')
+
+    def hits(self):
+        n = self.h.eval(self.auth, '#HITS')
+        return [{k: self.h.eval(self.auth, f'HITS[{i}].{k}') for k in ('id', 'amount', 'part', 'source', 'risk')}
+                for i in range(1, n + 1)]
+
+
+class GlassTests(GlassBase):
+    mode = 'solo'
+
+    def test_glass_rule_reads_only_the_window_facts_and_the_hurry(self):
+        self.init()
+        step = 'LivingKnox.EdgeRules.glassStep'
+        cases = [('{ kind = "window", destroyed = true }', 'remove', 'risk'),
+                 ('{ kind = "window", destroyed = true, glassRemoved = true }', None, None),
+                 ('{ kind = "window", open = true }', None, None),
+                 ('{ kind = "window" }', None, None),
+                 ('{ kind = "window", destroyed = true, barricaded = true }', None, None),
+                 ('{ kind = "frame" }', None, None),
+                 ('{ kind = "built" }', None, None)]
+        for facts, calm, hurried in cases:
+            with self.subTest(facts=facts):
+                self.assertEqual(self.ev(f'{step}({facts}, false)'), calm)
+                self.assertEqual(self.ev(f'{step}({facts}, true)'), hurried)
+
+    def test_hurry_is_the_passage_priority_of_the_current_behaviour(self):
+        self.start()
+        self.assertIs(self.o('inHurry("lk-1")'), False)              # aucun comportement : priorité par défaut
+        self.hurry('chore', 50)
+        self.assertIs(self.o('inHurry("lk-1")'), False)
+        self.hurry('alert', 70)
+        self.assertIs(self.o('inHurry("lk-1")'), True)
+        self.hurry('flee', 100)
+        self.assertIs(self.o('inHurry("lk-1")'), True)
+
+    def test_calm_npc_removes_the_glass_with_a_gesture_then_climbs_unhurt(self):
+        self.window(destroyed=True)
+        zid = self.start()
+        self.spies()
+        self.move()
+        seen = {}
+
+        def check():
+            t = self.ev('getTimestampMs()')
+            if 'gesture' not in seen and self.ev(f'ANIMVARS(HARNESS.zombies[{zid}])').endswith('gesture=rummage'):
+                seen['gesture'] = t
+            if 'removed' not in seen and self.glass():
+                seen['removed'] = t
+            if 'climb' not in seen and self.h.zombie('solo', zid).climbing is not None:
+                seen['climb'] = self.glass()
+        self.walk_w(zid, 900, until=self.done(), check=check)
+        self.assertEqual(self.entry('s'), 'arrived')
+        self.assertIn('gesture', seen, 'no glass removal gesture shown')
+        self.assertIs(seen.get('climb'), True, 'climbed before the glass was removed')
+        # Durée de l'action vanilla (100 unités à 48 par seconde), un passage et un affichage près.
+        dt = seen['removed'] - seen['gesture']
+        self.assertLessEqual(abs(dt - self.o('GLASS_REMOVE_MS')), self.slack(), dt)
+        self.assertEqual(self.ev('GLASS_REMOVALS'), 1)
+        self.assertEqual(self.o('stats.glassRemoved'), 1)
+        self.assertEqual(self.climbs('solo'), ['climbwindow ' + DOOR_KEY])
+        self.assertEqual(self.hits(), [])
+        self.assertEqual(self.wcount('solo'), (0, 0))
+        self.assertGreaterEqual(self.ev('LivingKnox.Executor.stats.actResumed'), 1)
+        self.assertTrue(any('npc lk-1: broken glass of the window 106,102,0,W removed' in s for s in self.lk()),
+                        self.lk())
+        self.assertEqual(self.h.errors('solo'), [])
+
+    def test_npc_in_a_hurry_climbs_at_once_and_runs_the_vanilla_glass_risk(self):
+        # 1 fois sur 2 (tirage 0 : blessé ; 0,6 : indemne), 10 de dégâts comme AddDamage(10) du vanilla, source "glass"
+        # dont la blessure est alors certaine (risk = false : le tirage est fait au passage).
+        for rnd, hurt in ((0.0, True), (0.6, False)):
+            with self.subTest(rnd=rnd):
+                self.setUp()
+                try:
+                    self.window(destroyed=True)
+                    zid = self.start()
+                    self.spies(rnd)
+                    self.hurry('flee', held=True)
+                    self.move()
+                    self.walk_w(zid, 900, until=self.done())
+                    self.walk_w(zid, 30)
+                    self.assertEqual(self.entry('s'), 'arrived')
+                    self.assertIs(self.glass(), False)
+                    self.assertEqual(self.ev('GLASS_REMOVALS'), 0)
+                    self.assertEqual(self.ev('LivingKnox.Anim.stats.acts'), 0)
+                    self.assertEqual(self.climbs('solo'), ['climbwindow ' + DOOR_KEY])
+                    expected = [{'id': 'lk-1', 'amount': 10, 'part': None, 'source': 'glass', 'risk': False}]
+                    self.assertEqual(self.hits(), expected if hurt else [])
+                    self.assertEqual(self.o('stats.glassClimbs'), 1)
+                    self.assertEqual(self.h.errors('solo'), [])
+                finally:
+                    self.tearDown()
+
+    def test_no_glass_risk_through_a_cleared_or_open_window_or_an_empty_frame(self):
+        for cls, fields in (('window', {'destroyed': True, 'glassRemoved': True}), ('window', {'open': True}),
+                            ('frame', {})):
+            with self.subTest(cls=cls, fields=fields):
+                self.setUp()
+                try:
+                    self.window(cls, **fields)
+                    zid = self.start()
+                    self.spies(0.0)
+                    self.hurry('flee', held=True)
+                    self.move()
+                    self.walk_w(zid, 900, until=self.done())
+                    self.assertEqual(self.entry('s'), 'arrived')
+                    self.assertEqual(self.climbs('solo'), ['climbwindow ' + DOOR_KEY])
+                    self.assertEqual(self.hits(), [])
+                    self.assertEqual(self.ev('GLASS_REMOVALS'), 0)
+                finally:
+                    self.tearDown()
+
+
+class MultiplayerGlassTests(GlassBase):
+    """Serveur dédié, A simule le corps, B regarde : verre retiré par le serveur (removeBrokenGlass puis sync, comme
+    ISRemoveBrokenGlass:complete), vu par A et B ; aucune demande d'un client."""
+
+    def setUp(self):
+        super().setUp()
+        SENT.clear()
+
+    ready = MultiplayerTraversalTests.ready
+
+    def test_glass_removed_by_the_server_and_seen_by_both_clients(self):
+        self.window(destroyed=True)
+        zid = self.start('A')
+        self.spies()
+        self.move()
+        self.h.pump()
+        self.walk_w(zid, 900, until=self.done())
+        self.assertEqual(self.entry('s'), 'arrived')
+        for m in ('server', 'A', 'B'):
+            self.assertIs(self.glass(m), True, m)
+            self.assertEqual(self.h.eval(m, 'GLASS_REQUESTS'), 0, m)
+            self.assertEqual(self.h.errors(m), [], m)
+        self.assertEqual(self.h.eval('server', 'GLASS_REMOVALS'), 1)
+        self.assertIn(('server', DOOR_KEY), SENT)
+        self.assertEqual({src for src, _ in SENT}, {'server'})
+        self.assertEqual(self.climbs('A'), ['climbwindow ' + DOOR_KEY])
+        self.assertEqual(self.hits(), [])
 
 
 class ForceBase(ObstacleBase):

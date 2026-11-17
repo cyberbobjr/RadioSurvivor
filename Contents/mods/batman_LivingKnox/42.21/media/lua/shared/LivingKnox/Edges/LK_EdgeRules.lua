@@ -4,8 +4,9 @@
 -- (shared/LivingKnox/Edges/LK_Edges.lua, seul lecteur du jeu) :
 --   edge = {
 --     door     = absente (nil ou false) | { open, lowGate, obj }  porte du bord (lowGate : portail bas enjambé)
---     window   = absente | { kind, open, destroyed, barricaded, obj } fenêtre ("window"), fenêtre construite ("built")
---                                                                ou cadre ("frame") ; open et destroyed : "window" seule
+--     window   = absente | { kind, open, destroyed, glassRemoved, barricaded, obj } fenêtre ("window"), fenêtre
+--                                                                construite ("built") ou cadre ("frame") ; open,
+--                                                                destroyed et glassRemoved : "window" seule
 --     fence    = booléen    clôture basse telle que le moteur la voit (drapeau Hoppable de la case)
 --     hoppable = booléen    objet enjambable sur le bord (isHoppableTo), même sous un mur
 --     wall     = booléen    mur (isWallTo)
@@ -42,6 +43,22 @@ end
 function Rules.windowStops(window)
     if window.barricaded == true then return true end
     return window.kind == "window" and window.open ~= true and window.destroyed ~= true
+end
+
+-- Vrai si enjamber la fenêtre expose au verre brisé (LK21-T12, ADR adr-blessures-soins.md D03, « Verre brisé ») :
+-- fenêtre brisée dont le verre n'a pas été retiré, non barricadée (ClimbThroughWindowState.java:532 : isDestroyed et
+-- pas isGlassRemoved). Fenêtre ouverte intacte, verre retiré, cadre vide, fenêtre construite : aucun verre.
+function Rules.glassLeft(window)
+    return window.kind == "window" and window.destroyed == true and window.glassRemoved ~= true
+        and window.barricaded ~= true
+end
+
+-- Conduite devant la fenêtre (LK21-T12) : "remove" (retirer d'abord le verre, comme l'action vanilla, puis enjamber)
+-- pour un PNJ qui n'est pas pressé, "risk" (enjamber aussitôt et courir le risque du vanilla) pour un PNJ pressé
+-- (hurry : fuite, combat, urgence), nil sans verre à craindre.
+function Rules.glassStep(window, hurry)
+    if not Rules.glassLeft(window) then return nil end
+    return hurry and "risk" or "remove"
 end
 
 -- Vrai si un corps sur une case ne peut pas se dire arrivé sur la case voisine (orthogonale) de l'autre côté du bord :

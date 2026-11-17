@@ -276,3 +276,4 @@ function Obstacles.landed()
 end
 
 P.occupied = occupied
+P.moveState = moveState   -- LK21-T12 : retrait du verre (LK_Obstacles_Glass)

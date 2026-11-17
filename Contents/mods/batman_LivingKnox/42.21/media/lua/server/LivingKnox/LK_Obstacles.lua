@@ -122,6 +122,8 @@
 --   Obstacles/LK_Obstacles_Keys.lua     clés des foyers (homeKeyOf, giveKey, keyPass, keyHolderAt)
 --   Obstacles/LK_Obstacles_Windows.lua  fenêtres (decideWindow, setWindow, gestes, checkWindows, noteWindows,
 --                                       climbedWindows)
+--   Obstacles/LK_Obstacles_Glass.lua    verre brisé : retiré avant l'enjambée, ou risque du vanilla pour un PNJ pressé
+--                                       (inHurry, checkGlass, glassActPass, climbedGlass ; LK21-T12)
 --   Obstacles/LK_Obstacles_Check.lua    détection des portes, immobilité, refus, contrôle d'un PNJ (doorsNear, check)
 --   Obstacles/LK_Obstacles_Blocked.lua  passage bloqué : attendre ou forcer (blockedPolicy, onBlocked, blockedPass)
 --   Obstacles/LK_Obstacles_Closing.lua  refermeture des portes et des fenêtres (closePass, windowActPass, landed)
@@ -141,6 +143,7 @@ require "LivingKnox/Obstacles/LK_Obstacles_Common"
 require "LivingKnox/Obstacles/LK_Obstacles_Doors"
 require "LivingKnox/Obstacles/LK_Obstacles_Keys"
 require "LivingKnox/Obstacles/LK_Obstacles_Windows"
+require "LivingKnox/Obstacles/LK_Obstacles_Glass"
 require "LivingKnox/Obstacles/LK_Obstacles_Check"
 require "LivingKnox/Obstacles/LK_Obstacles_Blocked"
 require "LivingKnox/Obstacles/LK_Obstacles_Closing"
@@ -171,6 +174,7 @@ function Obstacles.pass()
     end
     Obstacles.blockedPass(t)   -- LK04-T04 : attentes et forçages devant un passage bloqué
     Obstacles.windowActPass(t)
+    Obstacles.glassActPass(t)   -- LK21-T12 : verre retiré à la fin du geste
     Obstacles.closePass(seen, t)
     Obstacles.closeWindowsPass(seen, t)
     Obstacles.keyPass(t)

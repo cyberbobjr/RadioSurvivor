@@ -451,7 +451,8 @@ Config.RELAY = Config.RELAY or {
     WINDOW_MS = 150,
     MAX_PER_TICK = 16,
     SCAN_EVERY = 10,
-    KEEP_GESTURES = { strike = true, force = true, openwindow = true, closewindow = true },   -- LK04-T13, T04
+    KEEP_GESTURES = { strike = true, force = true, openwindow = true, closewindow = true,   -- LK04-T13, T04
+        removeglass = true },                                                            -- LK21-T12
     MAX_KEPT = 4,
 }
 

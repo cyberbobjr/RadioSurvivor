@@ -55,9 +55,11 @@ Anim.GESTURES = { idle = true, walk = true, run = true, crouch = true, aim = tru
 -- LK04-T04 (passage bloqué, LK_Obstacles.lua) : "force" (frapper une barricade ou une porte) et "wait" (attendre
 -- devant un passage bloqué), joués par un clip existant (ACT_CLIP) : l'exécutant garde le corps arrêté et tourné vers
 -- l'obstacle comme pour une fenêtre.
-Anim.ACTS = { openwindow = true, closewindow = true, force = true, wait = true }
+-- LK21-T12 : "removeglass" (retirer le verre d'une fenêtre brisée), joué par le clip de fouille à mi-hauteur
+-- ("rummage", Bob_IdleLooting_Mid : l'action vanilla ISRemoveBrokenGlass joue l'animation Loot, LootPosition Mid).
+Anim.ACTS = { openwindow = true, closewindow = true, force = true, wait = true, removeglass = true }
 -- Clip affiché (valeur de VAR_GESTURE) d'un geste ponctuel qui n'a pas ses propres nœuds ; sinon son propre nom.
-Anim.ACT_CLIP = { force = "strike", wait = "idle" }
+Anim.ACT_CLIP = { force = "strike", wait = "idle", removeglass = "rummage" }
 Anim.VAR_PHASE = "LKActPhase"    -- BOOL : second clip d'un geste ponctuel (posé par le premier nœud)
 Anim.ACT_MAX_MS = 10000          -- durée maximale d'un geste ponctuel
 Anim.MODULE = "LivingKnox"

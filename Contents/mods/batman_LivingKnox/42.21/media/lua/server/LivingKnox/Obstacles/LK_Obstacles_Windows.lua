@@ -124,20 +124,28 @@ function Obstacles.faceAngle(e, px, py)
     return west and 90 or 270
 end
 
--- Geste devant la fenêtre w du bord e (LK04-T13) : kind "open" (geste openwindow) ou "close" (closewindow), joué par
--- le corps z du PNJ id tourné vers la fenêtre (LivingKnox.Anim.startAct ; l'exécutant arrête le corps et le tourne).
--- La fenêtre n'est basculée qu'à l'instant du clip (windowActPass). Rend vrai si le geste est posé.
-function Obstacles.startWindowAct(id, z, w, e, kind, t)
+-- Geste ponctuel g de ms millisecondes devant la fenêtre du bord e, joué par le corps z du PNJ id tourné vers elle
+-- (LivingKnox.Anim.startAct ; l'exécutant arrête le corps, le tourne, puis relance son chemin à la fin du geste).
+-- Rend vrai si le geste est posé (refus journalisé). LK21-T12 : partagé avec le retrait du verre (LK_Obstacles_Glass).
+local function windowGesture(id, z, e, g, ms)
     local A = LivingKnox.Anim
     if not Obstacles.WINDOW_GESTURE or A == nil or A.startAct == nil or z == nil then return false end
-    local open = kind == "open"
-    local g = open and "openwindow" or "closewindow"
-    local ms = open and Obstacles.OPEN_GESTURE_MS or Obstacles.CLOSE_GESTURE_MS
     local ok, why = A.startAct(id, g, ms, Obstacles.faceAngle(e, z:getX(), z:getY()))
     if not ok then
         LivingKnox.Log.warn("npc %s: %s gesture at the window %s refused: %s", id, g, e.key, tostring(why))
         return false
     end
+    return true
+end
+
+-- Geste devant la fenêtre w du bord e (LK04-T13) : kind "open" (geste openwindow) ou "close" (closewindow), joué par
+-- le corps z du PNJ id tourné vers la fenêtre (windowGesture). La fenêtre n'est basculée qu'à l'instant du clip
+-- (windowActPass). Rend vrai si le geste est posé.
+function Obstacles.startWindowAct(id, z, w, e, kind, t)
+    local open = kind == "open"
+    local g = open and "openwindow" or "closewindow"
+    local ms = open and Obstacles.OPEN_GESTURE_MS or Obstacles.CLOSE_GESTURE_MS
+    if not windowGesture(id, z, e, g, ms) then return false end
     t = t or P.now()
     Obstacles.winActs[e.key] = { win = w, e = e, id = id, kind = kind, g = g, ms = t, endMs = t + ms,
         toggleMs = t + (open and Obstacles.OPEN_TOGGLE_MS or Obstacles.CLOSE_TOGGLE_MS),
@@ -253,3 +261,4 @@ function Obstacles.climbedWindows(id, z, t)
 end
 
 P.farSquare = farSquare
+P.windowGesture = windowGesture

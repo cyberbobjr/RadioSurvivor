@@ -671,12 +671,14 @@ end
 
 -- Window state saved now and restored by t:defer (registered after the npc: runs before its removal).
 local function keepWindow(t, w, id)
-    local was = { open = w:IsOpen(), smashed = w:isSmashed(), locked = w:isLocked() }
+    local was = { open = w:IsOpen(), smashed = w:isSmashed(), locked = w:isLocked(), glass = w:isGlassRemoved() }
     t:defer(function()
         if w:isSmashed() ~= was.smashed then
             w:setSmashed(was.smashed)
             if not was.smashed then w:setGlassRemoved(false) end
         end
+        -- LK21-T12: glass removed by a calm npc on a window that was broken with its glass (or the reverse).
+        if was.smashed and w:isGlassRemoved() ~= was.glass then w:setGlassRemoved(was.glass) end
         setOpen(w, id, was.open)
         w:setIsLocked(was.locked)
         w:getSquare():RecalcProperties()
@@ -1363,14 +1365,36 @@ RST.suite("lk.traversal", { tags = { "world", "server" }, testTimeoutMs = 300000
         if not isServer() then t:ok(info.seen.climbwindow == true, "climbwindow state never seen") end
     end, true), { timeoutMs = 300000 })
 
+    -- LK21-T12: glass removed beforehand (glass left in the frame: next test), the engine alone climbs through.
     s.test("broken window: climbed through, no toggle", windowTest(function(t, w, id)
         setOpen(w, id, false)
         if not w:isSmashed() then w:setSmashed(true) end
+        w:setGlassRemoved(true)
         w:getSquare():RecalcProperties()
         if isServer() then w:sync() end
         t:ok(w:isSmashed(), "window not broken")
     end, "broken window", false, function(t, w, info, e, ctx)
         t:ok(w:isSmashed(), "the crossed window is no longer broken")
+        if not isServer() then t:ok(info.seen.climbwindow == true, "climbwindow state never seen") end
+    end, true), { timeoutMs = 300000 })
+
+    -- LK21-T12 (ADR adr-blessures-soins.md D03, broken glass): a calm npc first removes the glass (vanilla action
+    -- ISRemoveBrokenGlass: removeBrokenGlass then sync by the authority), then climbs through, unhurt.
+    s.test("broken window with glass: glass removed by a calm npc, no wound", windowTest(function(t, w, id)
+        setOpen(w, id, false)
+        w:setSmashed(true)   -- clears glassRemoved: glass back in the frame
+        w:getSquare():RecalcProperties()
+        if isServer() then w:sync() end
+        t:ok(w:isSmashed() and not w:isGlassRemoved(), "window not broken with its glass")
+        local H = LivingKnox.Health
+        local wounds = H ~= nil and H.wounds ~= nil and H.wounds(id) or nil
+        return { id = id, removed = O().stats.glassRemoved or 0, wounds = wounds and #wounds or 0 }
+    end, "broken window with glass", false, function(t, w, info, e, ctx)
+        t:ok(w:isSmashed() and w:isGlassRemoved(), "the glass of the crossed window was not removed")
+        t:eq(ctx.removed + 1, O().stats.glassRemoved or 0, "glass removals by the authority")
+        local H = LivingKnox.Health
+        local wounds = H ~= nil and H.wounds ~= nil and H.wounds(ctx.id) or nil
+        t:eq(ctx.wounds, wounds and #wounds or 0, "wounds of the npc after the crossing")
         if not isServer() then t:ok(info.seen.climbwindow == true, "climbwindow state never seen") end
     end, true), { timeoutMs = 300000 })
 

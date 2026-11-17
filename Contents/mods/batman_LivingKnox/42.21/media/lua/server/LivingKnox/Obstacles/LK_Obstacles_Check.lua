@@ -173,7 +173,9 @@ function Obstacles.check(id, e, z, seen, t)
         end
     end
     Obstacles.climbedWindows(id, z, t)
+    Obstacles.climbedGlass(id, z)   -- LK21-T12 : risque du verre brisé à l'enjambée
     Obstacles.noteWindows(z, tx, ty, seen)
+    if Obstacles.checkGlass(id, z, onWay, t) then return end   -- LK21-T12 : verre retiré avant l'enjambée
     Obstacles.checkWindows(id, e, z, still, t)
 end
 
