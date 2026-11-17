@@ -99,7 +99,7 @@ import urllib.request
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Callable
+from typing import Callable, NamedTuple
 import npc_protocol as npc
 import persona_store
 import last_pages  # E15-T03: kind=last_pages (journal of a dead notebook character)
@@ -111,6 +111,8 @@ import place_surveys  # E22-T08: places recorded in game, listed by the workshop
 import game_console  # E22-T04: the game's verdict on the sheets, read in its console
 import log_buffer  # E22-T10: live journal of the workshop
 from recipe_index import RecipeIndex  # E27-T01: craft recipes loaded by the game, reread when it rewrites them
+import recipe_help  # E27-T03: a voice with [help] looks a recipe up and answers in character
+import recipe_search  # E27-T03: recipes of the index found by English keywords
 
 HERE = Path(__file__).resolve().parent
 DEFAULT_ENV = HERE / ".env"      # à côté du pont, ignoré par Git (modèle : .env.example)
@@ -1017,9 +1019,10 @@ def request_voice(req: dict[str, str]) -> str:
 
 
 def answer(config: dict[str, str], conversations: Conversations, session: str, req: dict[str, str],
-           voices: Voices | None = None) -> list[str] | dict:
-    """Lignes radio (mode texte, line=) ; en mode structuré avec au moins une action de forme valide, la table
-    radio_reply envoyée en payload= (E07-T01). Hors ligne : jamais d'action."""
+           voices: Voices | None = None, recipes: RecipeIndex | None = None) -> list[str] | dict:
+    """Lignes radio (mode texte, line=) ; en mode structuré avec au moins une action de forme valide ou une recette
+    donnée (E27-T03, `recipes` : index des recettes, None = pas d'aide aux recettes), la table radio_reply envoyée en
+    payload= (E07-T01). Hors ligne : jamais d'action."""
     voice = request_voice(req)
     sheet = voices.get(voice) if voices is not None else None
     if sheet is None:
@@ -1031,47 +1034,88 @@ def answer(config: dict[str, str], conversations: Conversations, session: str, r
         tag, history = conversations.prepare(session, req.get("caller", "?"), voice)
         # C02: the caller's text can never carry the tag of another caller (history shared by all callers).
         history = [_clean_history_turn(message) for message in history]
-        user_msg, reply, actions = voice_turn(config, req, tag, sheet, history, jobs)
+        turn = voice_turn(config, req, tag, sheet, history, jobs, recipes)
         # Seul le texte dit entre en mémoire, jamais le JSON ni les actions.
-        conversations.append(session, user_msg, reply, voice)
-        lines = radio_lines(reply)
-        if not actions:
+        conversations.append(session, turn.user_msg, turn.reply, voice)
+        lines = radio_lines(turn.reply)
+        if not turn.actions and not turn.recipes:
             return lines
-        return {"version": 2, "kind": REPLY_KIND, "id": req.get("id", "console"), "say": lines, "actions": actions}
+        payload = {"version": 2, "kind": REPLY_KIND, "id": req.get("id", "console"), "say": lines,
+                   "actions": turn.actions}
+        if turn.recipes:
+            payload["recipes"] = turn.recipes   # E27-T03: ids of the recipes given, for the server (E27-T04)
+        return payload
+
+
+class VoiceTurn(NamedTuple):
+    """One turn of a voice: the user message kept in the history, the reply said, the bounded actions and the ids of
+    the recipes given (E27-T03, [] without a recipe search)."""
+    user_msg: str
+    reply: str
+    actions: list[dict]
+    recipes: list[str]
 
 
 def voice_turn(config: dict[str, str], req: dict[str, str], tag: str, sheet: persona_store.Persona,
-               history: list[dict[str, str]], jobs: VoiceJobs | None) -> tuple[str, str, list[dict]]:
+               history: list[dict[str, str]], jobs: VoiceJobs | None,
+               recipes: RecipeIndex | None = None) -> VoiceTurn:
     """One reply of `sheet` to req["text"] after `history` (the prompt of a voice, built in this one place for the game
-    and for the workshop's test conversation, E22-T06): (user message to keep, reply said, actions)."""
+    and for the workshop's test conversation, E22-T06). E27-T03: a voice with [help] and a recipe index may ask for a
+    recipe search in its JSON reply; the reply is then a second call with the recipes found (recipe_reply)."""
     speaker = sheet.name.split()[0]
     # Mode structuré (E07-T01) dès que la voix a une action dotée d'un exécuteur (E07-T07 ; toute voix depuis E22-T13 :
     # remember), jamais hors ligne.
     with_actions = structured(sheet, jobs) and not config.get("OFFLINE")
     user_msg = f"{tag} {caller_text(req.get('text', ''))}"
+    reputation = reputation_field(req)
+    # E27-T03 : aide aux recettes en mode structuré seulement (le champ recipe_search vit dans l'objet JSON).
+    help_turn = recipe_help.recipe_turn(sheet.help, (reputation or {}).get("level"),
+                                        recipes is not None) if with_actions else None
     # Souvenirs (E07-T03) : dès qu'il y en a, quel que soit le mode ; sans souvenir, prompt inchangé.
     # État dynamique (E07-T06) : de même, dès que la voix l'a changé une fois.
-    system = (system_prompt(req, tag, voice_prompt(sheet)) + memory_prompt(memory_facts(req), tag)
-              + dead_prompt(dead_people(req))
-              + persona_prompt(persona_state(req))
-              + story_prompt(story_state(req))
-              + mission_prompt(mission_context(req, sheet), tag)
-              + trade_prompt(trade_context(req), tag)
-              + reputation_prompt(reputation_field(req), tag)
-              + (actions_prompt(sheet, jobs) if with_actions else ""))
+    context = (system_prompt(req, tag, voice_prompt(sheet)) + memory_prompt(memory_facts(req), tag)
+               + dead_prompt(dead_people(req))
+               + persona_prompt(persona_state(req))
+               + story_prompt(story_state(req))
+               + mission_prompt(mission_context(req, sheet), tag)
+               + trade_prompt(trade_context(req), tag)
+               + reputation_prompt(reputation, tag))
+    system = context + (help_turn.prompt() if help_turn else "") + (actions_prompt(sheet, jobs) if with_actions else "")
     # Mode structuré (E07-T09) : consigne de format rappelée juste avant la question (message envoyé seulement,
     # l'historique garde user_msg) et mode JSON de l'API demandé, avec repli sans.
-    sent = user_msg + format_reminder(sheet, jobs) if with_actions else user_msg
+    sent = (user_msg + format_reminder(sheet, jobs, help_turn.reminder() if help_turn else "")
+            if with_actions else user_msg)
     messages = [{"role": "system", "content": system}] + history + [{"role": "user", "content": sent}]
     if with_actions:
         reply = call_llm(config, messages, speaker, json_mode=True).strip()
     else:
         reply = call_llm(config, messages, speaker).strip()
-    proposed = None
+    proposed, fields = None, {}
     if with_actions:
-        reply, proposed = parse_structured(reply)
+        reply, proposed, fields = structured_reply(reply)
         reply = reply.strip()
-    return user_msg, reply, bounded_actions(sheet, proposed, jobs)
+    given: list[str] = []
+    searched = recipe_help.keywords(fields.get(recipe_help.FIELD))
+    if searched and help_turn and help_turn.allowed:
+        reply, given = recipe_reply(config, speaker, sheet, help_turn.help, recipes, searched,
+                                    [{"role": "system", "content": context}] + history
+                                    + [{"role": "user", "content": user_msg}])
+    elif searched:
+        log(f"voice '{sheet.id}': recipe search ignored ({'caller below the help level' if help_turn else 'no help'})")
+    return VoiceTurn(user_msg, reply, bounded_actions(sheet, proposed, jobs), given)
+
+
+def recipe_reply(config: dict[str, str], speaker: str, sheet: persona_store.Persona, help_: persona_store.Help,
+                 recipes: RecipeIndex, searched: list[str], messages: list[dict[str, str]]) -> tuple[str, list[str]]:
+    """E27-T03: second call of a recipe question: the recipes of the voice's jobs found for these English keywords,
+    given as facts after the caller's question (same persona and history, no actions); (reply said, ids given). Goes
+    through call_llm like the first call: same caps, same token usage journal."""
+    found = recipe_search.search(recipes.for_jobs(help_.jobs), searched)
+    given = [recipe["id"] for recipe in found]
+    log(f"voice '{sheet.id}': recipe search {', '.join(searched)} -> {', '.join(given) or 'nothing found'}")
+    facts = recipe_help.facts_message(found, searched, help_)
+    reply = call_llm(config, messages + [{"role": "system", "content": facts}], speaker).strip()
+    return reply, given
 
 
 # --- atelier des voix : l'IA du pont aide à écrire (E22-T06, ADR atelier-voix D04) ----------------------------------
@@ -1966,14 +2010,14 @@ def actions_prompt(sheet: persona_store.Persona, jobs: VoiceJobs | None = None) 
     )
 
 
-def format_reminder(sheet: persona_store.Persona, jobs: VoiceJobs | None = None) -> str:
+def format_reminder(sheet: persona_store.Persona, jobs: VoiceJobs | None = None, extra: str = "") -> str:
     """Rappel de la consigne de format (E07-T09), ajouté à la fin du message de l'appelant envoyé au LLM, jamais à
     l'historique : un long historique de réponses en texte pousse sinon le modèle à continuer en texte. Aucun secret,
-    lieu ni coordonnée."""
+    lieu ni coordonnée. `extra` : phrase ajoutée avant la parenthèse fermante (E27-T03 : champ recipe_search)."""
     return (
         "\n\n(Reply format reminder: answer with ONLY one JSON object, no other text: "
         '{"say": "...", "actions": [...]}. Allowed action types: ' + ", ".join(offered_actions(sheet, jobs))
-        + '. "actions" may be an empty list.)'
+        + '. "actions" may be an empty list.' + extra + ")"
     )
 
 
@@ -2102,7 +2146,14 @@ def _reply_object(text: str) -> tuple[dict, str] | None:
 
 
 def parse_structured(text: str) -> tuple[str, list | None]:
-    """Réponse du LLM en mode structuré → (texte say, actions brutes). Objet JSON retrouvé même entouré de texte,
+    """Réponse du LLM en mode structuré → (texte say, actions brutes) : structured_reply sans les autres champs."""
+    say, actions, _ = structured_reply(text)
+    return say, actions
+
+
+def structured_reply(text: str) -> tuple[str, list | None, dict]:
+    """Réponse du LLM en mode structuré → (texte say, actions brutes, objet lu : ses autres champs, recipe_search
+    d'E27-T03 ; {} quand rien n'est lisible). Objet JSON retrouvé même entouré de texte,
     dans un bloc ```json, avec des guillemets typographiques ou une virgule finale (E07-T09). Sans say (ou say vide),
     le texte autour de l'objet devient say. Illisible : le texte brut est say seul, sans action (None), journalisé ;
     la réponse brute part en DEBUG, tronquée."""
@@ -2121,13 +2172,13 @@ def parse_structured(text: str) -> tuple[str, list | None]:
         if not say.strip() and around:
             say = around
         actions = value.get("actions", [])
-        return say, [] if actions is None else actions
+        return say, [] if actions is None else actions, value
     except ValueError as err:
         log(f"structured reply unreadable ({type(err).__name__}: {str(err)[:60]}), raw text kept as say only")
         shown = " ".join(text.split())
         cut = "..." if len(shown) > RAW_LOG_CHARS else ""
         debug(f"unreadable structured reply ({len(text)} characters): {shown[:RAW_LOG_CHARS]!r}{cut}")
-        return text, None
+        return text, None, {}
 
 
 # --- boucle ----------------------------------------------------------------------------------
@@ -2192,7 +2243,7 @@ class Bridge:
         self.conversations = Conversations(exchange)
         self.voices = Voices(personas_folder(exchange))
         self.npcs = NpcConversations(exchange)
-        self.recipes = RecipeIndex(exchange, log=log)   # E27-T01: read at start (count logged), not used yet
+        self.recipes = RecipeIndex(exchange, log=log)   # E27-T01: read at start (count logged); E27-T03: searched
         self.lock = threading.Lock()
         self.answers: dict[str, list[str]] = {}   # réponses encore attendues par le jeu
         self.started: set[tuple] = set()
@@ -2230,7 +2281,7 @@ class Bridge:
             elif evening:
                 lines = evening_bulletin(self.config, self.conversations, session, req, self.voices)
             else:
-                lines = answer(self.config, self.conversations, session, req, self.voices)
+                lines = answer(self.config, self.conversations, session, req, self.voices, self.recipes)
             if not pages and req.get('version') != 2 and (said := spoken_text(lines)):
                 log(f"reply of voice '{req.get('voice') or MAIN_VOICE}': {said}")   # E22-T10: live journal
         except Exception as err:  # le jeu doit toujours recevoir une réponse

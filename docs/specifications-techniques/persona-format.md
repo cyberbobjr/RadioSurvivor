@@ -1026,7 +1026,8 @@ loot=OfficeDesk:2
 L'aide aux recettes : la voix aide le joueur à trouver une recette de ses métiers. Une section `[help]` au plus, sans
 identifiant ; absente, la voix n'aide jamais sur les recettes. **Lue par les deux lecteurs**, mêmes règles et mêmes
 messages (`helpKey` / `helpClose` de `RS_Persona`, `HelpSection` de `persona_store`) ; résultat `help = { jobs, from,
-delay }` côté serveur, `Persona.help` (`Help`) côté pont, `nil` / `None` sans section.
+delay }` côté serveur, `Persona.help` (`Help`) côté pont, `nil` / `None` sans section. Usage par le pont (E27-T03 :
+`jobs` et `from` ; `delay` pas encore) : [index des recettes](index-recettes.md), « Recherche ».
 
 | Clé | Obligatoire | Valeur |
 |---|---|---|

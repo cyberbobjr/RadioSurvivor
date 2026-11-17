@@ -1516,6 +1516,14 @@ def scenario_structured_server(tmp: Path) -> None:
     assert pump(lambda: len(g.BROADCASTS) == 4, [tick])
     assert lua_list(g.BROADCASTS[4]) == ["<bzzt>", "Plain answer."] and len(action_logs()) == 12
 
+    # E27-T03 : champ recipes (identifiants des recettes données) sans action : diffusé, aucune décision ; le serveur
+    # ne s'en sert pas encore (E27-T04).
+    req_id = turn("How do I make a rope?")
+    respond([f"resp={req_id}", payload({"version": 2, "kind": "radio_reply", "id": req_id, "say": ["Two sheets."],
+                                        "actions": [], "recipes": ["MakeSheetRope"]})])
+    assert pump(lambda: len(g.BROADCASTS) == 5, [tick])
+    assert lua_list(g.BROADCASTS[5]) == ["<bzzt>", "Two sheets."] and len(action_logs()) == 12
+
     # Jour de jeu suivant : budget remis à zéro ; délai de mark_map écoulé ; compteurs dans RS_State une fois chargé.
     actions_mod = g.require("RadioSurvivor/RS_Actions")
     sheet = g.require("RadioSurvivor/RS_Personas").get("act")

@@ -258,12 +258,28 @@ réponses en texte (seul `say` est mémorisé), le modèle a répondu en texte e
   (`RAW_LOG_CHARS`). Aucune clé d'API n'est
   journalisée.
 
-**Sortie** : sans action restante après validation, `line=` comme avant. Sinon :
+**Recette demandée (E27-T03, ADR [recettes par la radio](../architecture/decisions/adr-recettes-radio.md) D01, D03,
+D06)** : voix à section `[help]`, mode structuré, index des recettes lu par le pont. Le prompt et le rappel de format
+proposent un champ de plus, `"recipe_search": ["mots-clés anglais"]` (1 à 4), que l'IA remplit seulement quand
+l'appelant demande comment fabriquer quelque chose, en traduisant elle-même la question. Le pont cherche alors dans
+l'index (métiers de la voix, [index des recettes](index-recettes.md), « Recherche ») et fait un **second appel** :
+même prompt de la voix sans consigne JSON, même historique, la question, puis un message système des recettes
+trouvées (ou « rien trouvé »). La réponse de ce second appel est `say` ; les actions restent celles du premier.
+Palier : niveau `level` du champ `reputation=` (serveur) ; sous `from=` de la fiche (sans champ : sous tout palier
+sauf `all`), le prompt demande un refus en personnage, `recipe_search` n'est ni proposé ni lu. Les deux appels passent
+par `call_llm` (plafonds C03/C10, journal des jetons). Journal anglais : `voice '<id>': recipe search <mots> -> <ids>
+| nothing found`, ou `recipe search ignored (caller below the help level | no help)`.
+
+**Sortie** : sans action restante après validation ni recette donnée, `line=` comme avant. Sinon :
 
 ```text
 resp=<id de la demande>
-payload=<RSV2 hexadécimal de { version = 2, kind = "radio_reply", id = <id>, say = { lignes }, actions = { ... } }>
+payload=<RSV2 hexadécimal de { version = 2, kind = "radio_reply", id = <id>, say = { lignes }, actions = { ... },
+         recipes = { identifiants } }>
 ```
+
+`recipes` (E27-T03) : identifiants des recettes données à la voix au second appel, dans l'ordre de la recherche ;
+absent sans recette trouvée. Le serveur l'ignore encore (E27-T04 s'en servira : délai, carnet, apprentissage).
 
 Chaque action est une table `{ type = "signal", color = "green", ... }` : `type` puis les paramètres à plat.
 

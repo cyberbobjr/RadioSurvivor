@@ -111,3 +111,28 @@ produit a une liste `items` ou `fluids` non vide (entrées `item`/`fluid` et `na
 ligne de journal. Fichier illisible (écriture du jeu en cours, format inconnu) : une ligne de journal qui dit pourquoi,
 l'index précédent est gardé et le fichier est relu à son prochain changement. Le pont n'écrit jamais ce fichier et ne
 sait pas quel mod l'écrit (D08).
+
+## Recherche (E27-T03)
+
+Code : `bridge/recipe_search.py` (`search`), `bridge/recipe_help.py` (palier, prompts, faits) ; tests :
+`tests/radiosurvivor/test_recipe_search.py`, `tests/radiosurvivor/test_recipe_help_bridge.py`. Déroulé de l'appel :
+[protocole](protocole-carnet-v2.md), « Recette demandée ».
+
+- **Entrée** : les recettes des métiers de la voix (`RecipeIndex.for_jobs(help.jobs)`) et 1 à 4 mots-clés anglais
+  donnés par l'IA (D01 : l'IA traduit, aucune liste de mots par langue). Mots-clés bornés : lettres et chiffres ASCII,
+  espaces, tirets, 40 caractères chacun.
+- **Mots d'une recette**, comparés sans casse, pluriel anglais simple toléré (`batteries` → `battery`, `boxes` →
+  `box`, `ropes` → `rope`) : types des objets produits sans module, coupés aux majuscules (`Base.SheetRope` → `sheet`,
+  `rope`), noms des objets et fluides produits (poids 3) ; identifiant coupé aux majuscules et aux `_` (poids 2) ; nom
+  (poids 1). Le nom peut être dans la langue du serveur : l'identifiant et les types restent anglais.
+- **Score** : chaque mot-clé est une expression ; elle ne compte pour une recette que si **tous** ses mots sont des
+  mots de la recette, et apporte alors la somme du meilleur poids de chacun de ses mots. Score d'une recette = somme
+  de ses expressions entièrement trouvées (`["bandage", "ripped sheets"]` ne donne pas la corde en draps : `ripped`
+  n'en est pas un mot). Meilleur score d'abord, égalité par identifiant ; au plus 5 recettes, aucune à score nul.
+- **Mots-clés demandés à l'IA** : la chose à fabriquer seulement, jamais ses ingrédients ni ses outils
+  (`["sheet rope"]`, pas `["ripped sheets"]`). Sous le palier, aucun indice : ni ingrédient, ni outil, ni récipient,
+  ni méthode, même générale.
+- **Faits donnés à l'IA** (second appel) : nom, produits, ingrédients avec alternatives (« A or B ») et quantités,
+  fluides en litres, outils gardés, niveaux de compétence, « Must be learned first, from: » et les objets qui
+  l'apprennent ; consigne : en personnage, dans la langue de l'appelant, en conversation, sans rien inventer. Rien
+  trouvé : la voix le dit.

@@ -2,13 +2,13 @@
 
 <!-- tableau de bord : généré par tools/plan.py suivi, ne pas modifier à la main -->
 
-**Avancement.** en cours — 2 / 5 tâche(s) terminée(s).
+**Avancement.** en cours — 3 / 5 tâche(s) terminée(s).
 
 | | Tâche | Titre | État | Cible | Dépend de |
 |---|---|---|---|---|---|
 | ☑ | E27-T01 | Index des recettes exporté par le serveur | `testé hors jeu` | hors jeu | — |
 | ☑ | E27-T02 | Section `[help]` des voix et réglages dans l'atelier | `testé hors jeu` | hors jeu | E27-T01 |
-| ☐ | E27-T03 | Recherche dans la langue du joueur et réponse en personnage | `à faire` | hors jeu | E27-T02 |
+| ☑ | E27-T03 | Recherche dans la langue du joueur et réponse en personnage | `testé hors jeu` | hors jeu | E27-T02 |
 | ☐ | E27-T04 | Délai, rappel, carnet et apprentissage | `à faire` | solo | E27-T03 |
 | ☐ | E27-T05 | Wiki, exemples et CHANGELOG des recettes par la radio | `à faire` | hors jeu | E27-T04 |
 
@@ -65,8 +65,8 @@ conversation ; selon la réputation, tout de suite ou après un délai, et parfo
     livrées acceptées, atelier vérifié par `atelier_smoke`.
   - Preuve : 2026-11-17, code entré par erreur dans le commit Living Knox `6be23fdf` (choix de l'utilisateur : laissé tel quel), docs, wiki et aides des métiers dans le commit E27-T02. `[help]` (`jobs=` obligatoire, `from=` défaut `neutral`, `delay=` défaut `now`, 1, 12 et 24 heures de jeu) lu par `RS_Persona.lua` et `persona_store.py` avec les mêmes messages ; liste des métiers `persona_store.JOBS` comparée à `RS_RecipeJobs.ids()` ; atelier : bloc « Aide aux recettes » (`recipehelp.js`, `recipehelpform.js`), métiers à cocher, palier et délai en cartes, aide « ? » de chaque métier ; 7 voix livrées dotées d'un métier (darlene, odessa, cody, delphine, virgil, hollis, maxine), Walt attend que `tests/coreai/test_kahlua.py` charge `RS_RecipeJobs`. `python tools/atelier_smoke.py` `summary: OK (2 locales, 0 failure(s))` ; `python tests/run_all.py --mod radiosurvivor --keep-going` `Summary: 110 passed, 1 failed` (252,6 s), seul échec `atelier_help` (aides des 11 métiers absentes, ajoutées) ; `--only atelier_help --only atelier_ui --only atelier_catalog` `Summary: 3 passed, 0 failed`.
 
-- [ ] **E27-T03** — Recherche dans la langue du joueur et réponse en personnage
-  - État : `à faire`
+- [x] **E27-T03** — Recherche dans la langue du joueur et réponse en personnage
+  - État : `testé hors jeu`
   - Cible : `hors jeu`
   - Dépend de : E27-T02
   - Faire : D01, D03, D10 ; l'IA signale une question de recette et donne des mots-clés anglais ; le pont cherche
@@ -75,6 +75,7 @@ conversation ; selon la réputation, tout de suite ou après un délai, et parfo
     les plafonds.
   - Accepté si : bancs du pont avec un faux modèle (question en français, ukrainien, coréen → bonne recette ; hors
     métier ; sous le palier ; rien trouvé) ; un essai avec le vrai modèle noté dans la preuve.
+  - Preuve : 2026-11-17, champ `recipe_search` (1 à 4 mots-clés anglais qui nomment l'objet à fabriquer) proposé aux seules voix `[help]` au niveau `from` ou au-dessus (réputation `reputation=` déjà envoyée par le serveur : niveau général du joueur) ; recherche `bridge/recipe_search.py` (chaque mot-clé est une expression comptée seulement si tous ses mots sont dans la recette ; produits 3, identifiant 2, nom 1 ; 5 recettes au plus), second appel `bridge/recipe_help.py` avec les recettes en faits et consigne « dans la langue de l'appelant, sans rien inventer » ; refus sans aucun indice sous le palier ; `radio_reply.recipes` = identifiants donnés (pour E27-T04) ; deux appels par `call_llm`, mêmes plafonds. Bancs : `recipe_search` 13 tests, `recipe_help_bridge` 14 tests (français, ukrainien, coréen, hors métier, sous le palier, rien trouvé), `protocol` OK, luacheck 0 ; `python tests/run_all.py --mod radiosurvivor --keep-going` `Summary: 113 passed, 0 failed, 0 skipped` (263,9 s). Essai avec le vrai modèle (DeepSeek, voix de banc couture + cuisine) : corde en draps demandée en français et soupe en ukrainien justes (ingrédients au choix, aiguille gardée, 0,5 l d'eau, niveaux, magazine), réponse dans la langue de la question ; bandage demandé en coréen (hors métiers) : « rien dans mes notes », sans autre recette ; réputation mauvaise : refus sans indice, deux fois. Premier essai : recherche trop large (« ripped sheets » sortait la corde) et refus qui laissait un indice, corrigés puis revérifiés.
 
 - [ ] **E27-T04** — Délai, rappel, carnet et apprentissage
   - État : `à faire`
