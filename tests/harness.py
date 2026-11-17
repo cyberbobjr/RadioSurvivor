@@ -1128,14 +1128,17 @@ def routine_files():
 FORTIFY_KINDS_DIR = LK_LUA / 'server' / 'LivingKnox' / 'Fortify'
 
 
-FORTIFY_PART_REQUIRE = re.compile(r'^require "LivingKnox/Fortify/(\w+)"', re.M)
+def facade_parts(facade: str, folder: str):
+    """Noms des fichiers du dossier folder que la façade server/LivingKnox/<facade> requiert (LK20-T07, LK20-T08 :
+    socle et sections d'un moteur découpé), dans l'ordre de ses require."""
+    pattern = re.compile(rf'^require "LivingKnox/{folder}/(\w+)"', re.M)
+    return pattern.findall((LK_LUA / 'server' / 'LivingKnox' / facade).read_text(encoding='utf-8'))
 
 
 def fortify_parts():
     """Noms des fichiers de Fortify/ que la façade LK_Fortify.lua requiert (LK20-T07 : socle et sections du moteur),
     dans l'ordre de ses require ; les autres fichiers du dossier sont les sortes de chantier."""
-    facade = LK_LUA / 'server' / 'LivingKnox' / 'LK_Fortify.lua'
-    return FORTIFY_PART_REQUIRE.findall(facade.read_text(encoding='utf-8'))
+    return facade_parts('LK_Fortify.lua', 'Fortify')
 
 
 def fortify_files():
@@ -1160,10 +1163,18 @@ EXPEDITION_KINDS_DIR = LK_LUA / 'server' / 'LivingKnox' / 'Expeditions'
 FOOD_REQUIRE = 'require "LivingKnox/LK_Food"'
 
 
+def expedition_parts():
+    """Noms des fichiers d'Expeditions/ que la façade LK_Expeditions.lua requiert (LK20-T08 : socle et sections du
+    moteur), dans l'ordre de ses require ; les autres fichiers du dossier sont les genres."""
+    return facade_parts('LK_Expeditions.lua', 'Expeditions')
+
+
 def _expedition_kinds(food: bool):
     """Genres d'expédition du dossier Expeditions/ (triés par nom, comme le chargement du jeu ; l'ordre entre genres
-    vient de leur order) : ceux qui requièrent la nourriture (food vrai) ou les autres."""
-    names = sorted((p.name for p in EXPEDITION_KINDS_DIR.glob('*.lua')), key=str.lower)
+    vient de leur order) : ceux qui requièrent la nourriture (food vrai) ou les autres. Les sections du moteur
+    (LK20-T08), chargées par les require de la façade, n'en sont pas."""
+    parts = set(expedition_parts())
+    names = sorted((p.name for p in EXPEDITION_KINDS_DIR.glob('*.lua') if p.stem not in parts), key=str.lower)
     return [f'server/LivingKnox/Expeditions/{name}' for name in names
             if (FOOD_REQUIRE in (EXPEDITION_KINDS_DIR / name).read_text(encoding='utf-8')) == food]
 

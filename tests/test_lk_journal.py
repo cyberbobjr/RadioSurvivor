@@ -19,7 +19,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from harness import Harness  # noqa: E402
-from harness import LK_LUA  # noqa: E402  (E18-T07)
+from harness import EXPEDITION_KINDS_DIR, LK_LUA, expedition_parts  # noqa: E402  (E18-T07 ; LK20-T08)
 
 ROOT = Path(__file__).resolve().parents[1]
 TRANSLATE = LK_LUA / 'shared' / 'Translate'
@@ -283,7 +283,10 @@ class StructureTests(Base):
                          [('trip', [2]), ('returned', [2]), ('trip', [2]), ('noneBack', []), ('returned', [1]),
                           ('moved', [])])
         # Formes lues dans le texte technique : présentes dans le code qui les écrit (couplage vérifié).
-        ex = (LK_LUA / 'server/LivingKnox/LK_Expeditions.lua').read_text(encoding='utf-8')
+        # LK20-T08 : moteur des expéditions découpé, façade et sections (Expeditions/).
+        ex = '\n'.join(path.read_text(encoding='utf-8') for path in
+                       [LK_LUA / 'server/LivingKnox/LK_Expeditions.lua']
+                       + [EXPEDITION_KINDS_DIR / (name + '.lua') for name in expedition_parts()])
         # LK16-T09 : textes des événements de groupe écrits par leurs fichiers (SimEvents/), à côté du moteur.
         sim = '\n'.join(path.read_text(encoding='utf-8') for path in
                         [LK_LUA / 'server/LivingKnox/LK_Simulation.lua']
