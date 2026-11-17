@@ -51,6 +51,7 @@ LK17 est terminé : le chemin du jeu est en place et le déplacement peut être 
   - Ordre : `Fortify`, puis `Stock` et `Expeditions`, puis `Decisions` et `Obstacles`.
 - **D08 — Déplacement : moins de façades.** Après LK17, `LK_Passage` (simple relais vers `PassageArbiter`) fusionne
   avec l'arbitre. `Edges` et `EdgeRules` restent tels quels.
+  - *Mise à jour du 2026-11-17 :* décision retirée. `LK_Passage` n'est pas un relais : il porte le registre des priorités de passage et le nom de la commande réseau, alors que `LK_PassageArbiter` fait l'arbitrage pur. Les deux restent séparés (LK20-T10 abandonnée).
 - **D09 — Fonctions longues et imbrication : au fil de l'eau.** Pas de chantier dédié (F07, F10). Toute fonction
   touchée par une tâche de ce plan qui dépasse 80 lignes est coupée en étapes nommées.
 

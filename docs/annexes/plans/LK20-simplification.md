@@ -2,7 +2,7 @@
 
 <!-- tableau de bord : généré par tools/plan.py suivi, ne pas modifier à la main -->
 
-**Avancement.** en cours — 0 / 10 tâche(s) terminée(s).
+**Avancement.** en cours — 0 / 9 tâche(s) terminée(s), 1 abandonnée(s).
 
 | | Tâche | Titre | État | Cible | Dépend de |
 |---|---|---|---|---|---|
@@ -15,7 +15,7 @@
 | ☐ | LK20-T07 | `LK_Fortify` découpé dans `Fortify/` | `testé hors jeu` | MP | LK20-T05 |
 | ☐ | LK20-T08 | `LK_Stock` et `LK_Expeditions` découpés | `testé hors jeu` | MP | LK20-T05 |
 | ☐ | LK20-T09 | `LK_Decisions` et `LK_Obstacles` découpés | `testé hors jeu` | MP | LK20-T05 |
-| ☐ | LK20-T10 | Façades du déplacement fusionnées | `à faire` | MP | LK20-T09 |
+| ✕ | LK20-T10 | Façades du déplacement fusionnées | `abandonné` | MP | LK20-T09 |
 
 <!-- fin du tableau de bord -->
 
@@ -144,10 +144,12 @@ cinq moteurs géants découpés selon leurs sections.
   - Reste : campagnes `solo-lk` et MP `--mods lk` (`lk.traversal`, `lk.doors`, `lk.windowsally`).
 
 - [ ] **LK20-T10** — Façades du déplacement fusionnées
-  - État : `à faire`
+  - État : `abandonné`
   - Cible : `MP`
   - Dépend de : LK20-T09
   - Fichiers : `shared/LivingKnox/LK_Passage.lua`, `LK_PassageArbiter.lua`
   - Faire : D08 de l'ADR. Le relais `LK_Passage` est absorbé par l'arbitre. `Edges` et `EdgeRules` ne changent pas.
   - Accepté si : une façade de moins ; bancs verts ; `lk.passage` verte en `solo-lk` et en MP.
   - Tests : `tests/run_all.py --keep-going` ; campagnes.
+  - Preuve : 2026-11-17, relecture de `shared/LivingKnox/LK_Passage.lua` : ce n'est pas un simple relais. Il porte le registre des priorités de passage (`Passage.priority`, `priorityOf`, validation ; 15 déclarations dans 13 fichiers de comportement) et le nom de la commande `passageBlocked` ; `LK_PassageArbiter` ne fait que l'arbitrage pur. Les fusionner mêlerait deux responsabilités (registre ouvert, décision pure) : contraire à SRP. L'audit (F08) se trompait sur ce point.
+  - Reste : abandonnée, `LK_Passage` (registre des priorités) et `LK_PassageArbiter` (arbitrage pur) ont deux responsabilités distinctes ; voir la mise à jour de D08 dans l'ADR.
