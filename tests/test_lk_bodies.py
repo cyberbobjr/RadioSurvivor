@@ -1424,7 +1424,8 @@ class SourceTests(unittest.TestCase):
             code = re.sub(r'--\[\[.*?\]\]', '', text, flags=re.S)
             code = re.sub(r'--[^\n]*', '', code)
             self.assertTrue(all(ord(ch) < 128 for ch in code), f'{path.name}: non ASCII character in code')
-            patterns = [r'\bnext\s*\(', r'\bgoto\b', r'\bcoroutine\.', r'\bbit32\b', r'\bunpack\b']
+            patterns = [r'\bnext\s*\(', r'\bgoto\b', r'\bcoroutine\.', r'\bbit32\b',
+                        r'(?<![.:])\bunpack\b']   # global unpack only (Wounds.unpack is a field, LK21-T02)
             if path in MOD_FILES:
                 patterns.append(r'getPlayer\(\)')  # aucune hypothèse de joueur local côté autorité
             for pattern in patterns:

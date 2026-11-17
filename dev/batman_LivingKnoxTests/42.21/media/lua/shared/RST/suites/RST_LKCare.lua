@@ -15,7 +15,8 @@ What is done:
     - fixture: two bandages (Base.Bandage) are put in the first container of the home (sorted key), marked explored;
       the stock reference is read (LivingKnox.Stock.check);
     - the members get bodies near the player; member m-1 gets a wound of 30 % of its full health (Health.applyHit, the
-      path of the hits): it bleeds, its reference health drops over a few game minutes;
+      path of the hits; LK21-T02: blunt wound source, fixed draw 0.2 = a laceration of the chest, which bleeds): its
+      reference health drops over a few game minutes;
     - the doctor treats it: one bandage less in the home containers, its id gone from the reference, bleeding 0,
       health raised, journal entry "care"; a stock check finds no missing item (no loss, no theft).
 Every phase prints "[LKC] measure ..." lines; the user checks the gestures (rummage, kneel) on screen. Cleanup
@@ -165,7 +166,11 @@ RST.suite("lk.care", { tags = { "world", "server" }, testTimeoutMs = 600000, tim
             local npc = npcs["m-1"]
             local z = E.Bodies.find(npc)
             local full = E.Health.get(npc).max
-            local hp = E.Health.applyHit(npc, z, full * 0.3, "Torso_Upper", nil, nil)
+            local WC = E.WoundContext
+            local rnd = WC.rnd
+            WC.rnd = function() return 0.2 end
+            local hp = E.Health.applyHit(npc, z, full * 0.3, "Torso_Upper", nil, nil, { source = "blunt" })
+            WC.rnd = rnd
             local bleed = E.Health.bleeding(npc)
             measure(string.format("wounded: m-1 %s health %.3f of %.3f, bleeding %.4f per hour, doctor %s", npc,
                 hp or -1, full, bleed, tostring(npcs["m-3"])))

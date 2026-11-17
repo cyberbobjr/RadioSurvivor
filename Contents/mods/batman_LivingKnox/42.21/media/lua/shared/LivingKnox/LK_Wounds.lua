@@ -33,8 +33,15 @@
 --   - l'évolution est intégrée par segments : entre deux événements (saignement fini, bandage sale, plancher atteint...)
 --     les vitesses sont constantes et le calcul est exact ; un tirage d'infection par segment (au plus SEGMENT_MINUTES),
 --     l'infection prend effet à la fin du segment ;
---   - dégâts d'une partie plafonnés à 100 tant que ses plaies durent (BodyPart.ReduceHealth :450-452) ; la régénération
---     de la santé est l'affaire de LK_Health, pas de ce module ;
+--   - dégâts d'une partie plafonnés à 100 tant que ses plaies durent (BodyPart.ReduceHealth :450-452) ;
+--   - régénération (LK21-T02, Wounds.regeneration, Wounds.healthCap ; appliquée par LK_Health) : santé générale rendue
+--     comme BodyDamage.Update (J/characters/BodyDamage/BodyDamage.java:1887-1928, standardHealthAddition 0.002 par
+--     tick, :79) répartie par AddGeneralHealth (:917-930) sur les parties abîmées. Le modèle n'a pas de santé par
+--     partie : avec une perte générale (saignement, réparti sur les 17 parties par ReduceGeneralHealth :932-944, ou coup
+--     sans plaie), toutes les parties sont supposées abîmées et une partie tenue par une plaie qui l'abîme encore ne
+--     remonte pas (sa part, REGEN / 17, est sous ses dégâts par tick) ; sans perte générale, seules les parties tenues
+--     sont abîmées et se partagent REGEN, qui retire des dégâts de leurs plaies (harm). PNJ éveillé sans faim ni soif
+--     fortes : ni sommeil (0.02, :82), ni régénération réduite ;
 --   - l'alcool posé sur une plaie (alcohol > 0) empêche une infection de prendre : au vanilla elle est guérie au tick
 --     suivant (:259-263, setWoundInfectionLevel :1192-1198) ;
 --   - une plaie aux points est guérie quand ses points atteignent 50 (plafond :388-390 ; au-delà, plus de douleur ni
@@ -68,6 +75,7 @@ Wounds.SICK = { threshold = 90, damage = 0.0165 }   -- BodyDamage.java:84, :1957
 Wounds.SEVERITY = { 0.5, 1, 1.5 }        -- InjurySeverity 1, 2, 3 (BodyPart.java:688-697, :1806-1813)
 Wounds.MAX_WOUNDS = 64
 Wounds.SEGMENT_MINUTES = 60
+Wounds.REGEN = 0.002                     -- santé générale rendue par tick (BodyDamage.java:79, :1909)
 
 -- Parties du corps, dans l'ordre de BodyPartType (J/characters/BodyDamage/BodyPartType.java:16-32) : modificateurs de
 -- douleur, de dégâts (part de la santé générale, BodyDamage.calculateOverallHealth :2079-2089) et de saignement
@@ -249,15 +257,19 @@ end
 
 -- ================================================================ blessure
 -- Ajoute à list une plaie de type kind sur la partie partId ; rend la plaie, ou nil et la raison.
--- opts.bleed : force (vrai) ou retire (faux) le saignement tiré.
+-- opts.bleed : force (vrai) ou retire (faux) le saignement tiré. opts.time : { min, max } durée tirée à la place de
+-- spec.time, pour une blessure vanilla de même type mais d'autre durée (griffure de fenêtre 12-20, BodyPart.java:857 ;
+-- brûlure du feu 50-100, :1205 ; sources de LK21-T02, server/LivingKnox/Wounds/).
 function Wounds.add(list, partId, kind, ctx, opts)
     local p, spec = Wounds.PART[partId], Wounds.kindById[kind]
     if p == nil then return nil, "unknown part" end
     if spec == nil then return nil, "unknown kind" end
     if #list >= Wounds.MAX_WOUNDS then return nil, "too many wounds" end
+    local range = opts ~= nil and opts.time or spec.time
+    if range ~= nil and rangeProblem(range) then return nil, "bad time range" end
     local w = { kind = kind, part = partId, age = 0, bleed = 0, foreign = spec.foreign ~= nil,
         infected = spec.infectedOnAdd == true, level = 0, alcohol = 0, harm = 0 }
-    if spec.time ~= nil then w.time = roll(ctx, spec.time) * severity(ctx) end
+    if spec.time ~= nil then w.time = roll(ctx, range) * severity(ctx) end
     local bleeds = opts ~= nil and opts.bleed or nil
     if bleeds == nil then bleeds = spec.bleedOnAdd ~= false end
     if bleeds then w.bleed = rollBleed(spec, w.time, p, ctx) end
@@ -553,6 +565,59 @@ local function evolve(w, spec, ticks, tpm, ctx, partHarm, out)
         end
         left = left - dt
     end
+end
+
+-- Parties tenues : celles qu'une plaie abîme encore (dégâts par tick > 0, BodyPart.DamageUpdate :145-181).
+local function heldParts(list)
+    local held = {}
+    for _, w in ipairs(list) do
+        local spec = Wounds.kindById[w.kind]
+        if spec ~= nil and damageRate(w, spec, w.bandage ~= nil) > 0 then held[w.part] = true end
+    end
+    return held
+end
+
+-- Santé générale au plus (fraction de la santé maximale) : les dégâts des parties tenues ne se régénèrent pas tant
+-- que leur plaie les abîme (calculateOverallHealth, BodyDamage.java:2079-2089).
+function Wounds.healthCap(list)
+    local held, lost = heldParts(list), 0
+    for _, w in ipairs(list) do
+        if held[w.part] then lost = lost + (w.harm or 0) * Wounds.PART[w.part].damage end
+    end
+    return math.max(0, 1 - lost / 100)
+end
+
+-- Santé générale rendue en minutes de jeu (fraction de la santé maximale), REGEN par tick (en-tête) :
+--   general vrai (perte générale à rattraper) : réparti sur les 17 parties, pondéré par leur part de la santé générale,
+--   sans les parties tenues ;
+--   general faux : partagé entre les parties tenues, retiré des dégâts (harm) de leurs plaies (list est modifiée).
+function Wounds.regeneration(list, minutes, ctx, general)
+    if not (LivingKnox.Num.finite(minutes) and minutes > 0) then return 0 end
+    local ticks = minutes * Wounds.ticksPerMinute(ctx)
+    local held = heldParts(list)
+    local gain = 0
+    if general then
+        local weight = 0
+        for _, p in ipairs(Wounds.PARTS) do
+            if not held[p.id] then weight = weight + p.damage end
+        end
+        return Wounds.REGEN * ticks * weight / #Wounds.PARTS / 100
+    end
+    local n = 0
+    for _ in pairs(held) do n = n + 1 end
+    if n == 0 then return 0 end
+    for partId in pairs(held) do
+        local left = Wounds.REGEN * ticks / n
+        for _, w in ipairs(list) do
+            if w.part == partId and left > 0 and (w.harm or 0) > 0 then
+                local back = math.min(left, w.harm)
+                w.harm = w.harm - back
+                left = left - back
+                gain = gain + back * Wounds.PART[partId].damage
+            end
+        end
+    end
+    return gain / 100
 end
 
 -- Malus « malade » des plaies infectées, option WoundInfectionFactor seulement (en-tête ; lu en fin de période).

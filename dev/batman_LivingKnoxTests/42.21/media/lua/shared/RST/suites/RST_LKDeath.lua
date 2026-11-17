@@ -151,8 +151,15 @@ RST.suite("lk.death", { tags = { "world", "server" }, testTimeoutMs = 60000, tim
 
     s.test("bleeding to death: cause bleeding, no killer", function(t)
         standingNpc(t, function(t2, c)
+            -- LK21-T02: a bleeding deep wound (blade source, fixed draw 0.1: 1 in 6), then health almost gone.
+            local WC = LivingKnox.WoundContext
+            local rnd = WC.rnd
+            WC.rnd = function() return 0.1 end
+            H().applyHit(c.id, (B().find(c.id)), 0.001, "Torso_Upper", nil, nil, { source = "blade" })
+            WC.rnd = rnd
+            t2:ok(H().bleeding(c.id) > 0, "the wound does not bleed")
             local npc = K.registry().npcs[c.id]
-            npc.hp, npc.bleed = 0.005, 0.6
+            npc.hp = 0.005
             local minute = math.floor(getGameTime():getWorldAgeHours() * 60 + 0.5)
             H().bleedPass(minute)
             H().bleedPass(minute + 1)

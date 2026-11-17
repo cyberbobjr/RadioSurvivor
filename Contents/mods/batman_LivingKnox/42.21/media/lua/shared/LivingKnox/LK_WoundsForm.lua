@@ -9,6 +9,7 @@ local Wounds = LivingKnox.Wounds
 --   kind:part:age:time:bleed:life:alcool du bandage:stitch:splint:foreign:infected:level:alcohol:harm
 -- champ vide : absent (time, bandage, stitch, splint) ; drapeaux 1 ou 0 ; nombres décimaux sans exposant.
 local FIELD_COUNT = 14
+Wounds.BLEED_LIMIT = 1000   -- saignement d'une plaie au plus (unités vanilla) dans la forme sauvegardée
 local NUMBER_PATTERN = "^%-?%d+%.?%d*$"
 
 local function num(v)
@@ -117,7 +118,7 @@ local function woundProblem(w)
     if Wounds.PART[w.part] == nil then return "unknown part" end
     if not within(w.age, 0, 1e9 - 1) then return "bad age" end
     if w.time ~= nil and not within(w.time, 0, 1000) then return "bad time" end
-    if not within(w.bleed, 0, 1000) then return "bad bleed" end
+    if not within(w.bleed, 0, Wounds.BLEED_LIMIT) then return "bad bleed" end
     local b = w.bandage
     if b ~= nil and (type(b) ~= "table" or not within(b.life, 0, 100) or type(b.alcohol) ~= "boolean") then
         return "bad bandage"

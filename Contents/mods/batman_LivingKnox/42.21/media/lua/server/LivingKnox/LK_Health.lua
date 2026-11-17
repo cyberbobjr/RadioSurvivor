@@ -13,17 +13,28 @@
 --   - Health.setBirth (matérialisation d'un membre de groupe, LK09-T03 : santé tirée de la blessure abstraite du
 --     membre, état décidé par la simulation de l'autorité) ;
 --   - Health.applyHit (coup contrôlé, en baisse seulement) ;
---   - Health.bleedPass (saignement, LK07-T03, en baisse seulement) ;
---   - Health.noteHeal (soin connu de l'autorité, LK07-T03, LK_Care) : SEULE hausse possible.
--- Saignement (LK07-T03, fiche sante.md, section « Saignement et soins ») : champ facultatif npc.bleed du registre des
--- corps (fraction de hpMax perdue par heure de jeu ; absent = aucun saignement), tenu par l'autorité et sauvegardé.
--- Chaque blessure non mortelle l'augmente de BLEEDING.PER_DAMAGE x (dégâts / hpMax), borné à BLEEDING.MAX. À chaque
--- minute de jeu (EveryOneMinute, minutes manquées rattrapées d'après l'âge du monde, au plus STEP_MAX), un corps
--- relié qui saigne perd bleed x hpMax x minutes / 60 ; le saignement non soigné diminue seul (moitié toutes les
--- HALF_HOURS heures, arrêt sous STOP), comme le saignement vanilla non bandé qui décroît lentement
--- (J/characters/BodyDamage/BodyPart.java:161-166, 202-218). À 0 : mort par le chemin de Health.kill (sans arme ni
--- attaquant). Seul un soin (Health.stopBleeding, appelé par LK_Care) l'arrête d'un coup. PNJ virtuel (corps retiré) :
--- saignement suspendu, repris à la prochaine incarnation.
+--   - Health.bleedPass (plaies, LK21-T02, en baisse seulement) ;
+--   - Health.noteHeal (soin connu de l'autorité, LK07-T03, LK_Care) et la régénération de Health.bleedPass
+--     (LK21-T02, règle du vanilla) : SEULES hausses possibles.
+-- Plaies (LK21-T02, ADR docs/architecture/decisions/adr-blessures-soins.md D01 et D03 ; remplace le saignement unique
+-- npc.bleed de LK07-T03, non repris : mod non publié) : liste de plaies localisées du modèle pur
+-- shared/LivingKnox/LK_Wounds.lua, gardée dans le registre des corps sous sa forme compacte (npc.wounds, texte de
+-- Wounds.pack, LK_WoundsForm.lua ; absent = aucune plaie ; validé à la relecture par Identity.validate) et relue une
+-- fois (cache Health.woundCache tant que le texte ne change pas). Ce module en est le seul écrivain, comme de npc.hp.
+--   - Un coup non mortel (Health.applyHit) fait ses plaies par la source de blessure que choisit le registre des
+--     sources (Wounds.fromHit, server/LivingKnox/LK_WoundSources.lua : attaquant, arme, issue ; ou source nommée) ;
+--     aucune source : dégâts seulement. Hasard et options du jeu : LivingKnox.WoundContext (LK_WoundContext.lua).
+--   - Chaque minute de jeu (EveryOneMinute, minutes manquées rattrapées d'après l'âge du monde, au plus STEP_MAX), les
+--     plaies d'un corps relié dans le monde évoluent (Wounds.advance : saignement, dégâts de partie, guérison,
+--     bandage, infection) et la santé baisse de hpLoss x hpMax ; les plaies guéries sont retirées. À 0 : mort par le
+--     chemin de Health.kill, cause « bleeding » (sans arme ni attaquant).
+--   - Saignement lu : Health.bleeding = Wounds.bleeding (fraction de hpMax perdue par heure de jeu).
+--   - Soins : Health.stopBleeding (adaptateur provisoire de LK_Care jusqu'à LK21-T05 : bande les plaies qui
+--     saignent) ; les soins de LK21-T05 changeront les plaies par Health.wounds puis Health.woundsChanged.
+--   - PNJ virtuel (corps retiré) : plaies suspendues, reprises à la prochaine incarnation. Mort : plaies effacées.
+-- Régénération (LK21-T02, Wounds.regeneration) : chaque minute de jeu, un corps relié qui n'a pas toute sa santé en
+-- regagne comme un joueur éveillé et nourri du vanilla (BodyDamage.java:1887-1928), sans dépasser ce que ses plaies
+-- tiennent encore (Wounds.healthCap) ; soin connu (noteHeal) en plus.
 -- Coups (abonné OnWeaponHitCharacter, autorité ; J/characters/IsoGameCharacter.java:5704-5743) : l'événement part
 -- AVANT les dégâts vanilla. Valeur reçue : serveur MP = dégâts calculés par le client attaquant (après
 -- processHitDamage, avant la réduction de mêlée x 0,15 ; PlayerHitZombie, J/network/fields/hit/WeaponHit.java:79) ;
@@ -43,7 +54,8 @@
 -- Materialize.onBodyDied) -> Health.onBodyDied. Une mort vanilla non décidée ici (Kill par un autre mod, santé
 -- négative forgée par un client propriétaire) est journalisée (WARN) puis menée à son terme (santé posée à 0 pour
 -- que le moteur crée le cadavre) ; le registre ne la compte qu'une fois (Bodies.onZombieDead).
--- Retransmission (serveur MP) : commande "npcHealth" { d = { [npcId] = { r, hp, mx, w } } } aux destinataires des
+-- Retransmission (serveur MP) : commande "npcHealth" { d = { [npcId] = { r, hp, mx, w = nombre de plaies } } } aux
+-- destinataires des
 -- consignes (Directives.targets : joueurs à NEAR_RADIUS cases du corps et propriétaire), un message par client et
 -- par passage (SEND_MS), seulement aux clients qui n'ont pas la révision courante : aucune diffusion à tous.
 -- r : révision croissante (livraison RELIABLE non ordonnée : le client garde la plus grande).
@@ -70,16 +82,15 @@ LivingKnox.Config.HEALTH = LivingKnox.Config.HEALTH or {
     RANGED_LEVELS = 2,        -- niveaux d'écart au plus (arme à feu)
     RATE = 10,                -- coups acceptés par seconde, par attaquant et par PNJ (seau à jetons)
     BURST = 5,                -- coups d'avance (paquets regroupés par le réseau)
-    WOUNDS_MAX = 8,           -- blessures gardées par PNJ (les plus récentes)
     WARN_EVERY_MS = 60000,    -- une ligne par (attaquant, raison) au plus par minute
 }
--- Saignement (LK07-T03 ; valeurs de départ propres au mod, raisons dans sante.md « Saignement et soins »).
+-- Plaies (LK21-T02 ; les règles d'évolution sont celles du modèle, LK_Wounds.lua).
 LivingKnox.Config.BLEEDING = LivingKnox.Config.BLEEDING or {
-    PER_DAMAGE = 0.5,         -- saignement ajouté (fraction de hpMax par heure) par fraction de hpMax retirée
-    MAX = 0.6,                -- saignement au plus (fraction de hpMax par heure)
-    HALF_HOURS = 3,           -- saignement non soigné divisé par deux toutes les HALF_HOURS heures de jeu
-    STOP = 0.005,             -- en dessous : le saignement s'arrête seul
     STEP_MAX = 60,            -- minutes de jeu rattrapées au plus par passage (pause, chargement)
+    MAX = 0.6,                -- saignement réglable au plus par un administrateur (fraction de hpMax par heure)
+    ADMIN_KIND = "laceration",   -- plaie posée par un administrateur qui fait saigner un PNJ sans plaie
+    ADMIN_PART = "Torso_Upper",
+    BANDAGE_LIFE = { 0.5, 1.0 },   -- vie tirée d'un bandage posé, plus BandagePower (ISApplyBandage.lua:112, soin 0)
 }
 
 if isClient() then return Health end
@@ -88,6 +99,11 @@ require "LivingKnox/LK_Identity"
 require "LivingKnox/LK_Store"
 require "LivingKnox/LK_Bodies"
 require "LivingKnox/LK_Directives"
+require "LivingKnox/LK_WoundsForm"
+require "LivingKnox/LK_WoundSources"
+require "LivingKnox/LK_WoundContext"
+
+local Wounds = LivingKnox.Wounds
 
 Health.decided = Health.decided or {}   -- npcId -> vrai : mort décidée par l'autorité (une seule fois)
 Health.parts = Health.parts or {}       -- npcId -> partie du corps du dernier OnHitZombie (consommée par le coup)
@@ -95,15 +111,19 @@ Health.buckets = Health.buckets or {}   -- "<attaquant>|<npcId>" -> { tokens, ms
 Health.rev = Health.rev or {}           -- npcId -> révision de la santé
 Health.sent = Health.sent or {}         -- compte -> { [npcId] = révision remise }
 Health.warned = Health.warned or {}
+Health.woundCache = Health.woundCache or {}   -- npcId -> { text = npc.wounds lu, list = plaies vivantes }
 Health.state = Health.state or { r = 0, ticks = 0, sendMs = nil }
 Health.stats = Health.stats or { hits = 0, applied = 0, refused = 0, shoves = 0, ignored = 0,
     deaths = 0, engineDeaths = 0, protected = 0, heals = 0, messages = 0, why = {} }
-Health.stats.bleeds = Health.stats.bleeds or 0              -- LK07-T03 : blessures qui ont fait saigner
-Health.stats.bleedDeaths = Health.stats.bleedDeaths or 0    -- LK07-T03 : morts par perte de sang
-Health.stats.bleedStops = Health.stats.bleedStops or 0      -- LK07-T03 : saignements arrêtés (soin ou seuls)
+Health.stats.bleeds = Health.stats.bleeds or 0              -- plaies qui saignent à la blessure (LK21-T02)
+Health.stats.bleedDeaths = Health.stats.bleedDeaths or 0    -- morts par les plaies (cause « bleeding »)
+Health.stats.bleedStops = Health.stats.bleedStops or 0      -- saignements arrêtés (soin ou seuls)
+Health.stats.wounds = Health.stats.wounds or 0              -- plaies faites (LK21-T02)
+Health.stats.healed = Health.stats.healed or 0              -- plaies guéries et retirées (LK21-T02)
 
 local function cfg() return LivingKnox.Config.HEALTH end
 local function bcfg() return LivingKnox.Config.BLEEDING end
+local function wctx() return LivingKnox.WoundContext.current() end
 
 local function now() return getTimestampMs() end
 local function round3(v) return math.floor(v * 1000 + 0.5) / 1000 end
@@ -234,56 +254,118 @@ function Health.reference(id)
     return npc.hp
 end
 
--- État de santé du PNJ id (copie) : { hp, max, dead, wounds = { { p, d }, ... }, bleed (0 : aucun saignement) },
--- ou nil.
+-- ---------------------------------------------------------------- plaies (LK21-T02)
+
+-- Plaies vivantes du PNJ npc (liste du modèle) : relues de la forme sauvegardée npc.wounds, gardées en cache tant que
+-- ce texte ne change pas. Forme absente : aucune plaie ; forme refusée (refusée aussi par Identity.validate à la
+-- relecture du registre, donc seulement après une écriture d'un autre module) : signalée, lue comme aucune plaie.
+local function woundsOf(npc)
+    local text = npc.wounds
+    local c = Health.woundCache[npc.id]
+    if c ~= nil and c.text == text then return c.list end
+    local list, why = nil, nil
+    if text ~= nil then list, why = Wounds.unpack(text) end
+    if list == nil then
+        if text ~= nil then LivingKnox.Log.warn("npc %s: wounds not readable (%s), ignored", npc.id, tostring(why)) end
+        list = {}
+    end
+    Health.woundCache[npc.id] = { text = text, list = list }
+    return list
+end
+
+-- Forme sauvegardée des plaies list du PNJ npc (absente sans plaie) et cache à jour.
+local function saveWounds(npc, list)
+    local text = nil
+    if #list > 0 then text = Wounds.pack(list) end
+    npc.wounds = text
+    Health.woundCache[npc.id] = { text = text, list = list }
+end
+
+local function clearWounds(npc)
+    npc.wounds = nil
+    Health.woundCache[npc.id] = nil
+end
+
+-- Plaies vivantes du PNJ id (liste du modèle, à changer par les transitions de Wounds puis Health.woundsChanged), ou
+-- nil (PNJ inconnu).
+function Health.wounds(id)
+    local npc = npcOf(id)
+    if npc == nil then return nil end
+    return woundsOf(npc)
+end
+
+-- Plaies du PNJ id changées par un soin (LK21-T05) : forme sauvegardée, registre à écrire, révision. Rend vrai, ou
+-- faux (PNJ inconnu).
+function Health.woundsChanged(id)
+    local npc = npcOf(id)
+    if npc == nil then return false end
+    saveWounds(npc, woundsOf(npc))
+    LivingKnox.Store.markDirty()
+    touch(id)
+    return true
+end
+
+-- Saignement du PNJ id (fraction de hpMax perdue par heure de jeu, somme des plaies), 0 s'il ne saigne pas.
+function Health.bleeding(id)
+    local npc = npcOf(id)
+    if npc == nil then return 0 end
+    local b = Wounds.bleeding(woundsOf(npc), wctx())
+    if not LivingKnox.Num.finite(b) or b <= 0 then return 0 end
+    return b
+end
+
+-- État de santé du PNJ id (copie) : { hp, max, dead, wounds = { { p = partie, kind, bleed (fraction par heure),
+-- bandaged, infected, foreign }, ... }, bleed (0 : aucun saignement) }, ou nil.
 function Health.get(id)
     local npc = npcOf(id)
     if npc == nil or not LivingKnox.Identity.validHealth(npc.hp) then return nil end
-    local wounds = {}
-    if type(npc.wounds) == "table" then
-        for i, w in ipairs(npc.wounds) do wounds[i] = { p = w.p, d = w.d } end
+    local wounds, ctx = {}, wctx()
+    for i, w in ipairs(woundsOf(npc)) do
+        wounds[i] = { p = w.part, kind = w.kind, bleed = Wounds.woundBleeding(w, ctx), bandaged = w.bandage ~= nil,
+            infected = w.infected == true, foreign = w.foreign == true }
     end
     return { hp = npc.hp, max = npc.hpMax, dead = npc.state == LivingKnox.Identity.STATE_DEAD, wounds = wounds,
         bleed = Health.bleeding(id) }
 end
 
--- ---------------------------------------------------------------- saignement (LK07-T03)
-
--- Saignement du PNJ id (fraction de hpMax perdue par heure de jeu), 0 s'il ne saigne pas (champ absent ou faux).
-function Health.bleeding(id)
-    local npc = npcOf(id)
-    local b = npc and npc.bleed
-    if not LivingKnox.Num.finite(b) or b <= 0 then return 0 end
-    return b
+-- Plaies du coup hit (Wounds.fromHit) sur le PNJ npc, coup non mortel. Rend les plaies ajoutées.
+local function woundFrom(id, npc, hit)
+    local list = woundsOf(npc)
+    local added, source = Wounds.fromHit(list, hit, wctx())
+    if #added == 0 then return added end
+    saveWounds(npc, list)
+    for _, w in ipairs(added) do
+        Health.stats.wounds = Health.stats.wounds + 1
+        if w.bleed > 0 then Health.stats.bleeds = Health.stats.bleeds + 1 end
+        LivingKnox.Log.info("npc %s wounded (%s): %s on %s%s", id, tostring(source), w.kind, w.part,
+            w.bleed > 0 and ", bleeding" or "")
+    end
+    return added
 end
 
--- Blessure de amount (non mortelle) sur le PNJ npc : saignement augmenté. Rend le nouveau saignement.
-local function startBleeding(id, npc, amount)
-    local full = fullOf(npc, nil)
-    if full == nil or full <= 0 or not LivingKnox.Num.finite(amount) or amount <= 0 then return nil end
-    local c = bcfg()
-    local b = Health.bleeding(id) + c.PER_DAMAGE * amount / full
-    if b > c.MAX then b = c.MAX end
-    if b < c.STOP then return nil end
-    if (npc.bleed or 0) <= 0 then Health.stats.bleeds = Health.stats.bleeds + 1 end
-    npc.bleed = math.floor(b * 1e6 + 0.5) / 1e6
-    LivingKnox.Log.info("npc %s is bleeding: %.4f of full health per hour", id, npc.bleed)
-    return npc.bleed
-end
-
--- Arrête le saignement du PNJ id (soin connu de l'autorité, LK_Care ; mort). Rend le saignement arrêté (0 : aucun).
-function Health.stopBleeding(id, why)
+-- Arrête le saignement du PNJ id. ADAPTATEUR PROVISOIRE de LK_Care (LK07-T03) jusqu'à LK21-T05 (registre des soins) :
+-- chaque plaie qui saigne reçoit un bandage (Wounds.bandage) de vie tirée dans BANDAGE_LIFE plus power (BandagePower
+-- de l'objet, 0 par défaut), sans alcool. Rend le saignement arrêté (fraction par heure ; 0 : aucun).
+function Health.stopBleeding(id, why, power)
     local npc = npcOf(id)
-    local b = Health.bleeding(id)
-    if npc == nil or npc.bleed == nil then return b end
-    npc.bleed = nil
+    if npc == nil then return 0 end
+    local list, ctx = woundsOf(npc), wctx()
+    local range = bcfg().BANDAGE_LIFE
+    local stopped = 0
+    for _, w in ipairs(list) do
+        local b = Wounds.woundBleeding(w, ctx)
+        if b > 0 then
+            Wounds.bandage(w, range[1] + (range[2] - range[1]) * ctx.rnd() + math.max(0, power or 0), false)
+            stopped = stopped + b
+        end
+    end
+    if stopped <= 0 then return 0 end
+    saveWounds(npc, list)
     LivingKnox.Store.markDirty()
     touch(id)
-    if b > 0 then
-        Health.stats.bleedStops = Health.stats.bleedStops + 1
-        LivingKnox.Log.info("npc %s stopped bleeding (%s)", id, tostring(why or "care"))
-    end
-    return b
+    Health.stats.bleedStops = Health.stats.bleedStops + 1
+    LivingKnox.Log.info("npc %s stopped bleeding (%s)", id, tostring(why or "care"))
+    return stopped
 end
 
 -- Minute de jeu courante (âge du monde), ou nil.
@@ -295,8 +377,46 @@ local function gameMinute()
     return math.floor(h * 60 + 0.5)
 end
 
--- Perte de sang des corps reliés depuis le dernier passage (minutes manquées rattrapées, au plus STEP_MAX). Mort
--- décidée par Health.kill quand la référence atteint 0. Rend le nombre de PNJ qui saignent encore.
+-- Évolution des plaies et régénération des corps reliés depuis le dernier passage (minutes manquées rattrapées, au plus
+-- STEP_MAX) : santé baissée de hpLoss x hpMax (Wounds.advance), puis rendue comme au vanilla (Wounds.regeneration,
+-- jamais au-dessus de Wounds.healthCap x hpMax quand une perte générale reste à rattraper). Santé gardée au millionième
+-- (une minute de régénération ou de petit saignement vaut moins que le millième envoyé aux clients). Mort décidée par
+-- Health.kill (cause « bleeding ») quand la référence atteint 0. Rend le nombre de PNJ qui ont encore des plaies.
+local function round6(v) return math.floor(v * 1e6 + 0.5) / 1e6 end
+
+local function woundPass(id, z, npc, steps)
+    local list, ctx = woundsOf(npc), wctx()
+    local full = fullOf(npc, z) or npc.hp
+    local bleeding = Wounds.bleeding(list, ctx)
+    local out = Wounds.advance(list, steps, ctx)
+    Health.stats.healed = Health.stats.healed + #out.healed
+    local lowered = npc.hp - out.hpLoss * full
+    local hp = lowered
+    if hp > 0 then
+        local cap = Wounds.healthCap(list) * full
+        local general = hp < cap - 1e-9
+        local gain = Wounds.regeneration(list, steps, ctx, general) * full
+        if general then hp = math.min(cap, hp + gain) else hp = math.min(full, hp + gain) end
+        if hp < lowered then hp = lowered end   -- la régénération ne baisse jamais la santé
+    end
+    saveWounds(npc, list)
+    if hp < 0 then hp = 0 end
+    local before = npc.hp
+    npc.hp = round6(hp)
+    if npc.hp <= 0 and hp > 0 then npc.hp = 0.000001 end
+    LivingKnox.Store.markDirty()
+    if round3(npc.hp) ~= round3(before) or #out.healed > 0 then touch(id) end   -- envoi seulement si visible
+    if hp <= 0 then
+        Health.stats.bleedDeaths = Health.stats.bleedDeaths + 1
+        LivingKnox.Log.info("npc %s bled to death (%d wound(s), bleeding %.4f per hour)", id, #list, bleeding)
+        Health.kill(id, z, nil, nil, "bleeding")
+    elseif bleeding > 0 and Wounds.bleeding(list, ctx) <= 0 then
+        Health.stats.bleedStops = Health.stats.bleedStops + 1
+        LivingKnox.Log.info("npc %s stopped bleeding on its own, health %.3f", id, npc.hp)
+    end
+    return hp
+end
+
 function Health.bleedPass(minute)
     if not LivingKnox.isAuthority() or not LivingKnox.Store.isReady() then return 0 end
     minute = minute or gameMinute()
@@ -305,8 +425,7 @@ function Health.bleedPass(minute)
     local last = st.bleedMinute
     st.bleedMinute = minute
     if last == nil or minute <= last then return 0 end
-    local c = bcfg()
-    local steps = math.min(minute - last, c.STEP_MAX)
+    local steps = math.min(minute - last, bcfg().STEP_MAX)
     local B = LivingKnox.Bodies
     if B == nil then return 0 end
     local ids = {}
@@ -316,31 +435,12 @@ function Health.bleedPass(minute)
     for _, id in ipairs(ids) do
         local z = B.bound[id]
         local npc = npcOf(id)
-        local b = Health.bleeding(id)
-        -- Corps mis de côté (chunk déchargé, encore dans Bodies.bound) : saignement suspendu (LK07-T04).
-        if b > 0 and z ~= nil and B.inWorld(z) and npc ~= nil and npc.state == LivingKnox.Identity.STATE_EMBODIED
-            and not Health.decided[id] and LivingKnox.Identity.validHealth(npc.hp) then
-            local full = fullOf(npc, z) or npc.hp
-            local loss = b * full * steps / 60
-            local hp = npc.hp - loss
-            if hp < 0 then hp = 0 end
-            npc.hp = round3(hp)
-            if npc.hp <= 0 and hp > 0 then npc.hp = 0.001 end
-            local nb = b * math.exp(-0.6931471805599453 * steps / (60 * c.HALF_HOURS))   -- 0,5 ^ (h / HALF_HOURS)
-            LivingKnox.Store.markDirty()
-            touch(id)
-            if hp <= 0 then
-                Health.stats.bleedDeaths = Health.stats.bleedDeaths + 1
-                LivingKnox.Log.info("npc %s bled to death (bleeding %.4f per hour)", id, b)
-                Health.kill(id, z, nil, nil, "bleeding")
-            elseif nb < c.STOP then
-                npc.bleed = nil
-                Health.stats.bleedStops = Health.stats.bleedStops + 1
-                LivingKnox.Log.info("npc %s stopped bleeding on its own, health %.3f", id, npc.hp)
-            else
-                npc.bleed = math.floor(nb * 1e6 + 0.5) / 1e6
-                left = left + 1
-            end
+        -- Corps mis de côté (chunk déchargé, encore dans Bodies.bound) : plaies suspendues (LK07-T04). Santé pleine
+        -- sans plaie : rien à faire.
+        if z ~= nil and B.inWorld(z) and npc ~= nil and npc.state == LivingKnox.Identity.STATE_EMBODIED
+            and not Health.decided[id] and LivingKnox.Identity.validHealth(npc.hp)
+            and (#woundsOf(npc) > 0 or npc.hp < (fullOf(npc, z) or npc.hp)) then
+            if woundPass(id, z, npc, steps) > 0 and #woundsOf(npc) > 0 then left = left + 1 end
         end
     end
     return left
@@ -364,10 +464,34 @@ function Health.noteHeal(id, amount)
     return hp
 end
 
--- Réglage d'un administrateur (LK13-T13, LK_Admin : bornes et droit contrôlés par l'appelant) : santé hp (]0,
--- HP_MAX], jamais une mort, qui ne passe que par Health.kill) ou saignement bleed (>= 0 ; 0 = arrêté), PNJ incarné
--- vivant seulement. Écrit à la fin de l'image (Store.markChanged), révision envoyée aux clients proches. Rend vrai, ou
+-- Saignement total réglé à target (fraction de hpMax par heure) sur les plaies de list (LK21-T02) : 0 arrête le
+-- saignement de chaque plaie ; sinon les plaies qui saignent sont mises à l'échelle (chacune bornée à BLEED_LIMIT,
+-- borne de la forme sauvegardée), ou une plaie ADMIN_KIND est posée sur ADMIN_PART si aucune ne saigne. Rend vrai, ou
 -- nil et la raison.
+local function adminBleeding(list, target, ctx)
+    if target <= 0 then
+        for _, w in ipairs(list) do w.bleed = 0 end
+        return true
+    end
+    local current = Wounds.bleeding(list, ctx)
+    if current > 0 then
+        local k = target / current
+        for _, w in ipairs(list) do
+            if Wounds.woundBleeding(w, ctx) > 0 then w.bleed = math.min(Wounds.BLEED_LIMIT, w.bleed * k) end
+        end
+        return true
+    end
+    local w, why = Wounds.add(list, bcfg().ADMIN_PART, bcfg().ADMIN_KIND, ctx, { bleed = true })
+    if w == nil then return nil, why end
+    w.bleed = 1
+    w.bleed = math.min(Wounds.BLEED_LIMIT, target / Wounds.woundBleeding(w, ctx))
+    return true
+end
+
+-- Réglage d'un administrateur (LK13-T13, LK_Admin : bornes et droit contrôlés par l'appelant) : santé hp (]0,
+-- HP_MAX], jamais une mort, qui ne passe que par Health.kill) ou saignement bleed (>= 0 ; 0 = arrêté ; réglé sur les
+-- plaies, adminBleeding), PNJ incarné vivant seulement. Écrit à la fin de l'image (Store.markChanged), révision
+-- envoyée aux clients proches. Rend vrai, ou nil et la raison.
 function Health.setByAdmin(id, hp, bleed)
     if not LivingKnox.isAuthority() then return nil, "not the authority" end
     local npc = npcOf(id)
@@ -379,7 +503,10 @@ function Health.setByAdmin(id, hp, bleed)
     end
     if bleed ~= nil then
         if not LivingKnox.Num.finite(bleed) or bleed < 0 then return nil, "bad bleeding" end
-        if bleed > 0 then npc.bleed = math.floor(bleed * 1e6 + 0.5) / 1e6 else npc.bleed = nil end
+        local list = woundsOf(npc)
+        local ok, why = adminBleeding(list, bleed, wctx())
+        if not ok then return nil, why end
+        saveWounds(npc, list)
     end
     LivingKnox.Store.markChanged()
     touch(id)
@@ -480,8 +607,11 @@ end
 
 -- ---------------------------------------------------------------- dégâts et mort
 
--- Retire amount de la référence du PNJ id (corps z), blessure notée. Mort décidée à 0. Rend la santé restante.
-function Health.applyHit(id, z, amount, part, wielder, weapon)
+-- Retire amount de la référence du PNJ id (corps z) ; coup non mortel : plaies faites par la source du coup (LK21-T02,
+-- Wounds.fromHit). part : partie donnée par le moteur (OnHitZombie) ou texte libre ; opts (facultatif) : { source =
+-- source nommée (verre brisé...), issue = issue déjà décidée (attaque de zombie, LK_Zombies), risk }. Mort décidée à
+-- 0. Rend la santé restante.
+function Health.applyHit(id, z, amount, part, wielder, weapon, opts)
     local npc = npcOf(id)
     if npc == nil or Health.decided[id] then return nil end
     if not LivingKnox.Identity.validHealth(npc.hp) then Health.bodyBound(id, z) end
@@ -492,11 +622,10 @@ function Health.applyHit(id, z, amount, part, wielder, weapon)
     if hp < 0 then hp = 0 end
     npc.hp = round3(hp)
     if npc.hp <= 0 and hp > 0 then npc.hp = 0.001 end   -- arrondi : jamais une mort que le calcul n'a pas faite
-    local wounds = type(npc.wounds) == "table" and npc.wounds or {}
-    wounds[#wounds + 1] = { p = part or "unknown", d = round3(amount) }
-    while #wounds > cfg().WOUNDS_MAX do table.remove(wounds, 1) end
-    npc.wounds = wounds
-    if hp > 0 then startBleeding(id, npc, amount) end   -- LK07-T03
+    if hp > 0 then
+        woundFrom(id, npc, { attacker = wielder, weapon = weapon, damage = amount, part = part,
+            source = opts and opts.source, issue = opts and opts.issue, risk = opts and opts.risk })
+    end
     Health.stats.applied = Health.stats.applied + 1
     LivingKnox.Store.markDirty()
     touch(id)
@@ -539,7 +668,7 @@ function Health.kill(id, z, wielder, weapon, cause)
     Health.decided[id] = true
     Health.causes[id] = cause
     npc.hp = 0
-    npc.bleed = nil
+    clearWounds(npc)
     touch(id)
     Health.stats.deaths = Health.stats.deaths + 1
     if isServer() then Health.flush(id, z) end   -- santé nulle aux destinataires avant le paquet de mort
@@ -566,7 +695,10 @@ function Health.onBodyDied(id, z)
     Health.parts[id] = nil
     local npc = npcOf(id)
     local before = npc and npc.hp
-    if npc ~= nil then npc.hp, npc.bleed = 0, nil end
+    if npc ~= nil then
+        npc.hp = 0
+        clearWounds(npc)
+    end
     touch(id)
     if decided then return true end
     Health.stats.engineDeaths = Health.stats.engineDeaths + 1
@@ -611,7 +743,7 @@ local function wire(id)
     local npc = npcOf(id)
     if npc == nil or not LivingKnox.Identity.validHealth(npc.hp) then return nil end
     return { r = Health.rev[id], hp = round3(npc.hp), mx = npc.hpMax and round3(npc.hpMax) or nil,
-        w = type(npc.wounds) == "table" and #npc.wounds or 0 }
+        w = #woundsOf(npc) }
 end
 
 local function sendBatch(batch)

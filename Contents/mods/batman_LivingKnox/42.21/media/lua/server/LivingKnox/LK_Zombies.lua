@@ -44,7 +44,8 @@
 --    BodyDamage.AddRandomDamageFromZombie (J/characters/BodyDamage/BodyDamage.java:1101-1220) : coup évité si le
 --    tirage <= AVOID - (attaquants - 1) x AVOID_EXTRA, sinon griffure, lacération si un second tirage dépasse
 --    LACERATION - (attaquants - 1) x LACERATION_EXTRA, morsure si un troisième dépasse BITE - ... ; dégâts =
---    DAMAGE[issue] x santé de naissance du PNJ, retirés par LivingKnox.Health.applyHit (blessure notée, mort
+--    DAMAGE[issue] x santé de naissance du PNJ, retirés par LivingKnox.Health.applyHit (plaie de l'issue par la source
+--    « zombie », LK21-T02 : partie du vanilla, server/LivingKnox/Wounds/LK_WoundSource_Zombie.lua ; mort
 --    décidée une fois par Health.kill avec le zombie pour attaquant). Même issue chez tous les clients : ils ne
 --    reçoivent que la santé de référence (commande "npcHealth" de LK_Health) et, à la mort, le paquet vanilla.
 --    Infection et transformation (I6.10) : non traitées (fiche, points ouverts).
@@ -415,7 +416,7 @@ function Zombies.attack(id, body, z, key, n, attackers)
     local H = LivingKnox.Health
     local amount = cfg().DAMAGE[out] * fullOf(id, body)
     local deaths = H.stats.deaths
-    local hp = H.applyHit(id, body, amount, "zombie " .. out, z, nil)
+    local hp = H.applyHit(id, body, amount, "zombie " .. out, z, nil, { issue = out })   -- LK21-T02 : plaie de l'issue
     LivingKnox.Log.info("npc %s: %s by zombie %s (attack %d, %d attacker(s), %.3f damage, health %s)", id, out, key, n,
         attackers, amount, hp ~= nil and string.format("%.3f", hp) or "?")
     if H.stats.deaths > deaths then count("deaths") end

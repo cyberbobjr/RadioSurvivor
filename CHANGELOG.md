@@ -77,6 +77,7 @@
 - Survivors no longer stop in doorways, on thresholds or in one-square corridors to wait, eat, work or keep watch.
 - Raiders wait for their breaker before forcing a way in.
 - Living Knox missions can be given, delivered and rewarded without Radio Survivor.
+- Survivors get wounds like a player: a zombie scratches, lacerates or bites a precise body part, a knife cuts, a bat bruises, a bullet lodges, fire burns, and broken glass cuts a hand or forearm. Each wound bleeds and heals at the game's own pace, and a survivor's health follows its wounds (it also slowly comes back on its own, like a player's).
 
 ### Fixes
 

@@ -95,17 +95,19 @@ RST.suite("lk.health", { tags = { "world", "server" }, testTimeoutMs = 60000, ti
                 .. tostring(vanilla0) .. " -> " .. tostring(z:getHealth()))
             t2:ok(ref1 ~= nil and ref1 < ref0, "reference health did not drop")
             t2:near(vanilla0, z:getHealth(), 0.0005, "vanilla health changed")
-            -- The hit itself may start a bleeding (LK07-T03, Health.bleedPass): the reference health may then go
-            -- down a little; it must never rise, and must not move at all without a bleeding.
+            -- The hit itself may make wounds (LK21-T02, Health.bleedPass: bleeding and harm of the wounds): the
+            -- reference health may then go down a little; it must never rise, and must not move at all without one.
             local bleed = H().bleeding(id)
+            local wounded = #H().get(id).wounds > 0
             t2:sleep(3000, function(t3)
                 local ref2 = H().reference(id)
-                measure("3 s later: reference " .. tostring(ref2) .. ", bleeding " .. tostring(bleed) .. " per hour")
+                measure("3 s later: reference " .. tostring(ref2) .. ", bleeding " .. tostring(bleed) .. " per hour, wounds "
+                    .. tostring(wounded))
                 t3:ok(ref2 ~= nil and ref2 <= ref1, "reference health rose without care: "
                     .. tostring(ref1) .. " -> " .. tostring(ref2))
-                if bleed <= 0 then t3:eq(ref1, ref2, "reference health changed without a hit nor a bleeding") end
+                if not wounded then t3:eq(ref1, ref2, "reference health changed without a hit nor a wound") end
                 -- LK07-T02 (E01-T16): every connected client reads the same health through HealthView.get (copy
-                -- sent by the server, npcHealth); solo: the local player reads the authority. A bleeding lowers the
+                -- sent by the server, npcHealth); solo: the local player reads the authority. Wounds lower the
                 -- reference meanwhile: tolerance of 1 % of the maximum.
                 local ref = H().get(id)
                 if ref ~= nil and RST.Steps.ask ~= nil then

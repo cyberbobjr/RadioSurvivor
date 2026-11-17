@@ -19,8 +19,9 @@
 --           hpMax = santé du corps courant à sa naissance, juste après la réanimation (robustesse du moteur), référence
 --                   de la conversion santé <-> blessure abstraite du membre de groupe (LK_Materialize, LK09-T03 ;
 --                   champ facultatif, même règle ; ]0..Identity.HP_MAX]),
---           bleed = saignement (fraction de hpMax perdue par heure de jeu, LK_Health, LK07-T03 ; champ facultatif,
---                   même règle ; absent = aucun saignement ; une valeur fausse est lue comme absente) }
+--           wounds = plaies localisées du corps (LK_Health, LK21-T02 : forme compacte de Wounds.pack,
+--                    shared/LivingKnox/LK_WoundsForm.lua ; champ facultatif, même règle ; absent = aucune plaie ;
+--                    forme fausse : registre refusé) }
 -- Schéma 1 (LK02-T02, profile = { female, outfit, preset }) : relu puis migré (Identity.upgrade) ; sexe et tenue
 -- gardés, le reste tiré avec le numéro du PNJ. Un corps déjà présent garde son ancienne apparence jusqu'à sa
 -- prochaine incarnation.
@@ -29,6 +30,7 @@
 -- génération de son incarnation (Identity.KEY_ID, Identity.KEY_GEN).
 require "LivingKnox/LK_Core"
 require "LivingKnox/LK_Appearance"
+require "LivingKnox/LK_WoundsForm"   -- LK21-T02 : forme sauvegardée des plaies (npc.wounds)
 
 local Identity = LivingKnox.Identity or {}
 LivingKnox.Identity = Identity
@@ -247,6 +249,10 @@ function Identity.validate(data)
         if npc.death ~= nil then
             local deathOk, deathWhy = Identity.validDeath(npc.death)
             if not deathOk then return nil, "npc " .. id .. ": " .. deathWhy, "invalid" end
+        end
+        if npc.wounds ~= nil then
+            local wounds, woundsWhy = LivingKnox.Wounds.unpack(npc.wounds)
+            if wounds == nil then return nil, "npc " .. id .. ": bad wounds (" .. tostring(woundsWhy) .. ")", "invalid" end
         end
     end
     return data

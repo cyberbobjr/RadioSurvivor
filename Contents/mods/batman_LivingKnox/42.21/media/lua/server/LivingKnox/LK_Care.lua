@@ -2,9 +2,11 @@
 -- section « Saignement et soins ». Java 42.21.0 cité en abrégé (J = zombie/...) ; M = media/lua vanilla.
 -- Autorité seulement (serveur dédié ou hébergé, solo) : un client MP charge aussi media/lua/server, il s'arrête ici.
 --
--- Module distinct de LK_Health (choix) : LK_Health tient la santé de référence et le saignement (seul écrivain de
--- npc.hp et npc.bleed) ; ce module décide QUI soigne, prend l'objet au stock et mène les gestes, avec les outils des
--- routines (Routines.exec). Il ne modifie la santé que par Health.stopBleeding et Health.noteHeal.
+-- Module distinct de LK_Health (choix) : LK_Health tient la santé de référence et les plaies (seul écrivain de
+-- npc.hp et npc.wounds, LK21-T02) ; ce module décide QUI soigne, prend l'objet au stock et mène les gestes, avec les
+-- outils des routines (Routines.exec). Il ne modifie la santé que par Health.stopBleeding et Health.noteHeal.
+-- PROVISOIRE jusqu'à LK21-T05 (registre des soins, Care/LK_Treat_<Id>.lua) : le soin passe la puissance de l'objet
+-- (BandagePower) à Health.stopBleeding, qui bande les plaies qui saignent (adaptateur de LK_Health).
 --
 -- Blessés à soigner (« patients ») d'un groupe : membres présents au foyer (Routines.present), incarnés, qui saignent
 -- (Health.bleeding > 0) ou notés blessés après une attaque repoussée (Care.afterAttack, appelé par LK_Defense ; note
@@ -19,14 +21,14 @@
 -- de la référence du stock dans la même écriture : ni perte ni vol à la relecture ; rien n'est jamais créé) ; puis
 -- le médecin va à côté du blessé, se tourne vers lui et s'agenouille (TREAT_GESTURE, TREAT_MINUTES) ; un blessé seul
 -- s'agenouille sur place. Le soin est appliqué UNE fois : à la fin, ou plus tôt si le soin est interrompu après la
--- prise (comme un repas) : saignement arrêté (Health.stopBleeding) et santé rendue (Health.noteHeal) = HEAL_PER_POWER
+-- prise (comme un repas) : plaies qui saignent bandées (Health.stopBleeding) et santé rendue (Health.noteHeal) = HEAL_PER_POWER
 -- x BandagePower de l'objet x hpMax (x MEDIC_FACTOR pour un médecin), journal du groupe (kind « care »).
 -- Objet de soin : objet que le vanilla accepte pour panser (InventoryItem.isCanBandage, script CanBandage,
 -- J/inventory/InventoryItem.java:2607 ; M/client/ISUI/ISInventoryPaneContextMenu.lua:169) ; un objet propre
 -- (getBandagePower >= GOOD_POWER, J/inventory/InventoryItem.java:3088) est préféré aux bandes sales (0,5).
 -- Rien au stock : pénurie au journal du groupe (Stock.reportShortage, catégorie « medical ») et soins du groupe mis de
 -- côté SHORTAGE_MINUTES ; le saignement continue et peut tuer (LK_Health). Mémoire (tâches, notes, phases) : non
--- sauvegardée ; le saignement, lui, est sauvegardé avec le registre des corps.
+-- sauvegardée ; les plaies, elles, sont sauvegardées avec le registre des corps.
 if isClient() then return end
 
 require "LivingKnox/LK_Core"
@@ -235,7 +237,8 @@ function Care.finish(m)
     local H = LivingKnox.Health
     local npc = LivingKnox.Store.isReady() and LivingKnox.Identity.get(LivingKnox.Store.data(), m.patient) or nil
     local full = npc and npc.hpMax
-    local stopped = H.stopBleeding(m.patient, m.medic and "treated by " .. tostring(m.cmid) or "treated itself")
+    local stopped = H.stopBleeding(m.patient, m.medic and "treated by " .. tostring(m.cmid) or "treated itself",
+        m.power)   -- LK21-T05 : remplacé par les soins inscrits
     local amount = 0
     if LivingKnox.Num.finite(full) and full > 0 then
         amount = cfg().HEAL_PER_POWER * (m.power or 0) * full * (m.medic and cfg().MEDIC_FACTOR or 1)

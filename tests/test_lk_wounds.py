@@ -457,5 +457,66 @@ class WoundsTests(unittest.TestCase):
             self.assertNotIn(f'"{kind}"', engine)
 
 
+class VanillaHealthScaleTests(unittest.TestCase):
+    """LK21-T02 : santé générale perdue sous une plaie, modèle (Wounds.advance puis Wounds.regeneration et
+    Wounds.healthCap, comme LK_Health.bleedPass chaque minute) contre un joueur vanilla éveillé et nourri simulé tick
+    par tick (tests/test_lk_health.py, vanilla_loss : BodyDamage.java:917-944, :1887-1928, :2079-2089 ;
+    BodyPart.java:145-181, :204, :211). Tirages médians. Vanilla : (a) profonde au torse 41 points en 1 h, mort vers
+    17 h ; (b) coupure à l'avant-bras 21 ; (c) morsure à l'avant-bras 21 (sans virus) ; (d) profonde bandée 26."""
+
+    setUp, ev, run_lua, wound = WoundsTests.setUp, WoundsTests.ev, WoundsTests.run_lua, WoundsTests.wound
+
+    CASES = [('Torso_Upper', 'deep', 3.125, 0.85 * 17.5 * 0.5, False),
+             ('ForeArm_L', 'laceration', 1.875, 0.85 * 15 * 0.3, False),
+             ('ForeArm_L', 'bite', 2.1875, 11.25 * 0.3, False),
+             ('Torso_Upper', 'deep', 1.5625, 0.85 * 17.5 * 0.5, True)]
+
+    def model_loss(self, part, kind, bandaged, minutes):
+        return self.ev(f'''(function()
+            local W = {W}
+            local C = {{ rnd = function() return 0.5 end }}
+            local L = {{}}
+            W.add(L, "{part}", "{kind}", C)
+            if {'true' if bandaged else 'false'} then W.bandage(L[1], 5, false) end
+            C.rnd = {NEVER}
+            local hp = 1
+            for m = 1, {minutes} do
+                local lowered = hp - W.advance(L, 1, C).hpLoss
+                hp = lowered
+                if hp <= 0 then return 1 end
+                local cap = W.healthCap(L)
+                local general = hp < cap - 1e-9
+                local gain = W.regeneration(L, 1, C, general)
+                if general then hp = math.min(cap, hp + gain) else hp = math.min(1, hp + gain) end
+                if hp < lowered then hp = lowered end
+            end
+            return 1 - hp
+        end)()''')
+
+    def test_one_hour_loss_matches_a_vanilla_player(self):
+        from test_lk_health import vanilla_loss
+        for part, kind, damage, bleed, bandaged in self.CASES:
+            with self.subTest(kind=kind, bandaged=bandaged):
+                vanilla = vanilla_loss(part, damage, bleed, 60, bandaged) / 100
+                self.assertAlmostEqual(self.model_loss(part, kind, bandaged, 60), vanilla, delta=0.02)
+
+    def test_regeneration_spread_or_held(self):
+        # Perte générale à rattraper : 0.002 x 180 x (somme des parts sans la partie tenue) / 17 par minute.
+        self.wound('deep', 'Torso_Upper')
+        held = sum(p[2] for p in PARTS) - 0.35
+        self.assertAlmostEqual(self.ev(f'{W}.regeneration(L, 1, C, true)'), 0.002 * TPM * held / 17 / 100, places=9)
+        # Sans perte générale : REGEN partagé entre les parties tenues, retiré de leurs dégâts.
+        self.run_lua(f'{W}.advance(L, 10, C)')
+        harm = self.ev('w1.harm')
+        gain = self.ev(f'{W}.regeneration(L, 1, C, false)')
+        self.assertAlmostEqual(self.ev('w1.harm'), harm - 0.002 * TPM, places=9)
+        self.assertAlmostEqual(gain, 0.002 * TPM * 0.35 / 100, places=9)
+        self.assertAlmostEqual(self.ev(f'{W}.healthCap(L)'), 1 - self.ev('w1.harm') * 0.35 / 100, places=9)
+        # Plaie qui n'abîme plus (coupure bandée) : la partie n'est plus tenue, la santé remonte jusqu'au plein.
+        self.wound('laceration', 'Hand_L')
+        self.run_lua(f'{W}.advance(L, 10, C); {W}.bandage(w1, 4, false)')
+        self.assertEqual(self.ev(f'{W}.healthCap(L)'), 1)
+
+
 if __name__ == '__main__':
     unittest.main(verbosity=1)

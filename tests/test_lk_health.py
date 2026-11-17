@@ -28,6 +28,23 @@ from test_lk_reports import ReportBase  # noqa: E402
 HEALTH = 'server/LivingKnox/LK_Health.lua'
 HEALTH_CLIENT = 'client/LivingKnox/LK_HealthClient.lua'
 MOD_FILES = [lua_src(HEALTH), lua_src(HEALTH_CLIENT)]
+LK_MEDIA = lua_src(HEALTH).parents[2]
+
+
+def wound_files():
+    """LK21-T02 : types de plaie (shared/LivingKnox/Wounds/) et sources de blessure (server/LivingKnox/Wounds/), chargés
+    par le jeu, triés par nom ; chacun s'inscrit à son registre (LK_Wounds, LK_WoundSources)."""
+    out = []
+    for side in ('shared', 'server'):
+        folder = LK_MEDIA / side / 'LivingKnox' / 'Wounds'
+        out += [f'{side}/LivingKnox/Wounds/{p.name}' for p in sorted(folder.glob('*.lua'), key=lambda p: p.name.lower())]
+    return out
+
+
+def fixed_rnd(value):
+    """Tirage fixe des plaies (LivingKnox.WoundContext.rnd), pour des cas déterministes."""
+    return f'LivingKnox.WoundContext.rnd = function() return {value} end'
+
 DEV_FILES = [DEV_LUA / 'shared' / 'RST' / 'suites' / 'RST_LKHealth.lua',
              DEV_LUA / 'shared' / 'RST' / 'suites' / 'RST_LKKiller.lua']
 
@@ -89,10 +106,21 @@ H.updateZombies = function()
 end
 -- Arme (valeurs relevées dans les scripts vanilla, arrondies).
 local HW = C.HandWeapon
-STATS = { ['Base.BaseballBat'] = { max = 1.5, range = 1.25, crit = 3 }, ['Base.Pistol'] = { max = 1.8, range = 15, crit = 4 },
-    ['Base.PipeBomb'] = { max = 0, range = 0, crit = 0 }, ['Base.HuntingKnife'] = { max = 0.8, range = 0.9, crit = 5 } }
+STATS = { ['Base.BaseballBat'] = { max = 1.5, range = 1.25, crit = 3, cats = { Blunt = true } },
+    ['Base.Pistol'] = { max = 1.8, range = 15, crit = 4, cats = {}, aimed = true },
+    ['Base.PipeBomb'] = { max = 0, range = 0, crit = 0, cats = {} },
+    ['Base.HuntingKnife'] = { max = 0.8, range = 0.9, crit = 5, cats = { SmallBlade = true } } }
 WEAPONS['Base.HuntingKnife'] = {}
 function HW:isMelee() return not self.ranged and not self.explosive end
+-- LK21-T02 : catégories de l'arme (HandWeapon.isOfWeaponCategory, HandWeapon.java:1158 ; champs de WeaponCategory,
+-- WeaponCategory.java:13-20) et arme à feu visée (isAimedFirearm, :1079).
+WeaponCategory = { AXE = 'Axe', BLUNT = 'Blunt', IMPROVISED = 'Improvised', LONG_BLADE = 'LongBlade',
+    SMALL_BLADE = 'SmallBlade', SMALL_BLUNT = 'SmallBlunt', SPEAR = 'Spear', UNARMED = 'Unarmed' }
+function HW:isOfWeaponCategory(c)
+    if c == nil then error('No implementation found for isOfWeaponCategory with argument nil', 2) end
+    return STATS[self.fullType].cats[c] == true
+end
+function HW:isAimedFirearm() return STATS[self.fullType].aimed == true end
 function HW:getMaxDamage() return STATS[self.fullType].max end
 function HW:getMaxRange(owner) return STATS[self.fullType].range end
 function HW:getCriticalDamageMultiplier() return STATS[self.fullType].crit end
@@ -125,6 +153,8 @@ class HealthBase(ReportBase):
         for m in (['solo'] if self.mode == 'solo' else ['server', 'A', 'B']):
             h.load(m, HEALTH_DOUBLES)
             h.load(m, HEALTH)
+            for path in wound_files():
+                h.load(m, path)
             if m != 'server':
                 h.load(m, HEALTH_CLIENT)
         return h
@@ -186,7 +216,7 @@ class MultiplayerHealthTests(HealthBase):
         hp = self.hit(zid, 3.0)
         self.assertAlmostEqual(hp, 2 - 3.0 * 0.15, places=3)
         self.assertEqual(self.h.eval('server', f'HARNESS.zombies[{zid}]:getHealth()'), 2)   # vanilla inerte
-        self.assertEqual(self.npc_field('wounds[1].p'), 'Torso_Upper')
+        self.assertEqual(self.hl('get("lk-1").wounds[1].p'), 'Torso_Upper')   # LK21-T02 : plaie de la batte
         self.sync()
         self.assertEqual(self.views(), {'A': hp, 'B': hp})
         msgs = [m for m in self.h.logs('server') if 'npcHealth' in m]
@@ -247,7 +277,7 @@ class MultiplayerHealthTests(HealthBase):
         self.assertEqual(self.h.eval('server', 'DEATHS'), 1)
         self.assertEqual(self.npc_field('state'), 'dead')
         self.assertEqual(self.npc_field('hp'), 0)
-        self.assertEqual(self.npc_field('wounds[1].d'), 30)          # blessure bornée par la santé restante
+        self.assertIsNone(self.npc_field('wounds'))                  # LK21-T02 : coup mortel, aucune plaie gardée
         self.assertEqual(self.npc_field('death.weapon'), 'Base.HuntingKnife')
         self.assertFalse(any('weapon cap' in line for line in self.lk()), self.lk())
         self.assertEqual(self.h.errors('server'), [])
@@ -394,6 +424,130 @@ class SoloHealthTests(HealthBase):
                         measures)
 
 
+TPM = 180                 # ticks vanilla par minute de jeu (2 x 90 minutes par jour, LK_Wounds.lua en-tête)
+DS = 0.0057142857         # BodyPart.java:30 (damageScaler)
+BLEED = 0.2857143         # BodyPart.java:29 (bleedDamage)
+REGEN = 0.002             # BodyDamage.java:79 (standardHealthAddition, par tick)
+# Part de chaque partie dans la santé générale, ordre de BodyPartType (BodyPartType.java:16-32).
+PART_MODS = {'Hand_L': 0.1, 'Hand_R': 0.1, 'ForeArm_L': 0.2, 'ForeArm_R': 0.2, 'UpperArm_L': 0.3, 'UpperArm_R': 0.3,
+             'Torso_Upper': 0.35, 'Torso_Lower': 0.4, 'Head': 0.6, 'Neck': 0.7, 'Groin': 0.4, 'UpperLeg_L': 0.3,
+             'UpperLeg_R': 0.3, 'LowerLeg_L': 0.2, 'LowerLeg_R': 0.2, 'Foot_L': 0.2, 'Foot_R': 0.2}
+
+
+def vanilla_loss(part, damage, bleed, minutes, bandaged=False, dt=5):
+    """Santé générale perdue (points sur 100) par un joueur vanilla éveillé et nourri sous une seule plaie, tick par tick
+    (pas dt) : oracle indépendant du modèle Lua. Java 42.22 :
+    - dégâts de la partie damage x DS par tick (BodyPart.DamageUpdate :145-181, CombatManager.applyDamage :1187-1193) ;
+    - saignement à nu : ReduceGeneralHealth(0.2857143 x DS x bleed / 10) réparti sur les 17 parties
+      (BodyPart.java:161-163, BodyDamage.java:932-944), bleed - 2e-5 par tick (:211) ;
+    - régénération 0.002 par tick répartie sur les parties abîmées (BodyDamage.java:1887-1928, AddGeneralHealth :917-930) ;
+    - santé générale = 100 - somme (100 - santé de partie) x part (calculateOverallHealth :2079-2089)."""
+    names = list(PART_MODS)
+    hp = dict.fromkeys(names, 100.0)
+    for _ in range(int(minutes * TPM / dt)):
+        hurt = [n for n in names if hp[n] < 100]
+        for n in hurt:
+            hp[n] = min(100.0, hp[n] + REGEN * dt / len(hurt))
+        if bleed > 0 and not bandaged:
+            val = BLEED * DS * bleed / 10 * dt
+            for n in names:
+                hp[n] = max(0.0, hp[n] - val / 17 / PART_MODS[n])
+            bleed = max(0.0, bleed - 2e-5 * dt)
+        hp[part] = max(0.0, hp[part] - damage * DS * dt)
+    return min(100.0, sum((100 - hp[n]) * PART_MODS[n] for n in names))
+
+
+def regen_per_minute():
+    """Santé générale rendue par minute (fraction) quand toutes les parties sont abîmées et aucune n'est tenue."""
+    return REGEN * TPM * sum(PART_MODS.values()) / 17 / 100
+
+
+class WoundHealthTests(HealthBase):
+    """LK21-T02 (ADR adr-blessures-soins.md D03) : un coup fait des plaies par sa source ; la santé suit les plaies
+    (saignement et dégâts de partie, Wounds.advance) à chaque minute de jeu ; plaies sauvegardées avec le registre."""
+    mode = 'solo'
+
+    def setUp(self):
+        super().setUp()
+        self.zid = self.npc()
+        self.run_lua(fixed_rnd(0.1))
+
+    def wounds(self):
+        n = self.ev('#LivingKnox.Health.get("lk-1").wounds')
+        return [(self.hl(f'get("lk-1").wounds[{i}].p'), self.hl(f'get("lk-1").wounds[{i}].kind')) for i in range(1, n + 1)]
+
+    def test_knife_makes_a_deep_wound_whose_bleeding_and_harm_lower_health_each_minute(self):
+        hp0 = self.hit(self.zid, 1.0, 'Base.HuntingKnife', who='A')
+        # Tranchant, tirage 0,1 : 1 fois sur 6 (0,6 < 1) une plaie profonde, sur la partie donnée par OnHitZombie.
+        self.assertEqual(self.wounds(), [('Torso_Upper', 'deep')])
+        time = 15 + 5 * 0.1                       # generateDeepWound 15-20 (BodyPart.java:776)
+        bleed = (0.7 + 0.3 * 0.1) * time * 0.5    # generateBleeding 0,7-1 x durée, x 0,5 au torse (:1792, BodyPartType)
+        per_hour = BLEED * DS * bleed / 10 * TPM * 60 / 100
+        self.assertAlmostEqual(self.hl('bleeding("lk-1")'), per_hour, places=6)
+        self.assertAlmostEqual(self.hl('get("lk-1").bleed'), per_hour, places=6)
+        self.assertRegex(self.npc_field('wounds'), r'^deep:Torso_Upper:')   # forme sauvegardée (LK_WoundsForm)
+        self.assertIsNone(self.npc_field('bleed'))                          # ancien saignement unique retiré
+        self.h.advance(1)                                                    # premier passage : repère
+        self.assertEqual(self.ref(), hp0)
+        self.h.advance(60)
+        # Une heure : perte du joueur vanilla sous la même plaie (oracle vanilla_loss : dégâts de partie, saignement et
+        # régénération), environ 39 points sur 100 ; écart toléré 2 points.
+        expected = vanilla_loss('Torso_Upper', 3.125, bleed, 60) / 100
+        self.assertGreater(expected, 0.35)
+        self.assertAlmostEqual((hp0 - self.ref()) / 2, expected, delta=0.02)
+        self.assertEqual(self.h.errors('solo'), [])
+
+    def test_bandaged_wound_stops_the_loss(self):
+        self.run_lua(fixed_rnd(0.2))
+        self.hit(self.zid, 1.0, 'Base.BaseballBat', who='A')
+        # Contondant, tirage 0,2 : 1 fois sur 4 (0,8 < 1) une coupure, qui saigne.
+        self.assertEqual(self.wounds(), [('Torso_Upper', 'laceration')])
+        before = self.hl('bleeding("lk-1")')
+        self.assertGreater(before, 0)
+        # Adaptateur de LK_Care jusqu'à LK21-T05 : le soin bande les plaies qui saignent (puissance du pansement).
+        self.assertAlmostEqual(self.hl('stopBleeding("lk-1", "test", 4)'), before, places=9)
+        self.assertEqual(self.hl('bleeding("lk-1")'), 0)
+        self.assertIs(self.hl('get("lk-1").wounds[1].bandaged'), True)
+        self.h.advance(1)
+        hp = self.ref()
+        self.h.advance(30)
+        # Coupure bandée : ni saignement ni dégâts (BodyPart.java:155-163) ; la santé remonte par la régénération du
+        # vanilla (0.002 par tick sur les parties abîmées, BodyDamage.java:1887-1928).
+        self.assertAlmostEqual(self.ref() - hp, regen_per_minute() * 30 * 2, delta=0.002)
+        self.assertEqual(self.hl('stopBleeding("lk-1", "again", 4)'), 0)     # plus rien à bander
+
+    def test_zombie_bite_and_no_source_without_wound(self):
+        self.run_lua('VZ = NEW_ZOMBIE(103.5, 102.5, 0, false)')
+        self.run_lua(f'LivingKnox.Health.applyHit("lk-1", HARNESS.zombies[{self.zid}], 0.2, "zombie bite", VZ, nil, '
+                     '{ issue = "bite" })')
+        self.assertEqual(self.hl('get("lk-1").wounds[1].kind'), 'bite')
+        self.assertIs(self.hl('get("lk-1").wounds[1].infected'), True)
+        # Coup sans attaquant ni arme (outil, suite) : dégâts seulement, aucune plaie.
+        self.run_lua(f'LivingKnox.Health.applyHit("lk-1", HARNESS.zombies[{self.zid}], 0.1, "Torso_Upper", nil, nil)')
+        self.assertEqual(self.ev('#LivingKnox.Health.get("lk-1").wounds'), 1)
+        # Source imposée par son nom (verre brisé, LK21-T12).
+        self.run_lua(f'LivingKnox.Health.applyHit("lk-1", HARNESS.zombies[{self.zid}], 0.1, nil, nil, nil, '
+                     '{ source = "glass" })')
+        self.assertEqual(self.wounds()[1], ('Hand_L', 'glass'))              # tirage 0,1 : blessure, Hand_L, éclats
+
+    def test_wounds_saved_with_the_registry_and_read_back(self):
+        self.hit(self.zid, 1.0, 'Base.HuntingKnife', who='A')
+        text = self.npc_field('wounds')
+        bleeding = self.hl('bleeding("lk-1")')
+        self.assertIsNotNone(self.ev('(LivingKnox.Identity.validate(LivingKnox.Store.data()))'))
+        self.run_lua('LivingKnox.Store.save()')
+        self.init()                                                          # relecture du fichier du registre
+        self.run_lua('LivingKnox.Health.woundCache = {}')
+        self.assertEqual(self.npc_field('wounds'), text)
+        self.assertAlmostEqual(self.hl('bleeding("lk-1")'), bleeding, places=5)
+        self.assertEqual(self.wounds(), [('Torso_Upper', 'deep')])
+        # Forme fausse : registre refusé à la relecture.
+        self.run_lua('LivingKnox.Store.data().npcs["lk-1"].wounds = "deep:Nowhere:0::1:::::0:0:0:0:0"')
+        res = lua_list(self.ev('{ LivingKnox.Identity.validate(LivingKnox.Store.data()) }'))
+        self.assertIsNone(res[0])
+        self.assertIn('bad wounds', res[1])
+
+
 class SourceTests(unittest.TestCase):
     def test_kahlua_safe_sources_and_english_logs(self):
         for path in MOD_FILES + DEV_FILES:
@@ -401,7 +555,8 @@ class SourceTests(unittest.TestCase):
             code = re.sub(r'--\[\[.*?\]\]', '', text, flags=re.S)
             code = re.sub(r'--[^\n]*', '', code)
             self.assertTrue(all(ord(ch) < 128 for ch in code), f'{path.name}: non ASCII character in code')
-            for pattern in (r'\bnext\s*\(', r'\bgoto\b', r'\bcoroutine\.', r'\bbit32\b', r'\bunpack\b'):
+            # unpack global (absent de Kahlua) ; Wounds.unpack (LK_WoundsForm) est un champ, pas la globale.
+            for pattern in (r'\bnext\s*\(', r'\bgoto\b', r'\bcoroutine\.', r'\bbit32\b', r'(?<![.:])\bunpack\b'):
                 self.assertIsNone(re.search(pattern, code, flags=re.M), f'{path.name}: {pattern}')
         for path in DEV_FILES:
             self.assertTrue(all(b < 128 for b in path.read_bytes()), f'{path.name}: non ASCII byte')

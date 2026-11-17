@@ -247,9 +247,11 @@ class MultiplayerDeathTests(DeathBase):
 
     def test_bleeding_death_cause_bleeding_without_the_old_attacker(self):
         zid = self.ready('server')
-        self.hit(zid, 3.0)                        # blessure d'un joueur : saigne, attaquant A posé sur le corps
+        self.run_lua(th.fixed_rnd(0.1))
+        self.hit(zid, 3.0)                        # LK21-T02 : coupure de la batte (1 sur 4), attaquant A sur le corps
+        self.assertEqual(self.hl('get("lk-1").wounds[1].kind'), 'laceration')
         self.assertGreater(self.hl('bleeding("lk-1")'), 0)
-        self.run_lua('local n = LivingKnox.Store.data().npcs["lk-1"]; n.hp = 0.01; n.bleed = 0.6')
+        self.run_lua('LivingKnox.Store.data().npcs["lk-1"].hp = 0.01')
         self.hl('bleedPass(1000)')
         self.hl('bleedPass(1001)')
         self.assertEqual(self.npc_field('state'), 'dead')
@@ -271,8 +273,11 @@ class MultiplayerDeathTests(DeathBase):
     def test_direct_kill_once_and_parked_body_never_killed(self):
         zid = self.ready('server')
         # Corps mis de côté (chunk déchargé) : ni mort par saignement ni mort directe.
-        self.run_lua('local n = LivingKnox.Store.data().npcs["lk-1"]; n.hp = 0.01; n.bleed = 0.6; '
-                     'UNLOAD(90, 115, 90, 115)')
+        self.run_lua(th.fixed_rnd(0.1) + '; '
+                     f'LivingKnox.Health.applyHit("lk-1", HARNESS.zombies[{zid}], 0.001, "Torso_Upper", nil, nil, '
+                     '{ source = "blade" }); '      # LK21-T02 : plaie profonde qui saigne
+                     'LivingKnox.Store.data().npcs["lk-1"].hp = 0.01; UNLOAD(90, 115, 90, 115)')
+        self.assertGreater(self.hl('bleeding("lk-1")'), 0)
         self.hl('bleedPass(2000)')
         self.hl('bleedPass(2001)')
         res = lua_list(self.ev('{ LivingKnox.Health.kill("lk-1") }'))

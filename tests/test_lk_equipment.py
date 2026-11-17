@@ -773,7 +773,8 @@ class SourceTests(unittest.TestCase):
             code = re.sub(r'--\[\[.*?\]\]', '', text, flags=re.S)
             code = re.sub(r'--[^\n]*', '', code)
             self.assertTrue(all(ord(ch) < 128 for ch in code), f'{path.name}: non ASCII character in code')
-            for pattern in (r'\bnext\s*\(', r'\bgoto\b', r'\bcoroutine\.', r'\bbit32\b', r'\bunpack\b'):
+            for pattern in (r'\bnext\s*\(', r'\bgoto\b', r'\bcoroutine\.', r'\bbit32\b',
+                            r'(?<![.:])\bunpack\b'):   # global unpack only (Wounds.unpack is a field, LK21-T02)
                 self.assertIsNone(re.search(pattern, code, flags=re.M), f'{path.name}: {pattern}')
         for path in DEV_FILES:
             self.assertTrue(all(b < 128 for b in path.read_bytes()), f'{path.name}: non ASCII byte')

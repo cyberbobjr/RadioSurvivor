@@ -37,6 +37,7 @@ Faits du moteur (recherche du 2026-11-17, confirmés statiquement) :
     - chance d'infection de plaie ;
     - effet des points et de l'attelle.
   - Le module calcule l'évolution sur une durée donnée (`Wounds.advance(list, minutes, ctx)`). Le corps incarné et la simulation hors écran utilisent le même calcul.
+  - **Santé générale (précisé le 2026-11-17, LK21-T02) :** la santé suit le calcul du joueur vanilla. Les dégâts d'une partie comptent selon son poids, le saignement retire de la santé générale, et la **régénération passive** du joueur éveillé et nourri (`AddGeneralHealth` 0,002 par tick, `BodyDamage.java:79`, `:1887-1928`) s'applique aux parties qui ne sont plus abîmées par une plaie. Écart mesuré avec le vanilla : 1,5 point au plus (plaie profonde au torse non soignée : 41 % par heure, mort en 17 h environ). La santé remonte donc aussi sans soin, comme pour le joueur.
 - **D02 — Types de plaie ouverts à l'extension.**
   - `Wounds.registerKind(id, spec)`, une plaie par fichier (`Wounds/LK_Wound_<Kind>.lua`) : griffure, coupure, plaie profonde, morsure, balle, éclats de verre, fracture, brûlure.
   - Ajouter un type de plaie, c'est ajouter un fichier, sans modifier le moteur.

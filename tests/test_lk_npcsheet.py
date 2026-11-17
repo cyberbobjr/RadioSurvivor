@@ -28,7 +28,7 @@ from harness import LK_LUA  # noqa: E402  (E18-T07)
 from test_lk_admin import CLIENT_TEXT, PERMISSIONS, role_for  # noqa: E402
 from test_lk_bodies import lua_list  # noqa: E402
 from test_lk_decisions import DECIDERS, DUMP  # noqa: E402
-from test_lk_health import HEALTH, HEALTH_DOUBLES  # noqa: E402
+from test_lk_health import HEALTH, HEALTH_DOUBLES, wound_files  # noqa: E402
 from test_lk_materialize import MatBase  # noqa: E402
 
 ADMIN_FILE = LK_LUA / 'server' / 'LivingKnox' / 'LK_Admin.lua'
@@ -66,6 +66,8 @@ class SheetBase(MatBase):
             h.load(m, DECIDERS)
             h.load(m, HEALTH_DOUBLES)
             h.load(m, HEALTH)
+            for path in wound_files():   # LK21-T02 : types de plaie et sources (saignement réglé sur les plaies)
+                h.load(m, path)
             h.load(m, PERMISSIONS)
             # Mode debug réglable par le test (le banc le fixe à sa création).
             h.load(m, 'DBG = true isDebugEnabled = function() return DBG == true end')
@@ -217,7 +219,10 @@ class MPTests(SheetBase):
                 self.assertTrue(r.ok, r.err)
                 self.assertEqual(r.value, expected)
         self.assertAlmostEqual(self.npc(gid, 'm-2', 'hp') / self.npc(gid, 'm-2', 'hpMax'), 0.423, places=3)
-        self.assertAlmostEqual(self.npc(gid, 'm-2', 'bleed'), 0.125, places=6)
+        # LK21-T02 : saignement réglé sur les plaies (coupure posée au torse, aucune plaie avant).
+        npc = self.npc_of(gid, 'm-2')
+        self.assertAlmostEqual(self.ev(f'LivingKnox.Health.bleeding("{npc}")'), 0.125, places=6)
+        self.assertEqual(self.ev(f'LivingKnox.Health.get("{npc}").wounds[1].kind'), 'laceration')
         self.assertIsNone(self.member(gid, 'm-2', 'wound'))
         for field, value, err in (('morale', 5, 'unknown field'), ('hunger', '"x"', 'bad value'),
                                   ('hunger', '0/0', 'bad value')):

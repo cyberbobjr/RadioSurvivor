@@ -544,8 +544,11 @@ function Admin.npcView(id)
             bleedPct = round1((h.bleed or 0) * 100) }
         if LivingKnox.Num.finite(h.hp) and LivingKnox.Num.finite(h.max)
             and h.max > 0 then v.health.pct = round1(100 * h.hp / h.max) end
+        -- LK21-T02 : dernière plaie (partie et type), saignement en % par heure ; liste complète : LK21-T11.
         local last = type(h.wounds) == "table" and h.wounds[#h.wounds] or nil
-        if last ~= nil then v.health.last = { p = tostring(last.p), d = last.d } end
+        if last ~= nil then
+            v.health.last = { p = tostring(last.p) .. " " .. tostring(last.kind), d = round1((last.bleed or 0) * 100) }
+        end
     end
     v.decision = De ~= nil and De.get ~= nil and scalars(De.get(id)) or nil
     local R = LivingKnox.Routines

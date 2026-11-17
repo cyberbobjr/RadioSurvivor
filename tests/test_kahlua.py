@@ -128,7 +128,6 @@ LUA_FILES = [
     ('LivingKnox/LK_Config', LK_LUA / 'shared' / 'LivingKnox' / 'LK_Config.lua'),
     ('LivingKnox/LK_Log', LK_LUA / 'shared' / 'LivingKnox' / 'LK_Log.lua'),
     ('LivingKnox/LK_Appearance', LK_LUA / 'shared' / 'LivingKnox' / 'LK_Appearance.lua'),
-    ('LivingKnox/LK_Identity', LK_LUA / 'shared' / 'LivingKnox' / 'LK_Identity.lua'),
     # LK16-T01 : socle commun des registres (requis par LK_GroupTypes, LK_Decisions, LK_Routines).
     ('LivingKnox/LK_Registry', LK_LUA / 'shared' / 'LivingKnox' / 'LK_Registry.lua'),
     # LK21-T01 : modèle pur des plaies, soins demandés, forme sauvegardée, puis un fichier par type (Wounds/), triés
@@ -137,6 +136,13 @@ LUA_FILES = [
       for name in ('LK_Wounds', 'LK_WoundsNeeds', 'LK_WoundsForm')],
     *[(f'LivingKnox/Wounds/{p.stem}', p)
       for p in sorted((LK_LUA / 'shared' / 'LivingKnox' / 'Wounds').glob('*.lua'), key=lambda p: p.name.lower())],
+    # LK21-T02 : sources de blessure (registre, contexte du jeu, un fichier par source sous server/LivingKnox/Wounds/),
+    # chargees avant LK_Identity qui requiert la forme sauvegardee des plaies.
+    *[(f'LivingKnox/{name}', LK_LUA / 'server' / 'LivingKnox' / f'{name}.lua')
+      for name in ('LK_WoundSources', 'LK_WoundContext')],
+    *[(f'LivingKnox/Wounds/{p.stem}', p)
+      for p in sorted((LK_LUA / 'server' / 'LivingKnox' / 'Wounds').glob('*.lua'), key=lambda p: p.name.lower())],
+    ('LivingKnox/LK_Identity', LK_LUA / 'shared' / 'LivingKnox' / 'LK_Identity.lua'),
     # LK08-T02 : registre des types de groupes, puis les fichiers de données comme le balayage du jeu les exécute.
     ('LivingKnox/LK_GroupTypes', LK_LUA / 'shared' / 'LivingKnox' / 'LK_GroupTypes.lua'),
     ('LivingKnox/Data/LK_Type_neutrals', LK_LUA / 'shared' / 'LivingKnox' / 'Data' / 'LK_Type_neutrals.lua'),
@@ -480,6 +486,11 @@ EXCHANGE_EVALS = [
     'W.add(L, "ForeArm_L", "bite", C); W.add(L, "Torso_Upper", "deep", C); W.bandage(L[2], 4, false); '
     'local o = W.advance(L, 30, C); local p = W.pack(L); return "KR-WOUNDS " .. #W.kinds() .. " " .. '
     'string.format("%.6f", o.hpLoss) .. " " .. tostring(W.pack(W.unpack(p)) == p) .. " " .. p',
+    # LK21-T02 : sources de blessure nommees (verre brise, feu) dans la VM reelle ; memes valeurs que sous lupa
+    # (tests/test_lk_wound_sources.py).
+    'eval:local W = LivingKnox.Wounds; local C = { rnd = function() return 0.5 end }; local L = {}; '
+    'W.fromHit(L, { source = "glass", risk = false }, C); W.fromHit(L, { source = "fire" }, C); '
+    'return "KR-WOUNDSRC " .. #W.sourceList .. " " .. W.pack(L)',
 ]
 
 
@@ -1091,6 +1102,11 @@ class KahluaBench(unittest.TestCase):
         # LK21-T01 : meme ligne que le modele sous lupa (tests/test_lk_wounds.py).
         self.assertEqual(self.line('KR-WOUNDS'), '8 0.333029 true bite:ForeArm_L:30:64.973:3.267:::::0:1:0.054:0:67.5;'
                          'deep:Torso_Upper:30:17.392:6.3575:0:0:::0:0:0:0:48.214286')
+
+    def test_wound_sources_in_kahlua(self):
+        # LK21-T02 : meme ligne que sous lupa (registre des sources, tirages, forme compacte).
+        self.assertEqual(self.line('KR-WOUNDSRC'), '6 scratch:ForeArm_L:0:16:2.16:::::0:0:0:0:0;'
+                         'burn:Head:0:75:0:::::0:0:0:0:0')
 
     def test_fortify_compact_form_in_kahlua(self):
         # LK13-T07 : memes chaines que sous lupa (tests/test_lk_fortify_offscreen.py, CompactFormTests).

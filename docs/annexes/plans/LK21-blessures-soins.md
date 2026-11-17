@@ -7,7 +7,7 @@
 | | Tâche | Titre | État | Cible | Dépend de |
 |---|---|---|---|---|---|
 | ☐ | LK21-T01 | Modèle pur des plaies et registre des types | `testé hors jeu` | MP | — |
-| ☐ | LK21-T02 | Les coups font des plaies ; la santé suit les plaies | `à faire` | MP | LK21-T01 |
+| ☐ | LK21-T02 | Les coups font des plaies ; la santé suit les plaies | `testé hors jeu` | MP | LK21-T01 |
 | ☐ | LK21-T03 | La simulation hors écran utilise les mêmes plaies | `à faire` | MP | LK21-T02 |
 | ☐ | LK21-T04 | Infection de plaie et virus de Knox | `à faire` | MP | LK21-T02 |
 | ☐ | LK21-T12 | Retirer le verre brisé avant d'enjamber | `à faire` | MP | LK21-T02 |
@@ -55,13 +55,15 @@ sang se voit. Un soignant de groupe fabrique son matériel, porte une trousse et
   - Reste : campagnes de fin de phase.
 
 - [ ] **LK21-T02** — Les coups font des plaies ; la santé suit les plaies
-  - État : `à faire`
+  - État : `testé hors jeu`
   - Cible : `MP`
   - Dépend de : LK21-T01
   - Fichiers : `server/LivingKnox/LK_Health.lua`, nouveaux `server/LivingKnox/Wounds/LK_WoundSource_<Id>.lua` (zombie, tranchant, contondant, arme à feu, feu, verre), registre des corps (`LK_Identity`, champ `wounds`)
   - Faire : D03 de l'ADR. `Wounds.registerSource`. `Health.applyHit` crée les plaies par la source du coup. La perte de santé par minute vient de `Wounds.bleeding`. `npc.bleed` est retiré. Les plaies sont sauvegardées avec le registre des corps.
   - Accepté si : au banc, une griffure de zombie, un coup de couteau, une balle et le feu donnent les plaies attendues, et la santé baisse selon le saignement des plaies ; `lk.health`, `lk.death` et `lk.killer` vertes.
   - Tests : bancs `test_lk_health`, `test_lk_death`, `test_lk_wounds` ; campagnes.
+  - Preuve : 2026-11-17, `python tests/run_all.py --mod livingknox --keep-going` : `Summary: 115 passed, 0 failed, 0 skipped (430.0 s)`, `RESULT: PASS` (luacheck Contents et dev 0 avertissement ; `doubles_api` vert après rattachement des doublures `HandWeapon` et `IsoZombie` de `test_lk_wound_sources.py`). Rouge d'abord : `tests/test_lk_wound_sources.py` (module `LivingKnox/LK_WoundSources` absent), puis vert. Registre `Wounds.registerSource` (`server/LivingKnox/LK_WoundSources.lua`), contexte jeu `LK_WoundContext.lua`, six sources `Wounds/LK_WoundSource_{Zombie,Blunt,Firearm,Blade,Fire,Glass}.lua` (chances du vanilla citées). `Health.applyHit` crée les plaies par la source du coup ; la santé suit le calcul vanilla (poids des parties, saignement, régénération passive `0,002` par tick) : écart mesuré au vanilla 1,5 point au plus (oracle `vanilla_loss` de `test_lk_health`). `npc.bleed` retiré ; plaies sauvegardées et validées dans le registre des corps (`LK_Identity`).
+  - Reste : campagnes de fin de phase (`lk.health`, `lk.death`, `lk.killer`).
 
 - [ ] **LK21-T03** — La simulation hors écran utilise les mêmes plaies
   - État : `à faire`

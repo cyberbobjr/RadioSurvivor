@@ -26,6 +26,7 @@ from phase_sweep import WORLDS, other_groups, sweep  # noqa: E402
 from harness import lua_src  # noqa: E402  (E18-T07)
 from test_lk_bodies import lua_list  # noqa: E402
 from test_lk_meals import MealStack  # noqa: E402
+from test_lk_health import fixed_rnd, regen_per_minute, vanilla_loss, wound_files  # noqa: E402  (LK21-T02)
 
 D = 'LivingKnox.Decisions'
 H = 'LivingKnox.Health'
@@ -80,6 +81,8 @@ class CareStack(MealStack):
         h = super().make(root)
         h.load('solo', CARE_DOUBLES)
         h.load('solo', HEALTH)
+        for path in wound_files():
+            h.load('solo', path)
         h.load('solo', CARE)
         h.load('solo', SUPPLIES)
         return h
@@ -98,11 +101,15 @@ class CareStack(MealStack):
     def bleed(self, gid, mid):
         return self.ev(f'{H}.bleeding(MEMBER_NPC("{gid}", "{mid}"))')
 
-    def wound(self, gid, mid, fraction):
-        """Blessure de fraction x santé de naissance, par le chemin des coups (Health.applyHit)."""
+    def wound(self, gid, mid, fraction, part='Hand_L', source='blunt', rnd=0.2):
+        """Blessure de fraction x santé de naissance, par le chemin des coups (Health.applyHit), plaie faite par la
+        source nommée avec un tirage fixe (LK21-T02). Par défaut : coupure de contondant (tirage 0,2 : 1 sur 4) à la
+        main gauche, qui saigne ; source "blade", tirage 0,1 : plaie profonde (1 sur 6)."""
+        self.run_lua(fixed_rnd(rnd))
         return self.run_lua(f'local id = MEMBER_NPC("{gid}", "{mid}") local z = MAT_BODY("{gid}", "{mid}") '
                             f'local full = {H}.get(id).max '
-                            f'return {H}.applyHit(id, z, full * {fraction}, "Torso_Upper", nil, nil)')
+                            f'return {H}.applyHit(id, z, full * {fraction}, "{part}", nil, nil, '
+                            f'{{ source = "{source}" }})')
 
     def care(self, gid, mid):
         return self.run_lua(f'local m = {CA}.get(MEMBER_NPC("{gid}", "{mid}")) if m == nil then return nil end '
@@ -130,24 +137,44 @@ class PureCareTests(CareStack):
         self.assertFalse(self.ev(f'{CA}.isCareItem(nil)'))
 
 
+TPM = 180                 # ticks vanilla par minute de jeu (2 x 90 minutes par jour, LK_Wounds.lua en-tête)
+DS = 0.0057142857         # BodyPart.java:30 (damageScaler)
+BLEED = 0.2857143         # BodyPart.java:29 (bleedDamage)
+
+
+def bleed_per_hour(bleed):
+    """Fraction de la santé perdue par heure par un saignement bleed (BodyPart.java:161-163)."""
+    return BLEED * DS * bleed / 10 * TPM * 60 / 100
+
+
 class BleedingTests(CareStack):
+    """LK21-T02 (ADR adr-blessures-soins.md D03) : le saignement vient des plaies (Wounds.bleeding) et la santé suit
+    leur évolution (saignement et dégâts de partie, Wounds.advance). Les attendus de LK07-T03 (saignement unique de
+    0,5 x fraction retirée, moitié toutes les 3 heures, plafond MAX) sont remplacés par les règles du vanilla."""
+
     def test_wound_bleeds_and_unattended_bleeding_kills_once(self):
         gid = self.mk()
         self.run_lua(f'{CA}.state.aside["{gid}"] = 1e9')                          # aucun soin
         full = self.full(gid, 'm-1')
-        hp = self.wound(gid, 'm-1', 0.4)
+        hp = self.wound(gid, 'm-1', 0.4, part='Torso_Upper', source='blade', rnd=0.1)
         self.assertAlmostEqual(hp, full * 0.6, places=3)
-        self.assertAlmostEqual(self.bleed(gid, 'm-1'), 0.2, places=4)           # 0,5 x 0,4
+        bleed = (0.7 + 0.3 * 0.1) * (15 + 5 * 0.1) * 0.5                        # plaie profonde au torse
+        self.assertAlmostEqual(self.bleed(gid, 'm-1'), bleed_per_hour(bleed), places=6)
         self.assertEqual(self.ev(f'{H}.get(MEMBER_NPC("{gid}", "m-1")).bleed'), self.bleed(gid, 'm-1'))
-        self.assertEqual(self.npc(gid, 'm-1', 'bleed'), self.bleed(gid, 'm-1'))  # sauvegardé avec le registre
+        self.assertRegex(self.npc(gid, 'm-1', 'wounds'), r'^deep:Torso_Upper:')   # sauvegardée avec le registre
+        self.assertIsNone(self.npc(gid, 'm-1', 'bleed'))
         self.h.advance(1)                                                        # premier passage : repère
         before = self.hp(gid, 'm-1')
         self.h.advance(60)
         lost = before - self.hp(gid, 'm-1')
-        self.assertGreater(lost, full * 0.17)
-        self.assertLess(lost, full * 0.2)                                        # moins de 0,2/h : décroissance
-        self.assertLess(self.bleed(gid, 'm-1'), 0.2)
-        for _ in range(600):
+        # Perte du joueur vanilla sous la même plaie en une heure (oracle vanilla_loss : dégâts de partie, saignement,
+        # régénération), environ 39 points sur 100 ; écart toléré 2 points.
+        self.assertAlmostEqual(lost / full, vanilla_loss('Torso_Upper', 3.125, bleed, 61) / 100, delta=0.02)
+        self.assertLess(self.bleed(gid, 'm-1'), bleed_per_hour(bleed))          # le saignement décroît
+        # Une seconde plaie profonde (ventre) : la régénération du vanilla (environ 6 points par heure) ne suit plus le
+        # saignement des deux plaies ; sans soin, mort dans la journée.
+        self.wound(gid, 'm-1', 0.01, part='Torso_Lower', source='blade', rnd=0.1)
+        for _ in range(24 * 60):
             self.h.advance(1)
             if self.ev(f'{H}.stats.bleedDeaths') > 0:
                 break
@@ -163,26 +190,32 @@ class BleedingTests(CareStack):
     def test_small_wound_stops_bleeding_on_its_own(self):
         gid = self.mk()
         self.run_lua(f'{CA}.state.aside["{gid}"] = 1e9')
-        self.wound(gid, 'm-2', 0.02)
-        self.assertAlmostEqual(self.bleed(gid, 'm-2'), 0.01, places=4)
-        self.h.advance(200)
+        self.wound(gid, 'm-2', 0.02)                                             # coupure à la main
+        bleed = (0.7 + 0.3 * 0.2) * (10 + 10 * 0.2) * 0.2
+        self.assertAlmostEqual(self.bleed(gid, 'm-2'), bleed_per_hour(bleed), places=6)
+        minutes = bleed / (2e-5 * TPM)                                           # 2e-5 par tick à nu (:211)
+        self.h.advance(1)
+        self.h.advance(int(minutes) + 2)
         self.assertEqual(self.bleed(gid, 'm-2'), 0)
-        self.assertIsNone(self.npc(gid, 'm-2', 'bleed'))
+        self.assertEqual(self.ev(f'#{H}.get(MEMBER_NPC("{gid}", "m-2")).wounds'), 1)   # la coupure reste, sans saigner
         self.assertTrue(self.member(gid, 'm-2', 'alive'))
-        self.assertGreater(self.hp(gid, 'm-2'), self.full(gid, 'm-2') * 0.95)
+        self.assertGreater(self.hp(gid, 'm-2'), self.full(gid, 'm-2') * 0.7)
         self.assertEqual(self.ev(f'{H}.stats.bleedStops'), 1)
 
-    def test_bleeding_capped_and_only_heal_raises_the_reference(self):
+    def test_bandage_stops_the_loss_and_only_heal_raises_the_reference(self):
         gid = self.mk()
-        self.run_lua(f'{CA}.state.aside["{gid}"] = 1e9 LivingKnox.Config.BLEEDING.MAX = 0.3')
-        self.wound(gid, 'm-2', 0.5)
-        self.assertAlmostEqual(self.bleed(gid, 'm-2'), 0.25, places=6)
-        self.wound(gid, 'm-2', 0.4)
-        self.assertEqual(self.bleed(gid, 'm-2'), 0.3)                            # borné à MAX
+        self.run_lua(f'{CA}.state.aside["{gid}"] = 1e9')
+        self.wound(gid, 'm-2', 0.1, part='Torso_Upper')
+        self.wound(gid, 'm-2', 0.1, part='ForeArm_R')
+        both = self.bleed(gid, 'm-2')
+        self.assertEqual(self.ev(f'#{H}.get(MEMBER_NPC("{gid}", "m-2")).wounds'), 2)
         before = self.hp(gid, 'm-2')
-        self.assertEqual(self.ev(f'{H}.stopBleeding(MEMBER_NPC("{gid}", "m-2"))'), 0.3)
+        self.assertAlmostEqual(self.ev(f'{H}.stopBleeding(MEMBER_NPC("{gid}", "m-2"))'), both, places=9)
+        self.assertEqual(self.bleed(gid, 'm-2'), 0)
         self.h.advance(30)
-        self.assertEqual(self.hp(gid, 'm-2'), before)                            # arrêté : plus aucune perte
+        # Bandées : plus aucune perte ; la santé remonte par la régénération du vanilla (29 minutes après le repère).
+        gained = self.hp(gid, 'm-2') - before
+        self.assertAlmostEqual(gained, regen_per_minute() * 29 * self.full(gid, 'm-2'), delta=self.full(gid, 'm-2') * 0.003)
 
 
 class SoloCareTests(CareStack):
@@ -294,8 +327,13 @@ class SoloCareTests(CareStack):
         self.run_lua(f'local id = MEMBER_NPC("{gid}", "m-2") LivingKnox.Store.data().npcs[id].hp = {full * 0.6}')
         n = self.ev(f'{CA}.afterAttack("{gid}", {{ minute = {D}.currentMinute(), wounded = {{ "m-2" }} }})')
         self.assertEqual(n, 1)
+        start = self.ev(f'{D}.currentMinute()')
         self.assertTrue(self.run_until(lambda: self.ev(f'{CA}.stats.treated') >= 1))
-        self.assertAlmostEqual(self.hp(gid, 'm-2'), full * 0.6 + 0.03 * 4 * full * 1.5, places=3)
+        # Soin (+ 0,03 x 4 x 1,5) et régénération du vanilla pendant les minutes passées (LK21-T02).
+        minutes = self.ev(f'{D}.currentMinute()') - start
+        cared = full * 0.6 + 0.03 * 4 * full * 1.5
+        self.assertGreaterEqual(self.hp(gid, 'm-2'), cared - 1e-3)
+        self.assertLessEqual(self.hp(gid, 'm-2'), cared + regen_per_minute() * (minutes + 1) * full + 1e-3)
         self.assertTrue(self.care_log(gid)[0].startswith('m-3 treated m-2'), self.care_log(gid))
         for _ in range(5):
             self.dpass(1)
