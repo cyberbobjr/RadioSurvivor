@@ -111,3 +111,14 @@ Le « journal sur la machine seulement » de D09 vaut désormais « journal derr
 - **D12** (utilisateur) : l'atelier vise des adolescents ; aucune saisie d'identifiant, de nom technique, de syntaxe ni
   de plage de nombres. La fréquence se choisit par la radio nécessaire (fréquence fixe en option) ; les lots du stock
   et tout objet se choisissent dans des listes. Plan [E24](../../annexes/plans-termines/E24-atelier-simple.md).
+
+## Mise à jour du 2026-11-16 — D13 : « Proposer » sur chaque champ à écrire
+
+- **D13** (utilisateur) : partout où l'auteur écrit du texte (nom, description, idée de personnalité, nom d'un lieu,
+  phrase et état de l'histoire d'une mission, appel spontané, lignes d'une note, nom d'un paquet ou d'une catégorie
+  propre), un bouton « Proposer » demande à l'IA du pont de remplir le champ. L'IA reçoit toute la fiche en cours (non
+  enregistrée) : personnalité, lieux, missions déjà écrites et états de l'histoire, notes, troc, plus ce que le champ
+  vise (type de mission et ce que le joueur y fait, usages du lieu, objets du paquet…). Un nouveau clic propose autre
+  chose. Une seule requête `POST /api/ai/suggest`, champs déclarés dans `atelier_ai_templates.json` ; elle remplace
+  « Suggérer » de l'histoire des missions. Les coordonnées copiées sur la carte (`7966, 11751`) se collent d'un coup
+  dans un lieu.

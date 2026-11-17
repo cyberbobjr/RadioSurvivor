@@ -1,14 +1,15 @@
 // Voice workshop page (E22-T03, E22-T05, E22-T04, E22-T10; ADR atelier-voix): composition root. Loads the strings
 // and the catalogue, lists the voices, runs the five-step assistant over a sheet model, saves, exports, imports,
 // deletes, removes and restores through the server API. Every choice comes from the catalogue; the game stays the only
-// judge (D03): its verdict is polled and shown on the voice and the step of the refused line. The "Journal" tab shows
-// the live lines of the bridge and the game (D09). The bridge's AI helps to write and lets the voice be tried (D04,
+// judge (D03): its verdict is polled and shown on the voice and the step of the refused line. The "Dashboard" tab, shown
+// first, sums up every voice (E24-T05); the "Journal" tab shows the live lines of the bridge and the game (D09). The bridge's AI helps to write and lets the voice be tried (D04,
 // ai.js).
 
-import { tryDrawer } from './ai.js';
+import { fillField, proposeButton, tryDrawer } from './ai.js';
 import { LOGIN_PAGE, createApi } from './api.js';
 import { loadCatalog } from './catalog.js';
 import { check } from './checks.js';
+import { createDashboard } from './dashboard.js';
 import { confirmBar } from './dialogs.js';
 import { clear, h, select } from './dom.js';
 import { loadI18n } from './i18n.js';
@@ -40,7 +41,7 @@ const ACTIONS_BY_STATUS = {
 
 const app = {
   t: null, catalog: null, api: createApi(), voices: [], current: null, step: 0, preview: false, ui: {},
-  verdicts: {}, journal: null, el: {}, login: false, // login: network mode (E22-T15), the header offers to log out
+  verdicts: {}, views: {}, el: {}, login: false, // login: network mode (E22-T15), the header offers to log out
   ai: { available: false, api: null, toast: null }, // E22-T06: the bridge's AI (greyed when not configured)
   chat: { open: false, messages: [] },              // test conversation of the voice being edited
 };
@@ -93,6 +94,7 @@ async function refreshVerdicts() {
   renderVoiceList(app.el.side, { t: app.t, voices: app.voices, currentId: app.current?.id, onOpen: openVoice, onNew: showNewVoice,
     verdicts: app.verdicts });
   renderVerdictBanner();
+  app.views?.dashboard?.redraw?.();
 }
 
 function pollVerdicts() {
@@ -153,6 +155,20 @@ async function showNewVoice() {
   const error = h('p', { class: 'warnline', 'aria-live': 'polite' });
   const body = h('div', { class: 'stack' });
   const sources = app.voices.filter((v) => !v.removed).map((v) => ({ value: v.id, label: v.name || v.id }));
+  // What the AI knows when it proposes a name: the voice type card picked, or the voice copied (no sheet yet).
+  const voiceType = () => {
+    if (state.from === 'copy') {
+      const source = sources.find((v) => v.value === state.source);
+      return source ? `copy of ${source.label}` : null;
+    }
+    return `${t(`newtype.${state.type}`)}: ${t(`newtype.${state.type}.help`)}`;
+  };
+  const nameInput = h('input', { type: 'text', id: 'new-name', autocomplete: 'off',
+    placeholder: t('who.name_placeholder'), onInput: (e) => { state.name = e.target.value; },
+    onKeydown: (e) => { if (e.key === 'Enter') create(); } });
+  const proposeName = proposeButton({ ai: app.ai, t, field: 'name', voiceId: null, sheetText: () => '',
+    current: () => nameInput.value, details: () => ({ voice_type: voiceType() }),
+    apply: (text) => fillField(nameInput, text) });
   const create = async () => {
     if (!state.name.trim()) { error.textContent = t('new.need_name'); app.el.main.querySelector('#new-name').focus(); return; }
     const id = voice.voiceId(state.name, takenIds());
@@ -194,9 +210,7 @@ async function showNewVoice() {
     h('h2', { text: t('new.title') }),
     h('div', { class: 'form' },
       h('div', { class: 'row' }, h('div', { class: 'lab' }, h('label', { for: 'new-name', text: t('who.name') })),
-        h('div', { class: 'ctl' }, h('input', { type: 'text', id: 'new-name', autocomplete: 'off',
-          placeholder: t('who.name_placeholder'), onInput: (e) => { state.name = e.target.value; },
-          onKeydown: (e) => { if (e.key === 'Enter') create(); } }))),
+        h('div', { class: 'ctl' }, h('div', { class: 'inline grow' }, nameInput, proposeName))),
       body,
       error,
       h('div', { class: 'btns' }, button('primary', { id: 'new-create', onClick: create }, t('new.create'))))));
@@ -223,10 +237,14 @@ function shownSteps() {
     || stepWanted(STEP_WANTS[STEPS[index].id], app.current.model));
 }
 
+// The CURRENT UNSAVED sheet text: what the AI reads to try the voice and to propose a text (E24-T04).
+const sheetText = () => sheet.serialize(app.current.model);
+
 function stepContext() {
   return {
     model: app.current.model, catalog: app.catalog, t: app.t, voiceId: currentId(), isNew: app.current.isNew,
     voices: app.voices, ui: app.ui, ai: app.ai, api: app.api, changed, rerender: renderStep, show: showBlock,
+    sheetText, toast,
   };
 }
 
@@ -373,7 +391,7 @@ function renderEditor() {
         h('div', { class: 'btns nav' }, app.el.prev, app.el.next, app.el.finish)),
       side && h('aside', { class: 'preview-col' },
         app.chat.open && tryDrawer({ ai: app.ai, t, voiceId: currentId(), chat: app.chat,
-          sheetText: () => sheet.serialize(app.current.model), onClose: () => { app.chat.open = false; renderEditor(); } }),
+          sheetText, onClose: () => { app.chat.open = false; renderEditor(); } }),
         app.preview && h('div', { class: 'side-h', text: t('editor.preview') }), app.preview && app.el.preview)));
   renderStep();
   renderVerdictBanner();
@@ -448,14 +466,16 @@ function showWelcome() {
     h('div', { class: 'btns start' }, button('primary', { onClick: showNewVoice }, app.t('voices.new')))));
 }
 
-// Two views next to each other: the voice editor and the live journal (E22-T10). The voice list stays on the left;
-// opening a voice comes back to the editor.
+// Views next to each other, one tab each (app.views, in tab order): the dashboard of the voices (E24-T05), the voice
+// editor and the live journal (E22-T10). The voice list stays on the left; opening a voice comes back to the editor.
+// A view may start when shown (read again, poll) and stop when hidden.
 function showView(view) {
-  const journal = view === 'journal';
-  app.el.main.hidden = journal;
-  app.journal.el.hidden = !journal;
+  for (const [name, shown] of Object.entries(app.views)) {
+    const on = name === view;
+    shown.el.hidden = !on;
+    if (on) shown.start?.(); else shown.stop?.();
+  }
   app.el.tabs.forEach((tab) => tab.setAttribute('aria-selected', String(tab.dataset.view === view)));
-  if (journal) app.journal.start(); else app.journal.stop();
 }
 
 function renderShell() {
@@ -464,10 +484,15 @@ function renderShell() {
   app.el.importButton = button('neutral', { id: 'import', title: t('import.button_help') }, t('import.button'));
   app.el.side = h('aside', { class: 'side' });
   app.el.main = h('main', { class: 'main', id: 'main' });
-  app.journal = createJournal({ api: app.api, t, voiceIds: () => app.voices.map((v) => v.id) });
-  app.journal.el.classList.add('main');
-  app.el.tabs = ['voices', 'journal'].map((view) => h('button', { type: 'button', role: 'tab', class: 'tab', id: `tab-${view}`,
-    'data-view': view, 'aria-selected': String(view === 'voices'), onClick: () => showView(view) }, t(`tab.${view}`)));
+  // A voice opened from the dashboard: the editor is shown first, where "leave without saving?" is asked if needed.
+  const openFromDashboard = (id) => { showView('voices'); return openVoice(id); };
+  const dashboard = createDashboard({ api: app.api, t, catalog: app.catalog, open: openFromDashboard,
+    verdicts: () => app.verdicts });
+  const journal = createJournal({ api: app.api, t, voiceIds: () => app.voices.map((v) => v.id) });
+  app.views = { dashboard, voices: { el: app.el.main }, journal };
+  for (const view of [dashboard, journal]) view.el.classList.add('main');
+  app.el.tabs = Object.keys(app.views).map((view) => h('button', { type: 'button', role: 'tab', class: 'tab', id: `tab-${view}`,
+    'data-view': view, 'aria-selected': 'false', onClick: () => showView(view) }, t(`tab.${view}`)));
   app.el.toast = h('div', { class: 'toast', role: 'status', 'aria-live': 'polite',
     onClick: () => { clearTimeout(toastTimer); app.el.toast.className = 'toast'; } });
   app.el.dropzone = h('div', { class: 'dropzone', hidden: true }, h('p', { text: t('import.drop') }));
@@ -479,7 +504,7 @@ function renderShell() {
       h('div', { class: 'tabs', role: 'tablist', 'aria-label': t('app.title') }, app.el.tabs),
       h('div', { class: 'btns' }, app.el.importButton,
         app.login && button('neutral', { id: 'logout', onClick: logout }, t('app.logout')))),
-    h('div', { class: 'layout' }, app.el.side, app.el.main, app.journal.el),
+    h('div', { class: 'layout' }, app.el.side, Object.values(app.views).map((view) => view.el)),
     app.el.toast, app.el.dropzone);
 }
 
@@ -492,7 +517,7 @@ async function boot() {
   renderShell();
   wireImport();
   showWelcome();
-  showView('voices');
+  showView('dashboard');
   await refreshVoices();
   pollVerdicts();
   window.addEventListener('beforeunload', (e) => { if (app.current?.dirty) e.preventDefault(); });

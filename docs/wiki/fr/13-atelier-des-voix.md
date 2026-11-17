@@ -19,7 +19,7 @@ Muldraugh. Elle appelle le matin et le soir, demande à manger, puis qu'on netto
 ## Sommaire
 
 - [Ouvrir l'atelier](#ouvrir-latelier) · [depuis une tablette](#louvrir-depuis-une-tablette-ou-un-autre-ordinateur)
-- [L'écran de l'atelier](#lécran-de-latelier) · [la liste des voix](#la-liste-des-voix) ·
+- [L'écran de l'atelier](#lécran-de-latelier) · [le tableau de bord](#le-tableau-de-bord) · [la liste des voix](#la-liste-des-voix) ·
   [créer une voix](#créer-une-voix) · [les boutons d'une voix](#les-boutons-dune-voix)
 - Les cinq étapes : [1. Qui](#étape-1--qui) · [2. Où et quand](#étape-2--où-et-quand) ·
   [3. Personnalité](#étape-3--personnalité) · [4. Lieux et missions](#étape-4--lieux-et-missions) ·
@@ -85,7 +85,8 @@ ordinateur du réseau de la maison :
 
 ## L'écran de l'atelier
 
-- **En haut** : deux onglets, **Voix** (l'éditeur) et **Journal** ([le journal en direct](#le-journal-en-direct)) ;
+- **En haut** : trois onglets, **Tableau de bord** ([toutes les voix d'un coup d'œil](#le-tableau-de-bord), ouvert au
+  démarrage), **Voix** (l'éditeur) et **Journal** ([le journal en direct](#le-journal-en-direct)) ;
   à droite, **Ouvrir une voix (fichier)** ([partager une voix](#partager-une-voix)) et, sur le réseau, **Se déconnecter**.
 - **À gauche** : **Tes voix** et le bouton **+ Nouvelle voix**. Sous 900 px de large, la liste devient une bande de
   pastilles au-dessus de l'éditeur.
@@ -94,6 +95,21 @@ ordinateur du réseau de la maison :
 
 Chaque réglage a un petit **?** : cliquez dessus (ou passez la souris) pour savoir à quoi il sert, ce que vit le joueur
 en jeu, les choix possibles et un exemple. Le reste est sous **En savoir plus**. **Échap** referme la bulle.
+
+### Le tableau de bord
+
+Toutes les voix de l'atelier d'un coup d'œil (celles du mod et les vôtres, sauf les voix supprimées).
+
+- **En haut, les chiffres** : nombre de voix, de marchands, de donneurs de missions, de voix audibles avec un simple
+  talkie, heures par jour où seules les voix « jour et nuit » écoutent (un trou à combler), voix qui se taisent.
+- **Les filtres**, d'un clic : par ce qu'on peut faire (💬 Discute, 🎯 Donne des missions, 🤝 Fait du troc, 📡 Donne
+  d'autres fréquences, 📣 Appelle tout seul, 🆘 À sauver) et par radio. Recliquez pour enlever le filtre.
+- **Une ligne par voix** : son nom (et le point rouge si le jeu ne l'a pas lue), la radio qu'il faut pour l'entendre
+  (une voix à fréquence fixe prend la radio que demande sa fréquence), ses heures d'écoute sur une barre de 24 h, et ce
+  qu'on peut faire avec elle (nombre de missions, troc en camionnette, en bateau ou par cachette). Un clic sur un titre de
+  colonne trie, un deuxième inverse. Un clic sur une voix l'ouvre dans l'éditeur.
+
+![Le tableau de bord des voix](../../images/screenshots/atelier/atelier-fr-00-dashboard.png)
 
 ### La liste des voix
 
@@ -287,7 +303,7 @@ porte seulement son nom. **Supprimer ce lieu** (la croix de la carte) l'enlève.
 | Réglage | Ce que ça change |
 |---|---|
 | **Nom sur la carte** | Ce que voient les joueurs sur leur carte : pas de secret ici. Un compteur « 12 / 48 » indique la place restante. |
-| **Où sur la carte ?** | x, y et l'étage (0 = rez-de-chaussée). L'IA ne voit jamais ces nombres. Relevez-les en jeu (ci-dessous), ou lisez-les sur la carte. Le lien **Voir sur la carte ↗** ouvre la case. |
+| **Où sur la carte ?** | x, y et l'étage (0 = rez-de-chaussée). L'IA ne voit jamais ces nombres. Relevez-les en jeu (ci-dessous), ou lisez-les sur la carte. Le lien **Voir sur la carte ↗** ouvre la case. Une position copiée sur la carte (`7966, 11751`) se colle dans n'importe laquelle des trois cases : x, y (et l'étage s'il y a un troisième nombre) se remplissent d'un coup. |
 | **Il sert à** | Quatre pastilles avec leur icône, à cocher : **🗺️ Repère** (elle peut le marquer sur la carte d'un joueur ; sans récompense réglée, elle offre aussi ce repère après une mission), **🎯 Lieu de mission** (une case à l'intérieur du bâtiment visé ; il est entouré sur la carte pendant la mission), **📦 Planque** (le joueur y dépose des affaires, et les sacs de récompense y sont posés), **🤝 Rendez-vous de troc** (là où vient le marchand). |
 
 Rosie a deux lieux : le château d'eau au sud de Muldraugh (repère et lieu de mission) et la cabane voisine, dont le
@@ -295,7 +311,9 @@ casier sert de planque.
 
 **Trouver x et y.** Le plus sûr est de relever le lieu en jeu (ci-dessous) : la carte de la B42 peut différer des sites
 faits d'après une carte plus ancienne. Pour repérer avant de jouer, la [carte de Project Zomboid B42](https://zomboidmap.com/)
-montre tout le comté de Knox : passez la souris sur une case pour lire son X et son Y, puis vérifiez l'endroit en jeu.
+montre tout le comté de Knox : passez la souris sur une case pour lire son X et son Y, ou copiez la position et collez-la
+dans x (le bouton **📋 Coller la position** fait pareil quand le navigateur l'autorise, sur l'ordinateur du pont), puis
+vérifiez l'endroit en jeu.
 Placez une planque, ou le rendez-vous d'une cachette, sur la case d'un conteneur (benne, boîte aux lettres) ou juste à
 côté, et un lieu de mission sur une case à l'intérieur du bâtiment.
 
@@ -330,7 +348,7 @@ mission devient une carte numérotée, avec l'icône de son genre, sans aucun id
 
 | Réglage | Ce que ça change |
 |---|---|
-| **Ce que dit la voix** | La raison qu'elle donne, dans la langue de sa personnalité (en anglais par défaut), 200 caractères au plus, avec un compteur « N / 200 ». L'IA la raconte au joueur. **Proposer**, en haut, demande une phrase à l'IA. |
+| **Ce que dit la voix** | La raison qu'elle donne, dans la langue de sa personnalité (en anglais par défaut), 200 caractères au plus, avec un compteur « N / 200 ». L'IA la raconte au joueur. **✨ Proposer** demande une phrase à l'IA. |
 | **Où ça se passe ?** | Un de ses lieux marqué **Lieu de mission**. Une pastille rouge **à remplir** apparaît quand il en faut un. |
 | **Réglages du genre** | Dans une seule boîte. Quantités : « entre [− n +] et [− m +] ». Nombres d'objets : un compteur − / +. **Elle ramasse au bout de** : **Vite** (2 h), **Quelques heures** (6 h, le réglage normal), **Une demi-journée**, **Un jour**. **Combien de temps faire le guet ?** : **Une heure**, **Deux heures** (le réglage normal), **Une matinée** (6), **Une nuit entière** (12). Chaque crans a sa **Valeur exacte**. |
 | **Planques** | Pour les genres qui en demandent une : rien de coché, c'est toutes ses planques. |
@@ -499,12 +517,19 @@ dans les choix de catégories des missions et des récompenses. Exemple complet 
 
 ## L'IA du pont vous aide
 
-Si l'IA du pont est configurée (voir [Fournisseur d'IA](08-fournisseur-ia.md)), trois boutons vous aident :
+Si l'IA du pont est configurée (voir [Fournisseur d'IA](08-fournisseur-ia.md)), ces boutons vous aident :
 
 - **L'écrire avec l'IA** (étape 3) : décrivez la voix en quelques phrases, avec vos mots et dans votre langue (qui
   elle est, ce qui lui est arrivé, ce qu'elle veut, comment elle parle), puis **L'écrire**. L'IA écrit sa personnalité
   en anglais. **L'utiliser** la met dans la fiche (l'atelier demande confirmation si un texte y est déjà).
-- **Proposer** (à côté de « Ce que dit la voix », étape 4) : l'IA propose la phrase qui donne la mission, en anglais.
+- **✨ Proposer**, à côté de chaque champ où l'on écrit : nom de la voix (aussi à la création), description, idée de
+  personnalité, nom d'un lieu, phrase d'une mission et ce qu'elle change dans l'histoire, appel spontané, lignes d'une
+  note, nom d'un paquet ou d'une liste. L'IA lit toute la fiche en cours (même pas encore enregistrée) : personnalité,
+  lieux, missions déjà écrites et ce qu'elles changent, notes, troc ; plus ce que vise le champ (genre de mission et ce
+  que fait le joueur, usages du lieu, objets du paquet, autres lignes de la note). Elle reste cohérente avec le reste et
+  ne répète pas une autre mission. Les textes lus en jeu sont écrits dans la langue de la personnalité, les autres dans
+  celle de la page. Recliquez pour une autre idée. Pour l'appel et les notes, la fréquence est toujours dans la
+  proposition (sinon l'atelier le dit : recliquez). Vous pouvez ensuite retoucher le texte.
 - **Discuter avec la voix** (en haut) : parlez-lui comme un joueur (**Envoyer**). Elle répond avec la fiche telle qu'elle
   est, même pas encore enregistrée. **Recommencer** efface la conversation, **Fermer** la referme. Rien ne change dans
   le jeu. Si la fiche n'est pas complète, l'atelier demande de corriger les points signalés d'abord.

@@ -3,6 +3,7 @@
 // reward kind added to the mod appears in the page by regenerating the catalogue only.
 
 import { createItemIndex } from './items.js';
+import { sheetFrequency } from './values.js';
 
 const sorted = (list) => [...list].sort();
 
@@ -13,6 +14,8 @@ export function createCatalog(data) {
   const rewardKinds = data.rewardKinds ?? {};
   const voices = data.voices ?? {};
   const radioLevels = data.radioLevels ?? [];
+  const stepKhz = data.radioStepKhz ?? 200;
+  const levelOf = (khz) => radioLevels.find((l) => khz >= l.minKhz && khz <= l.maxKhz)?.id ?? null;
   // Mission type: its parameters ({key: kind}), voice set-ups (aimAt, dropAccepts...) and English description.
   const missionType = (name) => (missionTypes[name] ? {
     name, params: missionTypes[name].params ?? {}, setups: missionTypes[name].setups ?? [],
@@ -74,11 +77,17 @@ export function createCatalog(data) {
     // first one is the default of a new voice: everybody hears it.
     radioLevels: () => radioLevels,
     // Weakest radio level that tunes `khz` (the radio a fixed frequency needs), or null outside every radio.
-    levelOf: (khz) => radioLevels.find((l) => khz >= l.minKhz && khz <= l.maxKhz)?.id ?? null,
+    levelOf,
+    // Radio a fixed frequency written in a sheet (frequency=, MHz) needs: null when it is not on the grid of the
+    // radios or outside every radio (the badge of the step "where", the dashboard).
+    frequencyLevel: (text) => {
+      const khz = sheetFrequency(text);
+      return khz !== null && khz % stepKhz === 0 ? levelOf(khz) : null;
+    },
     // Frequencies every radio tunes (kHz), on the step of the radios.
     frequencyBounds: () => ({
       min: Math.min(...radioLevels.map((l) => l.minKhz)), max: Math.max(...radioLevels.map((l) => l.maxKhz)),
-      step: data.radioStepKhz ?? 200,
+      step: stepKhz,
     }),
     // Shipped voices with a fixed frequency: [{id, name, khz}], `exceptId` left out (the voice being edited).
     fixedFrequencies: (exceptId = null) => sorted(Object.keys(voices))

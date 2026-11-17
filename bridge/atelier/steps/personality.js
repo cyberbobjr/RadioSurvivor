@@ -45,7 +45,7 @@ export default {
     const head = model.head;
     const language = sheet.value(head, 'language') ?? DEFAULT_LANGUAGE;
     const writer = personalityPanel({ ai, t, voiceId, name: sheet.value(head, 'name') ?? '',
-      description: sheet.description(model),
+      description: sheet.description(model), sheetText: ctx.sheetText,
       currentPrompt: () => sheet.promptText(model),
       // the story lines of the missions (story.js) stay: the AI does not know them
       usePrompt: (text) => { sheet.setPromptText(model, story.carry(sheet.promptText(model), text)); changed(); rerender(); } });

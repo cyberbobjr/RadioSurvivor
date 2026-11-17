@@ -1,15 +1,20 @@
 // E22-T06 (ADR atelier-voix D04): the bridge's AI helps to write the voice. Three pieces, each given only what it uses:
 // - personalityPanel: "Write it with the AI" in the step "personality" (description -> English [prompt]);
-// - suggestButton: "Suggest" next to the story of a mission card (one sentence);
+// - proposeButton: "Suggest" next to a text the author types (name, description, place, mission story, call, note
+//   line...): the bridge's AI fills it from the whole unsaved sheet and the details of that field (E24-T04);
 // - tryDrawer: "Try the voice", a chat over the CURRENT UNSAVED sheet text (the bridge builds the prompt as in game).
 // Without AI configured (`ai.available` false) every button is greyed with a tooltip saying to ask the adult who runs
 // the workshop (E24-T02; how to configure it is in the wiki).
 
 import { confirmBar } from './dialogs.js';
 import { clear, h } from './dom.js';
+import { FREQUENCY_MARK, freqToScreen, freqToSheet } from './values.js';
 import { button, removeButton } from './widgets.js';
 
-const STORY_MAX = 200;
+// Details of a field sent to the AI (POST /api/ai/suggest): flat, at most this many keys, each value this long.
+const MAX_DETAILS = 16;
+const MAX_DETAIL_CHARS = 600;
+const DETAIL_KEY_RE = /^[a-z_]{1,32}$/;
 
 function codeText(t, result) {
   return t(`code.${result.code}`, {}, result.message || result.code);
@@ -29,7 +34,7 @@ async function busy(el, run) {
 }
 
 // --- personality ----------------------------------------------------------------------------------------------------
-// ctx: { ai, t, voiceId, name, description, currentPrompt(), usePrompt(text) }
+// ctx: { ai, t, voiceId, name, description, sheetText(), currentPrompt(), usePrompt(text) }
 export function personalityPanel(ctx) {
   const { ai, t } = ctx;
   const host = h('div', { class: 'ai-panel', hidden: true, id: 'ai-personality' });
@@ -62,24 +67,71 @@ export function personalityPanel(ctx) {
     result.hidden = false;
     use.hidden = false;
   }) }, t('ai.generate'));
+  // The few sentences themselves can be proposed by the AI from the rest of the sheet (E24-T04).
+  const idea = proposeButton({ ai, t, field: 'persona_idea', voiceId: ctx.voiceId, sheetText: ctx.sheetText,
+    current: () => description.value, apply: (text) => fillField(description, text) });
   host.append(h('p', { class: 'help', text: t('ai.describe_help') }), description,
-    h('div', { class: 'btns' }, generate, use), status, result, ask);
+    h('div', { class: 'btns' }, generate, idea, use), status, result, ask);
   return { button: open, panel: host };
 }
 
-// --- mission story --------------------------------------------------------------------------------------------------
-// ctx: { ai, t, voiceId, missionType, voiceText, context, setStory(text) }
-export function suggestButton(ctx) {
-  const { ai, t } = ctx;
-  const suggest = aiButton(ai, t, t('ai.suggest'), () => busy(suggest, async () => {
-    suggest.textContent = t('ai.working');
-    const answer = await ai.api.aiStory({ voiceId: ctx.voiceId, missionType: ctx.missionType, voiceText: ctx.voiceText,
-      context: ctx.context });
-    if (!answer.ok) { ai.toast(codeText(t, answer), true); return; }
-    ctx.setStory(answer.story.slice(0, STORY_MAX));
-  }), { title: t('ai.suggest_help') });
-  return suggest;
+// --- suggest a text -------------------------------------------------------------------------------------------------
+// Details as the server takes them: string values cut to their limit, empty ones and bad keys left out.
+export function suggestDetails(details) {
+  return Object.fromEntries(Object.entries(details ?? {})
+    .filter(([key, value]) => DETAIL_KEY_RE.test(key) && value !== null && value !== undefined && String(value).trim() !== '')
+    .slice(0, MAX_DETAILS)
+    .map(([key, value]) => [key, String(value).slice(0, MAX_DETAIL_CHARS)]));
 }
+
+// Writes a proposal into a field as if typed: the field's own handler stores it in the sheet (`event`: the event it
+// listens to). A frequency field (freqText) gets the sheet's mark shown as the word (`freqWord`).
+export function fillField(input, text, { event = 'input', freqWord = null } = {}) {
+  input.value = freqWord ? freqToScreen(text, freqWord) : text;
+  input.dispatchEvent(new Event(event, { bubbles: true }));
+}
+
+// ctx: { ai, t, field, voiceId, sheetText(), current(), details(), apply(text), pageLanguage }. Each click sends the
+// text in the field now, so the AI proposes something else.
+export function proposeButton(ctx) {
+  const { ai, t } = ctx;
+  const propose = aiButton(ai, t, t('ai.propose'), () => busy(propose, async () => {
+    propose.textContent = t('ai.working');
+    const answer = await ai.api.aiSuggest({ field: ctx.field, voiceId: ctx.voiceId || null,
+      sheetText: ctx.sheetText?.() ?? '', pageLanguage: ctx.pageLanguage ?? t.lang, current: ctx.current?.() ?? '',
+      details: suggestDetails(ctx.details?.()) });
+    if (!answer.ok) { ai.toast(codeText(t, answer), true); return; }
+    ctx.apply(answer.text);
+  }), { title: t('ai.propose_help'), class: 'propose', 'data-field': ctx.field });
+  return propose;
+}
+
+// The frequency mark as the AI writes it (the server turns it into the sheet's mark).
+const AI_FREQUENCY = '{frequency}';
+
+// proposeButton of a typed field of a step: the AI, the voice and its unsaved sheet taken from the step's context; the
+// field's text sent as it is now and the proposal written into it (`event`, `freqWord`: see fillField).
+export function inputPropose(ctx, field, input, { details = () => ({}), event = 'input', freqWord = null } = {}) {
+  const current = () => (freqWord
+    ? freqToSheet(input.value, freqWord).split(FREQUENCY_MARK).join(AI_FREQUENCY) : input.value);
+  return proposeButton({ ai: ctx.ai, t: ctx.t, voiceId: ctx.voiceId, sheetText: ctx.sheetText, field, current, details,
+    apply: (text) => fillField(input, text, { event, freqWord }) });
+}
+
+// A typed field and its "Suggest" button right after it, on the same line.
+export function withPropose(ctx, field, input, options = {}) {
+  return h('div', { class: 'inline grow' }, input, inputPropose(ctx, field, input, options));
+}
+
+// What the AI is told of a place when it proposes its name: its uses in words and its square when it has one.
+export function placeDetails(t, uses, at = {}) {
+  const known = [at.x, at.y].every((v) => String(v ?? '').trim() !== '');
+  return { uses: uses.map((u) => t(`use.${u}`)).join(', '),
+    map_square: known ? [at.x, at.y, at.z || '0'].map((v) => String(v).trim()).join(',') : null };
+}
+
+// A text of the sheet as the AI reads it in the details: the frequency mark as the AI writes it.
+export const forAi = (text) => String(text ?? '').split(FREQUENCY_MARK).join(AI_FREQUENCY);
 
 // --- test conversation ----------------------------------------------------------------------------------------------
 // ctx: { ai, t, voiceId, sheetText(), chat: {messages: [{role, content}]}, onClose() }

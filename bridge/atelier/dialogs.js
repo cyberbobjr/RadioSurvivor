@@ -15,7 +15,8 @@ export function confirmBar(host, t, { message, yes, danger = false }) {
   });
 }
 
-export function askBar(host, t, { message, label, value = '', ok, check = () => null }) {
+// `propose(input)`: an optional control put right after the input (the AI's "Suggest", ai.js inputPropose).
+export function askBar(host, t, { message, label, value = '', ok, check = () => null, propose = null }) {
   return new Promise((resolve) => {
     const done = (answer) => { clear(host); resolve(answer); };
     const error = h('p', { class: 'warnline', 'aria-live': 'polite' });
@@ -28,7 +29,8 @@ export function askBar(host, t, { message, label, value = '', ok, check = () => 
     input.addEventListener('keydown', (e) => { if (e.key === 'Enter') submit(); if (e.key === 'Escape') done(null); });
     clear(host).append(h('div', { class: 'notice', role: 'dialog', 'aria-label': message },
       h('p', { text: message }),
-      h('label', { class: 'inline grow' }, h('span', { text: label }), input),
+      h('div', { class: 'inline grow' }, h('label', { class: 'inline grow' }, h('span', { text: label }), input),
+        propose?.(input)),
       error,
       h('div', { class: 'btns' },
         button('neutral', { onClick: () => done(null) }, t('dialog.cancel')),

@@ -21,7 +21,9 @@ fallback nor rejection):
                  may remember since E22-T13, a plain turn stays without action); briefing turn: the clues said;
     radio_call   spontaneous call (1-2 sentences);         bulletin   evening bulletin from the facts of the prompt;
     last_pages   journal of a dead character, from the facts of the prompt;
-    workshop_personality / workshop_story   voice workshop (E22-T06): a personality text naming the voice, one sentence;
+    workshop_personality   voice workshop (E22-T06): a personality text naming the voice;
+    workshop_suggest       voice workshop (E24-T04): a canned English proposal for the field of "Field to fill:",
+                           {frequency} in a call or a note line;
     npc_*        NPC JSON {"text", "intent", "offer"[, "background", "dir", "fact"]} read from the authoritative
                  context of the prompt (same admissibility helpers as the bridge, npc_protocol):
                  npc_talk     report_done when context.reportable; accept when context.acceptable and this
@@ -74,7 +76,7 @@ REPORT_DUE = "you only wait for their report"
 BRIEFING = "they are waiting for the details"
 TRADE_BOOK = "Your trade book (kept by the other side"
 WORKSHOP_PERSONALITY = "Workshop task: personality."   # bridge/atelier_ai_templates.json (E22-T06)
-WORKSHOP_STORY = "Workshop task: mission story."
+WORKSHOP_SUGGEST = "Workshop task: suggest."
 
 
 def digest(*parts: str) -> int:
@@ -194,8 +196,8 @@ def classify(messages: list) -> str:
         return "last_pages"
     if system.startswith(WORKSHOP_PERSONALITY):
         return "workshop_personality"
-    if system.startswith(WORKSHOP_STORY):
-        return "workshop_story"
+    if system.startswith(WORKSHOP_SUGGEST):
+        return "workshop_suggest"
     if last == BULLETIN_MARK:
         return "bulletin"
     if last == CALL_MARK:
@@ -377,7 +379,21 @@ def last_pages_text(system: str) -> str:
 
 # --- reply -----------------------------------------------------------------------------------------------------------
 
-WORKSHOP_STORY_TEXT = "I need this done before the dead get there first, so please do it for me."
+# E24-T04: proposal per field of the workshop page (bridge/atelier_ai_templates.json "suggest"), within its limit.
+WORKSHOP_SUGGEST_TEXTS = {
+    "name": "Mae Tolliver",
+    "description": "A nurse from West Point who hides and helps survivors by radio.",
+    "persona_idea": "Mae is a nurse in her forties who left her clinic the night it all began. She is calm, a bit "
+                    "bossy and kind, and she wants to keep as many people alive as she can.",
+    "place_label": "the shed behind the church",
+    "mission_story": "I need this done before the dead get there first, so please do it for me.",
+    "mission_state": "She can finally rest a little.",
+    "call": "Is anyone out there? I am on {frequency}, answer me if you can hear this.",
+    "note_line": "Tune in {frequency} at night.",
+    "paquet_name": "First aid kit",
+    "category_name": "Medicine",
+}
+WORKSHOP_SUGGEST_DEFAULT = "Something new."
 
 
 def workshop_personality(last: str) -> str:
@@ -391,6 +407,12 @@ def workshop_personality(last: str) -> str:
             "Rules:\n- Stay in character at all times.\n- Never invite anyone to meet you.\n"
             "- Radio style: 1 to 4 short sentences. End each transmission with \"Over.\"\n"
             "- Answer in the same language the caller uses.")
+
+
+def workshop_suggest(last: str) -> str:
+    """E24-T04: the canned proposal of the field named in the request."""
+    match = re.search(r'^Field to fill: ([a-z_]+)', last, re.M)
+    return WORKSHOP_SUGGEST_TEXTS.get(match.group(1) if match else "", WORKSHOP_SUGGEST_DEFAULT)
 
 
 def reply_for(body: dict, intents: frozenset = frozenset()) -> tuple[str, dict]:
@@ -415,8 +437,8 @@ def reply_for(body: dict, intents: frozenset = frozenset()) -> tuple[str, dict]:
         return CALL[lang(speaks_french(system))], meta
     if kind == "workshop_personality":
         return workshop_personality(last), meta
-    if kind == "workshop_story":
-        return WORKSHOP_STORY_TEXT, meta
+    if kind == "workshop_suggest":
+        return workshop_suggest(last), meta
     return pick(RADIO["en"], last, system[:200]), meta
 
 

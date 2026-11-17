@@ -18,7 +18,7 @@ tower. She calls in the morning and the evening, asks for food, then for the dea
 ## Contents
 
 - [Opening the workshop](#opening-the-workshop) · [from a tablet](#opening-it-from-a-tablet-or-another-computer)
-- [The workshop screen](#the-workshop-screen) · [the voice list](#the-voice-list) ·
+- [The workshop screen](#the-workshop-screen) · [the dashboard](#the-dashboard) · [the voice list](#the-voice-list) ·
   [making a voice](#making-a-voice) · [the buttons of a voice](#the-buttons-of-a-voice)
 - The five steps: [1. Who](#step-1--who) · [2. Where & when](#step-2--where--when) ·
   [3. Personality](#step-3--personality) · [4. Places and missions](#step-4--places-and-missions) ·
@@ -82,7 +82,8 @@ home network:
 
 ## The workshop screen
 
-- **At the top**: two tabs, **Voices** (the editor) and **Journal** ([the live journal](#the-live-journal)); on the
+- **At the top**: three tabs, **Dashboard** ([every voice at a glance](#the-dashboard), opened at start), **Voices**
+  (the editor) and **Journal** ([the live journal](#the-live-journal)); on the
   right, **Open a voice (file)** ([sharing a voice](#sharing-a-voice)) and, on the network, **Log out**.
 - **On the left**: **Your voices** and the **+ New voice** button. Under 900 px wide, the list becomes a strip of chips
   above the editor.
@@ -91,6 +92,21 @@ home network:
 
 Every setting has a small **?**: click it (or hover over it) to learn what it is for, what the player lives in game,
 the possible choices and an example. The rest is under **Learn more**. **Escape** closes the bubble.
+
+### The dashboard
+
+Every voice of the workshop at a glance (the mod's and yours, removed voices left out).
+
+- **At the top, the numbers**: voices, traders, mission givers, voices heard with a simple walkie, hours per day when
+  only "day and night" voices listen (a gap to fill), voices that keep quiet.
+- **Filters**, one click each: by what you can do (talk, give jobs, trade, give other frequencies, call on their own,
+  to rescue) and by radio. Click again to remove the filter.
+- **One row per voice**: its name (and the red dot when the game could not read it), the radio needed to hear it (a
+  voice on a fixed frequency gets the radio its frequency needs), its listening hours on a 24 h bar, and what you can do
+  with it (number of jobs, trade by van, by boat or by dead drop). Click a column title to sort, again to reverse. Click
+  a voice to open it in the editor.
+
+![The voice dashboard](../../images/screenshots/atelier/atelier-en-00-dashboard.png)
 
 ### The voice list
 
@@ -278,7 +294,7 @@ sentence says so: "She has no place yet. Start with a spot you know." **+ New pl
 | Setting | What it changes |
 |---|---|
 | **Name on the map** | What players see on their map: no secret here. A "12 / 48" counter shows the room left. |
-| **Where on the map?** | x, y and floor (0 = ground floor). The AI never sees these numbers. Record them in game (below), or read them on the map. The **See on the map ↗** link opens the square. |
+| **Where on the map?** | x, y and floor (0 = ground floor). The AI never sees these numbers. Record them in game (below), or read them on the map. The **See on the map ↗** link opens the square. A position copied on the map (`7966, 11751`) can be pasted into any of the three fields: x, y (and the floor when there is a third number) fill at once. |
 | **It is used as** | Four chips with their icon, to tick: **🗺️ Landmark** (she can mark it on a player's map; with no reward set, she also offers this marker after a job), **🎯 Job place** (a square inside the targeted building; it is circled on the map during the job), **📦 Dead drop** (the player leaves goods there, and reward bags are put there), **🤝 Trade meeting place** (where the trader comes). |
 
 Rosie has two places: the water tower south of Muldraugh (landmark and job place) and the shed next to it, whose locker
@@ -286,7 +302,9 @@ is the dead drop.
 
 **Finding x and y.** The most reliable way is to record the place in game (below): the B42 map can differ from the
 sites made from an older map. To look before playing, the [Project Zomboid B42 map](https://zomboidmap.com/) shows the
-whole Knox Country: move the mouse over a square to read its X and Y, then check the spot in game. Put a dead drop or the
+whole Knox Country: move the mouse over a square to read its X and Y, or copy the
+position and paste it into x (the **📋 Paste position** button does the same when the browser allows it, on the bridge's
+computer), then check the spot in game. Put a dead drop or the
 meeting point of a hiding spot on the square of a container (dumpster, mailbox) or right next to it, and a job place on
 a square inside the building.
 
@@ -319,7 +337,7 @@ with the icon of its kind, with no id. Common settings:
 
 | Setting | What it changes |
 |---|---|
-| **What the voice says** | The reason she gives, in the language of her personality (English by default), 200 characters at most, with a "N / 200" counter. The AI tells it to the player. **Suggest**, at the top, asks the AI for a sentence. |
+| **What the voice says** | The reason she gives, in the language of her personality (English by default), 200 characters at most, with a "N / 200" counter. The AI tells it to the player. **✨ Suggest** asks the AI for a sentence. |
 | **Where does it happen?** | One of her places marked **Job place**. A red **to fill in** pill appears when one is needed. |
 | **Type settings** | In one box. Quantities: "between [− n +] and [− m +]". Counts: a − / + stepper. **She picks it up after**: **Soon** (2 h), **A few hours** (6 h, the usual setting), **Half a day**, **One day**. **How long to keep watch?**: **One hour**, **Two hours** (the usual setting), **A morning** (6), **A whole night** (12). Each step has its **Exact value**. |
 | **Dead drops** | For the kinds that need one: nothing ticked means all her dead drops. |
@@ -482,13 +500,20 @@ typed and is never shown. The list then shows in the category choices of the mis
 
 ## The bridge's AI helps you
 
-If the bridge's AI is configured (see [AI provider configuration](08-ai-provider-configuration.md)), three buttons
+If the bridge's AI is configured (see [AI provider configuration](08-ai-provider-configuration.md)), these buttons
 help you:
 
 - **Write it with the AI** (step 3): describe the voice in a few sentences, in your own words and your own language
   (who she is, what happened to her, what she wants, how she talks), then **Write it**. The AI writes her personality
   in English. **Use it** puts it in the sheet (the workshop asks first if a text is already there).
-- **Suggest** (next to "What the voice says", step 4): the AI suggests the sentence that gives the job, in English.
+- **✨ Suggest**, next to every field you write in: voice name (also when creating it), description, personality
+  idea, place name, the sentence of a job and what it changes in the story, spontaneous call, note lines, name of a
+  paquet or of a list. The AI reads the whole sheet being written (even unsaved): personality, places, jobs already
+  written and what they change, notes, trade; plus what the field is for (kind of job and what the player does, uses of
+  the place, items of the paquet, other lines of the note). It stays consistent with the rest and never repeats another
+  job. Texts read in game are written in the language of the personality, the others in the page's language. Click
+  again for another idea. For the call and the notes, the frequency is always in the proposal (otherwise the workshop
+  says so: click again). You can then edit the text.
 - **Chat with the voice** (at the top): talk to her like a player (**Send**). She answers with the sheet as it is, even
   unsaved. **Start over** clears the conversation, **Close** closes it. Nothing changes in the game. If the sheet is
   not complete, the workshop asks you to fix the points shown first.

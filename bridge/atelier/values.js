@@ -61,6 +61,16 @@ export function formatAt({ x, y, z }) {
   return [x, y, z === '' || z === undefined ? '0' : z].map((v) => String(v).trim()).join(',');
 }
 
+// A map position as copied on the community map ("7966, 11751", "7966, 11751, 1", "x: 7966 y: 11751"): two or three
+// whole numbers, separated by commas, semicolons or spaces, words around them ignored -> {x, y, z?} as text; anything
+// else (one number, a decimal, more than three numbers) -> null, so a plain paste of one number stays a plain paste.
+export function parseSquare(text) {
+  const numbers = String(text ?? '').match(/\d+(?:\.\d+)?/g) ?? [];
+  if (numbers.length < 2 || numbers.length > 3 || numbers.some((n) => n.includes('.'))) return null;
+  const [x, y, z] = numbers;
+  return z === undefined ? { x, y } : { x, y, z };
+}
+
 export function isInteger(text) {
   return /^-?\d+$/.test(String(text ?? '').trim());
 }

@@ -5,6 +5,7 @@
 // item and text key (item=, key=, shipped voices only) stay in the advanced settings of the form (sectionform.js
 // advanced), the item picked in the item browser like every item of the page. Registered in stock.js KEY_EDITORS.
 
+import { forAi, inputPropose } from './ai.js';
 import { h } from './dom.js';
 import { hint } from './help.js';
 import { openItemBrowser } from './itembrowser.js';
@@ -51,6 +52,10 @@ function noteText(ctx, section, key) {
     const text = freqText(t, lines[index], (v) => { lines[index] = v; update(); write(); },
       { placeholder: t('key.note.text.placeholder'), 'aria-label': t('note.line', { n: index + 1 }) });
     update();
+    // E24-T04: the AI proposes the line from the voice and the other lines of the note (the frequency as it writes it).
+    text.el.append(inputPropose(ctx, 'note_line', text.input, { freqWord: t('freq.word'), details: () => ({
+      other_lines: lines.filter((line, other) => other !== index && line.trim()).map(forAi).join(' / '),
+      line_number: String(index + 1) }) }));
     return h('div', { class: 'note-line' },
       h('div', { class: 'inline grow' }, text.el, counter,
         removeButton(t, () => { lines.splice(index, 1); write(); draw(); })),

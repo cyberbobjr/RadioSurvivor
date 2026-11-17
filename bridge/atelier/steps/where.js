@@ -1,8 +1,9 @@
 // Step 2, where and when: the radio the player needs (E24-T01), listening hours, location on the map, spontaneous call.
 
+import { inputPropose } from '../ai.js';
 import { h } from '../dom.js';
 import { choiceTopics, hint } from '../help.js';
-import { mapLink } from '../maplink.js';
+import { squareEditor } from '../maplink.js';
 import * as sheet from '../sheet.js';
 import { formatHours, khzToMhz, mhzToKhz, parseHours, sheetFrequency } from '../values.js';
 import { stepChoice } from '../stepchoice.js';
@@ -43,7 +44,7 @@ function fixedFrequency({ model, catalog, t, voiceId, changed }) {
   const warn = h('div', { class: 'warnline', 'aria-live': 'polite' });
   const refresh = (text) => {
     const khz = sheetFrequency(text);
-    const level = khz !== null && khz % bounds.step === 0 ? catalog.levelOf(khz) : null;
+    const level = catalog.frequencyLevel(text);
     badge.textContent = level
       ? t('where.badge', { icon: t(`radio.${level}.icon`), name: t(`radio.${level}.name`) })
       : t('where.badge_none', { min: khzToMhz(bounds.min), max: khzToMhz(bounds.max), step: khzToMhz(bounds.step) });
@@ -135,20 +136,17 @@ function hoursEditor({ model, t, changed, rerender, ui }) {
 
 // Where the voice is on the map: cards, then the square (x, y, floor) with the map link when she is at a fixed place
 // (user decision 2026-11-16: coordinates entered as before, fields, map link and places recorded in game).
-function locationEditor({ model, catalog, t, changed, rerender }) {
+function locationEditor({ model, catalog, t, changed, rerender, toast }) {
   const head = model.head;
   const current = sheet.value(head, 'location') ?? 'none';
   const options = (catalog.headerChoices('location') ?? []).map((v) => ({ ...choice(t, 'choice.location', v),
     icon: t(`choice.location.${v}.icon`, {}, '') || null }));
-  const coords = (sheet.value(head, 'coords') ?? ',,0').split(',').map((v) => v.trim());
-  const map = mapLink(t, () => ({ x: coords[0], y: coords[1], z: coords[2] }));
-  const writeCoords = () => {
+  const [x, y, z] = (sheet.value(head, 'coords') ?? ',,0').split(',').map((v) => v.trim());
+  const writeCoords = (square) => {
+    const coords = [square.x, square.y, square.z].map((v) => String(v ?? '').trim());
     sheet.setValue(head, 'coords', coords.every((v) => v !== '') ? coords.join(',') : null);
     changed();
-    map.refresh();
   };
-  const coord = (index, label) => h('input', { type: 'number', step: 1, class: 'num', value: coords[index] ?? '',
-    'aria-label': label, onInput: (e) => { coords[index] = e.target.value; writeCoords(); } });
   return h('div', { class: 'form' },
     row(t('where.location'), (id) => cards('location', options, current, (v) => {
       sheet.setValue(head, 'location', v);
@@ -156,15 +154,16 @@ function locationEditor({ model, catalog, t, changed, rerender }) {
       changed();
       rerender();
     }, { id }), null, hint(t, 'help.head.location', { label: t('where.location'), choices: choiceTopics('help.head.location', options) })),
-    current === 'fixed' && row(t('where.coords'), (id) => h('div', { class: 'inline', id },
-      'x', coord(0, 'x'), 'y', coord(1, 'y'), t('places.floor'), coord(2, t('places.floor')), map.el), t('where.coords_help'),
+    current === 'fixed' && row(t('where.coords'), (id) => squareEditor(t, { x, y, z }, writeCoords, { id, toast }),
+      t('where.coords_help'),
     hint(t, 'help.head.coords', { label: t('where.coords') })));
 }
 
 // Spontaneous call (E22-T07): how often the voice calls by itself, as named steps (scales.js head.call_one_in), and
 // the text she says when the bridge writes none (call=, the frequency as a word on screen). A voice that already
 // names a translation key (call_text=, voices of the mod) keeps it in the closed advanced panel.
-function callEditor({ model, t, changed, rerender }) {
+function callEditor(ctx) {
+  const { model, t, changed, rerender } = ctx;
   const head = model.head;
   const calls = Number(sheet.value(head, 'call_one_in') ?? 0) > 0;
   const own = sheet.value(head, 'call_text');
@@ -174,10 +173,14 @@ function callEditor({ model, t, changed, rerender }) {
       changed();
       if ((Number(v ?? 0) > 0) !== calls) rerender();
     }, { id }), t('where.call_one_in_help'), hint(t, 'help.head.call_one_in', { label: t('where.call_one_in') })),
-    calls && !own && row(t('where.call'), (id) => freqText(t, sheet.value(head, 'call'), (v) => {
-      sheet.setValue(head, 'call', v.trim() === '' ? null : v);
-      changed();
-    }, { id, maxlength: 200, placeholder: t('where.call_placeholder') }).el, t('where.call_help'),
+    calls && !own && row(t('where.call'), (id) => {
+      const call = freqText(t, sheet.value(head, 'call'), (v) => {
+        sheet.setValue(head, 'call', v.trim() === '' ? null : v);
+        changed();
+      }, { id, maxlength: 200, placeholder: t('where.call_placeholder') });
+      call.el.append(inputPropose(ctx, 'call', call.input, { freqWord: t('freq.word') }));
+      return call.el;
+    }, t('where.call_help'),
     hint(t, 'help.head.call', { label: t('where.call') })),
     own && fold(t('section.advanced'), false, h('p', { class: 'help', text: t('section.advanced_help') }),
       row(t('where.call_text'), (id) => textInput(id, own, (v) => {

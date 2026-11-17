@@ -9,7 +9,7 @@ what it needs: the voices of the mod stay as delivered, except Walt, changed for
 Muldraugh water tower: two places, two missions, rewards, a handwritten note and a spontaneous call), is written into
 that temporary folder first, with a fake survey file of the game, a fake game console and a few bridge log lines.
 Then, per locale (fr-FR, en-US) at 1280x800, it opens the page and writes atelier-<lang>-NN-<subject>.png:
-01-voice (list and step 1), 02-where (the radio cards, E24-T01), 03-personality (help popover), 04-missions, 04b-places ("recorded in game"),
+00-dashboard (the dashboard of the voices shown first, E24-T05), 01-voice (list and step 1), 02-where (the radio cards, E24-T01), 03-personality (help popover), 04-missions, 04b-places ("recorded in game"),
 04c-place-map (a place card with its link to the community map),
 05-rewards, 06-trade (a shipped trader), 07-note, 08-try (test conversation), 09-journal, 10-refused (game banner),
 11-login (login page of the network mode, E22-T15), and for the reference page 13 (E22-T16): 12-new (new voice
@@ -330,6 +330,10 @@ def run_locale(browser, locale: str, lang: str, out: Path, provider: StubProvide
             page.on('pageerror', lambda e: errors.append(str(e)))
             page.goto(server.url)
             expect(page.locator('h1')).to_have_text(t['app.title'])
+            expect(page.locator('#dashboard tr.dash-row', has_text='Rosie Calloway')).to_be_visible()   # E24-T05
+            page.mouse.move(0, 0)
+            shoot(page, out, f'atelier-{lang}-00-dashboard.png')
+
             page.locator('.voice', has_text='Rosie Calloway').first.click()
             expect(page.locator('.pill.on')).to_contain_text(t['step.who'])
             page.mouse.move(0, 0)

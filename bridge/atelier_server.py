@@ -24,7 +24,9 @@ on the sheets of the working folder, the one the game reads again every 30 s (D0
                                            where the survey file is
     POST   /api/ai/personality             E22-T06 (D04): {voiceId, description, name, knows[], ignores[], secret[]}
                                            -> {prompt}: English personality text ([prompt] of the sheet)
-    POST   /api/ai/story                   {voiceId, missionType, voiceText, context} -> {story}: one sentence
+    POST   /api/ai/suggest                 E24-T04: {field, voiceId?, sheetText, pageLanguage, current, details{}}
+                                           -> {text}: a proposal for one text field from the whole unsaved sheet;
+                                           502 ai_no_frequency when a call or note line misses the frequency
     POST   /api/ai/try                     {voiceId, sheetText, history[], text} -> {lines}: a test turn with the voice
                                            built from the unsaved text; no AI configured: 503 ai_unavailable
     POST   /api/login                      E22-T15, network mode only: {"password"} -> session cookie; 401 bad_password,
@@ -480,7 +482,8 @@ AUTH_ROUTES: tuple[tuple[str, re.Pattern, str], ...] = (    # E22-T15: network m
     ('POST', re.compile(r'/api/logout'), 'logout'),
 )
 # E22-T06: /api/ai/<kind> -> (method of atelier_ai.WorkshopAI, key of its answer)
-AI_REQUESTS = {'personality': ('personality', 'prompt'), 'story': ('story', 'story'), 'try': ('try_voice', 'lines')}
+AI_REQUESTS = {'personality': ('personality', 'prompt'), 'suggest': ('suggest', 'text'),
+               'try': ('try_voice', 'lines')}
 AI_UNAVAILABLE = ("no AI is configured for the bridge: copy bridge/.env.example to bridge/.env, fill in OPENAI_KEY, "
                   "OPENAI_BASE_URL and OPENAI_MODEL, then restart the bridge without --offline")
 

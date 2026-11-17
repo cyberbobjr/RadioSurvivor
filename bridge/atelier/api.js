@@ -41,7 +41,7 @@ export function createApi(fetchFn = fetch, onLoginRequired = () => window.locati
     status: () => call('GET', '/api/status'),
     // E22-T06: the bridge's AI ({ok:false, code:'ai_unavailable'} without configuration)
     aiPersonality: (body) => call('POST', '/api/ai/personality', body),
-    aiStory: (body) => call('POST', '/api/ai/story', body),
+    aiSuggest: (body) => call('POST', '/api/ai/suggest', body),   // E24-T04: one text field proposed by the AI
     aiTry: (body) => call('POST', '/api/ai/try', body),
     logout: () => call('POST', '/api/logout', {}),   // E22-T15: network mode only
   };

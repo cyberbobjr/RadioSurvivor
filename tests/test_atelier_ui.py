@@ -262,6 +262,42 @@ console.log(JSON.stringify({{
         self.assertEqual(got['range'], '3')
         self.assertEqual(got['slug'], 'dumpster_behind_the_cafe')
 
+    def test_a_map_position_pasted_gives_the_square(self):
+        """User 2026-11-16: the position copied on zomboidmap.com ("7966, 11751") fills x and y, a third number the
+        floor; one number alone (a plain paste into one field) or a decimal is not a position."""
+        script = node_prelude() + f"""
+import {{ parseSquare }} from '{module_url('values.js')}';
+console.log(JSON.stringify(['7966, 11751', '7966, 11751, 1', '7966;11751', ' 7966  11751 ', 'x: 7966 y: 11751',
+  '7966', '', null, '7966.5, 11751', '1, 2, 3, 4', 'abc'].map(parseSquare)));
+"""
+        got = run_node(script)
+        self.assertEqual(got[:5], [{'x': '7966', 'y': '11751'}, {'x': '7966', 'y': '11751', 'z': '1'},
+                                   {'x': '7966', 'y': '11751'}, {'x': '7966', 'y': '11751'},
+                                   {'x': '7966', 'y': '11751'}])
+        self.assertEqual(got[5:], [None] * 6)
+
+    def test_details_sent_with_a_suggestion_fit_the_server(self):
+        """E24-T04: the details of a "Suggest" are flat strings the server takes (16 keys at most, keys [a-z_], values
+        cut at 600 characters, empty ones left out); a place says its uses in words and its square only when known."""
+        script = node_prelude() + f"""
+import {{ forAi, placeDetails, suggestDetails }} from '{module_url('ai.js')}';
+const many = Object.fromEntries(Array.from({{ length: 20 }}, (_, i) => ['k_' + String.fromCharCode(97 + i), 'v']));
+const t = (key) => ({{ 'use.drop': 'Dead drop', 'use.mark': 'Map mark' }})[key] ?? key;
+console.log(JSON.stringify({{
+  cleaned: suggestDetails({{ mission_number: 2, empty: '', none: null, 'Bad-Key': 'x', long: 'a'.repeat(700) }}),
+  count: Object.keys(suggestDetails(many)).length,
+  place: placeDetails(t, ['drop', 'mark'], {{ x: '7966', y: '11751', z: '' }}),
+  noSquare: suggestDetails(placeDetails(t, ['drop'], {{ x: '', y: '', z: '0' }})),
+  line: forAi('Tune in %1 tonight'),
+}}));
+"""
+        got = run_node(script)
+        self.assertEqual(got['cleaned'], {'mission_number': '2', 'long': 'a' * 600})
+        self.assertEqual(got['count'], 16)
+        self.assertEqual(got['place'], {'uses': 'Dead drop, Map mark', 'map_square': '7966,11751,0'})
+        self.assertEqual(got['noSquare'], {'uses': 'Dead drop'})
+        self.assertEqual(got['line'], 'Tune in {frequency} tonight')
+
     def test_chances_stock_lines_and_mission_weights(self):
         """Rarely/Normally/Often are 1/2/4, other weights stay custom; stock lines carry no weight (E22-T12)."""
         script = node_prelude() + f"""
@@ -476,6 +512,110 @@ console.log(JSON.stringify({{ bad: keys({json.dumps(self.ACCEPT_SHEET)}), none: 
         self.assertEqual(got['site'], 'https://zomboidmap.com/')
         self.assertEqual(got['urls'], ['https://zomboidmap.com/#11/10600/9300/f0', 'https://zomboidmap.com/#11/8159/11661',
                                        'https://zomboidmap.com/#11/10600/9300', None, None, None, None])
+
+
+DASHBOARD_PRELUDE = node_prelude() + f"""
+import * as dash from '{module_url('dashboard.js')}';
+import {{ createI18n }} from '{module_url('i18n.js')}';
+const strings = (lang) => createI18n(lang, JSON.parse(fs.readFileSync({json.dumps(str(ATELIER / 'i18n'))} + '/' + lang + '.json', 'utf8')));
+const voiceOf = (head, sections = '') => dash.summarize({{ id: 'case', name: 'Entry Name' }},
+  sheet.parse('format=1\\nid=case\\n' + head + '\\n' + sections + '\\n[prompt]\\nHi.\\n'), catalog);
+"""
+
+
+class AtelierDashboardTests(unittest.TestCase):
+    """E24-T05: the pure functions of the dashboard (dashboard.js) over the page's own readers."""
+
+    def test_listening_hours_as_ranges_and_words(self):
+        script = DASHBOARD_PRELUDE + """
+const fr = strings('fr'), en = strings('en');
+const cases = ['07:00-10:00,16:00-19:00', '23:00-03:00', '19:30-22:00', 'always', null, '22:00-02:00,05:00-07:00'];
+console.log(JSON.stringify({ ranges: cases.map(dash.listenRanges), fr: cases.map((c) => dash.hoursText(fr, c)),
+  en: cases.slice(0, 3).map((c) => dash.hoursText(en, c)), count: cases.map(dash.listenHours) }));
+"""
+        got = run_node(script)
+        self.assertEqual(got['ranges'], [[[7, 10], [16, 19]], [[23, 24], [0, 3]], [[19.5, 22]], [[0, 24]], [[0, 24]],
+                                         [[22, 24], [0, 2], [5, 7]]])
+        self.assertEqual(got['fr'], ['7 h–10 h · 16 h–19 h', '23 h–3 h', '19 h 30–22 h', 'jour et nuit', 'jour et nuit',
+                                     '22 h–2 h · 5 h–7 h'])
+        self.assertEqual(got['en'], ['7:00–10:00 · 16:00–19:00', '23:00–3:00', '19:30–22:00'])
+        self.assertEqual(got['count'], [6, 4, 2.5, 24, 24, 6])
+
+    def test_hours_with_no_voice_but_the_always_ones(self):
+        """Hours of the day when only "day and night" voices listen; silent voices do not fill a gap."""
+        script = DASHBOARD_PRELUDE + """
+const rows = [voiceOf('radio=any_talkie\\nlisten=always'), voiceOf('radio=any_talkie\\nlisten=22:00-02:00'),
+  voiceOf('radio=any_talkie\\nlisten=06:00-12:00'), voiceOf('radio=any_talkie\\nlisten=12:00-20:00\\nstate=silent')];
+console.log(JSON.stringify({ gap: dash.gapHours(rows), none: dash.gapHours([]), all: dash.gapHours(rows.slice(0, 1)) }));
+"""
+        got = run_node(script)
+        self.assertEqual(got['gap'], 24 - 4 - 6)
+        self.assertEqual((got['none'], got['all']), (24, 24))
+
+    def test_what_a_voice_offers(self):
+        script = DASHBOARD_PRELUDE + """
+const offers = (v) => dash.interactions(v).map((k) => k.id);
+const talker = voiceOf('radio=any_talkie\\nactions=say');
+const giver = voiceOf('radio=any_talkie\\nactions=say,start_mission,share_frequency\\ncall_one_in=6',
+  '[mission a]\\ntype=scout\\n[mission b]\\ntype=clear');
+const trader = voiceOf('radio=pro_talkie\\nactions=say,propose_trade', '[trade]\\narrival=boat');
+const section = voiceOf('radio=pro_talkie\\nactions=say', '[trade]\\narrival=road');
+const rescue = voiceOf('radio=any_talkie\\nlocation=rescue\\ncall_one_in=0\\nstate=silent');
+const fr = strings('fr');
+console.log(JSON.stringify({ talker: offers(talker), giver: offers(giver), trader: offers(trader),
+  section: offers(section), rescue: offers(rescue), missions: giver.missions, arrival: [trader.arrival, section.arrival],
+  tags: dash.interactions(giver).concat(dash.interactions(trader)).map((k) => dash.tagText(fr, k, k.id === 'trade' ? trader : giver)),
+  state: [rescue.state, rescue.active, talker.active], name: [talker.name, voiceOf('name=Sheet Name').name] }));
+"""
+        got = run_node(script)
+        self.assertEqual(got['talker'], ['talk'])
+        self.assertEqual(got['giver'], ['talk', 'missions', 'share', 'calls'])
+        self.assertEqual(got['trader'], ['talk', 'trade'])
+        self.assertEqual(got['section'], ['talk', 'trade'], 'a [trade] section alone makes a trader')
+        self.assertEqual(got['rescue'], ['talk', 'rescue'])
+        self.assertEqual(got['missions'], 2)
+        self.assertEqual(got['arrival'], ['boat', 'road'])
+        self.assertIn('2 missions', got['tags'])
+        self.assertIn('Troc en bateau', ' '.join(got['tags']))
+        self.assertEqual(got['state'], ['silent', False, True])
+        self.assertEqual(got['name'], ['Entry Name', 'Sheet Name'])
+
+    def test_radio_level_of_a_voice(self):
+        """radio= as written; a fixed frequency gets the radio it needs, as the badge of the step "where"."""
+        script = DASHBOARD_PRELUDE + """
+const levels = ['radio=good_talkie', 'frequency=145.0', 'frequency=320.0', 'frequency=0.2', 'frequency=145.1',
+  'frequency=abc'].map((line) => voiceOf(line).level);
+console.log(JSON.stringify({ levels, rank: ['any_talkie', 'military', null].map((l) => dash.levelRank(catalog, l)) }));
+"""
+        got = run_node(script)
+        self.assertEqual(got['levels'], ['good_talkie', 'any_talkie', 'tactical', 'military', None, None])
+        self.assertEqual(got['rank'], [1, 5, 0])
+
+    def test_tiles_filters_and_sort(self):
+        script = DASHBOARD_PRELUDE + """
+const rows = [voiceOf('name=Zed\\nradio=any_talkie\\nlisten=always\\nactions=say,share_frequency\\ncall_one_in=3'),
+  voiceOf('name=Abe\\nradio=pro_talkie\\nlisten=10:00-12:00\\nactions=say,propose_trade', '[trade]\\narrival=cache'),
+  voiceOf('name=Moe\\nradio=good_talkie\\nlisten=08:00-09:00\\nactions=say,start_mission', '[mission m]\\ntype=scout'),
+  voiceOf('name=Kim\\nradio=any_talkie\\nlisten=06:00-21:00\\nlocation=rescue\\nstate=silent')];
+const names = (list) => list.map((v) => v.name);
+console.log(JSON.stringify({ tiles: dash.tiles(rows, catalog),
+  trade: names(dash.filterRows(rows, { kind: 'trade', level: null })),
+  simple: names(dash.filterRows(rows, { kind: null, level: 'any_talkie' })),
+  both: names(dash.filterRows(rows, { kind: 'rescue', level: 'pro_talkie' })),
+  byName: names(dash.sortRows(rows, 'name', 1, catalog)), byNameDown: names(dash.sortRows(rows, 'name', -1, catalog)),
+  byRadio: names(dash.sortRows(rows, 'radio', 1, catalog)), byHours: names(dash.sortRows(rows, 'hours', 1, catalog)),
+  byKinds: names(dash.sortRows(rows, 'kinds', 1, catalog)) }));
+"""
+        got = run_node(script)
+        self.assertEqual(got['tiles'], {'voices': 4, 'traders': 1, 'missions': 1, 'simple': 2, 'gap': 21, 'silent': 1})
+        self.assertEqual(got['trade'], ['Abe'])
+        self.assertEqual(got['simple'], ['Zed', 'Kim'])
+        self.assertEqual(got['both'], [])
+        self.assertEqual(got['byName'], ['Abe', 'Kim', 'Moe', 'Zed'])
+        self.assertEqual(got['byNameDown'], ['Zed', 'Moe', 'Kim', 'Abe'])
+        self.assertEqual(got['byRadio'], ['Zed', 'Kim', 'Moe', 'Abe'])
+        self.assertEqual(got['byHours'], ['Zed', 'Kim', 'Abe', 'Moe'])
+        self.assertEqual(got['byKinds'], ['Zed', 'Abe', 'Kim', 'Moe'], 'most things to do first, then by name')
 
 
 class AtelierStringsTests(unittest.TestCase):

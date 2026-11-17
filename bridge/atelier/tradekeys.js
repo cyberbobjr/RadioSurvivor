@@ -6,6 +6,7 @@
 // hours, the days between two visits, the quiet delay and the margin as named steps (scales.js).
 // Registered in stock.js KEY_EDITORS.
 
+import { inputPropose } from './ai.js';
 import { acceptChoices } from './categories.js';
 import { h } from './dom.js';
 import { hint } from './help.js';
@@ -110,6 +111,9 @@ function accepted(ctx, section, key) {
     }));
 }
 
+// Names of items in the page language, as the AI is told them (the details of a paquet name, E24-T04).
+const itemNames = (ctx, types) => types.map((type) => ctx.catalog.itemIndex().get(type, ctx.t.lang)?.name ?? type).join(', ');
+
 // One paquet: its name (typed, shown back from its id), "between n and m in all", "no more than N different items",
 // its items picked in the list.
 function paquetCard(ctx, section, paquet) {
@@ -120,6 +124,7 @@ function paquetCard(ctx, section, paquet) {
     onChange: (e) => { paquets.rename(section, paquet.id, e.target.value.trim() || t('lot.default_name')); changed(); rerender(); } });
   return h('article', { class: 'card paquet', title: paquet.id, 'data-paquet': paquet.id },
     h('header', { class: 'card-head' }, h('span', { class: 'card-icon', 'aria-hidden': 'true', text: '📦' }), name,
+      inputPropose(ctx, 'paquet_name', name, { event: 'change', details: () => ({ items: itemNames(ctx, paquet.items) }) }),
       removeButton(t, () => { paquets.remove(section, paquet.id); changed(); rerender(); }, t('lot.remove'))),
     h('div', { class: 'inline lot-total' },
       rangeStepper(t, paquet.total, (v) => { paquets.setTotal(section, paquet.id, v); changed(); }, { min: 1 }),
@@ -140,10 +145,11 @@ function paquetCard(ctx, section, paquet) {
 function lots(ctx, section) {
   const { t, changed, rerender } = ctx;
   let typed = '';
+  const input = textInput(null, '', (v) => { typed = v; }, { placeholder: t('lot.name_placeholder'), 'aria-label': t('lot.name') });
   return h('div', { class: 'stack paquets' },
     paquets.list(section).map((p) => paquetCard(ctx, section, p)),
-    h('div', { class: 'inline' },
-      textInput(null, '', (v) => { typed = v; }, { placeholder: t('lot.name_placeholder'), 'aria-label': t('lot.name') }),
+    h('div', { class: 'inline' }, input,
+      inputPropose(ctx, 'paquet_name', input, { details: () => ({ items: itemNames(ctx, paquets.stockTypes(section)) }) }),
       button('add', { class: 'paquet-add', onClick: () => {
         paquets.addPaquet(section, typed.trim() || t('lot.default_name'));
         changed();

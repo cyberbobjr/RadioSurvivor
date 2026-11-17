@@ -4,6 +4,7 @@
 // generated from the section grammar, the keys with a form of their own registered in stock.js; the own categories
 // are folded under "Advanced options" (E24-T02).
 
+import { inputPropose } from '../ai.js';
 import { h } from '../dom.js';
 import { field, fieldOptions } from '../fields.js';
 import { hint } from '../help.js';
@@ -107,15 +108,17 @@ function categoriesPanel(ctx) {
   if (!grammar) return null;
   const own = sheet.sectionsOf(model, 'category');
   let newName = '';
+  const nameInput = textInput(null, '', (v) => { newName = v; }, { placeholder: t('advanced.category.new_name'),
+    'aria-label': t('advanced.category.new_name') });
   const panel = fold(t('advanced.category'), Boolean(ctx.ui.open_category),
     h('p', { class: 'help', text: t('advanced.category.help') }),
     own.map((section) => h('article', { class: 'card', title: section.id },
       h('header', { class: 'card-head' }, h('b', { text: voice.labelOf(section.id) }),
         removeButton(t, () => { sheet.removeSection(model, section); changed(); rerender(); })),
       sectionForm(ctx, section, grammar, SECTION_FORMS))),
-    h('div', { class: 'inline' },
-      textInput(null, '', (v) => { newName = v; }, { placeholder: t('advanced.category.new_name'),
-        'aria-label': t('advanced.category.new_name') }),
+    h('div', { class: 'inline' }, nameInput,
+      inputPropose(ctx, 'category_name', nameInput,
+        { details: () => ({ other_lists: own.map((c) => voice.labelOf(c.id)).join(', ') }) }),
       hint(t, 'help.ui.own_categories', { label: t('advanced.category') }),
       button('add', { onClick: () => {
         // A name of the mod's shared categories is refused by the game for an own one: the next free id.

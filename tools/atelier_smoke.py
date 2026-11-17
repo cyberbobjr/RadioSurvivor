@@ -3,7 +3,8 @@
     python RadioSurvivor/tools/atelier_smoke.py [--shots <folder>]
 
 Starts bridge/atelier_server.py on a free port over a temporary working folder (a copy of the shipped sheets; the
-mod's folder is only read), opens the page with the locale fr-FR then en-US, creates a voice through the assistant with
+mod's folder is only read), opens the page with the locale fr-FR then en-US, checks the dashboard shown first (E24-T05:
+a row per voice, the trade filter, an empty filter cleared, a row opening its voice), creates a voice through the assistant with
 nothing technical typed (E24-T02): its name only (the id made from the first name, a tooltip at most), the voice type
 "mission giver" (its action ticked, "Talk" locked), hours from the cards then custom, the spontaneous call as a named
 step with the frequency put in by its button, the personality language French (the starter text follows), two places
@@ -21,9 +22,13 @@ no line number), button "fix it" to the "where" step, the Journal
 tab shows both lines and filters them (screenshots atelier-verdict-fr.png, atelier-journal-fr.png). In English, the
 bridge loop is said stopped: the Journal tab explains that only the game lines appear.
 AI part (E22-T06), against the deterministic fake LLM (tools/fake_llm, never a paid model): in French, "Write it with
-the AI" writes the personality and "Use it" replaces the prompt after the in-page confirm, "Suggest" fills a mission
-story, "Try the voice" answers from the unsaved sheet and Reset empties it, the working file untouched (screenshot
-atelier-ai-fr.png). In English the AI is said unavailable: the buttons are greyed with the configuration tooltip.
+the AI" writes the personality and "Use it" replaces the prompt after the in-page confirm, "Suggest" (E24-T04) fills
+the voice's name and a mission story, "Try the voice" answers from the unsaved sheet and Reset empties it, the working
+file untouched (screenshot atelier-ai-fr.png); in the note panel, "Suggest" fills a line whose frequency shows as the
+word on screen and %1 in the sheet. In English the AI is said unavailable: the buttons, "Suggest" included, are greyed
+with the configuration tooltip.
+Map position pasted (user 2026-11-16), in both languages: "7966, 11751, 1" pasted into the x field of a place fills x, y
+and the floor in the sheet and the map link; the square typed before is pasted back and the voice saved.
 Chances, trade and note (E22-T12), in French: a reward set to "Often" is written with weight 4; the trade panel ticks
 its meeting point (made by its button when there is none: a place marked as such, ticked), picks the arrival card and
 the visits as a named step, adds stock items from the item list (no item name typed: search, category, ticks, "Ajouter
@@ -109,6 +114,55 @@ def check_radio_choice(page, t: dict) -> None:
     page.get_by_role('switch', name=t['where.fixed_toggle']).uncheck()
     expect(page.locator('label.radio-card[data-level="tactical"] input')).to_be_checked()
     expect(page.get_by_label(t['where.fixed'], exact=True)).to_have_count(0)
+
+
+def check_dashboard(page, t: dict, lang: str, shots: Path, failures: list[str]) -> None:
+    """E24-T05: the dashboard is the view shown first; a row per voice of the folder (16 shipped at least); the trade
+    chip leaves only traders; a filter that matches nothing says so with a button that clears it; the table scrolls in
+    its own box at 800 px; a click on a row opens that voice in the editor (screenshot atelier-dashboard-<lang>.png)."""
+    try:
+        expect(page.locator('#tab-dashboard')).to_have_attribute('aria-selected', 'true')
+        expect(page.locator('#dashboard')).to_be_visible()
+        expect(page.locator('#main')).to_be_hidden()
+        rows = page.locator('#dashboard tr.dash-row')
+        expect(rows.first).to_be_visible()
+        expect(page.locator('#dashboard .dash-tile')).to_have_count(6)
+        total = rows.count()
+        if total < 16:
+            failures.append(f'{lang}: dashboard shows {total} voices, 16 shipped at least')
+        walt = rows.filter(has_text='Walt Hensley')
+        expect(walt).to_have_count(1)
+        expect(walt).to_contain_text(t['dashboard.hours.always'])
+        expect(walt.locator('.dash-radio')).to_contain_text(t['dashboard.radio.any_talkie'])
+        page.locator('.dash-chip[data-filter=kind][data-value=trade]').click()
+        expect(rows.filter(has_text='Walt Hensley')).to_have_count(0)
+        traders = rows.count()
+        with_tag = rows.filter(has=page.locator('.dash-tag[data-kind=trade]')).count()
+        if not traders or traders != with_tag:
+            failures.append(f'{lang}: trade filter left {traders} rows, {with_tag} of them traders')
+        expect(rows.filter(has_text='Gus Lacombe')).to_contain_text(t['dashboard.tag.trade.boat'])
+        page.locator('.dash-chip[data-filter=level][data-value=military]').click()
+        expect(page.locator('#dashboard .dash-empty')).to_contain_text(t['dashboard.empty'])
+        page.locator('#dash-clear').click()
+        expect(rows).to_have_count(total)
+        page.locator('.dash-sort[data-sort=name]').click()
+        names = rows.locator('.dash-open b').all_inner_texts()
+        if names != sorted(names, key=str.casefold):
+            failures.append(f'{lang}: sort by name gave {names}')
+        page.mouse.move(0, 0)
+        page.screenshot(path=str(shots / f'atelier-dashboard-{lang}.png'), full_page=True)
+        page.set_viewport_size({'width': 800, 'height': 900})
+        width = page.evaluate('document.documentElement.scrollWidth')
+        if width > 800:
+            failures.append(f'{lang}: dashboard scrolls sideways at 800 px ({width} px)')
+        page.set_viewport_size({'width': 1280, 'height': 900})
+        rows.filter(has_text='Darlene Pruitt').locator('.dash-htext').click()
+        expect(page.locator('#tab-voices')).to_have_attribute('aria-selected', 'true')
+        expect(page.locator('#main .toolbar h2')).to_have_text('Darlene Pruitt')
+        print(f'{lang}: dashboard first, {total} voices, {traders} traders with the trade filter, empty filter cleared, '
+              f'page width at 800 px = {width}, a row opened Darlene')
+    except AssertionError as err:
+        failures.append(f'{lang}: dashboard: {err}')
 
 
 def show_text(page, t: dict, on: bool) -> None:
@@ -256,10 +310,63 @@ def check_live(page, t: dict, lang: str, voice_id: str, name: str, sheet: str, c
     page.locator('#tab-voices').click()
 
 
+def paste_position(field, text: str) -> None:
+    """A paste of `text` into `field`, as the browser sends it (a clipboard event carrying the text)."""
+    field.evaluate("""(el, text) => {
+      const data = new DataTransfer();
+      data.setData('text/plain', text);
+      el.dispatchEvent(new ClipboardEvent('paste', { clipboardData: data, bubbles: true, cancelable: true }));
+    }""", text)
+
+
+def check_paste(page, t: dict, lang: str, failures: list[str]) -> None:
+    """User 2026-11-16: a position copied on the map ("7966, 11751, 1") pasted into the x field of a place fills x, y
+    and the floor, the sheet and the map link; the square of before is pasted back and the voice saved."""
+    show_text(page, t, True)
+    page.locator('.pill').nth(3).click()                                   # places and missions
+    page.locator('details.fold').first.evaluate('d => d.open = true')
+    card = page.locator('details.fold').first.locator('.card.place').first
+    preview = page.locator('.sheet-preview')
+    x, y, floor = (card.get_by_label(axis, exact=True) for axis in ('x', 'y', t['places.floor']))
+    before = [x.input_value(), y.input_value(), floor.input_value()]
+    paste_position(x, '7966, 11751, 1')
+    expect(x).to_have_value('7966')
+    expect(y).to_have_value('11751')
+    expect(floor).to_have_value('1')
+    expect(preview).to_contain_text('at=7966,11751,1')
+    expect(card.locator('a.maplink')).to_have_attribute('href', 'https://zomboidmap.com/#11/7966/11751/f1')
+    expect(card.get_by_text(t['map.paste_tip'], exact=True)).to_be_visible()
+    if not card.locator('button.paste-square').count():
+        failures.append(f'{lang}: no "{t["map.paste"]}" button on localhost')
+    paste_position(y, ', '.join(before))
+    expect(preview).to_contain_text('at=' + ','.join(before))
+    print(f'{lang}: map position "7966, 11751, 1" pasted into x: x, y and floor filled, sheet and map link follow')
+    show_text(page, t, False)
+    page.locator('#save').click()
+    expect(page.locator('.toast').last).to_contain_text(t['code.voice_saved'])
+
+
+def check_propose(field, button, wanted: str) -> None:
+    """Clicks a "Suggest" and waits for the fake LLM's proposal in its field, the button usable again."""
+    button.click()
+    expect(field).to_have_value(wanted, timeout=15000)
+    expect(button).to_be_enabled(timeout=15000)
+
+
 def check_ai(page, t: dict, lang: str, path: Path, shots: Path, failures: list[str]) -> None:
-    """E22-T06 in the page: the AI panel, the story suggestion and the test conversation (fr), greyed buttons (en)."""
+    """E22-T06 and E24-T04 in the page: the AI panel, "Suggest" on the voice name and a mission story, the test
+    conversation (fr), greyed buttons (en)."""
     page.set_viewport_size({'width': 1280, 'height': 900})
     before = path.read_bytes()
+    if lang != 'fr':
+        for pill in (0, 3):                                                # who, places and missions
+            page.locator('.pill').nth(pill).click()
+            proposes = page.locator('button.propose')
+            if not proposes.count():
+                failures.append(f'{lang}: no "Suggest" button on step {pill + 1}')
+            for index in range(proposes.count()):
+                expect(proposes.nth(index)).to_be_disabled()
+                expect(proposes.nth(index)).to_have_attribute('title', t['ai.unavailable'])
     page.locator('.pill').nth(2).click()                                   # personality
     opener = page.locator('#ai-personality-open')
     if lang != 'fr':
@@ -267,8 +374,17 @@ def check_ai(page, t: dict, lang: str, path: Path, shots: Path, failures: list[s
         if opener.get_attribute('title') != t['ai.unavailable']:
             failures.append(f'{lang}: greyed AI button without the configuration tooltip')
         expect(page.locator('#try-open')).to_have_attribute('title', t['ai.unavailable'])
-        print(f'{lang}: no AI configured: buttons greyed with the configuration tooltip')
+        print(f'{lang}: no AI configured: buttons ("Suggest" included) greyed with the configuration tooltip')
         return
+    page.locator('.pill').nth(0).click()                                   # who: the voice's name proposed
+    name_field = page.get_by_label(t['who.name'], exact=True)
+    name = name_field.input_value()
+    name_button = page.locator('button.propose[data-field="name"]')
+    expect(name_button).to_have_text(t['ai.propose'])
+    check_propose(name_field, name_button, fake_llm.WORKSHOP_SUGGEST_TEXTS['name'])
+    print(f'{lang}: voice name proposed')
+    name_field.fill(name)                                                  # the list still finds the voice by name
+    page.locator('.pill').nth(2).click()
     opener.click()
     page.locator('#ai-personality .ai-description').fill("Un vieux mécanicien qui répare des radios dans son garage.")
     page.locator('#ai-personality-generate').click()
@@ -279,9 +395,10 @@ def check_ai(page, t: dict, lang: str, path: Path, shots: Path, failures: list[s
     print(f'{lang}: personality written by the AI and used after the in-page confirm')
     page.locator('.pill').nth(3).click()                                   # missions
     card = page.locator('.card.mission').first
-    card.get_by_role('button', name=t['ai.suggest']).click()
-    expect(card.get_by_label(t['mission.story'], exact=True)).to_have_value(fake_llm.WORKSHOP_STORY_TEXT, timeout=15000)
-    print(f'{lang}: mission story suggested')
+    check_propose(card.get_by_label(t['mission.story'], exact=True),
+                  card.locator('button.propose[data-field="mission_story"]'),
+                  fake_llm.WORKSHOP_SUGGEST_TEXTS['mission_story'])
+    print(f'{lang}: mission story proposed')
     page.locator('#try-open').click()
     page.locator('#try-input').fill('Hello, is anyone there?')
     page.locator('#try-send').click()
@@ -489,6 +606,12 @@ def check_stock(page, t: dict, lang: str, path: Path, voice_id: str, shots: Path
     expect(note.locator('.note-line .counter').nth(1)).to_have_class(re.compile(r'\bover\b'))
     long_line.fill('Passe le soir')
     expect(preview).to_contain_text('text=Mae écoute sur %1 MHz')
+    # E24-T04: the AI proposes the second line; the frequency shows as the word on screen, the sheet holds %1
+    sheet_line = fake_llm.WORKSHOP_SUGGEST_TEXTS['note_line'].replace('{frequency}', '%1')
+    check_propose(long_line, note.locator('.note-line').nth(1).locator('button.propose[data-field="note_line"]'),
+                  sheet_line.replace('%1', t['freq.word']))
+    expect(preview).to_contain_text('text=' + sheet_line)
+    print(f'{lang}: note line proposed, the frequency as a word on screen and %1 in the sheet')
     expect(note).to_contain_text(t['advanced.note.help'])
     expect(note.locator('section.question h4', has_text=t['note.q_also'])).to_be_visible()
     if note.get_by_text(t['section.advanced'], exact=True).count():
@@ -827,6 +950,7 @@ def run(shots: Path) -> int:
                     live.ai = ai if lang == 'fr' else None
                     page.goto(server.url)
                     expect(page.locator('h1')).to_have_text(t['app.title'])
+                    check_dashboard(page, t, lang, shots, failures)
                     create_voice(page, t, voice_id, name)
                     path = working / f'{voice_id}.txt'
                     text = path.read_text(encoding='utf-8') if path.is_file() else ''
@@ -863,6 +987,7 @@ def run(shots: Path) -> int:
                     if width > 800:
                         failures.append(f'{lang}: horizontal scroll at 800 px ({width} px)')
                     check_live(page, t, lang, voice_id, name, text, console, running, shots, failures)
+                    check_paste(page, t, lang, failures)
                     check_ai(page, t, lang, path, shots, failures)
                     if lang == 'fr':
                         check_stock(page, t, lang, path, voice_id, shots, failures)

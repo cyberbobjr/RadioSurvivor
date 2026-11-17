@@ -2,13 +2,15 @@
 
 <!-- tableau de bord : généré par tools/plan.py suivi, ne pas modifier à la main -->
 
-**Avancement.** terminée — 3 / 3 tâche(s) terminée(s).
+**Avancement.** terminée — 5 / 5 tâche(s) terminée(s).
 
 | | Tâche | Titre | État | Cible | Dépend de |
 |---|---|---|---|---|---|
 | ☑ | E24-T01 | Fréquence choisie par la radio nécessaire | `testé hors jeu` | hors jeu | — |
 | ☑ | E24-T02 | Passe de simplicité sur tous les écrans de l'atelier | `testé hors jeu` | hors jeu | E24-T01 |
 | ☑ | E24-T03 | Socle commun des notes de fréquence | `testé hors jeu` | hors jeu | E24-T02 |
+| ☑ | E24-T04 | « Proposer » par l'IA sur chaque champ texte, coller une position de la carte | `testé hors jeu` | hors jeu | E24-T03 |
+| ☑ | E24-T05 | Tableau de bord des voix (option A) | `testé hors jeu` | hors jeu | E24-T04 |
 
 <!-- fin du tableau de bord -->
 
@@ -75,3 +77,22 @@ de nombres : il choisit dans des listes, des cases et des curseurs, avec des mot
     toute note déclarée ; listes à thème de la fiche en plus ; atelier, wiki, CHANGELOG.
   - Accepté si : bancs du socle (toute note dans le socle, thème ajouté, zombie sans talkie), atelier.
   - Preuve : 2026-11-16, socle `server/RadioSurvivor/RS_NotesBase.lua` (12 listes à papiers vanilla 42.22 à 0,1, `GloveBox` 0,5, zombies 2 %, porteur de talkie 35 %, × NoteRarity) appliqué à toute note déclarée ; `loot=`/`glovebox=` = lieux à thème en plus ; `corpse=` retiré ; fiches allégées, empreintes `KNOWN_DELIVERED` ; atelier : socle dit en clair, « Aussi dans… » choisi dans une liste filtrable par genre (`lootindex.js`), sans saisie ; `notes-frequences.md` (calcul : environ 5,4 % par meuble à papiers à 4 tirages), wiki 01, 03, 10, 12, 13, 14, CHANGELOG. Bancs : `test_notes` 35, `test_persona_sections` 12, `test_personas` 17, `test_personas_server` 106, `test_wiki_voice_examples` 5, `test_atelier_*` OK ; `atelier_smoke` `summary: OK (2 locales, 0 failure(s))` ; luacheck 0 avertissement. Reste en jeu : suite `rs.notes`, butin réel.
+
+- [x] **E24-T04** — « Proposer » par l'IA sur chaque champ texte, coller une position de la carte
+  - État : `testé hors jeu`
+  - Cible : `hors jeu`
+  - Dépend de : E24-T03
+  - Faire : décision D13 de l'ADR atelier-voix ; requête `suggest` (contexte : fiche entière + cible du champ), bouton
+    sur les 10 champs texte, collage `x, y` dans les coordonnées ; wiki 13, captures, CHANGELOG.
+  - Accepté si : bancs `test_atelier_ai`, `test_atelier_ui` ; `atelier_smoke` (Proposer et collage, fr et en).
+  - Preuve : 2026-11-17, requête `POST /api/ai/suggest` (`atelier_ai.py`, champs déclarés dans `atelier_ai_templates.json` : 10 champs, langue de la voix ou de la page, limite en caractères ou en octets, marque de fréquence `{frequency}` → `%1`, sinon `ai_no_frequency`) ; contexte = fiche entière non enregistrée + détails de la cible + texte actuel ; « Suggérer » de l'histoire remplacé ; bouton « ✨ Proposer » sur les 10 champs (`ai.js` `proposeButton`) ; collage `x, y[, z]` (`values.js` `parseSquare`, `maplink.js` `squareEditor`) ; wiki 13 fr/en, CHANGELOG. Bancs : `test_atelier_ai` 18, `test_fake_llm` 27, `test_atelier_server` 33, `test_atelier_ui` OK ; `atelier_smoke` `summary: OK (2 locales, 0 failure(s))` ; suite complète `Summary: 209 passed, 0 failed` (585 s). Reste : propositions variées seulement avec un vrai LLM (le faux LLM répond toujours pareil).
+
+- [x] **E24-T05** — Tableau de bord des voix (option A)
+  - État : `testé hors jeu`
+  - Cible : `hors jeu`
+  - Dépend de : E24-T04
+  - Faire : décision utilisateur 2026-11-17 (maquette, option A) : vue « Tableau de bord » de l'atelier, chiffres clés,
+    filtres par interaction et par radio, une ligne par voix (radio nécessaire, heures d'écoute sur 24 h, ce qu'on peut
+    faire), tri d'un clic, clic sur une voix = sa fiche ; wiki 13, captures, CHANGELOG.
+  - Accepté si : `test_atelier_ui`, `atelier_smoke` (fr et en), captures regardées.
+  - Preuve : 2026-11-17, onglet « Tableau de bord » ouvert au démarrage (`bridge/atelier/dashboard.js`, lecteurs de la page `sheet.js`/`voice.js`, niveaux de radio du catalogue, `catalog.frequencyLevel` partagé avec le badge de `where.js`) : six chiffres, filtres par interaction et par radio, une ligne par voix (radio, barre de 24 h, interactions), tri, clic = fiche, point rouge redessiné au changement de verdict ; wiki 13 fr/en, captures `atelier-*-00-dashboard.png` regardées, CHANGELOG. Bancs : `test_atelier_ui` 27, autres `test_atelier_*` OK ; `atelier_smoke` `summary: OK (2 locales, 0 failure(s))` ; suite complète `Summary: 209 passed, 0 failed` (581 s).

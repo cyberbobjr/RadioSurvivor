@@ -4,6 +4,7 @@
 // suggested the same way (container: dead drop; building: job place and map mark), all editable in the place's card.
 // The survey file is the game's: the workshop only reads it.
 
+import { inputPropose, placeDetails } from './ai.js';
 import { askBar } from './dialogs.js';
 import { clear, h } from './dom.js';
 import { hint } from './help.js';
@@ -64,7 +65,9 @@ function recordItem(ctx, record, ask, full) {
   const known = voice.places(model).some((p) => sameSquare(p, record.at));
   const add = async () => {
     const name = await askBar(ask, t, { message: t('surveys.ask'), label: t('places.label'), value: label,
-      ok: t('places.add_ok'), check: (v) => (v ? null : t('places.ask')) });
+      ok: t('places.add_ok'), check: (v) => (v ? null : t('places.ask')),
+      propose: (input) => inputPropose(ctx, 'place_label', input,
+        { details: () => placeDetails(t, suggestedUses(record), record.at) }) });
     if (name === null) return;
     voice.addPlace(model, { label: cutBytes(name), at: { ...record.at }, uses: suggestedUses(record) });
     ctx.ui.open_place = true;

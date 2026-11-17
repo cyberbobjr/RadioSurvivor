@@ -1,5 +1,5 @@
 {
-  "_comment": "E22-T06 (ADR atelier-voix D04): instructions given to the bridge's LLM by the voice workshop (bridge/atelier_ai.py). Each text is a list of lines joined with line breaks; {name} fields are filled with the author's values, never re-read as instructions. The first line of each system text is the marker tools/fake_llm/fake_llm.py recognises.",
+  "_comment": "E22-T06 (ADR atelier-voix D04), E24-T04: instructions given to the bridge's LLM by the voice workshop (bridge/atelier_ai.py). Each text is a list of lines joined with line breaks; {name} fields of a template are filled with the author's values, never re-read as instructions. The first line of each system text is the marker tools/fake_llm/fake_llm.py recognises. \"suggest\": the \"Suggest\" button of a text field of the page; one entry per field (adding a field = one entry here + one button in the page): meaning (one line for the LLM), max and unit (chars | bytes of UTF-8), language (voice: the sheet's language=, page: the author's page), frequency (the text must hold the frequency mark), sentences (one | line | paragraph: how the answer is shaped), sheet_required (default true), task (what to write). The common lines open every system text, then the field's task, then the rules the bridge builds from the entry (language, length, frequency mark).",
   "personality": {
     "system": [
       "Workshop task: personality.",
@@ -31,18 +31,129 @@
       "\"\"\""
     ]
   },
-  "story": {
-    "system": [
-      "Workshop task: mission story.",
-      "You write what a radio voice of Radio Survivor (a mod of the zombie survival game Project Zomboid, July 1993, Knox County, Kentucky) says to a caller when giving them a job.",
-      "Write exactly one sentence in English, at most 200 characters, spoken by the voice in the first person, in its own tone, that says why it needs this job done. Plain text only: no quotes around it, no name tag, no coordinates, no numbers from a game, no game terms, no markdown. Never invite the caller to meet the voice."
+  "suggest": {
+    "common": [
+      "Workshop task: suggest.",
+      "You help a young author (a teenager) write a radio voice for Radio Survivor, a mod of the zombie survival game Project Zomboid. It is a survival story set in July 1993, during the \"Knox Event\": a fast-spreading infection turned people in Knox County, Kentucky (Muldraugh, West Point, Riverside, Rosewood, March Ridge, Louisville outskirts) into violent, undead \"zombies\". The army sealed the area behind a fence and checkpoints: the Knox Exclusion Zone.",
+      "You fill ONE field of the voice sheet the author is writing. You get the whole sheet as it is now (it may be incomplete).",
+      "Stay consistent with everything in the sheet: the personality text, the voice's places, its missions already written (their types, their stories and the story states they set), its notes and its trade. Never contradict them and never repeat what another mission or line already says: continue the voice's story.",
+      "Use the details given about what this field is for (the kind of mission and what the player does in the game, what a place is used for, the items of a bundle...).",
+      "When a text in the field is given, propose something clearly different.",
+      "Plain text only: no quotes around it, no label, no markdown, no emojis, no coordinates, no numbers from the game, no game terms (no item ids like Base.Something, never the words \"mission\", \"sheet\" or \"AI\"). Never invite anyone to meet the voice and never tell where it hides. Keep it suitable for a teenager.",
+      "Answer with the text of the field only, nothing before or after."
     ],
-    "user": [
-      "The voice:",
-      "\"\"\"",
-      "{context}",
-      "\"\"\"",
-      "The job (its type in the game: {mission_type}): {voice_text}"
-    ]
+    "fields": {
+      "name": {
+        "meaning": "the full name or the nickname of the voice",
+        "max": 40,
+        "unit": "chars",
+        "language": "voice",
+        "frequency": false,
+        "sentences": "line",
+        "sheet_required": false,
+        "task": [
+          "Write the name the voice gives on the radio: a first name and a last name, or a nickname, that fits who the voice is and the place it comes from (Kentucky, 1993)."
+        ]
+      },
+      "description": {
+        "meaning": "one short line saying who the voice is, read by the author in the list of voices",
+        "max": 140,
+        "unit": "chars",
+        "language": "page",
+        "frequency": false,
+        "sentences": "one",
+        "task": [
+          "Write one short sentence saying who the voice is (who they were, where they hide in general words, what they want), from the personality in the sheet."
+        ]
+      },
+      "persona_idea": {
+        "meaning": "a few sentences describing the voice, given to the personality writer",
+        "max": 600,
+        "unit": "chars",
+        "language": "page",
+        "frequency": false,
+        "sentences": "paragraph",
+        "task": [
+          "Write a few sentences describing the voice: who they are, their age, their past before the outbreak, what happened to them since, their tone and character, and what they want now. Keep every idea already in the sheet or in the field and add new ones that fit."
+        ]
+      },
+      "place_label": {
+        "meaning": "the short name of one of the voice's places",
+        "max": 48,
+        "unit": "chars",
+        "language": "voice",
+        "frequency": false,
+        "sentences": "line",
+        "task": [
+          "Write the short name the voice uses for this place (like \"the shed behind the church\" or \"Dad's garage\"), fitting what the place is used for. No coordinates, no numbers."
+        ]
+      },
+      "mission_story": {
+        "meaning": "the one sentence the voice says to give this job to the player",
+        "max": 200,
+        "unit": "chars",
+        "language": "voice",
+        "frequency": false,
+        "sentences": "one",
+        "task": [
+          "Write the one sentence the voice says, in the first person and in its own tone, to ask for this job and say why it needs it done. It must fit what the player really does for this kind of job."
+        ]
+      },
+      "mission_state": {
+        "meaning": "what changes in the voice's story once this job is done",
+        "max": 120,
+        "unit": "chars",
+        "language": "voice",
+        "frequency": false,
+        "sentences": "one",
+        "task": [
+          "Write one short sentence, in the third person, saying what changed in the voice's life once this job is done (like \"She went back to her clinic.\"). It must follow from this job and its story sentence."
+        ]
+      },
+      "call": {
+        "meaning": "what the voice says when it calls on the radio on its own",
+        "max": 200,
+        "unit": "chars",
+        "language": "voice",
+        "frequency": true,
+        "sentences": "one",
+        "task": [
+          "Write what the voice says when it calls on the radio on its own, hoping someone hears it: one or two short spoken sentences in its tone, giving its frequency."
+        ]
+      },
+      "note_line": {
+        "meaning": "one line written on the paper note players find, giving the voice's frequency",
+        "max": 40,
+        "unit": "bytes",
+        "language": "voice",
+        "frequency": true,
+        "sentences": "line",
+        "task": [
+          "Write one very short handwritten line of the note the voice left for survivors to find. Together with the other lines of the note, it leads the reader to tune in to the voice's frequency."
+        ]
+      },
+      "paquet_name": {
+        "meaning": "the name of a bundle of items the voice trades",
+        "max": 32,
+        "unit": "chars",
+        "language": "page",
+        "frequency": false,
+        "sentences": "line",
+        "task": [
+          "Write a short name for this bundle of items the voice trades, saying what it holds or what it is for (like \"First aid kit\" or \"Fishing gear\")."
+        ]
+      },
+      "category_name": {
+        "meaning": "the name of a category of items of the voice's trade",
+        "max": 32,
+        "unit": "chars",
+        "language": "page",
+        "frequency": false,
+        "sentences": "line",
+        "task": [
+          "Write a short name for this category of items (like \"Medicine\" or \"Tools for the garden\")."
+        ]
+      }
+    }
   }
 }

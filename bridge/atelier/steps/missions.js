@@ -3,12 +3,12 @@
 // a scale "mission.<key>"), its voice set-ups (target place, dead drops) and the [mission] keys. A mission type added to
 // the mod shows up here without any change. Ids of places and missions are made by the page and never shown (E24-T02).
 
-import { suggestButton } from '../ai.js';
+import { inputPropose, placeDetails } from '../ai.js';
 import { askBar } from '../dialogs.js';
 import { h, select } from '../dom.js';
 import { field, fieldOptions } from '../fields.js';
 import { choiceTopics, hint, selectHelp } from '../help.js';
-import { mapLink } from '../maplink.js';
+import { squareEditor } from '../maplink.js';
 import { scaleOf } from '../scales.js';
 import * as sheet from '../sheet.js';
 import { stepChoice } from '../stepchoice.js';
@@ -66,18 +66,19 @@ function placeCard(ctx, place, index) {
   const { catalog, t, changed, rerender, model } = ctx;
   const at = { ...place.at };
   const uses = catalog.placeUses().map((u) => ({ ...choice(t, 'use', u), label: `${t(`use.${u}.icon`, {}, '')} ${t(`use.${u}`)}`.trim() }));
-  const map = mapLink(t, () => at);
-  const coord = (key, label) => h('input', { type: 'number', step: 1, class: 'num', value: at[key], 'aria-label': label,
-    onInput: (e) => { at[key] = e.target.value; voice.setPlace(place.section, { at }); changed(); map.refresh(); } });
   const name = countedInput(null, place.label, LABEL_MAX, (v) => { voice.setPlace(place.section, { label: v }); changed(); });
+  const propose = inputPropose(ctx, 'place_label', name.input, { details: () => placeDetails(t, place.uses, at) });
   return h('article', { class: `card place${ctx.ui.new_place === place.id ? ' fresh' : ''}`, title: place.id },
     h('header', { class: 'card-head' },
       h('b', { text: place.label || t('places.unnamed', { n: index + 1 }) }),
       removeButton(t, () => { sheet.removeSection(model, place.section); changed(); rerender(); }, t('places.remove'))),
-    row(t('places.label'), (id) => h('div', { class: 'inline grow' }, Object.assign(name.input, { id }), name.counter),
+    row(t('places.label'), (id) => h('div', { class: 'inline grow' }, Object.assign(name.input, { id }), name.counter, propose),
       t('places.label_help'), hint(t, 'help.place.label', { label: t('places.label') })),
-    row(t('places.at'), (id) => h('div', { class: 'inline', id }, 'x', coord('x', 'x'), 'y', coord('y', 'y'),
-      t('places.floor'), coord('z', t('places.floor')), map.el),
+    row(t('places.at'), (id) => squareEditor(t, at, (square) => {
+      Object.assign(at, square);
+      voice.setPlace(place.section, { at });
+      changed();
+    }, { id, toast: ctx.toast }),
     t('places.at_help'), hint(t, 'help.place.at', { label: t('places.at') })),
     row(t('places.uses'), () => checkboxes(uses, place.uses, (list) => {
       voice.setPlace(place.section, { uses: list });
@@ -91,7 +92,8 @@ function placeCard(ctx, place, index) {
 async function newPlace(ctx, host, uses = []) {
   const { model, t } = ctx;
   const label = await askBar(host, t, { message: t('places.ask'), label: t('places.label'), ok: t('places.add_ok'),
-    value: uses.length ? t(`use.${uses[0]}`) : '', check: (v) => (v ? null : t('places.ask')) });
+    value: uses.length ? t(`use.${uses[0]}`) : '', check: (v) => (v ? null : t('places.ask')),
+    propose: (input) => inputPropose(ctx, 'place_label', input, { details: () => placeDetails(t, uses) }) });
   if (label === null) return null;
   const created = voice.addPlace(model, { label, at: { x: '', y: '', z: '0' }, uses });
   Object.assign(ctx.ui, { open_place: true, new_place: created.id });
@@ -126,33 +128,41 @@ function paramRows(ctx, mission, type, opts) {
   hint(t, paramTopics(type, key, kind), { label: paramLabel(t, key) })));
 }
 
-// What the AI reads of the voice to suggest a story: its name, short description and the start of its personality.
-const CONTEXT_CHARS = 1500;
-function voiceContext(model) {
-  return [sheet.value(model.head, 'name'), sheet.description(model), sheet.promptText(model)]
-    .filter(Boolean).join('\n').slice(0, CONTEXT_CHARS);
+// What the AI is told of a mission when it proposes its story or its story state: which mission, its type and what the
+// player does, its place and its settings in words.
+function missionDetails(ctx, mission, type, index) {
+  const { t, model } = ctx;
+  const target = voice.places(model).find((p) => p.id === sheet.value(mission, 'target'));
+  const settings = Object.keys(type?.params ?? {}).map((key) => [paramLabel(t, key), sheet.value(mission, key)])
+    .filter(([, value]) => value).map(([label, value]) => `${label}: ${value}`).join('; ');
+  return { mission_id: mission.id, mission_number: String(index + 1),
+    mission_type: type ? typeTitle(t, type) : sheet.value(mission, 'type'),
+    what_the_player_does: type ? [type.voiceText, typeHelp(t, type)].filter(Boolean).join(' / ') : null,
+    target_place: target?.label || null, settings };
 }
 
-// story= of the mission: the AI's "Suggest" first, then the text and its count (E22-T06).
-function storyField(ctx, mission, type, id) {
-  const { t, changed, model } = ctx;
+// story= of the mission: the text, its count and the AI's "Suggest" (E22-T06, E24-T04).
+function storyField(ctx, mission, type, index, id) {
+  const { t, changed } = ctx;
   const text = countedInput(id, sheet.value(mission, 'story'), STORY_MAX, (v) => {
     sheet.setValue(mission, 'story', v);
     changed();
   }, { placeholder: t('mission.story_placeholder') });
-  const suggest = suggestButton({ ai: ctx.ai, t, voiceId: ctx.voiceId, missionType: sheet.value(mission, 'type') ?? '',
-    voiceText: type?.voiceText ?? '', context: voiceContext(model),
-    setStory: (said) => { text.input.value = said; text.input.dispatchEvent(new Event('input')); } });
-  return h('div', { class: 'inline grow' }, suggest, text.input, text.counter);
+  const propose = inputPropose(ctx, 'mission_story', text.input, { details: () => missionDetails(ctx, mission, type, index) });
+  return h('div', { class: 'inline grow' }, text.input, text.counter, propose);
 }
 
 // The mission's story state as a sentence; its name is made by story.js and never shown.
-function storyStateRow(ctx, mission) {
+function storyStateRow(ctx, mission, type, index) {
   const { t, model, changed } = ctx;
-  return row(t('mission.sets_state'), (id) => textInput(id, story.sentence(model, mission), (v) => {
-    story.setStory(model, mission, v);
-    changed();
-  }, { placeholder: t('mission.sets_state_placeholder'), maxlength: 120 }), t('mission.sets_state_help'),
+  return row(t('mission.sets_state'), (id) => {
+    const input = textInput(id, story.sentence(model, mission), (v) => {
+      story.setStory(model, mission, v);
+      changed();
+    }, { placeholder: t('mission.sets_state_placeholder'), maxlength: 120 });
+    return h('div', { class: 'inline grow' }, input, inputPropose(ctx, 'mission_state', input, {
+      details: () => ({ ...missionDetails(ctx, mission, type, index), mission_story: sheet.value(mission, 'story') }) }));
+  }, t('mission.sets_state_help'),
   hint(t, 'help.mission.sets_state', { label: t('mission.sets_state') }));
 }
 
@@ -179,14 +189,14 @@ function missionCard(ctx, mission, index, opts) {
       type && typeHint(t, type),
       removeButton(t, () => { sheet.removeSection(model, mission); changed(); rerender(); }, t('missions.remove'))),
     type && h('p', { class: 'help', text: typeHelp(t, type) }),
-    row(t('mission.story'), (id) => storyField(ctx, mission, type, id), t('mission.story_help'),
+    row(t('mission.story'), (id) => storyField(ctx, mission, type, index, id), t('mission.story_help'),
       hint(t, 'help.mission.story', { label: t('mission.story') })),
     type && type.setups.map((setup) => SETUP_FIELDS[setup]?.(ctx, mission, opts)),
     type && Object.keys(type.params).length > 0 && h('div', { class: 'settings' }, paramRows(ctx, mission, type, opts)),
     row(t('mission.after'), (id) => select([{ value: '', label: t('mission.after_none') }, ...others],
       sheet.value(mission, 'after') ?? '', (v) => { sheet.setValue(mission, 'after', v || null); changed(); }, { id }),
     t('mission.after_help'), hint(t, 'help.mission.after', { label: t('mission.after') })),
-    storyStateRow(ctx, mission),
+    storyStateRow(ctx, mission, type, index),
     fold(t('mission.more'), false,
       row(t('missions.type'), (id) => select(typeOptions, sheet.value(mission, 'type') ?? '', changeType, { id }), null,
         hint(t, 'help.mission.type', { label: t('missions.type'), choices: typeChoices })),
