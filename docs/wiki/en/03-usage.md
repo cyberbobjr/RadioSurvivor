@@ -37,6 +37,18 @@ belt receives, but it does not transmit: hold it in hand to speak.
 Every voice has its listening hours and remembers you, for good. It does not forget the dead either: talk to it about
 a lost friend and it may recall them. The **Radio** tab of the notebook keeps what was said on each frequency.
 
+### Ask for a recipe
+
+Some voices have a trade: Darlene and Odessa heal, Delphine cooks, Virgil farms, Hollis knows mechanics, Cody weapons,
+Maxine makeshift tricks. Just ask them, in your own language, how to make something ("how do I make a rope out of
+sheets?"): they answer with the real recipes of your game, mod recipes included.
+
+- You need enough reputation: below it, the voice refuses.
+- Some voices look first and ask you to call back (in an hour, half a day or a day of game time). Call back too early:
+  they have not found it yet.
+- The recipe given is written in the notebook's **Radio** tab.
+- With a **good** reputation, a recipe that must be learned is really learned, as with a magazine.
+
 ## 3. Meet a Living Knox group
 
 Groups of survivors live in houses or camps across the county: settlers, neutrals and raiders. A group has a leader,

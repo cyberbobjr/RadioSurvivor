@@ -38,6 +38,20 @@ Chaque voix a ses heures d'écoute et se souvient de vous, pour toujours. Elle n
 morts : parlez-lui d'un ami disparu, elle peut s'en souvenir. L'onglet **Radio** du carnet garde ce qui s'est dit sur
 chaque fréquence.
 
+### Demander une recette
+
+Certaines voix ont un métier : Darlene et Odessa soignent, Delphine cuisine, Virgil cultive, Hollis connaît la
+mécanique, Cody les armes, Maxine la débrouille. Demandez-leur simplement, dans votre langue, comment fabriquer
+quelque chose (« comment je fais une corde avec des draps ? ») : elles répondent avec les vraies recettes de la partie,
+recettes des mods comprises.
+
+- Il faut une réputation suffisante : en dessous, la voix refuse.
+- Certaines voix cherchent d'abord et vous demandent de rappeler (dans une heure, une demi-journée ou un jour de jeu).
+  Rappelez trop tôt : elle n'a pas encore trouvé.
+- La recette donnée s'inscrit dans l'onglet **Radio** du carnet.
+- Avec une **bonne** réputation, une recette qui doit être apprise vous est apprise pour de vrai, comme avec un
+  magazine.
+
 ## 3. Rencontrer un groupe Living Knox
 
 Des groupes de survivants vivent dans des maisons ou des camps du comté : colons, neutres et pillards. Un groupe a un

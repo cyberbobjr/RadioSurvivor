@@ -674,6 +674,31 @@ budget.start_mission=2
 
 </details>
 
+### Aide aux recettes — section `[help]`
+
+Une voix qui a un métier aide le joueur à trouver une recette (recettes des mods comprises). Le joueur demande dans sa
+langue ; la voix répond en parlant, avec les vraies recettes de la partie, sans en inventer. Sans section `[help]`, la
+voix n'aide pas sur les recettes.
+
+```ini
+[help]
+jobs=tailoring,cooking
+from=neutral
+delay=hour
+```
+
+| Champ | Valeurs | À quoi ça sert |
+|---|---|---|
+| `jobs` | `tailoring` (couture), `cooking` (cuisine), `carpentry` (menuiserie), `smithing` (forge et métal), `electrical` (électricité), `mechanics` (mécanique), `farming` (agriculture), `medical` (soins), `weapons` (armes), `pottery` (poterie et verre), `makeshift` (débrouille : tout le reste) | Obligatoire, un ou plusieurs, séparés par des virgules. La voix ne connaît que les recettes de ces métiers. |
+| `from` | `all`, `neutral` (défaut), `good` | Réputation à partir de laquelle elle aide. En dessous, elle refuse à sa façon, sans aucun indice. |
+| `delay` | `now` (défaut), `hour`, `half_day`, `day` | Tout de suite, ou elle cherche d'abord (1, 12 ou 24 heures de jeu) : le joueur doit la rappeler. Trop tôt, elle n'a « pas encore trouvé ». |
+
+- Chaque recette donnée laisse une ligne « Recette » dans l'onglet **Radio** du carnet, dans la langue du joueur.
+- Une recette qui doit être apprise est apprise pour de vrai si la réputation du joueur est **Bonne**. Sinon, la voix
+  dit ce qu'il faut pour l'apprendre (niveau, magazine).
+- Le serveur refait la liste des recettes à chaque démarrage, avec les mods vraiment chargés : rien à déclarer.
+- Dans l'atelier des voix, le bloc **Aide aux recettes** remplit cette section avec des cases et des listes.
+
 ### Prompt
 
 Tout ce qui suit la ligne `[prompt]` est envoyé tel quel à l'IA : c'est la seule description de la voix. Le pont

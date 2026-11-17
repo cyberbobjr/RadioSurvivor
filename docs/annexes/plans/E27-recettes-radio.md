@@ -2,7 +2,7 @@
 
 <!-- tableau de bord : généré par tools/plan.py suivi, ne pas modifier à la main -->
 
-**Avancement.** en cours — 3 / 5 tâche(s) terminée(s).
+**Avancement.** en cours — 4 / 5 tâche(s) terminée(s).
 
 | | Tâche | Titre | État | Cible | Dépend de |
 |---|---|---|---|---|---|
@@ -10,7 +10,7 @@
 | ☑ | E27-T02 | Section `[help]` des voix et réglages dans l'atelier | `testé hors jeu` | hors jeu | E27-T01 |
 | ☑ | E27-T03 | Recherche dans la langue du joueur et réponse en personnage | `testé hors jeu` | hors jeu | E27-T02 |
 | ☐ | E27-T04 | Délai, rappel, carnet et apprentissage | `testé hors jeu` | solo | E27-T03 |
-| ☐ | E27-T05 | Wiki, exemples et CHANGELOG des recettes par la radio | `à faire` | hors jeu | E27-T04 |
+| ☑ | E27-T05 | Wiki, exemples et CHANGELOG des recettes par la radio | `testé hors jeu` | hors jeu | E27-T04 |
 
 <!-- fin du tableau de bord -->
 
@@ -90,9 +90,10 @@ conversation ; selon la réputation, tout de suite ou après un délai, et parfo
     délai, entrée au carnet, recette à apprendre apprise.
   - Preuve : 2026-11-17, `RS_RecipeSearches` (une recherche en attente par personnage du carnet et par voix, heure de jeu où elle est prête : now 0, hour 1, half_day 12, day 24 ; nouvelle question = remplace), `RS_RecipeDelivery` (ligne `recipe` de l'historique radio, `learnRecipe` + `sendSyncPlayerFields(player, 1)` comme la lecture vanilla, ISReadABook.lua:372, au niveau « Bonne » et pour un métier de la voix seulement), `RS_RecipeHelp`, vue client `RS_RecipeNote` (recette relue dans le jeu du joueur, dans sa langue) ; pont `recipe_delay.py` (« rappelle », « pas encore trouvé », réponse au rappel) ; champs `recipe=` (requête) et `searched`/`recipes` (réponse). Bancs : `recipe_delivery` 18, `recipe_delay_bridge` 11, `recipe_help_bridge` 14, `protocol`, `radio_history` 36 OK ; `python tests/run_all.py --mod radiosurvivor --keep-going` `Summary: 114 passed, 1 failed` (290,2 s), seul échec `rs_suites` (numéros de ligne de `RS_Env.lua` décalés, corrigés ; `--only rs_suites --only luacheck-dev` `Summary: 2 passed, 0 failed`). Reste en jeu : suite `rs.reciperadio` et essai solo (rappel trop tôt, rappel après le délai, ligne « Recette » de l'onglet Radio, recette apprise).
 
-- [ ] **E27-T05** — Wiki, exemples et CHANGELOG des recettes par la radio
-  - État : `à faire`
+- [x] **E27-T05** — Wiki, exemples et CHANGELOG des recettes par la radio
+  - État : `testé hors jeu`
   - Cible : `hors jeu`
   - Dépend de : E27-T04
   - Faire : page du wiki joueur et du wiki des serveurs (métiers, palier, délai), CHANGELOG, page des fonctionnalités.
   - Accepté si : wiki publié, `plan.py check` sans erreur.
+  - Preuve : 2026-11-17, wiki joueur « Demander une recette » (`03-utilisation.md`, `03-usage.md`), section `[help]` du wiki des voix (`10-creer-une-voix-radio.md`, `10-creating-radio-voices.md`), bloc « Aide aux recettes » de l'atelier (`13-*`, E27-T02), deux lignes du CHANGELOG, ligne « Recettes par la radio » de la page des fonctionnalités (`tools/features_status.py`) ; wiki publié par `wiki_sync.py` ; `python tests/run_all.py --mod radiosurvivor --keep-going` `Summary: 115 passed, 0 failed, 0 skipped` (259,4 s) ; `plan.py check` 0 erreur.

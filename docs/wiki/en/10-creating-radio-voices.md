@@ -662,6 +662,31 @@ budget.start_mission=2
 
 </details>
 
+### Recipe help — the `[help]` section
+
+A voice with a trade helps the player find a recipe (mod recipes included). The player asks in their own language; the
+voice answers in speech, with the real recipes of the game, never inventing one. Without a `[help]` section the voice
+does not help with recipes.
+
+```ini
+[help]
+jobs=tailoring,cooking
+from=neutral
+delay=hour
+```
+
+| Field | Values | What it is for |
+|---|---|---|
+| `jobs` | `tailoring`, `cooking`, `carpentry`, `smithing` (smithing and metal), `electrical`, `mechanics`, `farming`, `medical`, `weapons`, `pottery` (pottery and glass), `makeshift` (everything else) | Required, one or more, comma separated. The voice only knows the recipes of these trades. |
+| `from` | `all`, `neutral` (default), `good` | Reputation from which it helps. Below, it refuses in its own way, with no hint at all. |
+| `delay` | `now` (default), `hour`, `half_day`, `day` | At once, or it looks first (1, 12 or 24 in-game hours): the player must call back. Too early, it has "not found it yet". |
+
+- Each recipe given leaves a "Recipe" line in the notebook's **Radio** tab, in the player's language.
+- A recipe that must be learned is really learned if the player's reputation is **Good**. Otherwise the voice says what
+  is needed to learn it (level, magazine).
+- The server rebuilds the recipe list at every start, with the mods really loaded: nothing to declare.
+- In the voice workshop, the **Recipe help** block fills this section with checkboxes and lists.
+
 ### Prompt
 
 Everything after the `[prompt]` line is sent to the AI as is: it is the only description of the voice. The bridge adds

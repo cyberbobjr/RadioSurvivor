@@ -39,6 +39,7 @@
 - Radio voices no longer repeat fixed claims about the map (such as a clinic being surrounded) once your game has changed it: what a voice knows of the world now comes only from what happens in your game. Its past, skills and what it keeps to itself are written in its personality text.
 - Radio jobs no longer always send you to the same building: a job can aim at a building near you (100 to 200 tiles), farther away (200 to 500) or far away (500 to 1500), or at a building inside an area, drawn again for each new job; the voice can also ask for a kind of building (house, farmhouse, motel, church, school, police station, clinic...). Every kind of job works this way, and a job with no place set looks near you.
 - Server owners can write their own radio voices in a single text file: jobs, rewards, item categories, trade stock and frequency notes all go in that one sheet, and the places shared by every voice go in one places file (see the wiki page "Creating a radio voice").
+- Ask a radio voice how to make something, in your own language: voices with a trade (Darlene and Odessa heal, Delphine cooks, Virgil farms, Hollis knows mechanics, Cody weapons, Maxine makeshift tricks) answer with the real recipes of your game, mod recipes included, and never make one up. They only help once your reputation is high enough; some look through their notes first and ask you to call back in an hour, half a day or a day. The recipe is written in your notebook's Radio tab, and with a good reputation a recipe that must be learned is really learned, as with a magazine.
 
 ### Voice workshop
 
@@ -64,6 +65,7 @@
 - A new radio voice can have its own frequency note and its own spontaneous call without touching the mod: the note's text and the call are written in the voice's sheet, in any language. The note is found in the loot as a handwritten note showing that voice's text and its frequency.
 - Every radio voice now remembers every caller permanently, up to 2,000 characters of notes per character, and remembers those who died: talk to a voice about a dead friend and it may recall them.
 - Tidier workshop: the voice list now shows only in the Voices tab, and the Places tab lists its places on the left with the place you pick on the right (and how many voices use each one); a click on a voice's name under "Used by" opens that voice. The Dashboard and the Journal use the whole width.
+- New "Recipe help" block: tick the trades a voice knows, from which reputation it helps and whether it answers at once or asks the player to call back.
 
 ### Living Knox survivors
 
