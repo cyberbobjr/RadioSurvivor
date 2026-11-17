@@ -110,6 +110,7 @@ import atelier_server  # E22-T02: --atelier, voice workshop served on 127.0.0.1 
 import place_surveys  # E22-T08: places recorded in game, listed by the workshop
 import game_console  # E22-T04: the game's verdict on the sheets, read in its console
 import log_buffer  # E22-T10: live journal of the workshop
+from recipe_index import RecipeIndex  # E27-T01: craft recipes loaded by the game, reread when it rewrites them
 
 HERE = Path(__file__).resolve().parent
 DEFAULT_ENV = HERE / ".env"      # à côté du pont, ignoré par Git (modèle : .env.example)
@@ -2191,6 +2192,7 @@ class Bridge:
         self.conversations = Conversations(exchange)
         self.voices = Voices(personas_folder(exchange))
         self.npcs = NpcConversations(exchange)
+        self.recipes = RecipeIndex(exchange, log=log)   # E27-T01: read at start (count logged), not used yet
         self.lock = threading.Lock()
         self.answers: dict[str, list[str]] = {}   # réponses encore attendues par le jeu
         self.started: set[tuple] = set()

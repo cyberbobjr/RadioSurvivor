@@ -67,6 +67,14 @@ Faits relevés (confirmé statiquement) :
   ingrédients, outils, niveau, et « apprise » quand la voix l'a apprise.
 - **D10 — Langue des noms.** Noms du carnet traduits côté joueur ; un nom sans traduction reste en anglais.
 
+### Mise à jour du 2026-11-17 (utilisateur)
+
+- **D11 — Inventaire refait par le jeu, relu par le pont.** Aucune liste écrite à la main : à chaque démarrage du
+  serveur, un module du mod demande au jeu les recettes qu'il a vraiment chargées (mods activés, remplacements compris)
+  et écrit l'inventaire. Une classe du pont le lit à son lancement et le relit dès que le serveur le refait. Écarté :
+  le pont qui lit lui-même les fichiers de recettes du jeu et des mods (il devrait deviner les mods actifs et leurs
+  remplacements, et lire plusieurs dizaines de mégaoctets à chaque lancement).
+
 ## Conséquences
 
 - La fiche d'une voix gagne une section `[help]` (métiers, palier, délai), éditée dans l'atelier avec des listes.

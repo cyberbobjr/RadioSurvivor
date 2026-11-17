@@ -2,11 +2,11 @@
 
 <!-- tableau de bord : généré par tools/plan.py suivi, ne pas modifier à la main -->
 
-**Avancement.** à faire — 0 / 5 tâche(s) terminée(s).
+**Avancement.** en cours — 1 / 5 tâche(s) terminée(s).
 
 | | Tâche | Titre | État | Cible | Dépend de |
 |---|---|---|---|---|---|
-| ☐ | E27-T01 | Index des recettes exporté par le serveur | `à faire` | hors jeu | — |
+| ☑ | E27-T01 | Index des recettes exporté par le serveur | `testé hors jeu` | hors jeu | — |
 | ☐ | E27-T02 | Section `[help]` des voix et réglages dans l'atelier | `à faire` | hors jeu | E27-T01 |
 | ☐ | E27-T03 | Recherche dans la langue du joueur et réponse en personnage | `à faire` | hors jeu | E27-T02 |
 | ☐ | E27-T04 | Délai, rappel, carnet et apprentissage | `à faire` | solo | E27-T03 |
@@ -41,16 +41,17 @@ conversation ; selon la réputation, tout de suite ou après un délai, et parfo
 
 ## Tâches
 
-- [ ] **E27-T01** — Index des recettes exporté par le serveur
-  - État : `à faire`
+- [x] **E27-T01** — Index des recettes exporté par le serveur
+  - État : `testé hors jeu`
   - Cible : `hors jeu`
   - Dépend de : —
   - Faire : D02, D08 ; au démarrage du serveur, lire les recettes chargées (vanilla et mods) et écrire l'index dans le
     dossier d'échange : identifiant, nom anglais, catégorie, ingrédients, outils, niveau requis, à apprendre ou non,
-    mod d'origine ; table des métiers (métier → catégories, « Débrouille » pour le reste) ; lecteur de l'index dans le
-    pont ; `persona-format.md` ou spécification dédiée.
+    mod d'origine ; table des métiers (métier → catégories, « Débrouille » pour le reste) ; D11 : classe du pont qui
+    lit l'inventaire à son lancement et le relit quand le serveur le refait ; spécification dédiée.
   - Accepté si : bancs de l'export (recette vanilla, recette de mod, recette à apprendre, catégorie inconnue →
     « Débrouille ») et du lecteur du pont ; taille et durée de l'export mesurées.
+  - Preuve : 2026-11-17, `RS_RecipeCatalog` (recettes lues par `ScriptManager.getAllCraftRecipes`, ingrédients et produits en listes `items` ou `fluids`, fluides des récipients compris, en litres ; `RightClickOnly`, énergie, automatisation et « n'importe quel objet/fluide » écartés), `RS_RecipeJobs` (11 métiers, `makeshift` par défaut), `RS_Json` (ASCII, `\uXXXX`), `RS_RecipeIndex` (`batman_CoreAI/recipes.json` à `OnServerStarted` ou `OnGameStart`, une ligne de console nombre/octets/ms), classe `RecipeIndex` de `bridge/recipe_index.py` (lue au lancement du pont, relue quand l'heure ou la taille du fichier change, index précédent gardé si le fichier est illisible) ; `docs/specifications-techniques/index-recettes.md`. Bancs : `recipe_index` 14 tests OK, `recipe_index_bridge` 6 tests OK, luacheck 0 ; coût mesuré hors jeu : 965 recettes synthétiques ≈ 521 Ko, encodage ≈ 0,15 ms par recette dans la VM Kahlua du jeu (durée réelle : ligne de console au prochain passage en jeu) ; `python tests/run_all.py --mod radiosurvivor --keep-going` `Summary: 111 passed, 0 failed, 0 skipped` (259,7 s).
 
 - [ ] **E27-T02** — Section `[help]` des voix et réglages dans l'atelier
   - État : `à faire`

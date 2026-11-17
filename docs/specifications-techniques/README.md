@@ -15,6 +15,7 @@ comportement vu du joueur : [spécifications fonctionnelles](../specifications-f
 | [factions.md](factions.md) | Équipes et mandats de négociation (`RS_Factions`) |
 | [rescue.md](rescue.md) | Survivants à secourir : tirage du bâtiment, indices, réserves, issues (`RS_Rescue*`) |
 | [notes-frequences.md](notes-frequences.md) | Notes de fréquences : transport de la fréquence, butin |
+| [index-recettes.md](index-recettes.md) | Index des recettes écrit par le serveur pour le pont (`recipes.json`, format 1) : champs, recettes écartées, table des métiers, relecture par le pont |
 
 Les fiches de conception des sous-systèmes Living Knox (choix, contraintes du moteur, persistance, tests) sont dans
 [annexes/conception/](../annexes/conception/README.md) ; le registre des PNJ est décrit dans
