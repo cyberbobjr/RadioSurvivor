@@ -78,8 +78,6 @@ GroupTypes.VANILLA_WEAPONS = {
 
 GroupTypes.state = GroupTypes.state or { types = {}, refused = {} }
 
-local function log() return LivingKnox.Log end
-
 local TYPE_FIELDS = { format = true, id = true, nameKey = true, size = true, hostility = true, home = true,
     morale = true, needs = true, roles = true, profiles = true }
 local ROLE_FIELDS = { weight = true, behaviours = true }
@@ -94,10 +92,6 @@ local TRAIT_FIELDS = { id = true, chance = true }
 local SIZE_FIELDS = { min = true, max = true }
 
 -- Contrôles de base ------------------------------------------------------------------------------------------------
-
-local function isInt(v, lo, hi)
-    return type(v) == "number" and v == v and math.floor(v) == v and v >= lo and v <= hi
-end
 
 local function isId(v)
     return type(v) == "string" and #v >= 1 and #v <= GroupTypes.ID_MAX and string.match(v, "^%l[%l%d_]*$") ~= nil
@@ -127,7 +121,9 @@ local function listSize(list, what)
     if type(list) ~= "table" then return nil, what .. " is not a list" end
     local n = 0
     for key in pairs(list) do
-        if not isInt(key, 1, GroupTypes.MAX_LIST) then return nil, what .. " is not a list of 1 to " .. GroupTypes.MAX_LIST end
+        if not LivingKnox.Num.isInt(key, 1, GroupTypes.MAX_LIST) then
+            return nil, what .. " is not a list of 1 to " .. GroupTypes.MAX_LIST
+        end
         n = n + 1
     end
     if n < 1 or list[n] == nil then return nil, what .. " is not a list of 1 to " .. GroupTypes.MAX_LIST end
@@ -177,7 +173,7 @@ local function validRoles(roles)
         if type(r) ~= "table" then return nil, "role " .. role .. " is not a table" end
         local extra = unknownField(r, ROLE_FIELDS)
         if extra then return nil, "role " .. role .. ": unknown field " .. extra end
-        if not isInt(r.weight, 1, GroupTypes.ROLE_WEIGHT_MAX) then
+        if not LivingKnox.Num.isInt(r.weight, 1, GroupTypes.ROLE_WEIGHT_MAX) then
             return nil, "role " .. role .. ": weight must be an integer from 1 to " .. GroupTypes.ROLE_WEIGHT_MAX
         end
         local behaviours, why = nameList(r.behaviours, "role " .. role .. " behaviours", behaviourOk)
@@ -201,7 +197,7 @@ local function validTraits(list, where)
         if extra then return nil, at .. ": unknown field " .. extra end
         if type(t.id) ~= "string" or not GroupTypes.TRAITS[t.id] then return nil, at .. ": unknown trait " .. tostring(t.id) end
         if seen[t.id] then return nil, at .. ": duplicate " .. t.id end
-        if not isInt(t.chance, 1, 100) then return nil, at .. ": chance must be an integer from 1 to 100" end
+        if not LivingKnox.Num.isInt(t.chance, 1, 100) then return nil, at .. ": chance must be an integer from 1 to 100" end
         seen[t.id] = true
         out[i] = { id = t.id, chance = t.chance }
     end
@@ -218,10 +214,10 @@ local function validProfile(p, i, roles, format)
     if type(p.role) ~= "string" or roles[p.role] == nil then
         return nil, where .. ": role " .. tostring(p.role) .. " is not a role of this type"
     end
-    if not isInt(p.weight, 1, GroupTypes.PROFILE_WEIGHT_MAX) then
+    if not LivingKnox.Num.isInt(p.weight, 1, GroupTypes.PROFILE_WEIGHT_MAX) then
         return nil, where .. ": weight must be an integer from 1 to " .. GroupTypes.PROFILE_WEIGHT_MAX
     end
-    if p.max ~= nil and not isInt(p.max, 1, GroupTypes.SIZE_MAX) then
+    if p.max ~= nil and not LivingKnox.Num.isInt(p.max, 1, GroupTypes.SIZE_MAX) then
         return nil, where .. ": max must be an integer from 1 to " .. GroupTypes.SIZE_MAX
     end
     if p.female ~= nil and type(p.female) ~= "boolean" then return nil, where .. ": female must be a boolean" end
@@ -265,20 +261,23 @@ function GroupTypes.validate(def)
     if not isId(def.id) then return nil, "bad id" end
     if not isKey(def.nameKey) then return nil, "bad nameKey" end
     local size = def.size
-    if type(size) ~= "table" or unknownField(size, SIZE_FIELDS) or not isInt(size.min, 1, GroupTypes.SIZE_MAX)
-        or not isInt(size.max, size.min, GroupTypes.SIZE_MAX) then
+    if type(size) ~= "table" or unknownField(size, SIZE_FIELDS) or not LivingKnox.Num.isInt(size.min, 1, GroupTypes.SIZE_MAX)
+        or not LivingKnox.Num.isInt(size.max, size.min, GroupTypes.SIZE_MAX) then
         return nil, "size must be { min, max } integers with 1 <= min <= max <= " .. GroupTypes.SIZE_MAX
     end
-    if not isInt(def.hostility, 0, GroupTypes.LEVEL_MAX) then return nil, "hostility must be an integer from 0 to 100" end
+    if not LivingKnox.Num.isInt(def.hostility, 0, GroupTypes.LEVEL_MAX) then return nil,
+        "hostility must be an integer from 0 to 100" end
     if type(def.home) ~= "string" or not GroupTypes.HOMES[def.home] then
         return nil, "home must be building or forest"
     end
-    if not isInt(def.morale, 0, GroupTypes.LEVEL_MAX) then return nil, "morale must be an integer from 0 to 100" end
+    if not LivingKnox.Num.isInt(def.morale, 0, GroupTypes.LEVEL_MAX) then return nil,
+        "morale must be an integer from 0 to 100" end
     if type(def.needs) ~= "table" then return nil, "needs is not a table" end
     local needs, allowed = {}, {}
     for _, key in ipairs(GroupTypes.NEEDS) do
         allowed[key] = true
-        if not isInt(def.needs[key], 0, GroupTypes.LEVEL_MAX) then return nil, "need " .. key .. " must be 0..100" end
+        if not LivingKnox.Num.isInt(def.needs[key], 0, GroupTypes.LEVEL_MAX) then return nil, "need " .. key
+            .. " must be 0..100" end
         needs[key] = def.needs[key]
     end
     extra = unknownField(def.needs, allowed)
@@ -288,7 +287,7 @@ function GroupTypes.validate(def)
     if type(def.profiles) ~= "table" then return nil, "profiles is not a list" end
     local n = 0
     for key in pairs(def.profiles) do
-        if not isInt(key, 1, GroupTypes.MAX_PROFILES) then return nil, "profiles is not a list of 1 to 32" end
+        if not LivingKnox.Num.isInt(key, 1, GroupTypes.MAX_PROFILES) then return nil, "profiles is not a list of 1 to 32" end
         n = n + 1
     end
     if n < 1 or def.profiles[n] == nil then return nil, "profiles is not a list of 1 to 32" end
@@ -342,10 +341,10 @@ function GroupTypes.register(def)
     if not t then
         local refused = GroupTypes.state.refused
         refused[#refused + 1] = { id = label, why = why }
-        log().error("group type %s refused: %s", label, why)
+        LivingKnox.Log.error("group type %s refused: %s", label, why)
         return nil, why
     end
-    log().info("group type %s registered (%s profile(s))", t.id, tostring(#t.profiles))
+    LivingKnox.Log.info("group type %s registered (%s profile(s))", t.id, tostring(#t.profiles))
     return true
 end
 

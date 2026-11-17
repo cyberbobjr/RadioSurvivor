@@ -85,7 +85,6 @@ Food.FISH_ROOM = "Water"
 Food.FISH_HOURS = { 5, 18 }
 Food.FISH_SALT = 32452843
 
-local function log() return LivingKnox.Log end
 local function cfg() return Food.CFG end
 
 local function sortedKeys(t)
@@ -236,7 +235,7 @@ function Food.round(gid, n, k, zone, c, room)
     local ok, t, cat, count = pcall(Food.draw, zone, c, Food.stream(gid, n, k))
     if not ok then
         Food.stats.failed = Food.stats.failed + 1
-        log().warn("forage: group %s trip %d draw %d failed: %s", gid, n, k, tostring(t))
+        LivingKnox.Log.warn("forage: group %s trip %d draw %d failed: %s", gid, n, k, tostring(t))
         return {}, "draw failed"
     end
     if t == nil then return {}, "nothing" end
@@ -407,7 +406,7 @@ function Food.fishRound(gid, n, k, room)
     local ok, t, which = pcall(Food.fishDraw, Food.fishStream(gid, n, k))
     if not ok then
         Food.stats.failed = Food.stats.failed + 1
-        log().warn("fishing: group %s trip %d draw %d failed: %s", gid, n, k, tostring(t))
+        LivingKnox.Log.warn("fishing: group %s trip %d draw %d failed: %s", gid, n, k, tostring(t))
         return {}, "draw failed"
     end
     if t == nil then return {}, "nothing" end
@@ -418,8 +417,6 @@ function Food.fishRound(gid, n, k, room)
     Food.stats.caught = Food.stats.caught + 1
     return { { t = t, c = "food", a = true, f = true } }, t .. " (" .. tostring(which) .. ")"
 end
-
-local function cheb(ax, ay, bx, by) return math.max(math.abs(ax - bx), math.abs(ay - by)) end
 
 local SIDES = { { 0, -1 }, { 1, 0 }, { 0, 1 }, { -1, 0 } }
 
@@ -467,7 +464,7 @@ function Food.waterNear(x, y, r)
         for dx = -r, r, step do
             local sq = cell:getGridSquare(x + dx, y + dy, 0)
             if sq ~= nil and sq:isWaterSquare() then
-                local d = cheb(x, y, x + dx, y + dy)
+                local d = LivingKnox.Geo.cheb(x, y, x + dx, y + dy)
                 if best == nil or d < best.d then best = { px = x + dx, py = y + dy, d = d } end
             end
         end
@@ -490,7 +487,7 @@ function Food.fishTarget(gid, g)
         if sq ~= nil then
             local sx, sy = sq:getX(), sq:getY()
             return { x = sx, y = sy, z = 0, b = Food.FISH_TARGET, room = Food.FISH_ROOM,
-                label = string.format("fish %d,%d", sx, sy), d = cheb(home.x, home.y, sx, sy), score = 1 }
+                label = string.format("fish %d,%d", sx, sy), d = LivingKnox.Geo.cheb(home.x, home.y, sx, sy), score = 1 }
         end
     end
     return nil, "no loaded free shore near the " .. math.min(#points, cfg().MAX_CANDIDATES)
@@ -522,7 +519,7 @@ function Food.make(t)
                     list = res
                 elseif not ok then
                     Food.stats.failed = Food.stats.failed + 1
-                    log().warn("forage: spawn function of %s failed: %s", t, tostring(res))
+                    LivingKnox.Log.warn("forage: spawn function of %s failed: %s", t, tostring(res))
                 end
             end
         end

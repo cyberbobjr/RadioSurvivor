@@ -100,16 +100,7 @@ Senses.stats = Senses.stats or { passes = 0, npcs = 0, targets = 0, los = 0, los
     sounds = 0, maxNpcs = 0, maxTargets = 0, maxLos = 0, maxZombies = 0, last = {}, accepted = 0, dropped = 0,
     refused = 0 }
 
-local function log() return LivingKnox.Log end
 local function now() return getTimestampMs() end
-
-local function clamp(v, lo, hi)
-    if v < lo then return lo end
-    if v > hi then return hi end
-    return v
-end
-
-local function finite(v) return type(v) == "number" and v == v and v > -1e9 and v < 1e9 end
 
 local function round(v, step) return math.floor(v / step + 0.5) * step end
 
@@ -142,10 +133,11 @@ end
 -- Portée de vue sans la ligne de vue (borne haute : une cible plus loin n'a pas besoin de lineClear).
 function Senses.openRange(npc, o)
     local M = Senses.MODEL
-    local light = clamp(o.light or 0, 0, 1)
+    local light = LivingKnox.Num.clamp(o.light or 0, 0, 1)
     if o.torch and light < M.TORCH_LIGHT then light = M.TORCH_LIGHT end
     local r = M.SIGHT * (M.LIGHT_MIN + (1 - M.LIGHT_MIN) * light)
-    r = r * math.max(M.WEATHER_MIN, 1 - M.FOG * clamp(o.fog or 0, 0, 1) - M.RAIN * clamp(o.rain or 0, 0, 1))
+    r = r * math.max(M.WEATHER_MIN,
+        1 - M.FOG * LivingKnox.Num.clamp(o.fog or 0, 0, 1) - M.RAIN * LivingKnox.Num.clamp(o.rain or 0, 0, 1))
     r = r / (1 + M.LEVEL * math.abs(o.dz or 0))
     r = r * Senses.fovFactor(o.cos or 1, o.d or 0)
     if o.sneak then r = r * M.SNEAK end
@@ -192,7 +184,7 @@ end
 -- hors des candidats) : l'attention baisse. dt en secondes, t en ms (horloge passée par l'appelant). Rend track.
 function Senses.step(track, ev, o, dt, t)
     local M = Senses.MODEL
-    dt = clamp(dt or 0, 0, M.MAX_DT)
+    dt = LivingKnox.Num.clamp(dt or 0, 0, M.MAX_DT)
     track.a = track.a or 0
     if ev ~= nil and ev.sight then
         track.a = math.min(1, track.a + (M.GAIN_MIN + M.GAIN_SPAN * (1 - (o.d or 0) / ev.r)) * dt)
@@ -231,7 +223,8 @@ end
 -- Bruit du monde (OnWorldSound, déclenché par WorldSound.init, J/WorldSoundManager.java:480, sur toute machine qui
 -- l'ajoute, client MP compris pour les bruits relayés, J/network/packets/sound/WorldSoundPacket.java:109-121).
 function Senses.onWorldSound(x, y, z, radius, volume, source)
-    if not finite(x) or not finite(y) or not finite(z) or not finite(radius) or radius <= 0 then return end
+    if not LivingKnox.Num.finite(x) or not LivingKnox.Num.finite(y) or not LivingKnox.Num.finite(z)
+        or not LivingKnox.Num.finite(radius) or radius <= 0 then return end
     local list = Senses.sounds
     list[#list + 1] = { ms = now(), x = x, y = y, z = z, r = radius, src = source }
     while #list > Senses.BUDGET.SOUNDS do table.remove(list, 1) end
@@ -262,8 +255,8 @@ end
 local function lightAt(sq, idx, ambient)
     if sq == nil then return ambient end
     local l = sq:getLightLevel(idx)
-    if not finite(l) then return ambient end
-    return clamp(l, 0, 1)
+    if not LivingKnox.Num.finite(l) then return ambient end
+    return LivingKnox.Num.clamp(l, 0, 1)
 end
 
 -- Relation de pièces entre deux cases : "same" (même pièce ou dehors tous deux), "outside" (l'une dehors),
@@ -281,9 +274,9 @@ local function passContext(t)
     local ctx = { t = t, fog = 0, rain = 0, ambient = 1, idx = 0 }
     local cm = getClimateManager and getClimateManager() or nil
     if cm ~= nil then
-        ctx.fog = clamp(cm:getFogIntensity() or 0, 0, 1)
-        ctx.rain = clamp(cm:getRainIntensity() or 0, 0, 1)
-        ctx.ambient = clamp(math.min(cm:getDayLightStrength() or 1, cm:getAmbient() or 1), 0, 1)
+        ctx.fog = LivingKnox.Num.clamp(cm:getFogIntensity() or 0, 0, 1)
+        ctx.rain = LivingKnox.Num.clamp(cm:getRainIntensity() or 0, 0, 1)
+        ctx.ambient = LivingKnox.Num.clamp(math.min(cm:getDayLightStrength() or 1, cm:getAmbient() or 1), 0, 1)
     end
     local p = getSpecificPlayer and getSpecificPlayer(0) or nil
     if p ~= nil then ctx.idx = p:getPlayerNum() end
@@ -660,13 +653,13 @@ end
 
 local function validEntry(e, idField)
     if type(e) ~= "table" then return false end
-    if not finite(e.x) or not finite(e.y) or not finite(e.z) then return false end
+    if not LivingKnox.Num.finite(e.x) or not LivingKnox.Num.finite(e.y) or not LivingKnox.Num.finite(e.z) then return false end
     if type(e.a) ~= "number" or e.a < 0 or e.a > 1 then return false end
     if type(e.s) ~= "boolean" or type(e.h) ~= "boolean" then return false end
     if idField == "u" then
         return type(e.u) == "string" and #e.u > 0 and #e.u <= Senses.CHECK.NAME_MAX
     end
-    return finite(e.o)
+    return LivingKnox.Num.finite(e.o)
 end
 
 -- Forme et bornes d'un résumé reçu. Rend nil, ou la raison (raisons de LK_Reports) et un détail.
@@ -689,7 +682,8 @@ function Senses.validate(sen)
         if type(sen.n) ~= "table" or #sen.n > B.NOISES then return "out of bounds", "senses noises" end
         for i = 1, #sen.n do
             local s = sen.n[i]
-            if type(s) ~= "table" or not finite(s.x) or not finite(s.y) or not finite(s.z) or not finite(s.r)
+            if type(s) ~= "table" or not LivingKnox.Num.finite(s.x) or not LivingKnox.Num.finite(s.y)
+                or not LivingKnox.Num.finite(s.z) or not LivingKnox.Num.finite(s.r)
                 or s.r <= 0 or s.r > C.NOISE_MAX then
                 return "bad report", "senses noise " .. i
             end
@@ -704,7 +698,8 @@ function Senses.validateFloor(list)
     if type(list) ~= "table" or #list > Senses.BUDGET.FLOOR then return "out of bounds", "floor" end
     for i = 1, #list do
         local f = list[i]
-        if type(f) ~= "table" or not finite(f.o) or not finite(f.x) or not finite(f.y) or not finite(f.z) then
+        if type(f) ~= "table" or not LivingKnox.Num.finite(f.o) or not LivingKnox.Num.finite(f.x)
+            or not LivingKnox.Num.finite(f.y) or not LivingKnox.Num.finite(f.z) then
             return "bad report", "floor " .. i
         end
         if f.o == -1 or f.o ~= math.floor(f.o) or f.z < C.LEVEL_MIN or f.z > C.LEVEL_MAX then
@@ -801,7 +796,7 @@ function Senses.accept(id, sen, by, body)
     st.accepted = st.accepted + 1
     if dropped > 0 then
         st.dropped = st.dropped + dropped
-        log().debug("npc %s: %d implausible perception entries from %s dropped", id, dropped, tostring(by))
+        LivingKnox.Log.debug("npc %s: %d implausible perception entries from %s dropped", id, dropped, tostring(by))
     end
     Senses.store[id] = out
     return dropped
@@ -895,7 +890,7 @@ function Senses.onFloorReport(player, args)
     if not isServer() or player == nil then return nil end
     local name = player:getUsername()
     local st = Senses.stats
-    if type(name) ~= "string" or type(args) ~= "table" or not finite(args.n) then
+    if type(name) ~= "string" or type(args) ~= "table" or not LivingKnox.Num.finite(args.n) then
         st.floorRefused = (st.floorRefused or 0) + 1
         return nil
     end
@@ -908,7 +903,7 @@ function Senses.onFloorReport(player, args)
     end
     if why ~= nil then
         st.floorRefused = (st.floorRefused or 0) + 1
-        log().debug("floor report from %s refused: %s (%s)", name, why, tostring(detail))
+        LivingKnox.Log.debug("floor report from %s refused: %s (%s)", name, why, tostring(detail))
         return nil
     end
     local known = serverZombies()

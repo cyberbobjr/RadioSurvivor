@@ -742,15 +742,14 @@ class SourceTests(unittest.TestCase):
         self.assertTrue(SUITE_FILE.exists())
 
     def test_delay_option_and_translations(self):
-        # LK11-T10 : entier 12..336, défaut 72, page LivingKnox ; = Config.DEFAULTS / Config.INT_BOUNDS.
+        # LK11-T10 : entier 12..336, défaut 72, page LivingKnox ; = Config.INTS (DEFAULTS, INT_BOUNDS en dérivent).
         import json
         opts = (LK_LUA.parent / 'sandbox-options.txt').read_text(encoding='utf-8')
         self.assertRegex(opts, r'option LivingKnox\.RevengeDelayHours\n\{\n\ttype = integer,\n\tmin = 12,\n'
                                r'\tmax = 336,\n\tdefault = 72,\n\tpage = LivingKnox,\n'
                                r'\ttranslation = LivingKnox_RevengeDelayHours,\n\}')
         config = (LK_LUA / 'shared' / 'LivingKnox' / 'LK_Config.lua').read_text(encoding='utf-8')
-        self.assertIn('RevengeDelayHours = 72,', config)
-        self.assertIn('RevengeDelayHours = { 12, 336 },', config)
+        self.assertIn('RevengeDelayHours = { 12, 336, 72 },', config)
         for lang in ('EN', 'FR'):
             sb = json.loads((LK_LUA / 'shared' / 'Translate' / lang / 'Sandbox.json').read_text(encoding='utf-8'))
             for k in ('RevengeDelayHours', 'RevengeDelayHours_tooltip'):

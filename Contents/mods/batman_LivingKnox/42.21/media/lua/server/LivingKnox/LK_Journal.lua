@@ -59,21 +59,15 @@ Journal.KINDS = {
 Journal.state = Journal.state or { killed = {}, queue = {}, reset = {} }
 Journal.stats = Journal.stats or { added = 0, merged = 0, skipped = 0, reset = 0, queued = 0, dropped = 0 }
 
-local function log() return LivingKnox.Log end
-local function Groups() return LivingKnox.Groups end
-
-local function isInt(v, lo, hi)
-    return type(v) == "number" and v == v and v == math.floor(v) and v >= lo and v <= hi
-end
-
 local function isMember(v) return type(v) == "string" and string.match(v, "^m%-%d+$") ~= nil end
 local function isNpc(v) return type(v) == "string" and string.match(v, "^lk%-%d+$") ~= nil end
 
 -- Format ------------------------------------------------------------------------------------------------------------
 
 local function validEntry(e)
-    if type(e) ~= "table" or not isInt(e.n, 1, 2147483647) or not isInt(e.day, 0, 2147483647) then return false end
-    if e.hour ~= nil and not isInt(e.hour, 0, 23) then return false end
+    if type(e) ~= "table" or not LivingKnox.Num.isInt(e.n, 1, 2147483647)
+        or not LivingKnox.Num.isInt(e.day, 0, 2147483647) then return false end
+    if e.hour ~= nil and not LivingKnox.Num.isInt(e.hour, 0, 23) then return false end
     if type(e.kind) ~= "string" or Journal.KINDS[e.kind] == nil then return false end
     if type(e.args) ~= "table" or #e.args > Journal.ARGS_MAX then return false end
     local count = 0
@@ -83,7 +77,7 @@ local function validEntry(e)
         local t = type(a)
         if t == "string" then
             if #a > Journal.ARG_MAX then return false end
-        elseif not isInt(a, -2147483647, 2147483647) then
+        elseif not LivingKnox.Num.isInt(a, -2147483647, 2147483647) then
             return false
         end
     end
@@ -94,7 +88,7 @@ end
 
 -- Vrai si j est un journal bien formé (numéros croissants, inférieurs à n).
 function Journal.valid(j)
-    if type(j) ~= "table" or j.v ~= Journal.FORMAT or not isInt(j.n, 1, 2147483647) or type(j.e) ~= "table" then
+    if type(j) ~= "table" or j.v ~= Journal.FORMAT or not LivingKnox.Num.isInt(j.n, 1, 2147483647) or type(j.e) ~= "table" then
         return false
     end
     local count = 0
@@ -115,13 +109,13 @@ local function journalOf(g)
         j = { v = Journal.FORMAT, n = 1, e = {} }
         g.journal = j
     elseif not Journal.valid(j) then
-        local n = type(j) == "table" and isInt(j.n, 1, 2147483647) and j.n or 1
+        local n = type(j) == "table" and LivingKnox.Num.isInt(j.n, 1, 2147483647) and j.n or 1
         j = { v = Journal.FORMAT, n = n, e = {} }
         g.journal = j
         Journal.stats.reset = Journal.stats.reset + 1
         if not Journal.state.reset[g.id] then
             Journal.state.reset[g.id] = true
-            log().warn("journal: malformed story journal of %s reset", tostring(g.id))
+            LivingKnox.Log.warn("journal: malformed story journal of %s reset", tostring(g.id))
         end
     end
     return j
@@ -130,8 +124,8 @@ end
 -- Heure de jeu (convention de LK_Simulation : k = [k-1, k[) : heure simulée en cours, sinon l'heure en cours de
 -- l'horloge ; nil sans horloge.
 function Journal.worldHour()
-    local k = Groups().hourContext
-    if isInt(k, 0, 2147483647) then return k end
+    local k = LivingKnox.Groups.hourContext
+    if LivingKnox.Num.isInt(k, 0, 2147483647) then return k end
     local gt = getGameTime and getGameTime()
     if not gt then return nil end
     local hours = gt:getWorldAgeHours()
@@ -141,7 +135,7 @@ end
 
 -- Heure du jour (0..23) du début de l'heure de jeu k.
 function Journal.hourOfDay(k)
-    if not isInt(k, 0, 2147483647) then return nil end
+    if not LivingKnox.Num.isInt(k, 0, 2147483647) then return nil end
     return (k + 6) % 24
 end
 
@@ -167,9 +161,9 @@ function Journal.add(g, kind, args, day, opts)
         if i > Journal.ARGS_MAX then break end
         list[i] = cleanArg(a)
     end
-    if not isInt(day, 0, 2147483647) then day = Groups().today() end
+    if not LivingKnox.Num.isInt(day, 0, 2147483647) then day = LivingKnox.Groups.today() end
     local at = opts.at
-    if not isInt(at, 0, 2147483647) then at = Journal.worldHour() end
+    if not LivingKnox.Num.isInt(at, 0, 2147483647) then at = Journal.worldHour() end
     local e = { n = j.n, day = day, hour = Journal.hourOfDay(at), kind = kind, args = list }
     if isMember(opts.member) then e.member = opts.member end
     if isNpc(opts.npc) then e.npc = opts.npc end
@@ -197,7 +191,7 @@ local function memberOf(g, mid)
 end
 
 local function groupName(gid)
-    local data = Groups().state.data
+    local data = LivingKnox.Groups.state.data
     local other = data and type(gid) == "string" and data.groups[gid] or nil
     if other ~= nil and type(other.name) == "string" then return other.name end
     return tostring(gid)
@@ -305,7 +299,7 @@ function Journal.onLog(g, kind, text, day)
     fn(g, text, day)
 end
 
-Groups().onLog = function(g, kind, text, day) Journal.onLog(g, kind, text, day) end
+LivingKnox.Groups.onLog = function(g, kind, text, day) Journal.onLog(g, kind, text, day) end
 
 -- Faits internes (LK_Core.listen) -----------------------------------------------------------------------------------
 
@@ -319,7 +313,7 @@ end)
 -- Départ (publié par LK_Groups.applyLeave juste après l'entrée « left », avant l'écriture) : rôle du membre ; un
 -- départ par dispersion n'a pas d'entrée propre (l'entrée « dispersed » le dit).
 LivingKnox.listen("memberLeft", "Journal.left", function(info)
-    local data = Groups().state.data
+    local data = LivingKnox.Groups.state.data
     local g = data and type(info.group) == "string" and data.groups[info.group] or nil
     if g == nil then return end
     local e, i = lastOf(g, "left", info.member, info.day)
@@ -336,12 +330,12 @@ end)
 LivingKnox.listen("encounterStarted", "Journal.encounter", function(info)
     if type(info.group) ~= "string" then return end
     local q = Journal.state.queue
-    q[#q + 1] = { group = info.group, day = Groups().today(), at = Journal.worldHour() }
+    q[#q + 1] = { group = info.group, day = LivingKnox.Groups.today(), at = Journal.worldHour() }
     Journal.stats.queued = Journal.stats.queued + 1
     if #q > Journal.QUEUE_MAX then
         table.remove(q, 1)
         Journal.stats.dropped = Journal.stats.dropped + 1
-        log().warn("journal: queue full, oldest encounter dropped")
+        LivingKnox.Log.warn("journal: queue full, oldest encounter dropped")
     end
 end)
 
@@ -349,9 +343,9 @@ end)
 function Journal.flush()
     local q = Journal.state.queue
     if #q == 0 then return 0 end
-    if not Groups().ensure() then return 0 end   -- registre non prêt : file gardée (bornée)
+    if not LivingKnox.Groups.ensure() then return 0 end   -- registre non prêt : file gardée (bornée)
     Journal.state.queue = {}
-    Groups().update(function(data)
+    LivingKnox.Groups.update(function(data)
         local changed = false
         for _, f in ipairs(q) do
             local g = data.groups[f.group]
@@ -419,7 +413,7 @@ function Journal.view(g, since)
     local out = {}
     local j = type(g) == "table" and g.journal or nil
     if not Journal.valid(j) then return out, 1 end
-    if not isInt(since, 0, 2147483647) then since = 0 end
+    if not LivingKnox.Num.isInt(since, 0, 2147483647) then since = 0 end
     for _, e in ipairs(j.e) do
         if e.n > since then out[#out + 1] = Journal.entryView(e) end
     end

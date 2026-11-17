@@ -7,22 +7,20 @@ require "LivingKnox/Routines/LK_Routine_Chores"
 
 local Routines = LivingKnox.Routines
 
-local function Decisions() return LivingKnox.Decisions end
-
 -- Membre présent le plus blessé (santé sous CARE_HEALTH, corps incarné au foyer), autre que mid : mid, corps ; ou nil.
 function Routines.woundedFor(g, mid, home)
     local B = LivingKnox.Bodies
     if B == nil or B.find == nil then return nil end
-    local leash = Decisions().CFG.HOME_RADIUS
+    local leash = LivingKnox.Decisions.CFG.HOME_RADIUS
     local best, bestH, bestBody
     for _, other in ipairs(Routines.present(g)) do
         local m = g.members[other]
         if other ~= mid and m.npc ~= nil then
-            local h = Decisions().healthOf(m)
+            local h = LivingKnox.Decisions.healthOf(m)
             if h < Routines.CFG.CARE_HEALTH and (bestH == nil or h < bestH) then
                 local z = B.find(m.npc)
                 if z ~= nil and (home == nil or (math.floor(z:getZ()) == home.z
-                    and Routines.cheb(z:getX(), z:getY(), home.x + 0.5, home.y + 0.5) <= leash)) then
+                    and LivingKnox.Geo.cheb(z:getX(), z:getY(), home.x + 0.5, home.y + 0.5) <= leash)) then
                     best, bestH, bestBody = other, h, z
                 end
             end

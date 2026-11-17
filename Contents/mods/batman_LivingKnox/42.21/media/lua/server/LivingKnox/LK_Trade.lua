@@ -62,10 +62,6 @@ Trade.CFG = Trade.CFG or {
 }
 Trade.stats = Trade.stats or { offers = 0, proposals = 0, done = 0, refused = 0, moved = 0, failed = 0 }
 
-local function log() return LivingKnox.Log end
-local function Groups() return LivingKnox.Groups end
-local function Stock() return LivingKnox.Stock end
-local function Hostility() return LivingKnox.Hostility end
 local function cfg() return Trade.CFG end
 
 local function isInt(v) return type(v) == "number" and v == v and math.floor(v) == v and v > -2147483649
@@ -99,7 +95,7 @@ end
 
 -- Catégorie de stock et valeur V d'un objet pour un groupe (classes refusées et objets non conformes : 0, raison).
 local function baseValue(item)
-    local S = Stock()
+    local S = LivingKnox.Stock
     local t = item:getFullType()
     if not TV.isBase(t) then return 0, nil, "unwanted" end
     local cat = S.categoryOf(item)
@@ -178,12 +174,12 @@ end
 
 -- Contexte commun : attitude, marge, évaluation du stock, conteneurs. Rend ctx, ou nil, raison, détail.
 local function context(gid, key)
-    local H = Hostility()
+    local H = LivingKnox.Hostility
     local att, why = H.get(gid, key)
     if att == nil then return nil, "away", tostring(why) end
     local m = Trade.margin(att.level)
     if m == nil then return nil, "attitude", att.level end
-    local S = Stock()
+    local S = LivingKnox.Stock
     local a, sw = S.needs(gid)
     if a == nil then return nil, "away", tostring(sw) end
     local containers, cw = S.homeContainers(gid)
@@ -281,7 +277,7 @@ function Trade.evaluate(gid, key, player, give, take)
         lines[#lines + 1] = { t = e.t, v = e.v }
         if e.c ~= nil then sold[e.c] = (sold[e.c] or 0) + 1 end
     end
-    for _, c in ipairs(Stock().CATEGORIES) do
+    for _, c in ipairs(LivingKnox.Stock.CATEGORIES) do
         if (sold[c] or 0) > 0 then
             local have, want = ctx.a.have[c] or 0, ctx.a.want[c] or 0
             local after = have - sold[c] + (bought[c] or 0)
@@ -316,7 +312,7 @@ local function transfer(item, from, to)
         if isServer() then sendAddItemToContainer(to, item) end
     end)
     if ok then return true end
-    log().error("trade: moving %s (%s) failed: %s", tostring(item:getFullType()), tostring(item:getID()), tostring(err))
+    LivingKnox.Log.error("trade: moving %s (%s) failed: %s", tostring(item:getFullType()), tostring(item:getID()), tostring(err))
     if removed and not to:getItems():contains(item) then
         from:AddItem(item)
         if isServer() then sendAddItemToContainer(from, item) end
@@ -351,7 +347,7 @@ end
 -- Applique un échange évalué acceptable (ev de Trade.evaluate, même appel Lua). Rend vrai et le détail { ground =
 -- objets posés au sol, failed = déplacements échoués }, ou nil et une raison (registre non écrit : rien n'a bougé).
 function Trade.apply(gid, key, player, ev)
-    local G, S = Groups(), Stock()
+    local G, S = LivingKnox.Groups, LivingKnox.Stock
     local soldIds = {}
     for _, e in ipairs(ev.takes) do soldIds[e.i] = true end
     local text = string.format("trade with %s: got %s; gave %s (%d for %d)", key, typesText(ev.gives),
@@ -390,7 +386,7 @@ function Trade.apply(gid, key, player, ev)
     end
     Trade.stats.failed = Trade.stats.failed + out.failed
     local r, why = S.check(gid, { force = true })
-    if r == nil then log().warn("trade: group %s stock not read again after the trade: %s", gid, tostring(why)) end
+    if r == nil then LivingKnox.Log.warn("trade: group %s stock not read again after the trade: %s", gid, tostring(why)) end
     return true, out
 end
 
@@ -401,7 +397,7 @@ local function reply(npc, lineKey, player, band)
     if npc == nil or Sp == nil or Sp.say == nil then return false end
     local ok, out = pcall(Sp.say, npc, { key = lineKey }, { player = player, band = band, chat = false })
     if not ok then
-        log().warn("trade: reply %s of %s failed: %s", lineKey, tostring(npc), tostring(out))
+        LivingKnox.Log.warn("trade: reply %s of %s failed: %s", lineKey, tostring(npc), tostring(out))
         return false
     end
     return out ~= nil
@@ -428,8 +424,8 @@ function Trade.propose(gid, key, player, give, take, opts)
             Trade.stats.done = Trade.stats.done + 1
             LivingKnox.publish("tradeDone", { group = gid, player = key, got = typesText(ev.gives),
                 gave = typesText(ev.takes), given = ev.given, asked = ev.asked, npc = opts.npc,
-                day = Groups().today() })
-            log().info("trade: group %s traded with %s: got %s; gave %s (%d for %d)%s", gid, key,
+                day = LivingKnox.Groups.today() })
+            LivingKnox.Log.info("trade: group %s traded with %s: got %s; gave %s (%d for %d)%s", gid, key,
                 typesText(ev.gives), typesText(ev.takes), ev.given, ev.asked,
                 res.failed > 0 and (", " .. res.failed .. " move(s) failed") or "")
         else
@@ -441,7 +437,7 @@ function Trade.propose(gid, key, player, give, take, opts)
     else
         Trade.stats.refused = Trade.stats.refused + 1
         out.line = "IGUI_LK_Trade_Refuse_" .. tostring(out.reason)
-        log().info("trade: group %s refused a trade with %s: %s%s", gid, key, tostring(out.reason),
+        LivingKnox.Log.info("trade: group %s refused a trade with %s: %s%s", gid, key, tostring(out.reason),
             out.detail and (" (" .. out.detail .. ")") or "")
     end
     out.said = reply(opts.npc, out.line, player, out.ok and "friendly" or bandOf(ev.level))
@@ -451,7 +447,7 @@ end
 -- PNJ npc d'un groupe, corps présent à CFG.RANGE cases au plus du joueur, même niveau. Rend gid, ou nil et raison.
 local function near(player, npc)
     if type(npc) ~= "string" then return nil, "bad request" end
-    local gid = Groups().findNpc(npc)
+    local gid = LivingKnox.Groups.findNpc(npc)
     if gid == nil then return nil, "npc not in a group" end
     local B = LivingKnox.Bodies
     local body = B ~= nil and B.find ~= nil and B.find(npc) or nil
@@ -475,7 +471,7 @@ function Trade.request(player, args)
     local gid, why = near(player, args.npc)
     if gid == nil then return nil, why end
     local out = { op = args.op, n = args.n, npc = args.npc, ok = false }
-    local key = Hostility().keyOf(player)
+    local key = LivingKnox.Hostility.keyOf(player)
     if key == nil then
         out.reason, out.line = "stranger", "IGUI_LK_Trade_Refuse_stranger"
         reply(args.npc, out.line, player, nil)
@@ -496,9 +492,9 @@ function Trade.request(player, args)
         out.reason, out.detail = ow, od
         out.line = "IGUI_LK_Trade_Refuse_" .. tostring(ow)
         Trade.stats.refused = Trade.stats.refused + 1
-        local att = Hostility().get(gid, key)
+        local att = LivingKnox.Hostility.get(gid, key)
         reply(args.npc, out.line, player, bandOf(att and att.level))
-        log().info("trade: group %s will not trade with %s: %s (%s)", gid, key, tostring(ow), tostring(od))
+        LivingKnox.Log.info("trade: group %s will not trade with %s: %s (%s)", gid, key, tostring(ow), tostring(od))
     end
     return out
 end
@@ -507,7 +503,7 @@ function Trade.onClientCommand(module, command, player, args)
     if module ~= Trade.MODULE or command ~= Trade.CMD_REQUEST or not isServer() or player == nil then return end
     local out, why = Trade.request(player, args)
     if out == nil then
-        log().info("trade: request of %s refused: %s", tostring(player:getUsername()), tostring(why))
+        LivingKnox.Log.info("trade: request of %s refused: %s", tostring(player:getUsername()), tostring(why))
         out = { op = type(args) == "table" and args.op or nil, n = type(args) == "table" and args.n or nil,
                 ok = false, err = tostring(why) }
     end

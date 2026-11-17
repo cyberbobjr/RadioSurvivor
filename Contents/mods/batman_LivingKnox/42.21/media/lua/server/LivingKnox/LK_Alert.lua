@@ -77,7 +77,6 @@ Alert.listeners = Alert.listeners or {}
 Alert.stats = Alert.stats or { observed = 0, raised = 0, escalated = 0, joined = 0, resumed = 0, repeated = 0,
     calmed = 0, cries = 0, barks = 0, sent = 0, noises = 0, woken = 0, listenerErrors = 0 }
 
-local function log() return LivingKnox.Log end
 local function cfg() return Alert.CFG end
 
 -- LK05-T14 : seuils réglables (options sandbox, LivingKnox.Config.danger) ; repli : valeurs de CFG.
@@ -89,10 +88,6 @@ function Alert.shoutRadius(kind)
     if kind == "zombie" or c.SHOUT[kind] == nil then return LivingKnox.Config.danger("AlertShoutZombie", c.SHOUT.zombie) end
     return c.SHOUT[kind]
 end
-
-local function finite(v) return type(v) == "number" and v == v and v > -1e9 and v < 1e9 end
-
-local function cheb(ax, ay, bx, by) return math.max(math.abs(ax - bx), math.abs(ay - by)) end
 
 local function count(name)
     Alert.stats[name] = (Alert.stats[name] or 0) + 1
@@ -120,7 +115,7 @@ function Alert.isNear(t, home)
     local c = cfg()
     if (t.d or 1e9) <= c.NEAR_MEMBER[t.kind] then return true end
     if home == nil then return false end
-    return math.abs((t.z or 0) - home.z) <= 1 and cheb(t.x, t.y, home.x, home.y) <= c.NEAR_HOME[t.kind]
+    return math.abs((t.z or 0) - home.z) <= 1 and LivingKnox.Geo.cheb(t.x, t.y, home.x, home.y) <= c.NEAR_HOME[t.kind]
 end
 
 -- Menaces d'alerte d'une perception (Senses.perceived) : { { kind, key, label, x, y, z, d, seen }, ... } triées par
@@ -132,9 +127,9 @@ function Alert.threatsOf(per, kinds, home)
     if per == nil or per.stale then return out end
     local zmax = LivingKnox.Config.zombieAlertDistance()
     for _, e in ipairs(per.z or {}) do
-        if (e.s or e.h) and finite(e.x) and finite(e.y) and (zmax == nil or (e.d or 0) <= zmax) then
+        if (e.s or e.h) and LivingKnox.Num.finite(e.x) and LivingKnox.Num.finite(e.y) and (zmax == nil or (e.d or 0) <= zmax) then
             local o = e.o
-            local key = (finite(o) and o ~= -1) and ("z:" .. string.format("%d", math.floor(o))) or "z?"
+            local key = (LivingKnox.Num.finite(o) and o ~= -1) and ("z:" .. string.format("%d", math.floor(o))) or "z?"
             local t = { kind = "zombie", key = key, label = key, x = math.floor(e.x), y = math.floor(e.y),
                 z = math.floor(e.z or 0), d = e.d or 0, seen = e.s == true }
             if Alert.isNear(t, home) then out[#out + 1] = t end
@@ -142,7 +137,7 @@ function Alert.threatsOf(per, kinds, home)
     end
     for _, e in ipairs(per.p or {}) do
         local kind = kinds[e.u]
-        if (e.s or e.h) and kind ~= nil and finite(e.x) and finite(e.y) then
+        if (e.s or e.h) and kind ~= nil and LivingKnox.Num.finite(e.x) and LivingKnox.Num.finite(e.y) then
             local t = { kind = kind, key = "p:" .. tostring(e.u), label = tostring(e.u), x = math.floor(e.x),
                 y = math.floor(e.y), z = math.floor(e.z or 0), d = e.d or 0, seen = e.s == true }
             if Alert.isNear(t, home) then out[#out + 1] = t end
@@ -283,7 +278,7 @@ local function dispatch(what, gid, info, event)
             local ok, err = pcall(fn, gid, info, event)
             if not ok then
                 count("listenerErrors")
-                log().warn("alert listener %s (%s) failed for group %s: %s", l.name, what, tostring(gid), tostring(err))
+                LivingKnox.Log.warn("alert listener %s (%s) failed for group %s: %s", l.name, what, tostring(gid), tostring(err))
             end
         end
     end
@@ -321,7 +316,7 @@ function Alert.cry(gid, a, spot, body)
         if out ~= nil then
             count("barks")
         else
-            log().debug("npc %s: alert line not said: %s", spot.npc, tostring(why))
+            LivingKnox.Log.debug("npc %s: alert line not said: %s", spot.npc, tostring(why))
         end
     end
     local r = Alert.shoutRadius(a.kind)
@@ -380,7 +375,7 @@ function Alert.raise(gid, t, spot, body, minute, home, how)
     local event, a = Alert.note(gid, t, spot, minute, home)
     count(event == "seen" and "repeated" or event)
     if event == "raised" or event == "escalated" then
-        log().info("group %s alert %s %s by %s (%s): %s %s at %d,%d,%d, level %d", gid, a.id, event, spot.npc,
+        LivingKnox.Log.info("group %s alert %s %s by %s (%s): %s %s at %d,%d,%d, level %d", gid, a.id, event, spot.npc,
             spot.mid, t.kind, t.label, t.x, t.y, t.z, math.floor(Alert.levelAt(a, minute) + 0.5))
         local G = LivingKnox.Groups
         if G ~= nil and G.addLog ~= nil then
@@ -390,7 +385,7 @@ function Alert.raise(gid, t, spot, body, minute, home, how)
         Alert.cry(gid, a, spot, body)
         Alert.onRaised(gid, a, event, minute)
     elseif event == "joined" or event == "resumed" then
-        log().info("group %s alert %s %s: %s %s at %d,%d,%d, level %d", gid, a.id, event, t.kind, t.label, t.x,
+        LivingKnox.Log.info("group %s alert %s %s: %s %s at %d,%d,%d, level %d", gid, a.id, event, t.kind, t.label, t.x,
             t.y, t.z, math.floor(Alert.levelAt(a, minute) + 0.5))
     end
     return event, a
@@ -404,7 +399,7 @@ function Alert.forMember(gid, x, y, z, atHome, minute)
     if not isActive(a, minute) then return nil end
     local reach = Alert.reach()
     local function within(px, py, pz)
-        return cheb(x, y, px + 0.5, py + 0.5) + 3 * math.abs(z - pz) <= reach
+        return LivingKnox.Geo.cheb(x, y, px + 0.5, py + 0.5) + 3 * math.abs(z - pz) <= reach
     end
     if not atHome and not within(a.ox, a.oy, a.oz) and not within(a.x, a.y, a.z) then return nil end
     local dx, dy = a.x + 0.5 - x, a.y + 0.5 - y
@@ -420,7 +415,7 @@ function Alert.calm(gid, minute)
     if a == nil then return false end
     st.alert = nil
     count("calmed")
-    log().info("group %s alert %s calm after %d min (%d threat(s), last %s %s at %d,%d,%d)", gid, a.id,
+    LivingKnox.Log.info("group %s alert %s calm after %d min (%d threat(s), last %s %s at %d,%d,%d)", gid, a.id,
         math.max(0, (minute or a.at) - a.since), a.n, a.kind, a.label, a.x, a.y, a.z)
     Alert.onCalm(gid, a, minute)
     return true
@@ -441,7 +436,7 @@ end
 -- Dormeur réveillé par l'alerte (compteur, journal du moteur).
 function Alert.noteWoken(gid, npc)
     count("woken")
-    log().debug("npc %s (%s): woken by the alert", tostring(npc), tostring(gid))
+    LivingKnox.Log.debug("npc %s (%s): woken by the alert", tostring(npc), tostring(gid))
 end
 
 -- Alerte en cours du groupe gid (vue publique), ou nil.

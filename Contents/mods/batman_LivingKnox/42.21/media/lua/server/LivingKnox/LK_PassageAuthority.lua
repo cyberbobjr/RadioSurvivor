@@ -43,19 +43,12 @@ Authority.LINE_STEP = 0.25   -- cases : echantillonnage de la ligne du demandeur
 Authority.last = Authority.last or {}   -- demandeur -> heure du dernier signal traite
 Authority.stats = Authority.stats or { signals = 0, refused = 0, none = 0, granted = 0 }
 
-local function log() return LivingKnox.Log end
 local function now() return getTimestampMs() end
-local function B() return LivingKnox.Bodies end
-local function D() return LivingKnox.Directives end
-
-local function finite(v) return type(v) == "number" and v == v and v > -1e9 and v < 1e9 end
 
 local function sign(v)
     if v > 0 then return 1 elseif v < 0 then return -1 end
     return 0
 end
-
-local function cheb(ax, ay, bx, by) return math.max(math.abs(ax - bx), math.abs(ay - by)) end
 
 local function senderName(player)
     if player ~= nil and player.getUsername ~= nil then return tostring(player:getUsername()) end
@@ -65,14 +58,14 @@ end
 local function refuse(player, args, why)
     Authority.stats.refused = Authority.stats.refused + 1
     local id = type(args) == "table" and args.id or nil
-    log().info("npc %s: passage signal from %s refused: %s", tostring(id), senderName(player), why)
+    LivingKnox.Log.info("npc %s: passage signal from %s refused: %s", tostring(id), senderName(player), why)
     return nil, why
 end
 
 local function validArgs(a)
     if type(a) ~= "table" or type(a.id) ~= "string" or type(a.b) ~= "string" or a.id == a.b then return false end
     for _, k in ipairs({ "v", "x", "y", "z" }) do
-        if not finite(a[k]) then return false end
+        if not LivingKnox.Num.finite(a[k]) then return false end
     end
     return true
 end
@@ -89,8 +82,8 @@ end
 
 -- Vrai si le PNJ id est en marche : consigne "move" ouverte (D07 : sinon il est immobile et cede toujours).
 function Authority.movingOf(id)
-    local e = D().get(id)
-    return e ~= nil and not e.done and e.op == D().OP_MOVE
+    local e = LivingKnox.Directives.get(id)
+    return e ~= nil and not e.done and e.op == LivingKnox.Directives.OP_MOVE
 end
 
 -- Vrai si le PNJ id (corps body) peut s'ecarter ; sinon faux et la raison.
@@ -125,7 +118,7 @@ local SIDES = { { 0, -1 }, { 1, 0 }, { 0, 1 }, { -1, 0 } }
 -- (voir l'en-tete), dans l'ordre du parcours en largeur (pas, puis nord, est, sud, ouest).
 function Authority.freeAround(bx, by, lv)
     local cell = getCell()
-    local Bo, Edges = B(), LivingKnox.Edges
+    local Bo, Edges = LivingKnox.Bodies, LivingKnox.Edges
     local out, seen = {}, { [bx .. "," .. by] = true }
     local front = { cell:getGridSquare(bx, by, lv) }
     if front[1] == nil then return out end
@@ -202,16 +195,18 @@ function Authority.onSignal(player, args)
     Authority.stats.signals = Authority.stats.signals + 1
     if not validArgs(args) then return refuse(player, args, "bad signal") end
     local id, bid = args.id, args.b
-    local mz = B().find(id)
+    local mz = LivingKnox.Bodies.find(id)
     if mz == nil then return refuse(player, args, "mover has no body") end
-    local bz = B().find(bid)
+    local bz = LivingKnox.Bodies.find(bid)
     if bz == nil then return refuse(player, args, "blocker " .. bid .. " has no body") end
-    if not D().isOwner(mz, player) then return refuse(player, args, "not the owner of " .. id) end
-    local e = D().get(id)
-    if e == nil or e.done or e.op ~= D().OP_MOVE or e.v ~= args.v then return refuse(player, args, "no open move") end
+    if not LivingKnox.Directives.isOwner(mz, player) then return refuse(player, args, "not the owner of " .. id) end
+    local e = LivingKnox.Directives.get(id)
+    if e == nil or e.done or e.op ~= LivingKnox.Directives.OP_MOVE or e.v ~= args.v then
+        return refuse(player, args, "no open move")
+    end
     local mx, my, lv = math.floor(mz:getX()), math.floor(mz:getY()), math.floor(mz:getZ())
     local bx, by, bl = math.floor(bz:getX()), math.floor(bz:getY()), math.floor(bz:getZ())
-    if bl ~= lv or cheb(mx, my, bx, by) > Authority.NEIGHBOUR then
+    if bl ~= lv or LivingKnox.Geo.cheb(mx, my, bx, by) > Authority.NEIGHBOUR then
         return refuse(player, args, string.format("not neighbours (%d,%d,%d and %d,%d,%d)", mx, my, lv, bx, by, bl))
     end
     local t = now()
@@ -222,14 +217,14 @@ function Authority.onSignal(player, args)
     local mover = { id = id, kind = Authority.kindOf(id), x = mx, y = my, z = lv }
     local blocker = { id = bid, kind = Authority.kindOf(bid), x = bx, y = by, z = bl, canMove = can,
         moving = Authority.movingOf(bid) }
-    local tx, ty = D().stepTarget(e, e.k)
+    local tx, ty = LivingKnox.Directives.stepTarget(e, e.k)
     local path = Authority.pathAhead(mx, my, bx, by, tx, ty)
     local free = Authority.freeAround(bx, by, bl)
     local decision = LivingKnox.Passage.arbitrate(mover, blocker, free, path)
     if decision == nil then
         Authority.stats.none = Authority.stats.none + 1
         local why = noneReason(mover, blocker, cant)
-        log().info("npc %s: blocked by npc %s at %d,%d, no passage: %s (%s vs %s, blocker %s)", id, bid, bx, by, why,
+        LivingKnox.Log.info("npc %s: blocked by npc %s at %d,%d, no passage: %s (%s vs %s, blocker %s)", id, bid, bx, by, why,
             tostring(mover.kind), tostring(blocker.kind), blocker.moving and "moving" or "still")
         return nil, why
     end
@@ -238,7 +233,7 @@ function Authority.onSignal(player, args)
     if not ok then return refuse(player, args, "order not given: " .. tostring(why)) end
     LivingKnox.Movement.excuse(id, e.v)
     Authority.stats.granted = Authority.stats.granted + 1
-    log().info("npc %s: blocked by npc %s at %d,%d, %s to %d,%d granted (%s vs %s)", id, bid, bx, by,
+    LivingKnox.Log.info("npc %s: blocked by npc %s at %d,%d, %s to %d,%d granted (%s vs %s)", id, bid, bx, by,
         decision.action, decision.to.x, decision.to.y, tostring(mover.kind), tostring(blocker.kind))
     return decision
 end

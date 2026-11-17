@@ -41,10 +41,6 @@ Population.state = Population.state or { started = false, done = false }
 
 local M = 2147483647
 
-local function log() return LivingKnox.Log end
-local function Groups() return LivingKnox.Groups end
-local function Config() return LivingKnox.Config end
-
 -- Tirages ------------------------------------------------------------------------------------------------------------
 
 local function hashText(s, h)
@@ -96,9 +92,11 @@ function Population.typeWeights(settings)
     local weights, total = settings.weights or {}, 0
     for _, w in pairs(weights) do total = total + w end
     if total <= 0 then
-        log().warn("population: every group type weight is 0, default weights used")
+        LivingKnox.Log.warn("population: every group type weight is 0, default weights used")
         weights = {}
-        for groupType, option in pairs(Config().TYPE_WEIGHT_OPTIONS) do weights[groupType] = Config().DEFAULTS[option] end
+        for groupType, option in pairs(LivingKnox.Config.TYPE_WEIGHT_OPTIONS) do
+            weights[groupType] = LivingKnox.Config.DEFAULTS[option]
+        end
     end
     local out, known = {}, {}
     for _, id in ipairs(LivingKnox.GroupTypes.ids()) do
@@ -112,7 +110,7 @@ function Population.typeWeights(settings)
     end
     table.sort(missing)
     for _, id in ipairs(missing) do
-        log().warn("population: group type %s has a weight but is not registered: never drawn", id)
+        LivingKnox.Log.warn("population: group type %s has a weight but is not registered: never drawn", id)
     end
     return out
 end
@@ -125,7 +123,7 @@ function Population.sizeRange(def, settings)
     if lo <= hi then return lo, hi end
     local n = def.size.min
     if settings.sizeMin > def.size.max then n = def.size.max end
-    log().warn("population: group size options %d..%d outside the size %d..%d of type %s, %d member(s)",
+    LivingKnox.Log.warn("population: group size options %d..%d outside the size %d..%d of type %s, %d member(s)",
         settings.sizeMin, settings.sizeMax, def.size.min, def.size.max, def.id, n)
     return n, n
 end
@@ -137,7 +135,7 @@ function Population.drawMembers(def, size, draw)
     local function available(p) return p.max == nil or (used[p.id] or 0) < p.max end
     for _ = 1, size do
         local roles = {}
-        for _, role in ipairs(Config().GROUP_ROLES) do
+        for _, role in ipairs(LivingKnox.Config.GROUP_ROLES) do
             if def.roles[role] then
                 for _, p in ipairs(def.profiles) do
                     if p.role == role and available(p) then
@@ -178,11 +176,11 @@ function Population.planGroup(def, settings, draw, index)
     local members = Population.drawMembers(def, size, draw)
     local tmp = {}
     for k, m in ipairs(members) do
-        local mid = Groups().MEMBER_PREFIX .. tostring(k)
+        local mid = LivingKnox.Groups.MEMBER_PREFIX .. tostring(k)
         tmp[mid] = { id = mid, role = m.role, alive = true }
     end
-    local leaderId = Groups().pickSuccessor({ members = tmp })
-    local leader = leaderId and Groups().memberNumber(leaderId) or nil
+    local leaderId = LivingKnox.Groups.pickSuccessor({ members = tmp })
+    local leader = leaderId and LivingKnox.Groups.memberNumber(leaderId) or nil
     local story, storySeed
     for _ = 1, Population.STORY_TRIES do
         storySeed = draw(M - 1)
@@ -198,14 +196,14 @@ function Population.planGroup(def, settings, draw, index)
         if leader then
             local m = members[leader]
             if m.forced and m.female ~= story.leader.female then
-                log().warn("population: no story of type %s matches the leader profile %s", def.id, m.profile)
+                LivingKnox.Log.warn("population: no story of type %s matches the leader profile %s", def.id, m.profile)
             else
                 m.female = story.leader.female
             end
         end
     else
         storySeed = nil
-        log().error("population: no story for type %s, group kept without story", def.id)
+        LivingKnox.Log.error("population: no story for type %s, group kept without story", def.id)
     end
     return { type = def.id, name = name, story = summary, storySeed = storySeed, needs = def.needs,
         morale = def.morale, members = members, leader = leader, siteSeed = draw(M - 1) }
@@ -237,7 +235,7 @@ function Population.placeHomes(plans)
             homes[#homes + 1] = { x = p.home.x, y = p.home.y, source = "population" }
             if site.key then taken[site.key] = true end
         else
-            log().warn("population: group %d (%s) has no home: %s", i, p.type, tostring(why))
+            LivingKnox.Log.warn("population: group %d (%s) has no home: %s", i, p.type, tostring(why))
         end
     end
 end
@@ -251,7 +249,7 @@ end
 -- Insère un plan de groupe (foyer compris) dans le registre passé en argument (logique pure, sans sauvegarde ;
 -- partagée par la population initiale et la relève) : groupe, membres, chef. Rend le groupe vivant, ou nil et la raison.
 function Population.insert(data, p, day)
-    local G = Groups()
+    local G = LivingKnox.Groups
     local g, why = G.applyCreate(data, { type = p.type, name = p.name, story = p.story, storySeed = p.storySeed,
         home = p.home, needs = p.needs, morale = p.morale, day = day })
     if not g then return nil, why end
@@ -267,17 +265,17 @@ end
 -- identifiants créés (vide si rien à faire), ou nil et une raison.
 function Population.run(opts)
     opts = opts or {}
-    local G = Groups()
+    local G = LivingKnox.Groups
     if not G.ensure() then return nil, "group registry not ready" end
     if not eligible(G.state.data) then
-        log().info("population: group registry already populated, nothing created")
+        LivingKnox.Log.info("population: group registry already populated, nothing created")
         return {}
     end
-    local settings = Config().population()
+    local settings = LivingKnox.Config.population()
     local seed = opts.seed or Population.baseSeed()
     local plans, why = Population.plan(settings, seed)
     if not plans then
-        log().error("population: %s; no group created", why)
+        LivingKnox.Log.error("population: %s; no group created", why)
         return nil, why
     end
     Population.placeHomes(plans)
@@ -288,20 +286,20 @@ function Population.run(opts)
             local g, gwhy = Population.insert(data, p, day)
             if g then
                 ids[#ids + 1] = g.id
-                log().info("population: %s %s, %d member(s), leader %s, home %s", g.id, p.type, #p.members,
+                LivingKnox.Log.info("population: %s %s, %d member(s), leader %s, home %s", g.id, p.type, #p.members,
                     tostring(g.leader), p.home and (p.home.x .. "," .. p.home.y .. "," .. p.home.z) or "none")
             else
-                log().error("population: group of type %s not created: %s", p.type, tostring(gwhy))
+                LivingKnox.Log.error("population: group of type %s not created: %s", p.type, tostring(gwhy))
             end
         end
         data.populated = true
         return true, ids
     end)
     if not result then
-        log().error("population: %s", tostring(err))
+        LivingKnox.Log.error("population: %s", tostring(err))
         return nil, err
     end
-    log().info("population: %d group(s) created (requested %d, seed %s)", #result, settings.count, tostring(seed))
+    LivingKnox.Log.info("population: %d group(s) created (requested %d, seed %s)", #result, settings.count, tostring(seed))
     return result
 end
 
@@ -309,9 +307,9 @@ end
 -- rien, nouvelle tentative à l'heure suivante.
 function Population.ensure()
     local st = Population.state
-    if st.done or not Config().isEnabled() then return nil end
+    if st.done or not LivingKnox.Config.isEnabled() then return nil end
     st.done = true
-    if Groups().isBlocked() then return nil end
+    if LivingKnox.Groups.isBlocked() then return nil end
     return Population.run()
 end
 
@@ -324,7 +322,7 @@ end
 -- EveryHours (relecture paresseuse).
 function Population.onStart()
     Population.state.started = true
-    if not Groups().isReady() then return nil end
+    if not LivingKnox.Groups.isReady() then return nil end
     return Population.ensure()
 end
 
@@ -357,7 +355,7 @@ Population.RELIEF = {
 }
 
 local function byNumber(a, b)
-    return (Groups().idNumber(a) or 0) < (Groups().idNumber(b) or 0)
+    return (LivingKnox.Groups.idNumber(a) or 0) < (LivingKnox.Groups.idNumber(b) or 0)
 end
 
 local function sortedGroups(data)
@@ -385,7 +383,7 @@ end
 
 -- Délai de relève d'un groupe en heures : jours tirés dans [reliefMin, reliefMax] (reproductible par groupe).
 function Population.reliefDelay(settings, gid)
-    local n = Groups().idNumber(gid) or 0
+    local n = LivingKnox.Groups.idNumber(gid) or 0
     local draw = Population.stream((Population.reliefSeed() % M) * 31 + n * 7919)
     local days = settings.reliefMin + draw(settings.reliefMax - settings.reliefMin + 1) - 1
     return days * 24
@@ -401,7 +399,7 @@ end
 -- Constat des groupes disparus sur un registre passé en argument (logique pure, sans sauvegarde). Rend la liste des
 -- identifiants marqués à l'heure now.
 function Population.markGone(data, now, settings)
-    local G, R = Groups(), Population.RELIEF
+    local G, R = LivingKnox.Groups, Population.RELIEF
     local day = math.floor(now / 24) + 1
     local out = {}
     for _, gid in ipairs(sortedGroups(data)) do
@@ -437,7 +435,7 @@ end
 -- son groupe) n'appelle aucune relève ; il reste marqué disparu.
 function Population.dueReliefs(data, now)
     local out = {}
-    local drawn = Config().TYPE_WEIGHT_OPTIONS
+    local drawn = LivingKnox.Config.TYPE_WEIGHT_OPTIONS
     for _, gid in ipairs(sortedGroups(data)) do
         local gone = data.groups[gid].gone
         if gone ~= nil and gone.relief == nil and now >= gone.due and drawn[data.groups[gid].type] ~= nil then
@@ -460,7 +458,7 @@ end
 function Population.planRelief(old, settings, index)
     local types = Population.typeWeights(settings)
     if #types == 0 then return nil, "no group type can be drawn" end
-    local seed = ((Population.reliefSeed() % M) * 31 + (Groups().idNumber(old.id) or 0) * 7919
+    local seed = ((Population.reliefSeed() % M) * 31 + (LivingKnox.Groups.idNumber(old.id) or 0) * 7919
         + (old.gone.due % 100000)) % M
     local draw = Population.stream(seed)
     local t = weighted(types, function(x) return x.weight end, draw)
@@ -482,12 +480,12 @@ end
 -- relèves dues (une sauvegarde chacune). Rend la liste des groupes créés, ou nil et une raison. Moteur désactivé :
 -- rien (le constat et les relèves attendent la réactivation).
 function Population.reliefStep(now)
-    if not Config().isEnabled() then return nil, "disabled" end
-    local G = Groups()
+    if not LivingKnox.Config.isEnabled() then return nil, "disabled" end
+    local G = LivingKnox.Groups
     if not G.ensure() then return nil, "group registry not ready" end
     now = now or Population.currentHour()
     if now == nil then return nil, "no game clock" end
-    local settings = Config().population()
+    local settings = LivingKnox.Config.population()
     G.update(function(data)
         local marked = Population.markGone(data, now, settings)
         return #marked > 0, marked
@@ -507,13 +505,14 @@ function Population.reliefStep(now)
             if plan then g, why = Population.insert(data, plan, day) end
             if not g then
                 o.gone.due = now + R.RETRY_HOURS
-                log().warn("relief: no relief for %s (%s), next try at hour %s", gid, tostring(why), tostring(o.gone.due))
+                LivingKnox.Log.warn("relief: no relief for %s (%s), next try at hour %s", gid, tostring(why),
+                    tostring(o.gone.due))
                 return true, false
             end
             o.gone.relief = g.id
             G.appendLog(o, "relieved", g.id, day)
             G.appendLog(g, "relief", gid, day)
-            log().info("relief: %s %s, %d member(s), leader %s, home %d,%d,%d (%s), replaces %s, %s squares from"
+            LivingKnox.Log.info("relief: %s %s, %d member(s), leader %s, home %d,%d,%d (%s), replaces %s, %s squares from"
                 .. " its home", g.id, plan.type, #plan.members, tostring(g.leader), plan.home.x, plan.home.y,
                 plan.home.z, tostring(plan.site), gid, plan.distance and tostring(math.floor(plan.distance)) or "?")
             return true, g.id

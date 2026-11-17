@@ -18,9 +18,7 @@ local E = Routines.exec
 local buildingId, placeBeside = E.buildingId, E.placeBeside
 local goTo, faceTo, sitDown, entryOf = E.goTo, E.faceTo, E.sitDown, E.entryOf
 
-local function log() return LivingKnox.Log end
 local function cfg() return Routines.CFG end
-local function Groups() return LivingKnox.Groups end
 
 local function unfedKey(gid, mid) return tostring(gid) .. "/" .. tostring(mid) end
 
@@ -53,7 +51,7 @@ end
 function Routines.finishMeal(id, m)
     if m == nil or not m.pending then return false end
     m.pending = false
-    local N, G = LivingKnox.Needs, Groups()
+    local N, G = LivingKnox.Needs, LivingKnox.Groups
     local value
     if N ~= nil and N.relieve ~= nil and G ~= nil then
         G.update(function(data)
@@ -63,7 +61,7 @@ function Routines.finishMeal(id, m)
             return value ~= nil, true
         end)
     end
-    log().info("npc %s (%s %s): %s of %s done, %s -%d -> %s", tostring(id), tostring(m.gid), tostring(m.mid),
+    LivingKnox.Log.info("npc %s (%s %s): %s of %s done, %s -%d -> %s", tostring(id), tostring(m.gid), tostring(m.mid),
         m.need == "thirst" and "drink" or "meal", m.took and m.took.t or "?", m.need, m.relief or 0, tostring(value))
     return true
 end
@@ -83,7 +81,7 @@ local function mealOff(id, m, ctx, why, minutes)
     Routines.fast(ctx.gid, ctx.mid, m.need, ctx.minute + minutes)
     Routines.stats.fasts = Routines.stats.fasts + 1
     m.phase = "done"
-    log().debug("npc %s: %s set aside for %d minute(s): %s", tostring(id), m.need, minutes, tostring(why))
+    LivingKnox.Log.debug("npc %s: %s set aside for %d minute(s): %s", tostring(id), m.need, minutes, tostring(why))
 end
 
 local function mealRestart(m)
@@ -102,7 +100,7 @@ function Routines.runMeal(id, st, ctx, g)
         m = { key = key, kind = "meal", need = need, cat = Routines.MEAL[need], gid = ctx.gid, mid = ctx.mid,
             phase = "find", tries = 0, fails = 0 }
         mem[id] = m
-        log().debug("npc %s: routine %s (%s)", id, key, tostring(st.why))
+        LivingKnox.Log.debug("npc %s: routine %s (%s)", id, key, tostring(st.why))
     end
     local e = entryOf(id)
     if m.lastV ~= nil and (e == nil or e.v ~= m.lastV) and (m.phase == "go" or m.phase == "face"
@@ -152,7 +150,7 @@ function Routines.runMeal(id, st, ctx, g)
         local got, why = S.takeMeal(ctx.gid, m.cat, m.spot.key, nil, ctx.mid)
         if got == nil then
             m.tries = m.tries + 1
-            log().debug("npc %s: %s at %s not taken: %s", id, m.cat, m.spot.key, tostring(why))
+            LivingKnox.Log.debug("npc %s: %s at %s not taken: %s", id, m.cat, m.spot.key, tostring(why))
             if m.tries >= cfg().MEAL_TRIES then return mealOff(id, m, ctx, why, cfg().UNFED_MINUTES) end
             mealRestart(m)
             return

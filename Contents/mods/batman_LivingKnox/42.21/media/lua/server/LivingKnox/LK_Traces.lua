@@ -66,22 +66,12 @@ Traces.CFG = Traces.CFG or {
 Traces.state = Traces.state or { done = {}, tried = {}, lastScan = nil, reloaded = false, noText = false }
 Traces.stats = Traces.stats or { homes = 0, chiefs = 0, restored = 0, notReady = 0, failed = 0 }
 
-local function log() return LivingKnox.Log end
-local function Groups() return LivingKnox.Groups end
-local function Journal() return LivingKnox.Journal end
-local function Homes() return LivingKnox.Homes end
 local function cfg() return Traces.CFG end
 local function now() return getTimestampMs() end
-
-local function isInt(v, lo, hi)
-    return type(v) == "number" and v == v and math.floor(v) == v and v >= lo and v <= hi
-end
 
 local function isMember(v) return type(v) == "string" and string.match(v, "^m%-%d+$") ~= nil end
 
 local function homeKey(home) return home.x .. "," .. home.y .. "," .. home.z end
-
-local function cheb(ax, ay, bx, by) return math.max(math.abs(ax - bx), math.abs(ay - by)) end
 
 -- ================================================================ texte
 
@@ -104,12 +94,12 @@ function Traces.resolver()
         and Translator.loadFiles ~= nil then
         Traces.state.reloaded = true
         Translator.loadFiles()
-        log().info("traces: mod translations reloaded on the server")
+        LivingKnox.Log.info("traces: mod translations reloaded on the server")
     end
     if not hasText() then
         if not Traces.state.noText then
             Traces.state.noText = true
-            log().warn("traces: no translation for %sEntryDay here: no document written", Traces.KEY)
+            LivingKnox.Log.warn("traces: no translation for %sEntryDay here: no document written", Traces.KEY)
         end
         return nil
     end
@@ -185,7 +175,7 @@ end
 -- ne sont jamais lus ; sans graine, le résumé anglais du registre.
 function Traces.story(g, lang)
     local S = LivingKnox.Stories
-    if S ~= nil and isInt(g.storySeed, 0, 2147483647) then
+    if S ~= nil and LivingKnox.Num.isInt(g.storySeed, 0, 2147483647) then
         local story = S.compose(g.type, g.storySeed)
         if type(story) == "table" then
             local pub = S.publicView(story)
@@ -199,12 +189,12 @@ end
 -- Lignes du journal de récit du groupe g, la plus ancienne d'abord (entrées dont la clé ne se résout pas omises).
 function Traces.entries(g, resolve)
     local out = {}
-    local views = Journal().view(g, 0)
+    local views = LivingKnox.Journal.view(g, 0)
     for _, v in ipairs(views) do
-        local text = Journal().compose(v, resolve)
+        local text = LivingKnox.Journal.compose(v, resolve)
         if text ~= nil then
             local line
-            if isInt(v.hour, 0, 23) then
+            if LivingKnox.Num.isInt(v.hour, 0, 23) then
                 line = resolve(Traces.KEY .. "Entry", tostring(v.day), string.format("%02d", v.hour), text)
             else
                 line = resolve(Traces.KEY .. "EntryDay", tostring(v.day), text)
@@ -256,8 +246,9 @@ end
 -- ================================================================ marque (registre des groupes)
 
 local function validHomeMark(h)
-    return type(h) == "table" and isInt(h.hx, 0, 2147483647) and isInt(h.hy, 0, 2147483647)
-        and isInt(h.hz, -32, 31) and isInt(h.day, 0, 2147483647) and (h.state == "placing" or h.state == "done")
+    return type(h) == "table" and LivingKnox.Num.isInt(h.hx, 0, 2147483647) and LivingKnox.Num.isInt(h.hy, 0, 2147483647)
+        and LivingKnox.Num.isInt(h.hz, -32, 31) and LivingKnox.Num.isInt(h.day, 0, 2147483647) and (h.state == "placing"
+            or h.state == "done")
         and (h.where == nil or Traces.WHERE[h.where] == true)
 end
 
@@ -296,12 +287,12 @@ end
 
 -- Modifie la marque du groupe vivant gid (remise à neuf si malformée) : fn(t) ; une sauvegarde. Rend vrai si écrite.
 local function writeTraces(gid, fn)
-    local ok = Groups().update(function(data)
+    local ok = LivingKnox.Groups.update(function(data)
         local live = data.groups[gid]
         if live == nil then return false, false end
         local t = live.traces
         if not Traces.valid(t) then
-            if t ~= nil then log().warn("traces: malformed trace mark of %s reset", tostring(gid)) end
+            if t ~= nil then LivingKnox.Log.warn("traces: malformed trace mark of %s reset", tostring(gid)) end
             t = { v = Traces.FORMAT }
         end
         fn(t)
@@ -316,11 +307,9 @@ end
 local function objectsAround(home, R, fn)
     local cell = getCell()
     if cell == nil then return end
-    for dy = -R, R do
-        for dx = -R, R do
-            local sq = cell:getGridSquare(home.x + dx, home.y + dy, home.z)
-            if sq ~= nil then fn(sq) end
-        end
+    for x, y in LivingKnox.Geo.squaresAround(home.x, home.y, R) do
+        local sq = cell:getGridSquare(x, y, home.z)
+        if sq ~= nil then fn(sq) end
     end
 end
 
@@ -333,7 +322,7 @@ end
 -- Documents du groupe autour du foyer (conteneurs et sol, zone chargée) : { { item, container, square } }.
 function Traces.findDocuments(gid, home, kind)
     local out = {}
-    objectsAround(home, Homes().CFG.RADIUS + 2, function(sq)
+    objectsAround(home, LivingKnox.Homes.CFG.RADIUS + 2, function(sq)
         local objs = sq:getObjects()
         for i = 0, objs:size() - 1 do
             local c = objs:get(i):getContainer()
@@ -358,7 +347,7 @@ end
 -- Conteneur où ranger le carnet : caisse ou tente de l'aménagement (ModData LKHome du groupe), sinon le conteneur
 -- le plus proche du foyer dans le même bâtiment (hors de tout bâtiment pour un camp). Rend le conteneur, ou nil.
 function Traces.pickContainer(gid, home)
-    local H = Homes()
+    local H = LivingKnox.Homes
     local cell = getCell()
     local hsq = cell and cell:getGridSquare(home.x, home.y, home.z)
     if hsq == nil then return nil end
@@ -371,7 +360,7 @@ function Traces.pickContainer(gid, home)
             local o = objs:get(i)
             local c = o:getContainer()
             if c ~= nil then
-                local score = cheb(sq:getX(), sq:getY(), home.x, home.y)
+                local score = LivingKnox.Geo.cheb(sq:getX(), sq:getY(), home.x, home.y)
                 if o:hasModData() and o:getModData()[H.TAG] == gid then score = score - 1000 end
                 if bestScore == nil or score < bestScore then best, bestScore = c, score end
             end
@@ -394,7 +383,7 @@ end
 
 -- Groupes disparus dont le carnet reste à déposer : { { gid, home } } triés par identifiant.
 function Traces.pending()
-    local out = Groups().update(function(data)
+    local out = LivingKnox.Groups.update(function(data)
         local list = {}
         for gid, g in pairs(data.groups) do
             if g.gone ~= nil and type(g.home) == "table" and not Traces.homeDone(g) then
@@ -414,7 +403,7 @@ end
 function Traces.checkHome(gid, opts)
     opts = opts or {}
     local st = Traces.state
-    local g = Groups().get(gid)
+    local g = LivingKnox.Groups.get(gid)
     if g == nil or type(g.home) ~= "table" then return nil, "no group or no home" end
     if g.gone == nil then return nil, "group not gone" end
     local home = g.home
@@ -422,7 +411,7 @@ function Traces.checkHome(gid, opts)
     if st.done[gid] == hk then return "done" end
     if Traces.homeDone(g) then
         if g.traces.home.state == "placing" then
-            log().warn("traces: group %s home %s journal deposit was interrupted; not deposited again", gid, hk)
+            LivingKnox.Log.warn("traces: group %s home %s journal deposit was interrupted; not deposited again", gid, hk)
         end
         st.done[gid] = hk
         return "done"
@@ -430,26 +419,26 @@ function Traces.checkHome(gid, opts)
     local t = now()
     if not opts.force and st.tried[gid] ~= nil and t - st.tried[gid] < cfg().RETRY_MS then return nil, "retry later" end
     st.tried[gid] = t
-    local style, why = Homes().ready(home)
+    local style, why = LivingKnox.Homes.ready(home)
     if style == nil then
         Traces.stats.notReady = Traces.stats.notReady + 1
         return nil, why
     end
-    local mark = { hx = home.x, hy = home.y, hz = home.z, day = Groups().today(), state = "done" }
+    local mark = { hx = home.x, hy = home.y, hz = home.z, day = LivingKnox.Groups.today(), state = "done" }
     if #Traces.findDocuments(gid, home, "home") > 0 then
         mark.where = "found"
         writeTraces(gid, function(tr) tr.home = mark end)
         st.done[gid] = hk
         Traces.stats.restored = Traces.stats.restored + 1
-        log().warn("traces: group %s home %s already has its journal but no mark: mark restored, nothing deposited",
+        LivingKnox.Log.warn("traces: group %s home %s already has its journal but no mark: mark restored, nothing deposited",
             gid, hk)
         return mark
     end
     local pages, omitted = Traces.homePages(g)
     if pages == nil then return nil, omitted end
     mark.state = "placing"
-    if not writeTraces(gid, function(tr) tr.home = mark end) or not Groups().flush() then   -- LK13-T06 : avant le monde
-        log().warn("traces: group %s home %s: mark not written, nothing deposited", gid, hk)
+    if not writeTraces(gid, function(tr) tr.home = mark end) or not LivingKnox.Groups.flush() then   -- LK13-T06 : avant le monde
+        LivingKnox.Log.warn("traces: group %s home %s: mark not written, nothing deposited", gid, hk)
         return nil, "mark not written"
     end
     st.done[gid] = hk
@@ -460,13 +449,13 @@ function Traces.checkHome(gid, opts)
     end)
     if not ok or res == nil then
         Traces.stats.failed = Traces.stats.failed + 1
-        log().warn("traces: group %s journal not deposited: %s", gid, tostring(ok and err or res))
+        LivingKnox.Log.warn("traces: group %s journal not deposited: %s", gid, tostring(ok and err or res))
         return nil, "deposit failed"
     end
     mark.state, mark.where = "done", res
     writeTraces(gid, function(tr) tr.home = mark end)
     Traces.stats.homes = Traces.stats.homes + 1
-    log().info("traces: group %s journal deposited at its home (%s, %d page(s), %d entr(ies) omitted)", gid, res,
+    LivingKnox.Log.info("traces: group %s journal deposited at its home (%s, %d page(s), %d entr(ies) omitted)", gid, res,
         #pages, omitted)
     return mark
 end
@@ -481,7 +470,7 @@ function Traces.scan(reason)
     if reason == "chunk" and st.lastScan ~= nil and t - st.lastScan < cfg().SCAN_MS then return 0 end
     st.lastScan = t
     local cell = getCell()
-    if cell == nil or not Groups().isReady() then return 0 end
+    if cell == nil or not LivingKnox.Groups.isReady() then return 0 end
     local n = 0
     for _, p in ipairs(Traces.pending()) do
         if cell:getGridSquare(p.home.x, p.home.y, p.home.z) ~= nil then
@@ -498,7 +487,7 @@ end
 -- reçoit la marque LKTraceChief. Rend vrai si posées, sinon faux et la raison.
 function Traces.giveChiefNote(gid, mid, inv, body)
     if inv == nil then return false, "no inventory" end
-    local g = Groups().get(gid)
+    local g = LivingKnox.Groups.get(gid)
     if g == nil then return false, "no group" end
     if g.leader ~= mid then return false, "not the leader" end
     if chiefDone(g, mid) then return false, "already given" end
@@ -514,14 +503,14 @@ function Traces.giveChiefNote(gid, mid, inv, body)
         list[#list + 1] = mid
         while #list > Traces.CHIEFS_MAX do table.remove(list, 1) end
         tr.chiefs = list
-    end) or not Groups().flush() then   -- LK13-T06 : marque écrite avant les notes
+    end) or not LivingKnox.Groups.flush() then   -- LK13-T06 : marque écrite avant les notes
         return false, "mark not written"
     end
     local item, whyItem = Traces.newDocument(cfg().CHIEF_ITEM, pages, gid, "chief")
     if item == nil then return false, whyItem end
     inv:AddItem(item)
     Traces.stats.chiefs = Traces.stats.chiefs + 1
-    log().info("traces: notes put on the body of the leader %s of %s", mid, gid)
+    LivingKnox.Log.info("traces: notes put on the body of the leader %s of %s", mid, gid)
     return true
 end
 
@@ -533,7 +522,7 @@ LivingKnox.listen("memberDied", "Traces.chief", function(info)
     local body = info.body
     local ok, why = Traces.giveChiefNote(info.group, info.member, body:getInventory(), body)
     if not ok and why ~= "not the leader" then
-        log().debug("traces: no note on %s of %s: %s", info.member, info.group, tostring(why))
+        LivingKnox.Log.debug("traces: no note on %s of %s: %s", info.member, info.group, tostring(why))
     end
 end)
 
@@ -541,7 +530,7 @@ end)
 
 -- Retire les documents du groupe trouvés autour de son foyer (zone chargée) et efface la marque. Rend le nombre retiré.
 function Traces.clear(gid)
-    local g = Groups().get(gid)
+    local g = LivingKnox.Groups.get(gid)
     local removed = 0
     if g ~= nil and type(g.home) == "table" then
         for _, d in ipairs(Traces.findDocuments(gid, g.home, nil)) do
@@ -555,7 +544,7 @@ function Traces.clear(gid)
         end
     end
     if g ~= nil and g.traces ~= nil then
-        Groups().update(function(data)
+        LivingKnox.Groups.update(function(data)
             local live = data.groups[gid]
             if live == nil then return false, false end
             live.traces = nil
@@ -563,7 +552,7 @@ function Traces.clear(gid)
         end)
     end
     Traces.state.done[gid], Traces.state.tried[gid] = nil, nil
-    log().info("traces: group %s documents cleared, %d removed", tostring(gid), removed)
+    LivingKnox.Log.info("traces: group %s documents cleared, %d removed", tostring(gid), removed)
     return removed
 end
 

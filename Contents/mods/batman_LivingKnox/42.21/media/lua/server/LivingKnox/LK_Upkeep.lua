@@ -63,14 +63,7 @@ Upkeep.CFG = Upkeep.CFG or {
 Upkeep.state = Upkeep.state or { scans = {}, claims = {}, done = {}, rooms = {} }
 Upkeep.stats = Upkeep.stats or { scans = 0, started = 0, applied = 0, skipped = 0, lights = 0 }
 
-local function log() return LivingKnox.Log end
 local function cfg() return Upkeep.CFG end
-local function Groups() return LivingKnox.Groups end
-local function Homes() return LivingKnox.Homes end
-local function R() return LivingKnox.Routines end
-local function Decisions() return LivingKnox.Decisions end
-
-local function cheb(ax, ay, bx, by) return math.max(math.abs(ax - bx), math.abs(ay - by)) end
 
 -- ================================================================ registre
 
@@ -105,7 +98,7 @@ end
 -- cases du foyer au plus.
 function Upkeep.atHome(home, x, y, z)
     if type(home) ~= "table" or z ~= home.z then return false end
-    return cheb(x, y, home.x, home.y) + 0.5 <= Decisions().CFG.HOME_RADIUS
+    return LivingKnox.Geo.cheb(x, y, home.x, home.y) + 0.5 <= LivingKnox.Decisions.CFG.HOME_RADIUS
 end
 
 -- Zone du foyer du groupe g : { home, z, style, bid, rd, squares = { { x, y, dx, dy, sq, inside } ... } }, dans l'ordre
@@ -113,11 +106,11 @@ end
 function Upkeep.area(gid, g)
     if type(g) ~= "table" or type(g.home) ~= "table" then return nil, "no home" end
     local home = g.home
-    local style, def = Homes().ready(home)
+    local style, def = LivingKnox.Homes.ready(home)
     if style == nil then return nil, def end
     local bid = def ~= nil and def:getIDString() or nil
     local cell = getCell()
-    local rd = Homes().CFG.RADIUS
+    local rd = LivingKnox.Homes.CFG.RADIUS
     local squares = {}
     for dy = -rd, rd do
         for dx = -rd, rd do
@@ -125,7 +118,7 @@ function Upkeep.area(gid, g)
             local sq = cell:getGridSquare(x, y, home.z)
             if sq ~= nil then
                 squares[#squares + 1] = { x = x, y = y, dx = dx, dy = dy, sq = sq,
-                    inside = style == "building" and Homes().buildingId(sq) == bid }
+                    inside = style == "building" and LivingKnox.Homes.buildingId(sq) == bid }
             end
         end
     end
@@ -137,7 +130,7 @@ function Upkeep.groupGeneratorOn(sq, gid)
     local objs = sq:getObjects()
     for i = 0, objs:size() - 1 do
         local o = objs:get(i)
-        if Homes().groupGenerator(o, gid) then return o end
+        if LivingKnox.Homes.groupGenerator(o, gid) then return o end
     end
     return nil
 end
@@ -207,9 +200,9 @@ local function cached(gid, g, minute)
     st.scans[gid] = { minute = minute, jobs = jobs or {} }
     Upkeep.stats.scans = Upkeep.stats.scans + 1
     if jobs == nil then
-        log().debug("group %s: upkeep survey postponed: %s", tostring(gid), tostring(why))
+        LivingKnox.Log.debug("group %s: upkeep survey postponed: %s", tostring(gid), tostring(why))
     elseif #jobs > 0 then
-        log().debug("group %s: %d upkeep job(s) open", tostring(gid), #jobs)
+        LivingKnox.Log.debug("group %s: %d upkeep job(s) open", tostring(gid), #jobs)
     end
     return jobs or {}
 end
@@ -280,10 +273,10 @@ local function finish(id, m, minute, text, why)
     Upkeep.release(id, m)
     if text ~= nil then
         Upkeep.stats.applied = Upkeep.stats.applied + 1
-        log().info("npc %s (%s %s): upkeep %s", tostring(id), tostring(m.gid), tostring(m.mid), text)
+        LivingKnox.Log.info("npc %s (%s %s): upkeep %s", tostring(id), tostring(m.gid), tostring(m.mid), text)
         local spec = specOf(m.job)
         if spec ~= nil and spec.groupLog then
-            local G = Groups()
+            local G = LivingKnox.Groups
             G.update(function(data)
                 local g = data.groups[m.gid]
                 if g == nil then return false, false end
@@ -293,7 +286,7 @@ local function finish(id, m, minute, text, why)
         end
     else
         Upkeep.stats.skipped = Upkeep.stats.skipped + 1
-        log().debug("npc %s: upkeep %s not done: %s", tostring(id), m.job.key, tostring(why))
+        LivingKnox.Log.debug("npc %s: upkeep %s not done: %s", tostring(id), m.job.key, tostring(why))
     end
 end
 
@@ -304,13 +297,11 @@ local function placeFor(job, spec, home)
     local cell = getCell()
     if cell == nil then return nil end
     if spec.place ~= nil then return spec.place(job, home) end
-    local X = R().exec
+    local X = LivingKnox.Routines.exec
     local used = {}   -- voisines hors du foyer écartées (clés de placeBeside)
-    for dy = -1, 1 do
-        for dx = -1, 1 do
-            if not Upkeep.atHome(home, job.x + dx, job.y + dy, job.z) then
-                used[(job.x + dx) .. "," .. (job.y + dy)] = true
-            end
+    for x, y in LivingKnox.Geo.squaresAround(job.x, job.y, 1) do
+        if not Upkeep.atHome(home, x, y, job.z) then
+            used[x .. "," .. y] = true
         end
     end
     -- Place gardée au foyer après le décalage de moveTo hors des plantes et feux de camp (campagne solo du 2026-11-13 :
@@ -340,7 +331,7 @@ local function minutesOf(spec, job, gid)
 end
 
 local function step(id, ctx, m, home)
-    local X = R().exec
+    local X = LivingKnox.Routines.exec
     local spec = specOf(m.job)
     if spec == nil then return finish(id, m, ctx.minute, nil, "unknown job " .. tostring(m.job.kind)) end
     local e = X.entryOf(id)
@@ -384,7 +375,7 @@ local function step(id, ctx, m, home)
         m.phase = "done"   -- avant l'effet : jamais deux fois, même si le Java lève une erreur
         local ok, text, why = pcall(Upkeep.apply, m.job, m.gid, m.mid)
         if not ok then
-            log().error("npc %s: upkeep %s failed: %s", tostring(id), m.job.key, tostring(text))
+            LivingKnox.Log.error("npc %s: upkeep %s failed: %s", tostring(id), m.job.key, tostring(text))
             text, why = nil, "error"
         end
         finish(id, m, ctx.minute, text, why)
@@ -395,7 +386,7 @@ end
 -- est occupé par l'entretien (la corvée visible attend), faux sinon.
 function Upkeep.run(id, st, ctx, g)
     if ctx.gid == nil or type(g) ~= "table" or type(g.home) ~= "table" then return false end
-    local mem = R().state.npcs
+    local mem = LivingKnox.Routines.state.npcs
     local m = mem[id]
     if m ~= nil and m.kind == "upkeep" then
         if m.phase == "done" then return false end
@@ -404,12 +395,12 @@ function Upkeep.run(id, st, ctx, g)
     end
     local job = Upkeep.claim(ctx.gid, g, id, ctx.minute, ctx.allowed)
     if job == nil then return false end
-    if m ~= nil then R().leave(id) end   -- corvée visible en cours : debout d'abord
+    if m ~= nil then LivingKnox.Routines.leave(id) end   -- corvée visible en cours : debout d'abord
     m = { key = "upkeep " .. job.key, kind = "upkeep", job = job, gid = ctx.gid, mid = ctx.mid, phase = "place",
         fails = 0, release = releaseMemory }
     mem[id] = m
     Upkeep.stats.started = Upkeep.stats.started + 1
-    log().debug("npc %s: upkeep %s (%s)", tostring(id), job.key, tostring(st.why or st.b))
+    LivingKnox.Log.debug("npc %s: upkeep %s (%s)", tostring(id), job.key, tostring(st.why or st.b))
     step(id, ctx, m, g.home)
     return true
 end
@@ -447,7 +438,7 @@ end
 
 local function lightGroup(gid, g, cell)
     local home = g.home
-    local style, def = Homes().ready(home)
+    local style, def = LivingKnox.Homes.ready(home)
     if style ~= "building" or def == nil then return 0 end
     local bid = def:getIDString()
     local rooms = Upkeep.state.rooms
@@ -461,16 +452,16 @@ local function lightGroup(gid, g, cell)
         local z = m.alive and m.npc ~= nil and B ~= nil and B.find(m.npc) or nil
         local room
         if z ~= nil and math.floor(z:getZ()) == home.z
-            and cheb(z:getX(), z:getY(), home.x + 0.5, home.y + 0.5) <= Homes().CFG.RADIUS then
+            and LivingKnox.Geo.cheb(z:getX(), z:getY(), home.x + 0.5, home.y + 0.5) <= LivingKnox.Homes.CFG.RADIUS then
             local sq = cell:getGridSquare(math.floor(z:getX()), math.floor(z:getY()), home.z)
-            if sq ~= nil and Homes().buildingId(sq) == bid then room = sq:getRoom() end
+            if sq ~= nil and LivingKnox.Homes.buildingId(sq) == bid then room = sq:getRoom() end
         end
         if m.npc ~= nil then
             if room ~= nil and rooms[m.npc] ~= room then
                 local lit = Upkeep.lightRoom(room)
                 if lit > 0 then
                     n = n + lit
-                    log().info("npc %s (%s %s): %d light switch(es) turned on entering a room of the home", m.npc,
+                    LivingKnox.Log.info("npc %s (%s %s): %d light switch(es) turned on entering a room of the home", m.npc,
                         tostring(gid), mid, lit)
                 end
             end
@@ -490,14 +481,14 @@ function Upkeep.lights()
     end
     local cell = getCell()
     if cell == nil then return 0 end
-    local G = Groups()
+    local G = LivingKnox.Groups
     local n = 0
     for _, gid in ipairs(G.list()) do
         local g = G.get(gid)
         if g ~= nil and type(g.home) == "table" and cell:getGridSquare(g.home.x, g.home.y, g.home.z) ~= nil then
             local ok, lit = pcall(lightGroup, gid, g, cell)
             if not ok then
-                log().error("group %s: lights failed: %s", tostring(gid), tostring(lit))
+                LivingKnox.Log.error("group %s: lights failed: %s", tostring(gid), tostring(lit))
             else
                 n = n + lit
             end

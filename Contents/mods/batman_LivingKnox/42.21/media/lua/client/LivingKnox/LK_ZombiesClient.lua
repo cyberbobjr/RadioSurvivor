@@ -24,8 +24,6 @@ View.CMD_HURT = "zombieHurt"
 View.FLOOR = 0.01
 View.stats = View.stats or { received = 0, applied = 0, remote = 0, missing = 0, refused = 0 }
 
-local function finite(v) return type(v) == "number" and v == v and v > -1e9 and v < 1e9 end
-
 local function count(name)
     View.stats[name] = (View.stats[name] or 0) + 1
 end
@@ -44,7 +42,7 @@ end
 
 -- Coup reçu du serveur. Rend vrai si la copie locale a été abaissée.
 function View.onHurt(args)
-    if type(args) ~= "table" or not finite(args.o) or not finite(args.d) or args.d < 0 then
+    if type(args) ~= "table" or not LivingKnox.Num.finite(args.o) or not LivingKnox.Num.finite(args.d) or args.d < 0 then
         count("refused")
         return false
     end
@@ -72,7 +70,8 @@ end
 View.CMD_GONE = "bodyGone"
 View.GONE_REACH = 6
 function View.onGone(args)
-    if type(args) ~= "table" or not finite(args.o) or not finite(args.x) or not finite(args.y) or not finite(args.z) then
+    if type(args) ~= "table" or not LivingKnox.Num.finite(args.o) or not LivingKnox.Num.finite(args.x)
+        or not LivingKnox.Num.finite(args.y) or not LivingKnox.Num.finite(args.z) then
         count("goneRefused")
         return false
     end

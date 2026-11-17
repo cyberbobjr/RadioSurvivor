@@ -17,7 +17,6 @@ local Decisions = LivingKnox.Decisions
 local Defence = LivingKnox.DecideDefence or {}
 LivingKnox.DecideDefence = Defence
 
-local function log() return LivingKnox.Log end
 local function cfg() return Decisions.CFG end
 
 -- Angle (degrés) du membre vers la case (x, y), ou nil.
@@ -84,7 +83,7 @@ function Defence.fleeStep(id, ctx, st)
         end
     end
     Decisions.stats.refused = Decisions.stats.refused + 1
-    log().debug("npc %s: no square to flee to, watching instead", id)
+    LivingKnox.Log.debug("npc %s: no square to flee to, watching instead", id)
     if ctx.threat then Decisions.face(id, angleFrom(ctx, ctx.threat.x, ctx.threat.y)) end
     return false
 end

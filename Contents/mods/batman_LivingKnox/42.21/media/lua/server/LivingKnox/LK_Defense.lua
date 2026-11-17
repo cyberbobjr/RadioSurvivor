@@ -127,7 +127,6 @@ Defense.state = Defense.state or { groups = {}, npcs = {}, after = {}, n = 0 }
 Defense.stats = Defense.stats or { plans = 0, started = 0, ended = 0, withdrawals = 0, holds = 0, engaged = 0,
     blocked = 0, moves = 0, faces = 0, refused = 0, careCalls = 0 }
 
-local function log() return LivingKnox.Log end
 local function cfg() return Defense.CFG end
 
 -- LK05-T14 : seuils réglables (options sandbox, LivingKnox.Config.danger) ; repli : valeurs de CFG.
@@ -146,20 +145,10 @@ function Defense.ratios()
 end
 -- Rayon des renforts (un étage = 3 cases) : portée de l'alerte (option AlertReach).
 function Defense.reinforceRadius() return LivingKnox.Config.danger("AlertReach", cfg().REINFORCE_RADIUS) end
-local function Decisions() return LivingKnox.Decisions end
-local function Groups() return LivingKnox.Groups end
 local function now() return getTimestampMs() end
-
-local function cheb(ax, ay, bx, by) return math.max(math.abs(ax - bx), math.abs(ay - by)) end
 
 local function count(name)
     Defense.stats[name] = (Defense.stats[name] or 0) + 1
-end
-
-local function angleGap(a, b)
-    local d = math.abs(a - b) % 360
-    if d > 180 then d = 360 - d end
-    return d
 end
 
 local function spotKey(role, x, y, z) return string.format("%s %d,%d,%d", role, x, y, z) end
@@ -193,10 +182,10 @@ function Defense.rankPosts(posts, tx, ty, blocked)
         if not (blocked and blocked[key]) then
             local e = { i = i, p = p, key = key, facing = true, gap = 0, d = 0 }
             if tx ~= nil then
-                local a = Decisions().angleTo(tx + 0.5 - (p.x + 0.5), ty + 0.5 - (p.y + 0.5))
-                e.gap = a ~= nil and angleGap(a, p.a) or 0
+                local a = LivingKnox.Decisions.angleTo(tx + 0.5 - (p.x + 0.5), ty + 0.5 - (p.y + 0.5))
+                e.gap = a ~= nil and LivingKnox.Geo.angleGap(a, p.a) or 0
                 e.facing = e.gap <= 90
-                e.d = cheb(p.x, p.y, tx, ty)
+                e.d = LivingKnox.Geo.cheb(p.x, p.y, tx, ty)
             end
             out[#out + 1] = e
         end
@@ -221,7 +210,7 @@ function Defense.assign(input)
     local tx, ty = input.tx, input.ty
     local function lookFrom(x, y)
         if tx == nil then return nil end
-        return Decisions().angleTo(tx + 0.5 - (x + 0.5), ty + 0.5 - (y + 0.5))
+        return LivingKnox.Decisions.angleTo(tx + 0.5 - (x + 0.5), ty + 0.5 - (y + 0.5))
     end
     if input.phase == "hold" then
         local fighters = {}
@@ -322,22 +311,19 @@ function Defense.shelters(home, posts, tx, ty)
     if bid == nil then return out end
     local isPost = {}
     for _, p in ipairs(posts and posts.posts or {}) do isPost[p.x .. "," .. p.y] = true end
-    local R = Decisions().CFG.HOME_RADIUS
+    local R = LivingKnox.Decisions.CFG.HOME_RADIUS
     local cands = {}
-    for dy = -R, R do
-        for dx = -R, R do
-            local x, y = home.x + dx, home.y + dy
-            local sq = cell:getGridSquare(x, y, home.z)
-            if sq ~= nil and not isPost[x .. "," .. y] and buildingOf(sq) == bid and standable(sq) then
-                local inner = true
-                for _, d in ipairs({ { 0, -1 }, { 1, 0 }, { 0, 1 }, { -1, 0 } }) do
-                    local nb = cell:getGridSquare(x + d[1], y + d[2], home.z)
-                    if nb == nil or buildingOf(nb) ~= bid then inner = false end
-                end
-                if inner then
-                    cands[#cands + 1] = { x = x, y = y, z = home.z, far = tx ~= nil and cheb(x, y, tx, ty) or 0,
-                        d = cheb(x, y, home.x, home.y) }
-                end
+    for x, y in LivingKnox.Geo.squaresAround(home.x, home.y, R) do
+        local sq = cell:getGridSquare(x, y, home.z)
+        if sq ~= nil and not isPost[x .. "," .. y] and buildingOf(sq) == bid and standable(sq) then
+            local inner = true
+            for _, d in ipairs({ { 0, -1 }, { 1, 0 }, { 0, 1 }, { -1, 0 } }) do
+                local nb = cell:getGridSquare(x + d[1], y + d[2], home.z)
+                if nb == nil or buildingOf(nb) ~= bid then inner = false end
+            end
+            if inner then
+                cands[#cands + 1] = { x = x, y = y, z = home.z, far = tx ~= nil and LivingKnox.Geo.cheb(x, y, tx, ty) or 0,
+                    d = LivingKnox.Geo.cheb(x, y, home.x, home.y) }
             end
         end
     end
@@ -372,7 +358,7 @@ function Defense.campPosts(home)
         local pick = nil
         for _, o in ipairs(CAMP_NEAR) do
             local x, y = cx + o[1], cy + o[2]
-            local ring = cheb(x, y, home.x, home.y)
+            local ring = LivingKnox.Geo.cheb(x, y, home.x, home.y)
             if pick == nil and not used[x .. "," .. y] and ring >= R - 1 and ring <= R + 1
                 and standable(cell:getGridSquare(x, y, home.z)) then
                 pick = { x = x, y = y }
@@ -380,7 +366,7 @@ function Defense.campPosts(home)
         end
         if pick ~= nil then
             used[pick.x .. "," .. pick.y] = true
-            out.posts[#out.posts + 1] = { x = pick.x, y = pick.y, z = home.z, a = Decisions().angleTo(d[1], d[2]),
+            out.posts[#out.posts + 1] = { x = pick.x, y = pick.y, z = home.z, a = LivingKnox.Decisions.angleTo(d[1], d[2]),
                 k = "camp" }
         end
     end
@@ -397,13 +383,10 @@ function Defense.campShelters(home, posts, tx, ty)
     for _, p in ipairs(posts and posts.posts or {}) do isPost[p.x .. "," .. p.y] = true end
     local R = cfg().CAMP_CENTER
     local cands = {}
-    for dy = -R, R do
-        for dx = -R, R do
-            local x, y = home.x + dx, home.y + dy
-            if not isPost[x .. "," .. y] and standable(cell:getGridSquare(x, y, home.z)) then
-                cands[#cands + 1] = { x = x, y = y, far = tx ~= nil and cheb(x, y, tx, ty) or 0,
-                    d = cheb(x, y, home.x, home.y) }
-            end
+    for x, y in LivingKnox.Geo.squaresAround(home.x, home.y, R) do
+        if not isPost[x .. "," .. y] and standable(cell:getGridSquare(x, y, home.z)) then
+            cands[#cands + 1] = { x = x, y = y, far = tx ~= nil and LivingKnox.Geo.cheb(x, y, tx, ty) or 0,
+                d = LivingKnox.Geo.cheb(x, y, home.x, home.y) }
         end
     end
     table.sort(cands, function(a, b)
@@ -434,17 +417,18 @@ function Defense.census(gid, g, players)
             and math.abs(math.floor(z:getZ()) - home.z) <= c.LEVELS and Zm ~= nil and Zm.isVanilla(z) then
             local x, y = math.floor(z:getX()), math.floor(z:getY())
             out.list[#out.list + 1] = { kind = "zombie", key = Zm.keyOf(z), x = x, y = y, z = math.floor(z:getZ()),
-                d = cheb(x, y, home.x, home.y), zombie = z }
+                d = LivingKnox.Geo.cheb(x, y, home.x, home.y), zombie = z }
             out.zombies = out.zombies + 1
         end
     end
     local A = LivingKnox.Alert
     for _, p in ipairs(players or {}) do
         local x, y, z = math.floor(p:getX()), math.floor(p:getY()), math.floor(p:getZ())
-        if cheb(x, y, home.x, home.y) <= R and math.abs(z - home.z) <= c.LEVELS and A ~= nil and A.playerKind ~= nil
+        if LivingKnox.Geo.cheb(x, y, home.x, home.y) <= R and math.abs(z - home.z) <= c.LEVELS and A ~= nil
+            and A.playerKind ~= nil
             and A.playerKind(gid, g.type, p) == "hostile" then
             out.list[#out.list + 1] = { kind = "player", key = "p:" .. tostring(p:getUsername()), u = tostring(p:getUsername()),
-                x = x, y = y, z = z, d = cheb(x, y, home.x, home.y), player = p }
+                x = x, y = y, z = z, d = LivingKnox.Geo.cheb(x, y, home.x, home.y), player = p }
             out.hostiles = out.hostiles + 1
         end
     end
@@ -480,7 +464,7 @@ end
 local function defenders(gid, g)
     local out = {}
     local R = LivingKnox.Routines
-    local G = Groups()
+    local G = LivingKnox.Groups
     local mids = R ~= nil and R.present ~= nil and R.present(g) or {}
     local home = g.home
     for _, mid in ipairs(mids) do
@@ -488,12 +472,13 @@ local function defenders(gid, g)
         local body = bodyOf(m)
         if body ~= nil then
             local x, y, z = body:getX(), body:getY(), math.floor(body:getZ())
-            if cheb(x, y, home.x + 0.5, home.y + 0.5) + 3 * math.abs(z - home.z) <= Defense.reinforceRadius() then
+            if LivingKnox.Geo.cheb(x, y, home.x + 0.5, home.y + 0.5) + 3 * math.abs(z - home.z) <= Defense.reinforceRadius() then
                 -- LK06-T07 : tout membre se bat, quel que soit son rôle ; valide = constantes bonnes (santé >=
                 -- Decisions.woundRatio(), peur < Decisions.fearHigh() : options LK05-T16), sinon abri.
-                local fear = (Decisions().needsOf(gid, mid) or {}).fear or 0
+                local fear = (LivingKnox.Decisions.needsOf(gid, mid) or {}).fear or 0
                 out[#out + 1] = { mid = mid, number = G.memberNumber(mid) or 0, combatant = true,
-                    valid = Decisions().healthOf(m) >= Decisions().woundRatio() and fear < Decisions().fearHigh() }
+                    valid = LivingKnox.Decisions.healthOf(m) >= LivingKnox.Decisions.woundRatio()
+                        and fear < LivingKnox.Decisions.fearHigh() }
             end
         end
     end
@@ -516,15 +501,15 @@ local function finish(gid, g, st, minute, why)
     count("ended")
     local wounded = {}
     for _, mid in ipairs(LivingKnox.Routines and LivingKnox.Routines.present(g) or {}) do
-        if Decisions().healthOf(g.members[mid]) < cfg().CARE_HEALTH then wounded[#wounded + 1] = mid end
+        if LivingKnox.Decisions.healthOf(g.members[mid]) < cfg().CARE_HEALTH then wounded[#wounded + 1] = mid end
     end
     local mark = { id = plan.id, minute = minute, minutes = math.max(0, minute - plan.since), wounded = wounded,
         why = why }
     Defense.state.after[gid] = mark
     local text = string.format("home defense %s over after %d min (%s); wounded: %s", plan.id, mark.minutes, why,
         #wounded > 0 and table.concat(wounded, " ") or "none")
-    log().info("group %s %s", gid, text)
-    local G = Groups()
+    LivingKnox.Log.info("group %s %s", gid, text)
+    local G = LivingKnox.Groups
     if G.addLog ~= nil then G.addLog(gid, "defense", text) end
     local Care = LivingKnox.Care   -- LK07-T03 (LK_Care.lua) : point d'appel des soins après l'attaque
     if Care ~= nil and Care.afterAttack ~= nil then
@@ -588,7 +573,7 @@ function Defense.update(gid, g, minute, players)
     st.prev = {}
     for mid, a in pairs(plan.assign) do st.prev[mid] = a.key end
     if changed then
-        local G = Groups()
+        local G = LivingKnox.Groups
         local leader = g.leader or "?"
         local text
         if fresh then
@@ -601,7 +586,7 @@ function Defense.update(gid, g, minute, players)
             text = string.format("home defense %s: back to the posts (%s)", plan.id, why)
         end
         count(phase == "withdraw" and "withdrawals" or "holds")
-        log().info("group %s %s; %s", gid, text, why)
+        LivingKnox.Log.info("group %s %s; %s", gid, text, why)
         if G.addLog ~= nil then G.addLog(gid, "defense", text) end
     end
     return plan
@@ -652,7 +637,7 @@ end
 -- reach cases au plus (portée de l'arme w ; arme à feu : avec une ligne de tir dégagée). Pur sauf la ligne de tir.
 function Defense.held(body, o, d, a, r, w)
     local oz = math.floor(o:getZ())
-    if oz == a.z and cheb(math.floor(o:getX()), math.floor(o:getY()), a.x, a.y) <= r then return true end
+    if oz == a.z and LivingKnox.Geo.cheb(math.floor(o:getX()), math.floor(o:getY()), a.x, a.y) <= r then return true end
     if w == nil or oz ~= math.floor(body:getZ()) or d > w.reach then return false end
     return w.ranged ~= true or lineOfFire(body, o)
 end
@@ -666,7 +651,7 @@ function Defense.targetFor(id, body, ctx, a, census, phase)
     local w = C ~= nil and C.weaponOf ~= nil and C.weaponOf(id) or nil
     local sally, r = Defense.leashFor(a, phase, id)
     local zone = sally and r + 1 or c.POST_LEASH
-    local near = cheb(body:getX(), body:getY(), a.x + 0.5, a.y + 0.5) <= zone and math.floor(body:getZ()) == a.z
+    local near = LivingKnox.Geo.cheb(body:getX(), body:getY(), a.x + 0.5, a.y + 0.5) <= zone and math.floor(body:getZ()) == a.z
     local function held(o, d) return Defense.held(body, o, d, a, r, w) end
     local Zm = LivingKnox.Zombies
     -- Zombie engagé par la sortie en cours, gardé tant que la laisse le garde (aroundOnly : sortie par le chemin
@@ -792,7 +777,7 @@ end
 -- ================================================================ exécution (autorité)
 
 local function note(id, mem, v, why, what)
-    if not Decisions().noteIssued(id, v, why) then
+    if not LivingKnox.Decisions.noteIssued(id, v, why) then
         count("refused")
         return false
     end
@@ -820,7 +805,7 @@ local function goTo(id, ctx, dv, mem, e)
     local v, why = D.moveTo(id, dv.x, dv.y, dv.z, "run")
     if not note(id, mem, v, why, "moves") then
         mem.fails = mem.fails + 1
-        log().debug("npc %s: defense move to %d,%d,%d refused: %s", id, dv.x, dv.y, dv.z, tostring(why))
+        LivingKnox.Log.debug("npc %s: defense move to %d,%d,%d refused: %s", id, dv.x, dv.y, dv.z, tostring(why))
         return mem.fails >= cfg().MAX_FAILS and "failed" or "moving"
     end
     mem.moveV = v
@@ -844,7 +829,7 @@ function Defense.apply(id, st, ctx, fresh)
             if fresh and C.step ~= nil then C.step(id) end
             return
         end
-        log().debug("npc %s: defense engagement refused: %s", id, tostring(why))
+        LivingKnox.Log.debug("npc %s: defense engagement refused: %s", id, tostring(why))
     end
     if C ~= nil and C.leave ~= nil then C.leave(id) end   -- plus de cible : retour à la place
     local mem = Defense.state.npcs[id]
@@ -861,14 +846,14 @@ function Defense.apply(id, st, ctx, fresh)
     if res == "here" then mem.reached = true end
     if res == "failed" and not mem.gaveUp then
         mem.gaveUp = true
-        log().info("npc %s: cannot reach its defense place %s, another place next time", id, dv.key)
+        LivingKnox.Log.info("npc %s: cannot reach its defense place %s, another place next time", id, dv.key)
         Defense.noteBlocked(ctx.gid, string.sub(dv.key, 5), ctx.minute)
     end
     local a = dv.a
-    if a ~= nil and (mem.faced == nil or angleGap(a, mem.faced) >= cfg().FACE_DELTA) then
+    if a ~= nil and (mem.faced == nil or LivingKnox.Geo.angleGap(a, mem.faced) >= cfg().FACE_DELTA) then
         if note(id, mem, LivingKnox.Directives.face(id, a), nil, "faces") then mem.faced = a end
     end
-    Decisions().setAlertGesture(id, dv.fighter and "guard" or "crouch")   -- après « face », qui remet le repos
+    LivingKnox.Decisions.setAlertGesture(id, dv.fighter and "guard" or "crouch")   -- après « face », qui remet le repos
 end
 
 -- ================================================================ lecture, mémoire

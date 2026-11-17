@@ -71,8 +71,6 @@ Simulation.state = Simulation.state or { waiting = false }
 
 local M = 2147483647
 
-local function log() return LivingKnox.Log end
-local function Groups() return LivingKnox.Groups end
 local function cfg() return LivingKnox.Config.SIMULATION end
 
 -- Registres (LK16-T09, ADR D02) : tables gardées au rechargement du module.
@@ -169,14 +167,14 @@ local function livingMembers(g)
     for mid, m in pairs(g.members) do
         if m.alive then ids[#ids + 1] = mid end
     end
-    table.sort(ids, function(a, b) return Groups().memberNumber(a) < Groups().memberNumber(b) end)
+    table.sort(ids, function(a, b) return LivingKnox.Groups.memberNumber(a) < LivingKnox.Groups.memberNumber(b) end)
     return ids
 end
 
 -- Réserve la plus basse (égalité : ordre de Groups.NEEDS).
 local function lowestNeed(g)
     local best
-    for _, key in ipairs(Groups().NEEDS) do
+    for _, key in ipairs(LivingKnox.Groups.NEEDS) do
         if not best or g.needs[key] < g.needs[best] then best = key end
     end
     return best
@@ -196,7 +194,7 @@ function Simulation.chooseTask(g, living, night)
         end
     end
     if night then return "rest", "night" end
-    if (g.rest or Groups().DEFAULT_LEVEL) < c.REST_LOW then return "rest", "tired" end
+    if (g.rest or LivingKnox.Groups.DEFAULT_LEVEL) < c.REST_LOW then return "rest", "tired" end
     local key = lowestNeed(g)
     if g.needs[key] < c.NEED_TARGET then return "scavenge", key end
     return "rest", "idle"
@@ -223,7 +221,7 @@ local function field(t, key)
 end
 
 local function cut(text)
-    local max = Groups().TEXT_MAX
+    local max = LivingKnox.Groups.TEXT_MAX
     if #text > max then return string.sub(text, 1, max) end
     return text
 end
@@ -233,7 +231,7 @@ local function warnPlaceOnce(key, why)
     st.badPlaces = st.badPlaces or {}
     if st.badPlaces[key] then return end
     st.badPlaces[key] = true
-    log().warn("simulation: expedition place %s ignored: %s", key, why)
+    LivingKnox.Log.warn("simulation: expedition place %s ignored: %s", key, why)
 end
 
 -- Lieu de Config.SIMULATION.EXPEDITIONS.PLACES normalisé, ou nil (malformé : ignoré, avertissement unique).
@@ -243,7 +241,7 @@ local function readPlace(i, p, seen)
         return nil
     end
     local id = p.id
-    if type(id) ~= "string" or #id < 1 or #id > Groups().KIND_MAX or string.match(id, "^%l[%l%d_]*$") == nil then
+    if type(id) ~= "string" or #id < 1 or #id > LivingKnox.Groups.KIND_MAX or string.match(id, "^%l[%l%d_]*$") == nil then
         warnPlaceOnce("#" .. i, "bad id")
         return nil
     end
@@ -255,7 +253,7 @@ local function readPlace(i, p, seen)
     local out = { id = id, risk = num(p.risk, 0, 1), recruit = num(p.recruit, 0, 1), yield = {} }
     out.hoursMin = int(p.hoursMin, 1, Simulation.EXPEDITION_HOURS_MAX)
     out.hoursMax = int(p.hoursMax, out.hoursMin, Simulation.EXPEDITION_HOURS_MAX)
-    for _, key in ipairs(Groups().NEEDS) do out.yield[key] = num(field(p.yield, key), 0, 100) end
+    for _, key in ipairs(LivingKnox.Groups.NEEDS) do out.yield[key] = num(field(p.yield, key), 0, 100) end
     return out
 end
 
@@ -264,7 +262,7 @@ end
 function Simulation.expeditionSettings()
     local raw = cfg().EXPEDITIONS
     if type(raw) ~= "table" then raw = {} end
-    local G = Groups()
+    local G = LivingKnox.Groups
     local s = {
         needTrigger = num(raw.NEED_TRIGGER, 0, 100),
         departChance = num(raw.DEPART_CHANCE, 0, 1),
@@ -363,7 +361,7 @@ Simulation.homeMembers = homeMembers
 -- Candidats d'une équipe : au foyer, hors chef et membres incarnés (LK09-T03), blessure sous WOUND_MINOR ; triés
 -- par TEAM_ROLES puis ancienneté.
 function Simulation.teamCandidates(g, home, s)
-    local c, G = cfg(), Groups()
+    local c, G = cfg(), LivingKnox.Groups
     local out = {}
     for _, mid in ipairs(home) do
         if mid ~= g.leader and (g.members[mid].wound or 0) < c.WOUND_MINOR
@@ -417,7 +415,7 @@ function Simulation.drawRecruit(g, rnd)
             if m.profile then used[m.profile] = (used[m.profile] or 0) + 1 end
         end
     end
-    if living >= def.size.max or total >= Groups().MAX_MEMBERS then return nil end
+    if living >= def.size.max or total >= LivingKnox.Groups.MAX_MEMBERS then return nil end
     local function available(p) return p.max == nil or (used[p.id] or 0) < p.max end
     local roles = {}
     for _, role in ipairs(LivingKnox.Config.GROUP_ROLES) do
@@ -452,7 +450,7 @@ end
 -- Entrée « recruit » (<origine>: <membre> <rôle>) d'un membre que applyMember vient d'ajouter : applyMember a déjà
 -- inscrit « joined », remis après « recruit » (ordre de lecture). Partagée par les expéditions et les événements.
 local function logRecruit(g, origin, mid, role, day)
-    Groups().appendLog(g, "recruit", cut(origin .. ": " .. mid .. " " .. role), day)
+    LivingKnox.Groups.appendLog(g, "recruit", cut(origin .. ": " .. mid .. " " .. role), day)
     local entries = g.log
     local n = #entries
     if n >= 2 and entries[n - 1].kind == "joined" then
@@ -467,7 +465,7 @@ end
 -- survivant) ; moral. Journal dans l'ordre : return, loss, died..., recruit, joined. Rend le bilan
 -- { place, team, back, lost, wounded, gains, recruit }.
 function Simulation.resolveExpedition(g, gid, hour, s, erand, day)
-    local c, G = cfg(), Groups()
+    local c, G = cfg(), LivingKnox.Groups
     local e = g.expedition
     g.expedition = nil
     local present = {}
@@ -525,7 +523,7 @@ function Simulation.resolveExpedition(g, gid, hour, s, erand, day)
         for _, mid in ipairs(result.lost) do
             morale = morale + c.MORALE_DEATH
             local wasLeader = G.applyDeath(g, mid, day)
-            log().info("simulation: group %s member %s lost on an expedition to %s (hour %s)", gid, mid, place.id,
+            LivingKnox.Log.info("simulation: group %s member %s lost on an expedition to %s (hour %s)", gid, mid, place.id,
                 tostring(hour))
             if wasLeader then
                 local successor = G.pickSuccessor(g)
@@ -546,7 +544,7 @@ function Simulation.resolveExpedition(g, gid, hour, s, erand, day)
             end
         end
     end
-    log().debug("simulation: group %s back from %s at hour %s: %s back, %s lost", gid, place.id, tostring(hour),
+    LivingKnox.Log.debug("simulation: group %s back from %s at hour %s: %s back, %s lost", gid, place.id, tostring(hour),
         tostring(survivors), tostring(#result.lost))
     return result
 end
@@ -556,7 +554,7 @@ end
 function Simulation.simulateHour(g, gid, hour, base, exp)
     local living = livingMembers(g)
     if #living == 0 then return nil end
-    local c, G = cfg(), Groups()
+    local c, G = cfg(), LivingKnox.Groups
     exp = exp or Simulation.expeditionSettings()
     local rnd = Simulation.stream(base, G.idNumber(gid) or 0, hour)
     local erandFn
@@ -602,11 +600,11 @@ function Simulation.simulateHour(g, gid, hour, base, exp)
     if task ~= g.task then
         g.task = task
         G.appendLog(g, "task", task .. ": " .. why, day)
-        log().debug("simulation: group %s now %s (%s) at hour %s", gid, task, why, tostring(hour))
+        LivingKnox.Log.debug("simulation: group %s now %s (%s) at hour %s", gid, task, why, tostring(hour))
     end
     if departure then
         G.appendLog(g, "expedition", departure, day)
-        log().debug("simulation: group %s expedition %s at hour %s", gid, departure, tostring(hour))
+        LivingKnox.Log.debug("simulation: group %s expedition %s at hour %s", gid, departure, tostring(hour))
     end
 
     -- 2. Consommation (membres au foyer).
@@ -684,7 +682,7 @@ function Simulation.simulateHour(g, gid, hour, base, exp)
     for _, mid in ipairs(deaths) do
         morale = morale + c.MORALE_DEATH
         local wasLeader = G.applyDeath(g, mid, day)
-        log().info("simulation: group %s member %s died of wounds (hour %s)", gid, mid, tostring(hour))
+        LivingKnox.Log.info("simulation: group %s member %s died of wounds (hour %s)", gid, mid, tostring(hour))
         if wasLeader then
             local successor = G.pickSuccessor(g)
             if successor then G.applyLeader(g, successor, day) end
@@ -782,7 +780,7 @@ end
 
 local function lowNeedCount(g)
     local n, low = 0, cfg().NEED_LOW
-    for _, key in ipairs(Groups().NEEDS) do
+    for _, key in ipairs(LivingKnox.Groups.NEEDS) do
         if g.needs[key] < low then n = n + 1 end
     end
     return n
@@ -803,7 +801,7 @@ function Simulation.recruitRoom(g)
         total = total + 1
         if m.alive then living = living + 1 end
     end
-    return living < def.size.max and total < Groups().MAX_MEMBERS
+    return living < def.size.max and total < LivingKnox.Groups.MAX_MEMBERS
 end
 
 -- Chances du jour de chaque événement pour le groupe gid (0..1 chacune), et cibles de l'événement qui en a (combat).
@@ -864,14 +862,14 @@ function Simulation.runEvents(data, ids, hour, base, s, bases)
     for _, gid in ipairs(ids) do
         if not done[gid] and data.groups[gid] and not Simulation.materialized(data.groups[gid]) then
             local chances, targets = Simulation.eventChances(data, ids, gid, s, bases, done)
-            local rnd = Simulation.stream(base, Groups().idNumber(gid) or 0, hour, Simulation.EVENT_SALT)
+            local rnd = Simulation.stream(base, LivingKnox.Groups.idNumber(gid) or 0, hour, Simulation.EVENT_SALT)
             local kind = Simulation.drawEvent(chances, s.maxDaily, rnd)
             local result = kind and Simulation.applyEvent(data, gid, kind, s, rnd, day, targets)
             if result then
                 done[gid] = true
                 if result.target then done[result.target] = true end
                 out[#out + 1] = { group = gid, kind = kind }
-                log().debug("simulation: group %s event %s at hour %s", gid, kind, tostring(hour))
+                LivingKnox.Log.debug("simulation: group %s event %s at hour %s", gid, kind, tostring(hour))
             end
         end
     end
@@ -896,13 +894,13 @@ function Simulation.advance(data, now, bases, afterHour)
     local last = data.simHour
     if last == nil then
         data.simHour = now
-        log().info("simulation: starts at world hour %s (no catch-up)", tostring(now))
+        LivingKnox.Log.info("simulation: starts at world hour %s (no catch-up)", tostring(now))
         return true, 0
     end
     if now < last then
         if not st.waiting then
             st.waiting = true
-            log().warn("simulation: game clock (hour %s) is behind the last simulated hour %s (world older than "
+            LivingKnox.Log.warn("simulation: game clock (hour %s) is behind the last simulated hour %s (world older than "
                 .. "the group file): waiting", tostring(now), tostring(last))
         end
         return false, 0
@@ -916,7 +914,7 @@ function Simulation.advance(data, now, bases, afterHour)
     local from = last + 1
     if missing > cap then
         from = now - cap + 1
-        log().warn("simulation: %s hour(s) missed, %s simulated, %s skipped", tostring(missing), tostring(cap),
+        LivingKnox.Log.warn("simulation: %s hour(s) missed, %s simulated, %s skipped", tostring(missing), tostring(cap),
             tostring(missing - cap))
     end
     local base = Simulation.baseSeed()
@@ -924,11 +922,11 @@ function Simulation.advance(data, now, bases, afterHour)
     local events = Simulation.eventSettings()
     local ids = {}
     for gid in pairs(data.groups) do ids[#ids + 1] = gid end
-    table.sort(ids, function(a, b) return (Groups().idNumber(a) or 0) < (Groups().idNumber(b) or 0) end)
+    table.sort(ids, function(a, b) return (LivingKnox.Groups.idNumber(a) or 0) < (LivingKnox.Groups.idNumber(b) or 0) end)
     local step = { base = base, exp = exp, afterHour = afterHour }
     local passes = hourlyPasses:list()
     for hour = from, now do
-        Groups().hourContext = hour   -- LK10-T02 : heure simulée des entrées du journal de récit (LK_Journal)
+        LivingKnox.Groups.hourContext = hour   -- LK10-T02 : heure simulée des entrées du journal de récit (LK_Journal)
         step.day = math.floor(hour / 24) + 1
         for _, gid in ipairs(ids) do
             for _, pass in ipairs(passes) do pass.run(data.groups[gid], gid, hour, data, step) end
@@ -938,11 +936,11 @@ function Simulation.advance(data, now, bases, afterHour)
             Simulation.runEvents(data, ids, hour, base, events, bases)
         end
     end
-    Groups().hourContext = nil
+    LivingKnox.Groups.hourContext = nil
     data.simHour = now
     local count = now - from + 1
     if count > 1 then
-        log().info("simulation: caught up %s hour(s) for %s group(s), now at hour %s", tostring(count),
+        LivingKnox.Log.info("simulation: caught up %s hour(s) for %s group(s), now at hour %s", tostring(count),
             tostring(#ids), tostring(now))
     end
     return true, count
@@ -967,7 +965,7 @@ function Simulation.step(now)
     local bases = Simulation.knownBases()
     local Needs = LivingKnox.Needs
     local afterHour = Needs ~= nil and Needs.advanceGroup or nil
-    return Groups().update(function(data) return Simulation.advance(data, now, bases, afterHour) end)
+    return LivingKnox.Groups.update(function(data) return Simulation.advance(data, now, bases, afterHour) end)
 end
 
 -- hour : heure de jeu lue à l'EveryHours (LK13-T09, file du pas horaire) ; nil = heure courante.
@@ -978,7 +976,7 @@ end
 -- Démarrage : rattrapage si le registre a été relu (OnInitGlobalModData part avant OnServerStarted / OnGameStart) ;
 -- sinon rien ici, le prochain EveryHours le chargera (Groups.ensure) et rattrapera.
 function Simulation.onStart()
-    if not Groups().isReady() then return end
+    if not LivingKnox.Groups.isReady() then return end
     Simulation.step()
 end
 
@@ -1012,7 +1010,7 @@ local function runJob(job)
     Simulation.spreadStats.jobs = Simulation.spreadStats.jobs + 1
     if not ok then
         Simulation.spreadStats.errors = Simulation.spreadStats.errors + 1
-        log().error("simulation: hourly pass %s failed: %s", tostring(job.name), tostring(err))
+        LivingKnox.Log.error("simulation: hourly pass %s failed: %s", tostring(job.name), tostring(err))
     end
 end
 
@@ -1030,7 +1028,7 @@ function Simulation.defer(name, fn)
     end
     q.jobs[#q.jobs + 1] = { name = name, fn = fn, hour = hour }
     q.fresh, q.write = true, true
-    Groups().hold("hour", Simulation.SPREAD.HOLD_FRAMES)
+    LivingKnox.Groups.hold("hour", Simulation.SPREAD.HOLD_FRAMES)
 end
 
 -- Passe horaire fn(hour) tout de suite, dans l'image de l'EveryHours (abonné de LK_Server), après les passes restées
@@ -1043,7 +1041,7 @@ function Simulation.runNow(name, fn)
         Simulation.finishHour()
     end
     q.fresh, q.write = true, true
-    Groups().hold("hour", Simulation.SPREAD.HOLD_FRAMES)
+    LivingKnox.Groups.hold("hour", Simulation.SPREAD.HOLD_FRAMES)
     return fn(hour)
 end
 
@@ -1062,7 +1060,7 @@ function Simulation.finishHour()
         runJob(job)
     end
     q.jobs, q.head, q.write, q.fresh = {}, 1, false, false
-    Groups().release("hour")
+    LivingKnox.Groups.release("hour")
     local D = LivingKnox.Decisions   -- LK13-T11 : notations de l'heure étalées par LK_Decisions, faites aussi
     if D ~= nil and D.finishHourQueue ~= nil then D.finishHourQueue() end
 end
@@ -1085,7 +1083,7 @@ function Simulation.onFrame()
     if q.write then
         q.write = false
         q.jobs, q.head = {}, 1
-        local G = Groups()
+        local G = LivingKnox.Groups
         G.release("hour")
         if G.isDirty() and not G.isHeld() then G.flush() end   -- une autre retenue (LK_Stock) écrira à sa fin
     end

@@ -38,8 +38,6 @@ Presentation.state = Presentation.state or { ticks = 0 }
 Presentation.stats = Presentation.stats or { received = 0, older = 0, applied = 0, samples = 0, lastDelay = -1,
     maxDelay = -1, sumDelay = 0 }
 
-local function log() return LivingKnox.Log end
-
 local function serverTime()
     if GameTime ~= nil and GameTime.getServerTimeMills ~= nil then return GameTime.getServerTimeMills() end
     return 0
@@ -66,7 +64,7 @@ local function sample(id, pose)
     st.lastDelay = delay
     st.sumDelay = st.sumDelay + delay
     if delay > st.maxDelay then st.maxDelay = delay end
-    log().debug("pose of npc %s received: %s, relay delay %d ms", id, tostring(pose.s), delay)
+    LivingKnox.Log.debug("pose of npc %s received: %s, relay delay %d ms", id, tostring(pose.s), delay)
 end
 
 local function receivePose(id, pose)

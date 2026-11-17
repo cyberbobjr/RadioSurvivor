@@ -80,8 +80,6 @@ Equipment.stats = Equipment.stats or { passes = 0, attached = 0, detached = 0, e
     sent = 0, published = 0, skipped = 0 }
 Equipment.stats.adopted = Equipment.stats.adopted or 0   -- LK07-T08 : armes remplacées par un autre mod, adoptées
 
-local function log() return LivingKnox.Log end
-
 local function stat(name, n)
     Equipment.stats[name] = Equipment.stats[name] + (n or 1)
 end
@@ -90,7 +88,7 @@ end
 local function reportOnce(key, msg, ...)
     if Equipment.reported[key] then return end
     Equipment.reported[key] = true
-    log().error(msg, ...)
+    LivingKnox.Log.error(msg, ...)
 end
 
 -- ---------------------------------------------------------------- OnEquipPrimary
@@ -164,12 +162,10 @@ end
 
 -- ---------------------------------------------------------------- arme voulue
 
-local function Store() return LivingKnox.Store end
-
 -- Arme voulue d'un PNJ sur cette machine (autorité : registre ; client : dernière table reçue), ou nil.
 function Equipment.wantedOf(npcId)
     if not LivingKnox.isAuthority() then return Equipment.remote.w[npcId] end
-    local S = Store()
+    local S = LivingKnox.Store
     local registry = S and S.isReady() and S.data()
     local npc = registry and registry.npcs[npcId]
     if npc == nil or npc.weapon == nil then return nil end
@@ -181,7 +177,7 @@ end
 -- Autorité : arme d'un PNJ (nil ou "none" : aucune). Rend vrai, ou faux et une raison.
 function Equipment.setWeapon(npcId, fullType)
     if not LivingKnox.isAuthority() then return false, "not the authority (MP client)" end
-    local S = Store()
+    local S = LivingKnox.Store
     if S == nil or not S.isReady() then return false, "registry unavailable" end
     local npc = LivingKnox.Identity.get(S.data(), npcId)
     if npc == nil then return false, "unknown npc " .. tostring(npcId) end
@@ -194,7 +190,7 @@ function Equipment.setWeapon(npcId, fullType)
     if npc.weapon == fullType then return true end
     npc.weapon = fullType
     S.markChanged()   -- LK13-T10 : écrit à la fin de l'image (arme posée à la création d'un membre, même image)
-    log().info("npc %s weapon %s", npcId, tostring(fullType or "none"))
+    LivingKnox.Log.info("npc %s weapon %s", npcId, tostring(fullType or "none"))
     if isServer() then
         Equipment.serverPass()
         Equipment.publish(false)
@@ -241,7 +237,7 @@ end
 -- registre, devient l'arme du PNJ (registre, emplacement, munitions). Rend vrai si une arme a été adoptée.
 function Equipment.adoptForeign(id, z)
     if not LivingKnox.isAuthority() or z == nil then return false end
-    local S = Store()
+    local S = LivingKnox.Store
     local registry = S and S.isReady() and S.data()
     local npc = registry and registry.npcs[id]
     if npc == nil or npc.weapon == nil then return false end
@@ -275,7 +271,7 @@ function Equipment.adoptForeign(id, z)
         local s = Equipment.shown[id]
         if s ~= nil and s.z == z then s.t, s.l = spec.t, spec.l end   -- objet désormais le nôtre
     end
-    log().info("npc %s weapon %s replaced by %s by another mod, adopted (%s): %s", id, old, spec.t,
+    LivingKnox.Log.info("npc %s weapon %s replaced by %s by another mod, adopted (%s): %s", id, old, spec.t,
         loc ~= nil and ("attached, " .. spec.l) or "in hand", ammoText(r, rwhy))
     return true
 end
@@ -299,7 +295,7 @@ end
 -- Table publiée : PNJ du registre qui ont une arme valide ; rend la table et sa signature.
 function Equipment.buildTable()
     local w, parts = {}, {}
-    local S = Store()
+    local S = LivingKnox.Store
     local registry = S and S.isReady() and S.data()
     if not registry then return w, "" end
     for _, id in ipairs(LivingKnox.Identity.sortedIds(registry)) do

@@ -27,14 +27,12 @@ end
 -- Vrai si un cadavre d'identifiant d'objet key est sur la case (x, y, z) ou une voisine.
 function View.hasCorpse(key, x, y, z)
     local cell = getCell()
-    for dy = -1, 1 do
-        for dx = -1, 1 do
-            local sq = cell and cell:getGridSquare(x + dx, y + dy, z)
-            local list = sq and sq:getStaticMovingObjects()
-            for i = 0, (list and list:size() or 0) - 1 do
-                local o = list:get(i)
-                if instanceof(o, "IsoDeadBody") and objectKey(o) == key then return true end
-            end
+    for sx, sy in LivingKnox.Geo.squaresAround(x, y, 1) do
+        local sq = cell and cell:getGridSquare(sx, sy, z)
+        local list = sq and sq:getStaticMovingObjects()
+        for i = 0, (list and list:size() or 0) - 1 do
+            local o = list:get(i)
+            if instanceof(o, "IsoDeadBody") and objectKey(o) == key then return true end
         end
     end
     return false

@@ -69,11 +69,6 @@ Relations.AID = Relations.AID or {
 Relations.REASONS = { "attitude", "short", "again", "away", "stranger" }
 Relations.stats = Relations.stats or { asked = 0, given = 0, refused = 0, inventory = 0, ground = 0 }
 
-local function log() return LivingKnox.Log end
-local function Groups() return LivingKnox.Groups end
-local function Stock() return LivingKnox.Stock end
-local function Hostility() return LivingKnox.Hostility end
-
 local function isNumber(v) return type(v) == "number" and v == v and v > -1e12 and v < 1e12 end
 
 local function hourNow()
@@ -107,7 +102,7 @@ end
 -- Objet que le groupe peut donner pour le genre kind (consommable : nourriture mangeable, eau propre ; soins : tout
 -- objet de la catégorie « medical »).
 function Relations.giftable(item, kind)
-    local S = Stock()
+    local S = LivingKnox.Stock
     local cat = Relations.CATEGORY[kind]
     if item == nil or cat == nil or S.categoryOf(item) ~= cat then return false end
     if cat == "food" or cat == "water" then return S.consumable(item, cat) end
@@ -116,7 +111,7 @@ end
 
 -- Joueur en ligne (ou local en solo) dont la clé de joueur (identité du carnet) est key, ou nil.
 function Relations.playerOf(key)
-    local H = Hostility()
+    local H = LivingKnox.Hostility
     local list = getOnlinePlayers and getOnlinePlayers() or nil
     if list ~= nil then
         for i = 0, list:size() - 1 do
@@ -156,10 +151,10 @@ local function reply(npc, key, player, band)
     if npc == nil or Sp == nil or Sp.say == nil then return false end
     local ok, out, why = pcall(Sp.say, npc, { key = key }, { player = player, band = band, chat = false })
     if not ok then
-        log().warn("aid: reply %s of %s failed: %s", key, tostring(npc), tostring(out))
+        LivingKnox.Log.warn("aid: reply %s of %s failed: %s", key, tostring(npc), tostring(out))
         return false
     end
-    if out == nil then log().debug("aid: reply %s of %s not said: %s", key, tostring(npc), tostring(why)) end
+    if out == nil then LivingKnox.Log.debug("aid: reply %s of %s not said: %s", key, tostring(npc), tostring(why)) end
     return out ~= nil
 end
 
@@ -177,7 +172,7 @@ end
 
 -- Écrit une décision (refus motivé) : marque de période et entrée au journal du groupe, en une écriture.
 local function markRefusal(gid, kind, text, hour)
-    local G = Groups()
+    local G = LivingKnox.Groups
     return G.update(function(data)
         local g = data.groups[gid]
         if g == nil then return false, false end
@@ -189,7 +184,7 @@ end
 
 -- Fin commune : fait publié, réplique, compte rendu. out = { accepted, reason, kind, ... }.
 local function finish(gid, key, kind, out, opts, level)
-    local G = Groups()
+    local G = LivingKnox.Groups
     if out.decided then
         LivingKnox.publish("aidDecided", { group = gid, player = key, kind = kind, accepted = out.accepted,
             reason = out.reason, item = out.item and out.item.t or nil, where = out.where, npc = opts.npc,
@@ -203,7 +198,7 @@ local function finish(gid, key, kind, out, opts, level)
         Relations.stats.refused = Relations.stats.refused + 1
     end
     out.said = reply(opts.npc, out.line, opts.player, out.accepted and "friendly" or bandOf(level))
-    log().info("aid: group %s %s %s to %s%s", gid, out.accepted and "gave" or "refused", kind, key,
+    LivingKnox.Log.info("aid: group %s %s %s to %s%s", gid, out.accepted and "gave" or "refused", kind, key,
         out.accepted and (": " .. out.item.t .. " (" .. tostring(out.item.i) .. ") into " .. tostring(out.where))
             or (": " .. out.reason .. (out.detail and (" (" .. out.detail .. ")") or "")))
     return out
@@ -219,9 +214,9 @@ function Relations.requestAid(gid, playerKey, kind, opts)
     opts = type(opts) == "table" and opts or {}
     if not LivingKnox.isAuthority() then return nil, "not the authority" end
     if not isKind(kind) then return nil, "bad kind" end
-    local H = Hostility()
+    local H = LivingKnox.Hostility
     if not H.validPlayerKey(playerKey) then return nil, "bad player key" end
-    local G = Groups()
+    local G = LivingKnox.Groups
     local g = G.get(gid)
     if g == nil then return nil, "unknown group" end
     if opts.npc ~= nil and G.findNpc(opts.npc) ~= gid then return nil, "npc not in group" end
@@ -251,7 +246,7 @@ function Relations.requestAid(gid, playerKey, kind, opts)
         return finish(gid, playerKey, kind, out, opts, att.level)
     end
 
-    local S = Stock()
+    local S = LivingKnox.Stock
     local cat = Relations.CATEGORY[kind]
     local a, stockWhy = S.needs(gid)
     if a == nil then
@@ -292,7 +287,7 @@ function Relations.requestAid(gid, playerKey, kind, opts)
     end
     local ok, where = pcall(Relations.deliver, item, opts.player, body)
     if not ok then
-        log().error("aid: group %s: %s (%s) taken but not delivered: %s", gid, got.t, tostring(got.i), tostring(where))
+        LivingKnox.Log.error("aid: group %s: %s (%s) taken but not delivered: %s", gid, got.t, tostring(got.i), tostring(where))
         where = nil
     end
     if where ~= nil then Relations.stats[where] = Relations.stats[where] + 1 end
@@ -317,7 +312,7 @@ function Relations.ask(player, args)
     if type(args) ~= "table" or player == nil or player:isDead() then return nil, "bad request" end
     local npc, kind = args.npc, args.kind
     if type(npc) ~= "string" or not isKind(kind) then return nil, "bad request" end
-    local gid = Groups().findNpc(npc)
+    local gid = LivingKnox.Groups.findNpc(npc)
     if gid == nil then return nil, "npc not in a group" end
     local B = LivingKnox.Bodies
     local body = B ~= nil and B.find ~= nil and B.find(npc) or nil
@@ -327,13 +322,13 @@ function Relations.ask(player, args)
         or dx * dx + dy * dy > Relations.AID.RANGE * Relations.AID.RANGE then
         return nil, "too far"
     end
-    local key = Hostility().keyOf(player)
+    local key = LivingKnox.Hostility.keyOf(player)
     if key == nil then
         local out = { kind = kind, accepted = false, decided = false, reason = "stranger",
             line = "IGUI_LK_Aid_Refuse_stranger" }
         out.said = reply(npc, out.line, player, nil)
         Relations.stats.refused = Relations.stats.refused + 1
-        log().info("aid: %s asked %s of %s without a notebook character: refused", tostring(player:getUsername()),
+        LivingKnox.Log.info("aid: %s asked %s of %s without a notebook character: refused", tostring(player:getUsername()),
             kind, gid)
         return out
     end
@@ -344,7 +339,7 @@ function Relations.onClientCommand(module, command, player, args)
     if module ~= Relations.MODULE or command ~= Relations.CMD_AID or not isServer() or player == nil then return end
     local out, why = Relations.ask(player, args)
     if out == nil then
-        log().info("aid: request of %s refused: %s", tostring(player:getUsername()), tostring(why))
+        LivingKnox.Log.info("aid: request of %s refused: %s", tostring(player:getUsername()), tostring(why))
     end
 end
 
@@ -397,8 +392,6 @@ Relations.revengeStats = Relations.revengeStats or { kills = 0, sworn = 0, decli
     failed = 0, ended = 0, spawned = 0, spawnWaits = 0 }
 Relations.huntState = Relations.huntState or { npcs = {}, warned = {} }
 
-local function H() return Hostility() end
-
 local function isInt(v, lo, hi) return isNumber(v) and math.floor(v) == v and v >= lo and v <= hi end
 
 local function inList(list, v)
@@ -408,9 +401,7 @@ local function inList(list, v)
     return false
 end
 
-local function cheb(ax, ay, bx, by) return math.max(math.abs(ax - bx), math.abs(ay - by)) end
-
-local function cut(s) return string.sub(s, 1, Groups().TEXT_MAX or 200) end
+local function cut(s) return string.sub(s, 1, LivingKnox.Groups.TEXT_MAX or 200) end
 
 local function revCfg() return Relations.REVENGE end
 
@@ -434,7 +425,7 @@ local function validTeam(list)
     if type(list) ~= "table" then return false end
     local n = 0
     for k, mid in pairs(list) do
-        if not isInt(k, 1, 32) or not Groups().memberNumber(mid) then return false end
+        if not isInt(k, 1, 32) or not LivingKnox.Groups.memberNumber(mid) then return false end
         n = n + 1
     end
     return n >= 1 and n == #list
@@ -443,9 +434,9 @@ end
 -- Vengeance relue valide (champ revenge d'un groupe). Rend vrai, ou faux et une raison.
 function Relations.validRevenge(r)
     if type(r) ~= "table" or r.v ~= 1 then return false, "not a revenge record" end
-    if not H().validPlayerKey(r.key) then return false, "bad player key" end
+    if not LivingKnox.Hostility.validPlayerKey(r.key) then return false, "bad player key" end
     if r.u ~= nil and (type(r.u) ~= "string" or #r.u < 1 or #r.u > 64) then return false, "bad account" end
-    if not Groups().memberNumber(r.victim) then return false, "bad victim" end
+    if not LivingKnox.Groups.memberNumber(r.victim) then return false, "bad victim" end
     if not isInt(r.sworn, 0, 1e9) or not isInt(r.n, 0, 1e6) or not isInt(r.fails, 0, 1e6) then
         return false, "bad counters"
     end
@@ -470,13 +461,13 @@ local function revengeOf(g, gid)
     if r == nil then return nil end
     local ok, why = Relations.validRevenge(r)
     if ok then return r end
-    log().warn("revenge: group %s record dropped: %s", tostring(gid), tostring(why))
+    LivingKnox.Log.warn("revenge: group %s record dropped: %s", tostring(gid), tostring(why))
     g.revenge = nil
     return nil
 end
 
 local function liveGroups()
-    local G = Groups()
+    local G = LivingKnox.Groups
     if not G.isReady() then return nil end
     return G.state.data
 end
@@ -527,7 +518,7 @@ function Relations.oathRule(c)
 end
 
 local function publishRevenge(name, gid, r, extra)
-    local info = { group = gid, player = r.key, victim = r.victim, n = r.n, fails = r.fails, day = Groups().today() }
+    local info = { group = gid, player = r.key, victim = r.victim, n = r.n, fails = r.fails, day = LivingKnox.Groups.today() }
     for k, v in pairs(extra or {}) do info[k] = v end
     LivingKnox.publish(name, info)
 end
@@ -539,12 +530,14 @@ local function speakerNear(g, x, y, range)
     local best, bestD
     local mids = {}
     for mid in pairs(g.members) do mids[#mids + 1] = mid end
-    table.sort(mids, function(a, b) return (Groups().memberNumber(a) or 0) < (Groups().memberNumber(b) or 0) end)
+    table.sort(mids, function(a, b)
+        return (LivingKnox.Groups.memberNumber(a) or 0) < (LivingKnox.Groups.memberNumber(b) or 0)
+    end)
     for _, mid in ipairs(mids) do
         local m = g.members[mid]
         local z = m.alive and m.npc and B.find(m.npc) or nil
         if z ~= nil then
-            local d = cheb(z:getX(), z:getY(), x, y)
+            local d = LivingKnox.Geo.cheb(z:getX(), z:getY(), x, y)
             if d <= range and (bestD == nil or d < bestD) then best, bestD = m.npc, d end
         end
     end
@@ -557,15 +550,15 @@ end
 function Relations.memberKilled(gid, mid, key, opts)
     opts = type(opts) == "table" and opts or {}
     if not LivingKnox.isAuthority() then return nil, "not the authority" end
-    if not H().validPlayerKey(key) then return nil, "bad player key" end
-    local G = Groups()
+    if not LivingKnox.Hostility.validPlayerKey(key) then return nil, "bad player key" end
+    local G = LivingKnox.Groups
     if not G.ensure() then return nil, "group registry not ready" end
     local g = G.state.data.groups[gid]
     if g == nil then return nil, "unknown group" end
     Relations.revengeStats.kills = Relations.revengeStats.kills + 1
-    local att, why = H().record(gid, key, "kill", { attributable = true })
+    local att, why = LivingKnox.Hostility.record(gid, key, "kill", { attributable = true })
     if att == nil then
-        log().warn("revenge: kill of %s/%s by %s not recorded: %s", gid, tostring(mid), key, tostring(why))
+        LivingKnox.Log.warn("revenge: kill of %s/%s by %s not recorded: %s", gid, tostring(mid), key, tostring(why))
         return nil, why
     end
     local r = revengeOf(g, gid)
@@ -574,7 +567,7 @@ function Relations.memberKilled(gid, mid, key, opts)
     local out = { sworn = ok, reason = reason, level = att.level }
     if not ok then
         Relations.revengeStats.declined = Relations.revengeStats.declined + 1
-        log().info("revenge: group %s does not swear revenge on %s for %s: %s", gid, key, tostring(mid), reason)
+        LivingKnox.Log.info("revenge: group %s does not swear revenge on %s for %s: %s", gid, key, tostring(mid), reason)
         return out
     end
     local hour = isNumber(opts.hour) and math.floor(opts.hour) or hourInt()
@@ -582,7 +575,7 @@ function Relations.memberKilled(gid, mid, key, opts)
         or 0), z = math.floor(opts.z or 0), src = "kill" }
     if zone.z < -32 or zone.z > 31 then zone.z = 0 end
     local rec = { v = 1, key = key, u = type(opts.u) == "string" and string.sub(opts.u, 1, 64) or nil,
-        victim = Groups().memberNumber(mid) and mid or "m-0", sworn = hour, phase = "sworn",
+        victim = LivingKnox.Groups.memberNumber(mid) and mid or "m-0", sworn = hour, phase = "sworn",
         due = hour + Relations.revengeDelayHours(), n = 0, fails = 0, zone = zone }
     G.update(function(data)
         local live = data.groups[gid]
@@ -593,7 +586,7 @@ function Relations.memberKilled(gid, mid, key, opts)
         return true, true
     end)
     Relations.revengeStats.sworn = Relations.revengeStats.sworn + 1
-    log().info("revenge: group %s swore revenge on %s (%s) for %s, departure at hour %d, zone %d,%d,%d", gid, key,
+    LivingKnox.Log.info("revenge: group %s swore revenge on %s (%s) for %s, departure at hour %d, zone %d,%d,%d", gid, key,
         tostring(rec.u), rec.victim, rec.due, zone.x, zone.y, zone.z)
     -- Annonce perceptible : réplique d'un membre présent près de la mort (bulle et ligne de chat, clé traduite par
     -- chaque client), fait publié (point d'appel de la radio du carnet et des événements publics).
@@ -617,9 +610,9 @@ end
 function Relations.onNpcDied(info)
     if type(info) ~= "table" or info.group == nil or info.member == nil or type(info.killer) ~= "string" then return end
     local p = Relations.playerByName(info.killer)
-    local key = p ~= nil and H().keyOf(p) or nil
+    local key = p ~= nil and LivingKnox.Hostility.keyOf(p) or nil
     if key == nil then
-        log().info("revenge: %s of %s killed by %s (no notebook character): no attitude fact, no oath",
+        LivingKnox.Log.info("revenge: %s of %s killed by %s (no notebook character): no attitude fact, no oath",
             tostring(info.member), tostring(info.group), info.killer)
         return
     end
@@ -648,7 +641,7 @@ function Relations.revengeCandidates(g)
             end
         end
     end
-    table.sort(out, function(a, b) return (Groups().memberNumber(a) or 0) < (Groups().memberNumber(b) or 0) end)
+    table.sort(out, function(a, b) return (LivingKnox.Groups.memberNumber(a) or 0) < (LivingKnox.Groups.memberNumber(b) or 0) end)
     return out, present
 end
 
@@ -668,7 +661,7 @@ end
 -- Heures de trajet abstrait du foyer à la zone, à speed cases par heure (défaut : REVENGE.SPEED), une au moins.
 -- Partagé avec les raids (LK11-T07).
 function Relations.travelHours(home, zone, speed)
-    local d = cheb(home.x, home.y, zone.x, zone.y)
+    local d = LivingKnox.Geo.cheb(home.x, home.y, zone.x, zone.y)
     return math.max(1, math.ceil(d / math.max(1, speed or revCfg().SPEED)))
 end
 local function travelHours(home, zone) return Relations.travelHours(home, zone) end
@@ -689,10 +682,10 @@ local livingTeam = Relations.livingTeam
 -- Fin de la vengeance (registre vivant) : champ effacé, journal, fait publié.
 local function endRevenge(g, gid, r, ending, day)
     g.revenge = nil
-    Groups().appendLog(g, "revenge", cut(string.format("revenge on %s ended: %s (%d attempt(s), %d failed)", r.key,
+    LivingKnox.Groups.appendLog(g, "revenge", cut(string.format("revenge on %s ended: %s (%d attempt(s), %d failed)", r.key,
         ending, r.n, r.fails)), day)
     Relations.revengeStats.ended = Relations.revengeStats.ended + 1
-    log().info("revenge: group %s revenge on %s ended: %s", gid, r.key, ending)
+    LivingKnox.Log.info("revenge: group %s revenge on %s ended: %s", gid, r.key, ending)
     publishRevenge("revengeEnded", gid, r, { ending = ending })
 end
 
@@ -730,10 +723,10 @@ local function tryDepart(g, gid, r, hour, day)
     local copy = {}
     for i, mid in ipairs(team) do copy[i] = mid end
     g.expedition = { place = "revenge", team = copy, departed = hour, returns = r.leave + travel }
-    Groups().appendLog(g, "revenge", cut(string.format("attempt %d on %s: %s left for %d,%d (%s), %d h away", r.n,
+    LivingKnox.Groups.appendLog(g, "revenge", cut(string.format("attempt %d on %s: %s left for %d,%d (%s), %d h away", r.n,
         r.key, teamText(team), zone.x, zone.y, zone.src, travel)), day)
     Relations.revengeStats.departed = Relations.revengeStats.departed + 1
-    log().info("revenge: group %s attempt %d on %s: %s left at hour %d for %d,%d,%d (%s), arrival hour %d", gid, r.n,
+    LivingKnox.Log.info("revenge: group %s attempt %d on %s: %s left at hour %d for %d,%d,%d (%s), arrival hour %d", gid, r.n,
         r.key, teamText(team), hour, zone.x, zone.y, zone.z, zone.src, r.arrive)
     publishRevenge("revengeStarted", gid, r, { team = copy, x = zone.x, y = zone.y, src = zone.src })
     return true
@@ -742,7 +735,7 @@ end
 -- Rancune encore vive : attitude du groupe envers la cible dans REVENGE.LEVELS. Registre illisible : vive (on ne
 -- renonce pas sur une erreur de lecture).
 function Relations.grudgeAlive(gid, key)
-    local att = H().get(gid, key)
+    local att = LivingKnox.Hostility.get(gid, key)
     if att == nil then return true end
     return revCfg().LEVELS[att.level] == true
 end
@@ -756,7 +749,7 @@ function Relations.offscreenHour(g, gid, hour)
     local day = math.floor(hour / 24) + 1
     if r.phase ~= "sworn" and (type(g.expedition) ~= "table" or g.expedition.place ~= "revenge") then
         -- Expédition effacée par ailleurs (administration) : la tentative est close comme un retour.
-        log().warn("revenge: group %s attempt %d lost its expedition: closed", gid, r.n)
+        LivingKnox.Log.warn("revenge: group %s attempt %d lost its expedition: closed", gid, r.n)
         r.phase, r.team, r.due = "sworn", nil, hour + revCfg().RETRY_HOURS
         r.dep, r.arrive, r.leave, r.travel = nil, nil, nil, nil
     end
@@ -767,14 +760,14 @@ function Relations.offscreenHour(g, gid, hour)
         end
         r.ending = "faded"
         if r.phase ~= "back" then turnBack(g, r, hour) end
-        log().info("revenge: group %s grudge against %s faded: team turns back", gid, r.key)
+        LivingKnox.Log.info("revenge: group %s grudge against %s faded: team turns back", gid, r.key)
     end
     if r.phase ~= "sworn" and #livingTeam(g, r.team) == 0 then
         -- Équipe entière morte : rien ne revient ; tentative manquée.
         g.expedition = nil
         r.fails = r.fails + (r.ending == nil and 1 or 0)
         Relations.revengeStats.failed = Relations.revengeStats.failed + 1
-        Groups().appendLog(g, "revenge", cut(string.format("attempt %d on %s: no one came back (%d/%d)", r.n, r.key,
+        LivingKnox.Groups.appendLog(g, "revenge", cut(string.format("attempt %d on %s: no one came back (%d/%d)", r.n, r.key,
             r.fails, revCfg().MAX_FAILS)), day)
         return Relations.afterAttempt(g, gid, r, hour, day, "wiped")
     end
@@ -783,7 +776,7 @@ function Relations.offscreenHour(g, gid, hour)
             local ok, why = tryDepart(g, gid, r, hour, day)
             if not ok and Relations.huntState.warned[gid] ~= why then
                 Relations.huntState.warned[gid] = why
-                log().info("revenge: group %s cannot leave yet: %s", gid, tostring(why))
+                LivingKnox.Log.info("revenge: group %s cannot leave yet: %s", gid, tostring(why))
             end
         end
         return r.phase
@@ -791,15 +784,15 @@ function Relations.offscreenHour(g, gid, hour)
     if r.phase == "out" and hour >= r.arrive then
         r.phase = "hunt"
         Relations.revengeStats.hunts = Relations.revengeStats.hunts + 1
-        log().info("revenge: group %s attempt %d reached %d,%d (%s) at hour %d, hunting until hour %d", gid, r.n,
+        LivingKnox.Log.info("revenge: group %s attempt %d reached %d,%d (%s) at hour %d, hunting until hour %d", gid, r.n,
             r.zone.x, r.zone.y, r.zone.src, hour, r.leave)
     end
     if r.phase == "hunt" and hour >= r.leave then
         r.fails = r.fails + 1
         Relations.revengeStats.failed = Relations.revengeStats.failed + 1
-        Groups().appendLog(g, "revenge", cut(string.format("attempt %d on %s failed (%d/%d): heading home", r.n,
+        LivingKnox.Groups.appendLog(g, "revenge", cut(string.format("attempt %d on %s failed (%d/%d): heading home", r.n,
             r.key, r.fails, revCfg().MAX_FAILS)), day)
-        log().info("revenge: group %s attempt %d on %s failed (%d/%d)", gid, r.n, r.key, r.fails, revCfg().MAX_FAILS)
+        LivingKnox.Log.info("revenge: group %s attempt %d on %s failed (%d/%d)", gid, r.n, r.key, r.fails, revCfg().MAX_FAILS)
         turnBack(g, r, hour)
     end
     return r.phase
@@ -833,7 +826,7 @@ function Relations.delayReturn(g, team, hour)
     for _, mid in ipairs(livingTeam(g, team)) do
         local m = g.members[mid]
         local z = memberEmbodied(m) and B ~= nil and B.find ~= nil and B.find(m.npc) or nil
-        if z ~= nil and g.home ~= nil and cheb(z:getX(), z:getY(), g.home.x + 0.5, g.home.y + 0.5) > 10 then
+        if z ~= nil and g.home ~= nil and LivingKnox.Geo.cheb(z:getX(), z:getY(), g.home.x + 0.5, g.home.y + 0.5) > 10 then
             e.returns = hour + 1
             return true
         end
@@ -847,8 +840,8 @@ function Relations.revengeReturn(g, gid, hour, day)
     g.expedition = nil
     if r == nil then return true end
     local back = livingTeam(g, r.team)
-    Groups().appendLog(g, "revenge", cut(string.format("attempt %d on %s: %d back home", r.n, r.key, #back)), day)
-    log().info("revenge: group %s attempt %d back home at hour %d (%d back)", gid, r.n, hour, #back)
+    LivingKnox.Groups.appendLog(g, "revenge", cut(string.format("attempt %d on %s: %d back home", r.n, r.key, #back)), day)
+    LivingKnox.Log.info("revenge: group %s attempt %d back home at hour %d (%d back)", gid, r.n, hour, #back)
     Relations.afterAttempt(g, gid, r, hour, day)
     return true
 end
@@ -860,9 +853,9 @@ function Relations.onCharacterDeath(chr)
     local data = liveGroups()
     if data == nil then return end
     local name = chr:getUsername()
-    local key = H().keyOf(chr)
+    local key = LivingKnox.Hostility.keyOf(chr)
     local B = LivingKnox.Bodies
-    for _, gid in ipairs(Groups().list()) do
+    for _, gid in ipairs(LivingKnox.Groups.list()) do
         local g = data.groups[gid]
         local r = g and g.revenge or nil
         if type(r) == "table" and r.v == 1 and r.ending == nil and ((key ~= nil and r.key == key)
@@ -871,12 +864,12 @@ function Relations.onCharacterDeath(chr)
             for _, mid in ipairs(type(r.team) == "table" and r.team or {}) do
                 local m = g.members[mid]
                 local z = m and m.alive and m.npc and B ~= nil and B.find(m.npc) or nil
-                if z ~= nil and cheb(z:getX(), z:getY(), chr:getX(), chr:getY()) <= revCfg().AVENGED_RANGE then
+                if z ~= nil and LivingKnox.Geo.cheb(z:getX(), z:getY(), chr:getX(), chr:getY()) <= revCfg().AVENGED_RANGE then
                     ending = "avenged"
                 end
             end
-            local hour, day = hourInt(), Groups().today()
-            Groups().update(function(d)
+            local hour, day = hourInt(), LivingKnox.Groups.today()
+            LivingKnox.Groups.update(function(d)
                 local live = d.groups[gid]
                 local lr = live and revengeOf(live, gid) or nil
                 if lr == nil then return false, false end
@@ -888,7 +881,7 @@ function Relations.onCharacterDeath(chr)
                 end
                 return true, true
             end)
-            log().info("revenge: target %s of group %s died: %s", r.key, gid, ending)
+            LivingKnox.Log.info("revenge: target %s of group %s died: %s", r.key, gid, ending)
         end
     end
 end
@@ -915,7 +908,7 @@ end
 
 local function farFrom(players, x, y, d)
     for _, p in ipairs(players) do
-        if cheb(p:getX(), p:getY(), x, y) < d then return false end
+        if LivingKnox.Geo.cheb(p:getX(), p:getY(), x, y) < d then return false end
     end
     return true
 end
@@ -977,20 +970,20 @@ function Relations.embodyTeam(gid, g, team, zone, players, budget, tag, stats, w
                 stats.spawnWaits = stats.spawnWaits + 1
                 if warned[gid] ~= "spawn" then
                     warned[gid] = "spawn"
-                    log().info("%s: group %s: no loaded free square %d+ squares from every player near %d,%d: waiting",
+                    LivingKnox.Log.info("%s: group %s: no loaded free square %d+ squares from every player near %d,%d: waiting",
                         tag, gid, cfg.SPAWN_MIN, zone.x, zone.y)
                 end
                 break
             end
             local npcId, why = Mat.embodyMember(gid, g, mid, m, sq, s)
             if npcId == nil then
-                log().warn("%s: group %s member %s not materialized: %s", tag, gid, mid, tostring(why))
+                LivingKnox.Log.warn("%s: group %s member %s not materialized: %s", tag, gid, mid, tostring(why))
                 break
             end
             created = created + 1
             stats.spawned = stats.spawned + 1
             warned[gid] = nil
-            log().info("%s: group %s member %s (npc %s) near %d,%d, materialized at %d,%d", tag, gid, mid, npcId,
+            LivingKnox.Log.info("%s: group %s member %s (npc %s) near %d,%d, materialized at %d,%d", tag, gid, mid, npcId,
                 zone.x, zone.y, sq:getX(), sq:getY())
         end
     end
@@ -1006,7 +999,7 @@ function Relations.huntPass()
     local players = B.livingPlayers()
     if #players == 0 then return 0 end
     local created = 0
-    for _, gid in ipairs(Groups().list()) do
+    for _, gid in ipairs(LivingKnox.Groups.list()) do
         local g = data.groups[gid]
         local r = g and g.revenge or nil
         if type(r) == "table" and r.phase == "hunt" and type(g.expedition) == "table"
@@ -1065,7 +1058,7 @@ function Relations.applyHunt(id, st, ctx, fresh)
     local gx, gy, gz = goalOf(hu, ctx, m)
     if gx == nil then return end
     local tx, ty, tz = gx, gy, gz
-    local far = cheb(ctx.x, ctx.y, gx + 0.5, gy + 0.5)
+    local far = LivingKnox.Geo.cheb(ctx.x, ctx.y, gx + 0.5, gy + 0.5)
     if far > revCfg().STEP or ctx.z ~= gz then
         if m.wp == nil then
             local ratio = math.min(1, revCfg().STEP / math.max(far, 1))
@@ -1089,11 +1082,6 @@ function Relations.applyHunt(id, st, ctx, fresh)
         if final and hu.phase == "hunt" then m.k = m.k + 1 end   -- point de ronde atteint (ou manqué) : suivant
         if res == "failed" and not final then m.k = m.k + 1 end
     end
-end
-
--- État de traque d'un PNJ (tests, diagnostic), ou nil.
-function Relations.huntMemory(id)
-    return Relations.huntState.npcs[id]
 end
 
 LivingKnox.listen("npcDied", "Relations.revenge", function(info) LivingKnox.Relations.onNpcDied(info) end)

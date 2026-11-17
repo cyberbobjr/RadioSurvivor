@@ -18,13 +18,11 @@ require "LivingKnox/LK_Passage"   -- LK18-T01 : priorité de passage déclarée 
 local Routines = LivingKnox.Routines
 local E = Routines.exec
 local buildingId, placeBeside = E.buildingId, E.placeBeside
-local cheb, byPlace, rankOf = Routines.cheb, Routines.byPlace, Routines.rankOf
+local byPlace, rankOf = Routines.byPlace, Routines.rankOf
 
-local function log() return LivingKnox.Log end
 local function cfg() return Routines.CFG end
-local function Decisions() return LivingKnox.Decisions end
 local function now() return getTimestampMs() end
-local function leash() return Decisions().CFG.HOME_RADIUS end
+local function leash() return LivingKnox.Decisions.CFG.HOME_RADIUS end
 
 -- ================================================================ registre des corvées (LK16-T07, ADR D02)
 
@@ -115,15 +113,12 @@ function Routines.surveySpots(home)
     local bid = buildingId(hsq)
     if bid == nil then return out end
     local found = {}
-    for dy = -R, R do
-        for dx = -R, R do
-            local x, y = home.x + dx, home.y + dy
-            local sq = cell:getGridSquare(x, y, home.z)
-            if sq ~= nil and buildingId(sq) == bid then
-                local kind, rank = Routines.choreObject(sq)
-                if kind ~= nil then
-                    found[#found + 1] = { x = x, y = y, kind = kind, rank = rank, d = cheb(x, y, home.x, home.y) }
-                end
+    for x, y in LivingKnox.Geo.squaresAround(home.x, home.y, R) do
+        local sq = cell:getGridSquare(x, y, home.z)
+        if sq ~= nil and buildingId(sq) == bid then
+            local kind, rank = Routines.choreObject(sq)
+            if kind ~= nil then
+                found[#found + 1] = { x = x, y = y, kind = kind, rank = rank, d = LivingKnox.Geo.cheb(x, y, home.x, home.y) }
             end
         end
     end
@@ -155,11 +150,11 @@ function Routines.ensureSpots(gid, home)
     local data, why = Routines.surveySpots(home)
     st.spots[gid] = { key = key, data = data, t = now() }
     if data == nil then
-        log().debug("group %s: chore places postponed: %s", gid, tostring(why))
+        LivingKnox.Log.debug("group %s: chore places postponed: %s", gid, tostring(why))
         return nil
     end
     Routines.stats.spotSurveys = Routines.stats.spotSurveys + 1
-    log().info("group %s home %s chore places: %d fire(s), %d furniture", gid, key, #data.fire, #data.furniture)
+    LivingKnox.Log.info("group %s home %s chore places: %d fire(s), %d furniture", gid, key, #data.fire, #data.furniture)
     return data
 end
 
@@ -167,7 +162,7 @@ end
 -- minutes selon l'identité (deux membres ne changent pas de corvée à la même minute).
 function Routines.choreSlot(id, minute)
     local span = cfg().CHORE_MINUTES
-    local off = math.floor(Decisions().stream("chore/" .. tostring(id), 0, 3)() * span)
+    local off = math.floor(LivingKnox.Decisions.stream("chore/" .. tostring(id), 0, 3)() * span)
     return math.floor((math.floor(minute) + off) / span)
 end
 
@@ -209,7 +204,7 @@ function Routines.pickChore(id, slot, weights)
     local total = 0
     for _, ch in ipairs(Routines.CHORES) do total = total + (weights[ch] or 0) end
     if total <= 0 then return Routines.CHORE_FALLBACK end
-    local r = math.floor(Decisions().stream("chore/" .. tostring(id), slot, 11)() * total)
+    local r = math.floor(LivingKnox.Decisions.stream("chore/" .. tostring(id), slot, 11)() * total)
     for _, ch in ipairs(Routines.CHORES) do
         r = r - (weights[ch] or 0)
         if r < 0 then return ch end

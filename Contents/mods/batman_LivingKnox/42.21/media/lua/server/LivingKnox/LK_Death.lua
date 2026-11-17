@@ -62,8 +62,6 @@ Death.state = Death.state or { ticks = 0 }
 Death.stats = Death.stats or { tracked = 0, asked = 0, missing = 0, resent = 0, clean = 0, gone = 0, nobody = 0,
     refused = 0, failed = 0, stillMissing = 0 }
 
-local function log() return LivingKnox.Log end
-
 -- Vrai sur un serveur MP (dédié ou hébergé) : seul endroit où un client peut manquer un cadavre.
 function Death.active()
     return isServer() and not isClient()
@@ -91,15 +89,13 @@ function Death.findCorpse(id, x, y, z)
     local I = LivingKnox.Identity
     local cell = getCell()
     if cell == nil then return nil end
-    for dy = -1, 1 do
-        for dx = -1, 1 do
-            local sq = cell:getGridSquare(x + dx, y + dy, z)
-            local list = sq and sq:getStaticMovingObjects()
-            for i = 0, (list and list:size() or 0) - 1 do
-                local o = list:get(i)
-                if instanceof(o, "IsoDeadBody") and o:hasModData() and I.readTag(o:getModData()) == id then
-                    return o, sq
-                end
+    for sx, sy in LivingKnox.Geo.squaresAround(x, y, 1) do
+        local sq = cell:getGridSquare(sx, sy, z)
+        local list = sq and sq:getStaticMovingObjects()
+        for i = 0, (list and list:size() or 0) - 1 do
+            local o = list:get(i)
+            if instanceof(o, "IsoDeadBody") and o:hasModData() and I.readTag(o:getModData()) == id then
+                return o, sq
             end
         end
     end
@@ -154,7 +150,7 @@ local function removeNow(e, t)
     local sq = body:getSquare()
     local ok, err = pcall(function() sq:removeCorpse(body, false) end)
     if not ok then
-        log().error("npc %s: corpse not removed for its resend: %s", e.id, tostring(err))
+        LivingKnox.Log.error("npc %s: corpse not removed for its resend: %s", e.id, tostring(err))
         -- Cadavre resté sur sa case : rien à remettre.
         if sq ~= nil and sq:getStaticMovingObjects():contains(body) then return drop(e, "failed") end
     end
@@ -170,12 +166,12 @@ local function addBack(e, t)
         sendCorpse(body)
     end)
     if not ok then
-        log().error("npc %s: corpse not resent: %s", e.id, tostring(err))
+        LivingKnox.Log.error("npc %s: corpse not resent: %s", e.id, tostring(err))
         return drop(e, "failed")
     end
     e.resends = e.resends + 1
     Death.stats.resent = Death.stats.resent + 1
-    log().info("npc %s: corpse resent to the clients near %s,%s,%s (missing on %s, resend %d)", e.id,
+    LivingKnox.Log.info("npc %s: corpse resent to the clients near %s,%s,%s (missing on %s, resend %d)", e.id,
         tostring(sq:getX()), tostring(sq:getY()), tostring(sq:getZ()), tostring(e.reported), e.resends)
     e.phase, e.at, e.wait, e.reported = "wait", t, Death.RECHECK_MS, nil
 end
@@ -215,7 +211,7 @@ function Death.onMissing(player, args)
     end
     Death.stats.missing = Death.stats.missing + 1
     if e.resends >= Death.MAX_RESENDS then
-        log().warn("npc %s: corpse still missing on %s after %d resend(s)", e.id, who, e.resends)
+        LivingKnox.Log.warn("npc %s: corpse still missing on %s after %d resend(s)", e.id, who, e.resends)
         drop(e, "stillMissing")
         return false
     end

@@ -117,6 +117,9 @@ LUA_FILES = [
     ('CoreAI/CA_MapZones', CORE_LUA / 'client' / 'CoreAI' / 'CA_MapZones.lua'),  # E21-T03 : RS_MapActions
     ('RadioSurvivor/RS_MapActions', MOD_LUA / 'client' / 'RadioSurvivor' / 'RS_MapActions.lua'),
     ('RadioSurvivor/RS_RadioTalk', MOD_LUA / 'client' / 'RadioSurvivor' / 'RS_RadioTalk.lua'),
+    # LK20-T01 : petites fonctions pures communes, requises par LK_Core (sans le requérir).
+    ('LivingKnox/LK_Num', LK_LUA / 'shared' / 'LivingKnox' / 'LK_Num.lua'),
+    ('LivingKnox/LK_Geo', LK_LUA / 'shared' / 'LivingKnox' / 'LK_Geo.lua'),
     ('LivingKnox/LK_Core', LK_LUA / 'shared' / 'LivingKnox' / 'LK_Core.lua'),
     ('LivingKnox/LK_Config', LK_LUA / 'shared' / 'LivingKnox' / 'LK_Config.lua'),
     ('LivingKnox/LK_Log', LK_LUA / 'shared' / 'LivingKnox' / 'LK_Log.lua'),

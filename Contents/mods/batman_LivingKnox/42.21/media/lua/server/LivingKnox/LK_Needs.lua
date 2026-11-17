@@ -94,13 +94,7 @@ Needs.CFG = Needs.CFG or {
 Needs.state = Needs.state or { samples = {}, threats = {}, sources = {} }
 Needs.stats = Needs.stats or { passes = 0, steps = 0, skipped = 0, bumps = 0, observed = 0, resets = 0 }
 
-local function log() return LivingKnox.Log end
-local function Groups() return LivingKnox.Groups end
 local function cfg() return Needs.CFG end
-
-local function isInt(v, lo, hi)
-    return type(v) == "number" and v == v and math.floor(v) == v and v >= lo and v <= hi
-end
 
 local function level(v)
     v = math.floor(v + 0.5)
@@ -139,9 +133,9 @@ end
 
 -- Jauges valides : quatre entiers 0..100 et une heure entière >= 0.
 function Needs.valid(v)
-    if type(v) ~= "table" or not isInt(v.hour, 0, 2147483647) then return false end
+    if type(v) ~= "table" or not LivingKnox.Num.isInt(v.hour, 0, 2147483647) then return false end
     for _, key in ipairs(Needs.GAUGES) do
-        if not isInt(v[key], 0, 100) then return false end
+        if not LivingKnox.Num.isInt(v[key], 0, 100) then return false end
     end
     return true
 end
@@ -156,7 +150,7 @@ local function vitalsOf(m, hour)
     if not Needs.valid(m.vitals) then
         if m.vitals ~= nil then
             Needs.stats.resets = Needs.stats.resets + 1
-            log().warn("needs: member %s had malformed gauges, reset", tostring(m.id))
+            LivingKnox.Log.warn("needs: member %s had malformed gauges, reset", tostring(m.id))
         end
         m.vitals = Needs.fresh(hour)
     end
@@ -279,7 +273,7 @@ function Needs.advance(data, now)
         if l > longest then longest = l end
     end
     if longest > cfg().CATCHUP_HOURS then
-        log().warn("needs: %s hour(s) missed, %s applied, the rest skipped", tostring(longest),
+        LivingKnox.Log.warn("needs: %s hour(s) missed, %s applied, the rest skipped", tostring(longest),
             tostring(cfg().CATCHUP_HOURS))
     end
     -- Observations et menaces des pas passés : oubliées.
@@ -300,7 +294,7 @@ function Needs.pass(now)
     if not LivingKnox.Config.isEnabled() then return 0 end
     now = now or Needs.currentHour()
     if now == nil then return nil, "no game clock" end
-    local G = Groups()
+    local G = LivingKnox.Groups
     if not G.ensure() then return nil, "group registry not ready" end
     local steps = 0
     local ok, why = G.update(function(data)
@@ -319,14 +313,14 @@ function Needs.onEveryHours(hour)
 end
 
 function Needs.onStart()
-    if not Groups().isReady() then return end
+    if not LivingKnox.Groups.isReady() then return end
     Needs.pass()
 end
 
 -- Entrées de la cascade (autorité) ---------------------------------------------------------------------------------
 
 local function liveMember(gid, mid)
-    local G = Groups()
+    local G = LivingKnox.Groups
     if G == nil or not G.isReady() then return nil end
     local g = G.state.data.groups[gid]
     local m = g and g.members[mid] or nil
@@ -418,7 +412,7 @@ function Needs.perceive(gid, mid, threats, combatant, minute)
         v.fear = level(v.fear + total)
         Needs.stats.bumps = Needs.stats.bumps + 1
     end
-    Groups().touched(gid)   -- LK13-T08 : jauges changées en place sans écriture, connues du contrôle des vues
+    LivingKnox.Groups.touched(gid)   -- LK13-T08 : jauges changées en place sans écriture, connues du contrôle des vues
     return total
 end
 

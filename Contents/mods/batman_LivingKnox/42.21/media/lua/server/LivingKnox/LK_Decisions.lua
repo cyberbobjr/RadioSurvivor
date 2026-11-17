@@ -220,8 +220,6 @@ end
 
 local M = 2147483647
 
-local function log() return LivingKnox.Log end
-local function Groups() return LivingKnox.Groups end
 local function cfg() return Decisions.CFG end
 
 -- LK05-T14 : seuils de danger réglables (options sandbox, LivingKnox.Config.danger) ; repli : valeurs de CFG.
@@ -240,14 +238,6 @@ function Decisions.needHigh(name)
     return cfg().NEED_HIGH[name]
 end
 local function now() return getTimestampMs() end
-
-local function finite(v) return type(v) == "number" and v == v and v > -1e9 and v < 1e9 end
-
-local function clamp(v, lo, hi)
-    if v < lo then return lo end
-    if v > hi then return hi end
-    return v
-end
 
 local function anyOf(set, names)
     for _, n in ipairs(names) do
@@ -296,12 +286,6 @@ function Decisions.angleTo(dx, dy)
     return a - math.floor(a / 360) * 360
 end
 
-local function angleGap(a, b)
-    local d = math.abs(a - b) % 360
-    if d > 180 then d = 360 - d end
-    return d
-end
-
 -- Horloge ----------------------------------------------------------------------------------------------------------
 
 -- Minute de jeu courante (âge du monde en minutes, entier), ou nil si l'horloge manque.
@@ -309,7 +293,7 @@ function Decisions.currentMinute()
     local gt = getGameTime and getGameTime()
     if not gt then return nil end
     local hours = gt:getWorldAgeHours()
-    if not finite(hours) or hours < 0 then return nil end
+    if not LivingKnox.Num.finite(hours) or hours < 0 then return nil end
     return math.floor(hours * 60 + 0.5)
 end
 
@@ -415,7 +399,7 @@ function Decisions.scoreObjectives(gin)
     local scores = {}
     local best, bestScore
     for i, o in ipairs(Decisions.OBJECTIVES) do
-        local s = clamp(math.floor(raw[o] + 0.5) + jitter(gin.gidNumber or 0, gin.day or 0, i), 0, 100)
+        local s = LivingKnox.Num.clamp(math.floor(raw[o] + 0.5) + jitter(gin.gidNumber or 0, gin.day or 0, i), 0, 100)
         scores[o] = s
         if best == nil or s > bestScore then best, bestScore = o, s end
     end
@@ -949,7 +933,7 @@ function Decisions.needsOf(gid, mid)
     local got = N ~= nil and N.get ~= nil and N.get(gid, mid) or nil
     for _, key in ipairs(Decisions.NEEDS) do
         local v = type(got) == "table" and got[key] or nil
-        out[key] = finite(v) and clamp(math.floor(v + 0.5), 0, 100) or 0
+        out[key] = LivingKnox.Num.finite(v) and LivingKnox.Num.clamp(math.floor(v + 0.5), 0, 100) or 0
     end
     return out
 end
@@ -958,7 +942,7 @@ end
 function Decisions.fortificationOf(gid)
     local F = LivingKnox.Fortification
     local v = F ~= nil and F.levelOf ~= nil and F.levelOf(gid) or nil
-    if finite(v) then return clamp(v, 0, 100) end
+    if LivingKnox.Num.finite(v) then return LivingKnox.Num.clamp(v, 0, 100) end
     return nil
 end
 
@@ -976,9 +960,10 @@ function Decisions.healthOf(m)
     local H = LivingKnox.Health
     if m.npc ~= nil and H ~= nil and H.get ~= nil then
         local h = H.get(m.npc)
-        if h ~= nil and finite(h.hp) and finite(h.max) and h.max > 0 then return clamp(h.hp / h.max, 0, 1) end
+        if h ~= nil and LivingKnox.Num.finite(h.hp) and LivingKnox.Num.finite(h.max)
+            and h.max > 0 then return LivingKnox.Num.clamp(h.hp / h.max, 0, 1) end
     end
-    return clamp(1 - (m.wound or 0) / 100, 0, 1)
+    return LivingKnox.Num.clamp(1 - (m.wound or 0) / 100, 0, 1)
 end
 
 local function isEmbodied(m, registry)
@@ -1031,7 +1016,7 @@ end
 
 -- Entrée de notation d'un groupe vivant (registre) à l'heure hour.
 function Decisions.groupInput(gid, g, hour)
-    local G = Groups()
+    local G = LivingKnox.Groups
     local away = {}
     if type(g.expedition) == "table" and type(g.expedition.team) == "table" then
         for _, mid in ipairs(g.expedition.team) do away[mid] = true end
@@ -1121,7 +1106,7 @@ function Decisions.scoreGroup(gid, g, hour)
         for i, m in ipairs(list) do ids[i] = m.mid end
         parts[#parts + 1] = d .. " " .. table.concat(ids, " ")
     end
-    local G = Groups()
+    local G = LivingKnox.Groups
     local text = result.why .. "; " .. table.concat(parts, ", ")
     local Ac = LivingKnox.Activity   -- LK13-T14 : journal d'activité (mémoire seulement)
     if Ac ~= nil then
@@ -1129,13 +1114,13 @@ function Decisions.scoreGroup(gid, g, hour)
     end
     if scheduled then
         Decisions.stats.watchChanges = Decisions.stats.watchChanges + 1
-        log().info("group %s watch %d (hour of day %d): %s", gid, Decisions.watchOf(hour), (hour + 7) % 24,
+        LivingKnox.Log.info("group %s watch %d (hour of day %d): %s", gid, Decisions.watchOf(hour), (hour + 7) % 24,
             table.concat(parts, ", "))
         return true
     end
     G.appendLog(g, "objective", string.sub(text, 1, G.TEXT_MAX), gin.day)
     Decisions.stats.objectiveChanges = Decisions.stats.objectiveChanges + 1
-    log().info("group %s objective: %s", gid, text)
+    LivingKnox.Log.info("group %s objective: %s", gid, text)
     return true
 end
 
@@ -1153,7 +1138,7 @@ function Decisions.scorePass(hour, only)
     if not LivingKnox.isAuthority() then return 0 end
     hour = hour or Decisions.currentHour()
     if hour == nil then return 0 end
-    local G = Groups()
+    local G = LivingKnox.Groups
     if not G.ensure() then return 0 end
     local registry = registryOfBodies()
     local count = 0
@@ -1187,7 +1172,7 @@ function Decisions.onEveryHours(hour)
     if not LivingKnox.Config.isEnabled() then return end
     Decisions.finishHourQueue()
     hour = hour or Decisions.currentHour()
-    local G = Groups()
+    local G = LivingKnox.Groups
     if hour == nil or not G.ensure() then return end
     local ids = {}
     for gid in pairs(G.state.data.groups) do ids[#ids + 1] = gid end
@@ -1227,7 +1212,7 @@ local function hourStep(all)
     end
     if q.head > #q.list then
         Decisions.hourQueue = { list = {}, head = 1, hour = nil, fresh = false }
-        local G = Groups()
+        local G = LivingKnox.Groups
         G.release("decisions")
         if not all and G.isDirty() and not G.isHeld() then G.flush() end   -- une autre retenue écrira à sa fin
     end
@@ -1308,11 +1293,9 @@ local function playerName(p)
     return tostring(p:getUsername())
 end
 
-local function cheb(x1, y1, x2, y2) return math.max(math.abs(x1 - x2), math.abs(y1 - y2)) end
-
 -- Groupe et membre vivant du PNJ id (état de la cascade, sinon registre) : gid, mid, g, m ; ou nil.
 local function memberOf(id)
-    local G = Groups()
+    local G = LivingKnox.Groups
     local data = G ~= nil and G.isReady() and G.state.data or nil
     if data == nil then return nil end
     local s = Decisions.state.members[id]
@@ -1349,7 +1332,7 @@ function Decisions.helpFor(gid, x, y, z, minute)
     if h == nil or minute == nil then return nil end
     local c = cfg().HELP
     if minute < h.minute or minute - h.minute > c.MINUTES then return nil end
-    if h.oz ~= z or cheb(x, y, h.ox + 0.5, h.oy + 0.5) > Decisions.helpRadius() then return nil end
+    if h.oz ~= z or LivingKnox.Geo.cheb(x, y, h.ox + 0.5, h.oy + 0.5) > Decisions.helpRadius() then return nil end
     return h
 end
 
@@ -1363,7 +1346,7 @@ function Decisions.callHelp(gid, g, mid, m, body, rec, minute, why)
         minute = minute, why = why }
     bucket("help")[gid] = h
     Decisions.stats.helpCalls = Decisions.stats.helpCalls + 1
-    log().info("group %s: npc %s (%s) calls for help against %s at %d,%d,%d (%s)", gid, tostring(m.npc), mid, label,
+    LivingKnox.Log.info("group %s: npc %s (%s) calls for help against %s at %d,%d,%d (%s)", gid, tostring(m.npc), mid, label,
         h.x, h.y, h.z, tostring(why))
     local A = LivingKnox.Alert
     if A ~= nil and A.raise ~= nil then
@@ -1414,7 +1397,7 @@ function Decisions.noteHit(id, body, wielder)
             b[gid] = b[gid] or {}
             b[gid][rec.u] = minute
             Decisions.stats.surrenderBroken = Decisions.stats.surrenderBroken + 1
-            log().info("group %s: %s hit npc %s after npc %s surrendered: surrender broken", gid, rec.u, id, s.npc)
+            LivingKnox.Log.info("group %s: %s hit npc %s after npc %s surrendered: surrender broken", gid, rec.u, id, s.npc)
             Decisions.setAlertGesture(s.npc, nil)   -- LK06-T12 : mains baissées sans attendre la décision suivante
             Decisions.announceSurrender(s.npc, "betrayed", minute)
         end
@@ -1502,7 +1485,7 @@ local function afterDecision(gid, g, mid, m, body, st, prev, ctx, fresh, minute)
     if prev ~= nil and prev.b == "surrender" and (st.b ~= "surrender" or st.u ~= prev.u) then
         local per = sur[gid]
         if per ~= nil and per[prev.u] ~= nil and per[prev.u].npc == id then per[prev.u] = nil end
-        log().info("npc %s (%s %s): surrender to %s over", id, gid, mid, tostring(prev.u))
+        LivingKnox.Log.info("npc %s (%s %s): surrender to %s over", id, gid, mid, tostring(prev.u))
     end
     if st.b == "surrender" and st.u ~= nil then
         sur[gid] = sur[gid] or {}
@@ -1510,7 +1493,7 @@ local function afterDecision(gid, g, mid, m, body, st, prev, ctx, fresh, minute)
         if s == nil or s.npc ~= id then
             sur[gid][st.u] = { npc = id, since = minute, last = minute, seen = minute }
             Decisions.stats.surrenders = Decisions.stats.surrenders + 1
-            log().info("npc %s (%s %s) surrenders to %s: %s", id, gid, mid, st.u, tostring(st.why))
+            LivingKnox.Log.info("npc %s (%s %s) surrenders to %s: %s", id, gid, mid, st.u, tostring(st.why))
             Decisions.announceSurrender(id, "surrender", minute)   -- LK06-T12 : une seule réplique par reddition
         else
             s.last = minute   -- reddition revue (validité de Decisions.spared)
@@ -1520,7 +1503,7 @@ local function afterDecision(gid, g, mid, m, body, st, prev, ctx, fresh, minute)
     end
     if fresh and st.b == "retreat" then
         Decisions.stats.retreats = Decisions.stats.retreats + 1
-        log().info("npc %s (%s %s) retreats: %s", id, gid, mid, tostring(st.why))
+        LivingKnox.Log.info("npc %s (%s %s) retreats: %s", id, gid, mid, tostring(st.why))
         local tg = ctx.target
         if tg ~= nil then
             local rec
@@ -1559,11 +1542,11 @@ function Decisions.announceSurrender(id, kind, minute)
     local key = Decisions.SURRENDER_KEY .. c.prefix .. pick(1, c.n, Decisions.stream(id, minute or 0, c.salt))
     local out, why = Sp.say(id, { key = key })
     if out == nil then
-        log().debug("npc %s: %s line not heard: %s", id, kind, tostring(why))
+        LivingKnox.Log.debug("npc %s: %s line not heard: %s", id, kind, tostring(why))
         return nil, why
     end
     Decisions.stats[c.stat] = Decisions.stats[c.stat] + 1
-    log().info("npc %s says %s (%s)", id, key, kind)
+    LivingKnox.Log.info("npc %s says %s (%s)", id, key, kind)
     return out.id
 end
 
@@ -1688,7 +1671,7 @@ function Decisions.ableNear(gid, g, x, y, z)
     for mid, m in pairs(g.members or {}) do
         local body = m.alive and m.npc ~= nil and B.find(m.npc) or nil
         if body ~= nil and not body:isDead() and math.floor(body:getZ()) == z
-            and cheb(body:getX(), body:getY(), x, y) <= radius
+            and LivingKnox.Geo.cheb(body:getX(), body:getY(), x, y) <= radius
             and Decisions.unfitOf({ health = Decisions.healthOf(m), needs = Decisions.needsOf(gid, mid) }) == nil then
             n = n + 1
         end
@@ -1717,7 +1700,7 @@ end
 local function issued(id, v, why)
     if v == nil then
         Decisions.stats.refused = Decisions.stats.refused + 1
-        log().debug("npc %s: decision directive refused: %s", id, tostring(why))
+        LivingKnox.Log.debug("npc %s: decision directive refused: %s", id, tostring(why))
         return false
     end
     Decisions.state.issued[id] = v
@@ -1747,7 +1730,7 @@ function Decisions.goHome(id, ctx)
     if open ~= nil and open.op == D.OP_MOVE and open.g ~= "run" then return end   -- déjà en route
     local x, y, z = homeTarget(ctx.home)
     if x == nil then
-        log().debug("npc %s: cannot go home: %s", id, tostring(y))
+        LivingKnox.Log.debug("npc %s: cannot go home: %s", id, tostring(y))
         return
     end
     issued(id, D.moveTo(id, x, y, z, "walk"))
@@ -1789,7 +1772,8 @@ end
 function Decisions.faceTowards(id, st, ctx, x, y, fresh)
     if x == nil then return false end
     local a = Decisions.angleTo(x + 0.5 - ctx.x, y + 0.5 - ctx.y)
-    if a == nil or not (fresh or st.faced == nil or angleGap(a, st.faced) >= cfg().FACE_DELTA) then return false end
+    if a == nil or not (fresh or st.faced == nil or LivingKnox.Geo.angleGap(a,
+        st.faced) >= cfg().FACE_DELTA) then return false end
     st.faced = a
     Decisions.face(id, a)
     return true
@@ -1899,7 +1883,7 @@ function Decisions.evaluate(gid, g, mid, m, body, players, minute)
     local Mv = LivingKnox.Movement
     if st ~= nil and Mv ~= nil and Mv.takeStuck ~= nil and Mv.takeStuck(id, Decisions.state.issued[id]) then
         st.untilMin = minute
-        log().info("npc %s: %s directive stuck, decision taken again", id, tostring(st.b))
+        LivingKnox.Log.info("npc %s: %s directive stuck, decision taken again", id, tostring(st.b))
     end
     local fresh, why = Decisions.replaces(st, out, minute)
     if fresh and st ~= nil and st.b == "sleep" and out.rule == "threat" and ctx.alert ~= nil then
@@ -1911,7 +1895,7 @@ function Decisions.evaluate(gid, g, mid, m, body, players, minute)
         Decisions.state.members[id] = out
         st = out
         Decisions.stats.decided = Decisions.stats.decided + 1
-        log().debug("npc %s (%s %s %s): %s -> %s until minute %d (%s)", id, gid, mid, tostring(m.role), out.rule, out.b,
+        LivingKnox.Log.debug("npc %s (%s %s %s): %s -> %s until minute %d (%s)", id, gid, mid, tostring(m.role), out.rule, out.b,
             out.untilMin, out.why .. ", " .. why)
         local Ac = LivingKnox.Activity   -- LK13-T14 : journal d'activité (mémoire seulement, aucune décision changée)
         if Ac ~= nil then Ac.behaviour(gid, mid, id, prev, out, why) end
@@ -1931,7 +1915,7 @@ end
 -- Liste des membres incarnés dont le corps est relié : { { gid, mid, npc }, ... } triée (groupe, numéro de membre).
 function Decisions.buildRoster()
     local out = {}
-    local G = Groups()
+    local G = LivingKnox.Groups
     local registry = registryOfBodies()
     local data = G.isReady() and G.state.data or nil
     if data == nil or registry == nil then return out end
@@ -2019,7 +2003,7 @@ function Decisions.memberStep()
     local minute = Decisions.currentMinute()
     if minute == nil then return 0 end
     local hour = math.floor(minute / 60)
-    local G = Groups()
+    local G = LivingKnox.Groups
     local data = G.state.data
     local B = LivingKnox.Bodies
     local players = B ~= nil and B.livingPlayers ~= nil and B.livingPlayers() or {}
@@ -2054,11 +2038,11 @@ function Decisions.tick()
     local t = now()
     local st = Decisions.state
     if st.lastPass ~= nil and t - st.lastPass < cfg().PASS_MS then
-        if st.batch ~= nil and Groups().isReady() then Decisions.memberStep() end   -- LK13-T11 : suite du passage
+        if st.batch ~= nil and LivingKnox.Groups.isReady() then Decisions.memberStep() end   -- LK13-T11 : suite du passage
         return
     end
     st.lastPass = t
-    if not Groups().isReady() then return end
+    if not LivingKnox.Groups.isReady() then return end
     Decisions.memberPass(t)
 end
 
@@ -2071,7 +2055,7 @@ function Decisions.hourTick()
     if not LivingKnox.isAuthority() then return end
     local q = Decisions.hourQueue
     if q.fresh or q.head > #q.list then return end
-    if not Groups().isReady() then return end
+    if not LivingKnox.Groups.isReady() then return end
     hourStep(false)
 end
 
@@ -2093,7 +2077,7 @@ function Decisions.reset()
     Decisions.state = { members = {}, issued = {}, threats = {}, scored = {}, roster = {}, rosterMs = nil,
         cursor = 0, lastPass = nil, gestures = {} }
     Decisions.hourQueue = { list = {}, head = 1, hour = nil, fresh = false }   -- LK13-T11
-    if Groups() ~= nil and Groups().release ~= nil then Groups().release("decisions") end
+    if LivingKnox.Groups ~= nil and LivingKnox.Groups.release ~= nil then LivingKnox.Groups.release("decisions") end
     Decisions.evals.at = {}   -- E09-T05 : numéros oubliés, compteur gardé (jamais réutilisé)
 end
 
@@ -2128,7 +2112,7 @@ end
 -- numéro de sa dernière évaluation ou nil, active = vrai s'il a un état de décision ou un engagement, u = compte du
 -- joueur visé ou nil }, ... } } pour chaque membre vivant du groupe gid (ordre des numéros de membre), ou nil.
 function Decisions.aims(gid)
-    local G = Groups()
+    local G = LivingKnox.Groups
     local g = G.isReady() and G.state.data.groups[gid] or nil
     if g == nil then return nil end
     local mids = {}
@@ -2176,7 +2160,7 @@ Decisions.FRIENDLY_LEVELS = { trusting = true, favorable = true }
 
 -- Rang d'ancienneté du membre mid parmi les membres vivants de g (1 = plus ancien) et nombre de vivants.
 function Decisions.seniorityOf(g, mid)
-    local G = Groups()
+    local G = LivingKnox.Groups
     local mine = G.memberNumber(mid) or 0
     local older, alive = 0, 0
     for other, m in pairs(g.members or {}) do
@@ -2192,9 +2176,10 @@ end
 -- pour le dernier arrivé). Rend "loyal" | "steady" | "wavering" et le score entier.
 function Decisions.loyaltyOf(morale, rank, count)
     local c = cfg().REFUSE
-    morale = finite(morale) and clamp(morale, 0, 100) or 50
+    morale = LivingKnox.Num.finite(morale) and LivingKnox.Num.clamp(morale, 0, 100) or 50
     local seniority = 0
-    if finite(rank) and finite(count) and count > 1 then seniority = clamp((count - rank) / (count - 1), 0, 1) end
+    if LivingKnox.Num.finite(rank) and LivingKnox.Num.finite(count)
+        and count > 1 then seniority = LivingKnox.Num.clamp((count - rank) / (count - 1), 0, 1) end
     local score = math.floor(morale + c.SENIOR_BONUS * seniority + 0.5)
     if score >= c.LOYAL then return "loyal", score end
     if score < c.WAVERING then return "wavering", score end
@@ -2233,7 +2218,7 @@ end
 -- instance, HOLD_MINUTES) est rendu sans nouvelle annonce ; un nouveau refus est mis en file (flushRefusals).
 function Decisions.judgeOrder(gid, g, mid, m, order, key, minute, extra)
     local id = m and m.npc or nil
-    if id == nil or not finite(minute) then return nil end
+    if id == nil or not LivingKnox.Num.finite(minute) then return nil end
     local all = bucket("refusals")
     local mine = all[id]
     local rec = mine ~= nil and mine[order] or nil
@@ -2257,7 +2242,7 @@ function Decisions.judgeOrder(gid, g, mid, m, order, key, minute, extra)
     local q = bucket("refusalQueue")
     q[#q + 1] = { gid = gid, mid = mid, npc = id, order = order, reason = reason, why = why }
     Decisions.stats.orderRefusals = (Decisions.stats.orderRefusals or 0) + 1
-    log().info("npc %s (%s %s) refuses the %s order: %s (%s)", id, gid, mid, order, reason, why)
+    LivingKnox.Log.info("npc %s (%s %s) refuses the %s order: %s (%s)", id, gid, mid, order, reason, why)
     return reason, why
 end
 
@@ -2312,15 +2297,15 @@ function Decisions.flushRefusals()
     local q = Decisions.state.refusalQueue
     if q == nil or #q == 0 then return 0 end
     Decisions.state.refusalQueue = {}
-    local G, Sp = Groups(), LivingKnox.Speech
+    local G, Sp = LivingKnox.Groups, LivingKnox.Speech
     for _, r in ipairs(q) do
         local text = string.sub(string.format("%s refused the %s order: %s (%s)", r.mid, r.order, r.reason, r.why), 1,
             G.TEXT_MAX)
         local ok, err = G.addLog(r.gid, "refusal", text)
-        if not ok then log().warn("group %s: refusal of %s not logged: %s", r.gid, r.mid, tostring(err)) end
+        if not ok then LivingKnox.Log.warn("group %s: refusal of %s not logged: %s", r.gid, r.mid, tostring(err)) end
         if Sp ~= nil and Sp.say ~= nil then
             local out, why = Sp.say(r.npc, { key = Decisions.REFUSAL_KEY .. r.order .. "_" .. r.reason })
-            if out == nil then log().debug("npc %s: refusal line not heard: %s", r.npc, tostring(why)) end
+            if out == nil then LivingKnox.Log.debug("npc %s: refusal line not heard: %s", r.npc, tostring(why)) end
         end
     end
     return #q

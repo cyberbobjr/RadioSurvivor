@@ -67,7 +67,6 @@ View.pieceLog = View.pieceLog or {} -- morceaux affichés, du plus ancien : { np
 View.last = View.last or nil        -- dernière réplique affichée { id, npc, text } (tests, suite en jeu)
 View.lastDraw = View.lastDraw or nil -- dernière bulle dessinée { npc, text, x, y, player } (suite en jeu)
 
-local function log() return LivingKnox.Log end
 local function now() return getTimestampMs() end
 
 local function count(name)
@@ -258,7 +257,7 @@ function View.chatLine(text, e)
         View.chat:showMessage(message)   -- jamais sendToServer : ligne locale seulement
     end)
     if not ok then
-        log().warn("speech %s: chat line failed: %s", tostring(e.id), tostring(err))
+        LivingKnox.Log.warn("speech %s: chat line failed: %s", tostring(e.id), tostring(err))
         return false
     end
     count("chat")
@@ -286,7 +285,7 @@ function View.receive(e)
     local text = View.textOf(e)
     if text == nil or text == "" then
         count("missing")
-        log().warn("speech %s of %s: no text for key %s", e.id, e.npc, tostring(e.k))
+        LivingKnox.Log.warn("speech %s of %s: no text for key %s", e.id, e.npc, tostring(e.k))
         return false
     end
     View.chatLine(text, e)
@@ -311,7 +310,7 @@ function View.retry()
             keep[#keep + 1] = w
         else
             count("lost")
-            log().debug("speech %s of %s: body never loaded here, bubble dropped", w.e.id, w.e.npc)
+            LivingKnox.Log.debug("speech %s of %s: body never loaded here, bubble dropped", w.e.id, w.e.npc)
         end
     end
     View.waiting = keep
@@ -355,7 +354,7 @@ if not isServer() then
         local ok, err = pcall(V.draw)
         if not ok then
             V.bubbles = {}
-            if not V.drawFailed then log().warn("speech bubbles: draw failed: %s", tostring(err)) end
+            if not V.drawFailed then LivingKnox.Log.warn("speech bubbles: draw failed: %s", tostring(err)) end
             V.drawFailed = true
         end
     end

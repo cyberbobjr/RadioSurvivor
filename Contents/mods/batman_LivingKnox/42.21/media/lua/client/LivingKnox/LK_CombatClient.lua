@@ -403,8 +403,6 @@ end
 
 -- ---------------------------------------------------------------- coups de feu (LK06-T03)
 
-local function finite(v) return type(v) == "number" and v == v and v > -1e9 and v < 1e9 end
-
 local function remember(k)
     View.seen[k] = true
     View.order[#View.order + 1] = k
@@ -431,7 +429,7 @@ end
 -- clé. Rend vrai s'il a été joué.
 function View.onShot(e)
     if type(e) ~= "table" or type(e.k) ~= "string" or type(e.snd) ~= "string" or not e.snd:match("^[%w_]+$")
-        or not finite(e.x) or not finite(e.y) or not finite(e.z) then
+        or not LivingKnox.Num.finite(e.x) or not LivingKnox.Num.finite(e.y) or not LivingKnox.Num.finite(e.z) then
         count("shotsRefused")
         return false
     end
@@ -464,7 +462,7 @@ end
 function View.onMelee(e)
     if type(e) ~= "table" or type(e.k) ~= "string" or type(e.hit) ~= "string" or not e.hit:match("^[%w_]+$")
         or (e.sw ~= nil and (type(e.sw) ~= "string" or not e.sw:match("^[%w_]+$")))
-        or not finite(e.x) or not finite(e.y) or not finite(e.z) then
+        or not LivingKnox.Num.finite(e.x) or not LivingKnox.Num.finite(e.y) or not LivingKnox.Num.finite(e.z) then
         count("meleeRefused")
         return false
     end

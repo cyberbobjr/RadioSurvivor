@@ -52,15 +52,13 @@ Provisions.state = Provisions.state or { tried = {} }
 Provisions.stats = Provisions.stats or { given = 0, refilled = 0, refillTries = 0, eaten = 0, drunk = 0 }
 
 local function cfg() return Provisions.CFG end
-local function log() return LivingKnox.Log end
-local function Stock() return LivingKnox.Stock end
 
 -- ================================================================ objets portés
 
 -- Vrai si l'objet est une provision : aliment mangeable tel quel qui ne pourrit jamais.
 function Provisions.isProvision(item)
     if item == nil or not instanceof(item, "Food") then return false end
-    local S = Stock()
+    local S = LivingKnox.Stock
     if S.categoryOf(item) ~= "food" or not S.consumable(item, "food") then return false end
     return item:getOffAgeMax() >= Provisions.MAX_FOOD_AGE
 end
@@ -138,7 +136,7 @@ function Provisions.eat(gid, mid, z)
     local amount = LivingKnox.Needs.CFG.MEAL
     local value = relieve(gid, mid, "hunger", amount)
     Provisions.stats.eaten = Provisions.stats.eaten + 1
-    log().info("group %s %s: ate provision %s (%s), hunger -%d -> %s, %d left", tostring(gid), tostring(mid), t,
+    LivingKnox.Log.info("group %s %s: ate provision %s (%s), hunger -%d -> %s, %d left", tostring(gid), tostring(mid), t,
         tostring(id), amount, tostring(value), n - 1)
     note(gid, mid, "ate provision " .. t)
     return t
@@ -152,7 +150,7 @@ function Provisions.drink(gid, mid, z)
     local amount = LivingKnox.Needs.CFG.DRINK
     local value = relieve(gid, mid, "thirst", amount)
     Provisions.stats.drunk = Provisions.stats.drunk + 1
-    log().info("group %s %s: drank from the canteen, thirst -%d -> %s (canteen never emptied)", tostring(gid),
+    LivingKnox.Log.info("group %s %s: drank from the canteen, thirst -%d -> %s (canteen never emptied)", tostring(gid),
         tostring(mid), amount, tostring(value))
     note(gid, mid, "drank from the canteen")
     return true
@@ -173,7 +171,7 @@ function Provisions.refill(gid, mid, id, z, minute)
     end
     tried[id] = minute
     Provisions.stats.refillTries = Provisions.stats.refillTries + 1
-    local S = Stock()
+    local S = LivingKnox.Stock
     local inv = z:getInventory()
     local n, why = 0, nil
     while have + n < cfg().COUNT do
@@ -188,10 +186,10 @@ function Provisions.refill(gid, mid, id, z, minute)
     end
     Provisions.stats.refilled = Provisions.stats.refilled + n
     if n > 0 then
-        log().info("group %s %s: %d provision(s) replaced from the home stock, %d carried", tostring(gid),
+        LivingKnox.Log.info("group %s %s: %d provision(s) replaced from the home stock, %d carried", tostring(gid),
             tostring(mid), n, have + n)
     else
-        log().debug("group %s %s: no provision replaced: %s", tostring(gid), tostring(mid), tostring(why))
+        LivingKnox.Log.debug("group %s %s: no provision replaced: %s", tostring(gid), tostring(mid), tostring(why))
     end
     return n, why
 end

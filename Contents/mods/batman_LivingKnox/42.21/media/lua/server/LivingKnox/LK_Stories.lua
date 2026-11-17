@@ -40,9 +40,6 @@ Stories.PRIVATE_FIELDS = { "secrets" }
 
 local LEADER_LINE = { en = { "Their leader is ", ", ", "." }, fr = { "Leur chef est ", ", ", "." } }
 
-local function data() return LivingKnox.StoryData end
-local function log() return LivingKnox.Log end
-
 local function inList(list, value)
     if type(list) ~= "table" then return false end
     for _, v in ipairs(list) do
@@ -153,14 +150,14 @@ function Stories.summary(story, lang)
         text = parts[1] .. " " .. parts[3]
     end
     if #text > Stories.SUMMARY_MAX then
-        log().warn("stories: summary of type '%s' cut to %d characters", tostring(story.type), Stories.SUMMARY_MAX)
+        LivingKnox.Log.warn("stories: summary of type '%s' cut to %d characters", tostring(story.type), Stories.SUMMARY_MAX)
         text = string.sub(text, 1, Stories.SUMMARY_MAX)
     end
     return text
 end
 
 function Stories.compose(groupType, seed, opts)
-    local D = data()
+    local D = LivingKnox.StoryData
     if type(D) ~= "table" then return nil, "no story data" end
     if not checkType(groupType) then return nil, "bad type" end
     if not checkSeed(seed) then return nil, "bad seed" end
@@ -182,7 +179,7 @@ function Stories.compose(groupType, seed, opts)
     for _, category in ipairs({ "origins", "motivations", "tones", "leaderPasts" }) do
         local list = Stories.candidates(D[category], groupType, chosen)
         if #list == 0 then
-            log().warn("stories: no %s fragment fits type '%s'", category, groupType)
+            LivingKnox.Log.warn("stories: no %s fragment fits type '%s'", category, groupType)
             return nil, "no " .. category .. " fragment"
         end
         local frag = list[draw(#list)]
@@ -207,7 +204,7 @@ function Stories.compose(groupType, seed, opts)
             if not inList(chosen, frag) then free[#free + 1] = frag end
         end
         if #free == 0 then
-            log().warn("stories: not enough secrets for type '%s'", groupType)
+            LivingKnox.Log.warn("stories: not enough secrets for type '%s'", groupType)
             return nil, "not enough secrets"
         end
         local frag = free[draw(#free)]
@@ -283,7 +280,7 @@ end
 -- Liste des problèmes des gabarits (vide = données valides) : champs, identifiants uniques, textes non vides,
 -- et pour chaque type de Stories.groupTypes() au moins un fragment par catégorie et SECRETS_MAX secrets.
 function Stories.checkData()
-    local D, problems = data(), {}
+    local D, problems = LivingKnox.StoryData, {}
     if type(D) ~= "table" then return { "no story data" } end
     for _, category in ipairs(Stories.CATEGORIES) do
         local list = D[category]

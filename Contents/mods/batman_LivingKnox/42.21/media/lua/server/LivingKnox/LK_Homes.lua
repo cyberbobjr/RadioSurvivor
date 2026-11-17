@@ -141,11 +141,6 @@ function Homes.registerFurnishing(kind, spec)
     return spec
 end
 
--- Spec de l'aménagement kind, ou nil.
-function Homes.furnishingOf(kind)
-    return furnishingRegistry:get(kind)
-end
-
 deriveFurnishings()
 
 Homes.CFG = Homes.CFG or {
@@ -170,16 +165,8 @@ Homes.stats = Homes.stats or { furnished = 0, notReady = 0, placed = 0, failed =
 -- Directions orthogonales et diagonales.
 local DIRS4 = { { 0, -1 }, { 1, 0 }, { 0, 1 }, { -1, 0 } }
 
-local function log() return LivingKnox.Log end
-local function Groups() return LivingKnox.Groups end
 local function cfg() return Homes.CFG end
 local function now() return getTimestampMs() end
-
-local function isInt(v, lo, hi)
-    return type(v) == "number" and v == v and math.floor(v) == v and v >= lo and v <= hi
-end
-
-local function cheb(ax, ay, bx, by) return math.max(math.abs(ax - bx), math.abs(ay - by)) end
 
 local function key(x, y) return x .. "," .. y end
 
@@ -273,7 +260,6 @@ local function byPlace(a, b)
     return a.x < b.x
 end
 Homes.byPlace = byPlace
-Homes.cheb = cheb
 
 -- Pourtour réservé : l'emprise et ses cases voisines (y compris en diagonale) ne reçoivent plus rien.
 local function reserve(taken, x, y, w, h)
@@ -308,34 +294,31 @@ function Homes.planBuilding(cell, home, bid, members)
     local c, R, z = cfg(), cfg().RADIUS, home.z
     local inside, windows, edge = {}, {}, {}
     local beds, bedSeen = 0, {}
-    for dy = -R, R do
-        for dx = -R, R do
-            local x, y = home.x + dx, home.y + dy
-            local sq = cell:getGridSquare(x, y, z)
-            if sq ~= nil and buildingId(sq) == bid then
-                inside[#inside + 1] = { x = x, y = y, d = cheb(x, y, home.x, home.y) }
-                if isBed(sq) then
-                    -- Une case de lit voisine d'une case de lit déjà comptée = le même lit (lit double).
-                    local same = false
-                    for _, b in ipairs(bedSeen) do
-                        if cheb(x, y, b.x, b.y) <= 1 then same = true end
-                    end
-                    bedSeen[#bedSeen + 1] = { x = x, y = y }
-                    if not same then beds = beds + 1 end
+    for x, y in LivingKnox.Geo.squaresAround(home.x, home.y, R) do
+        local sq = cell:getGridSquare(x, y, z)
+        if sq ~= nil and buildingId(sq) == bid then
+            inside[#inside + 1] = { x = x, y = y, d = LivingKnox.Geo.cheb(x, y, home.x, home.y) }
+            if isBed(sq) then
+                -- Une case de lit voisine d'une case de lit déjà comptée = le même lit (lit double).
+                local same = false
+                for _, b in ipairs(bedSeen) do
+                    if LivingKnox.Geo.cheb(x, y, b.x, b.y) <= 1 then same = true end
                 end
-                for _, d in ipairs(DIRS4) do
-                    local nb = cell:getGridSquare(x + d[1], y + d[2], z)
-                    if nb ~= nil and buildingId(nb) ~= bid then
-                        if sq:getDoorTo(nb) ~= nil or sq:getWindowThumpableTo(nb) ~= nil then
-                            edge[key(x, y)] = true
-                        end
-                        local w = sq:getWindowTo(nb)
-                        if w ~= nil then
-                            edge[key(x, y)] = true
-                            if instanceof(w, "IsoWindow") and not w:IsOpen() and not w:isBarricaded() then
-                                windows[#windows + 1] = { x = x, y = y, z = z, nx = x + d[1], ny = y + d[2],
-                                    d = cheb(x, y, home.x, home.y) }
-                            end
+                bedSeen[#bedSeen + 1] = { x = x, y = y }
+                if not same then beds = beds + 1 end
+            end
+            for _, d in ipairs(DIRS4) do
+                local nb = cell:getGridSquare(x + d[1], y + d[2], z)
+                if nb ~= nil and buildingId(nb) ~= bid then
+                    if sq:getDoorTo(nb) ~= nil or sq:getWindowThumpableTo(nb) ~= nil then
+                        edge[key(x, y)] = true
+                    end
+                    local w = sq:getWindowTo(nb)
+                    if w ~= nil then
+                        edge[key(x, y)] = true
+                        if instanceof(w, "IsoWindow") and not w:IsOpen() and not w:isBarricaded() then
+                            windows[#windows + 1] = { x = x, y = y, z = z, nx = x + d[1], ny = y + d[2],
+                                d = LivingKnox.Geo.cheb(x, y, home.x, home.y) }
                         end
                     end
                 end
@@ -399,17 +382,15 @@ function Homes.adoptGenerators(gid, home, bid)
     local cell = getCell()
     if cell == nil or bid == nil then return 0 end
     local R, n = cfg().RADIUS, 0
-    for dy = -R, R do
-        for dx = -R, R do
-            local sq = cell:getGridSquare(home.x + dx, home.y + dy, home.z)
-            if sq ~= nil and buildingId(sq) == bid then
-                local objs = sq:getObjects()
-                for i = 0, objs:size() - 1 do
-                    local o = objs:get(i)
-                    if instanceof(o, "IsoGenerator") and (not o:hasModData() or o:getModData()[Homes.GEN_TAG] == nil) then
-                        Homes.markGenerator(o, gid)
-                        n = n + 1
-                    end
+    for x, y in LivingKnox.Geo.squaresAround(home.x, home.y, R) do
+        local sq = cell:getGridSquare(x, y, home.z)
+        if sq ~= nil and buildingId(sq) == bid then
+            local objs = sq:getObjects()
+            for i = 0, objs:size() - 1 do
+                local o = objs:get(i)
+                if instanceof(o, "IsoGenerator") and (not o:hasModData() or o:getModData()[Homes.GEN_TAG] == nil) then
+                    Homes.markGenerator(o, gid)
+                    n = n + 1
                 end
             end
         end
@@ -485,8 +466,8 @@ function Homes.validMark(m, home)
     if m.placed ~= nil then
         if type(m.placed) ~= "table" or #m.placed > Homes.MAX_PLACED then return false, "bad placed list" end
         for _, p in ipairs(m.placed) do
-            if type(p) ~= "table" or not Homes.KINDS[p.k] or not isInt(p.x, 0, 2147483647)
-                or not isInt(p.y, 0, 2147483647) or not isInt(p.z, -32, 31) then
+            if type(p) ~= "table" or not Homes.KINDS[p.k] or not LivingKnox.Num.isInt(p.x, 0, 2147483647)
+                or not LivingKnox.Num.isInt(p.y, 0, 2147483647) or not LivingKnox.Num.isInt(p.z, -32, 31) then
                 return false, "bad placed entry"
             end
         end
@@ -502,18 +483,16 @@ function Homes.findTagged(gid, home)
     local out = {}
     if cell == nil then return out end
     local R = cfg().RADIUS + 2
-    for dy = -R, R do
-        for dx = -R, R do
-            local sq = cell:getGridSquare(home.x + dx, home.y + dy, home.z)
-            if sq ~= nil then
-                local objs = sq:getObjects()
-                for i = 0, objs:size() - 1 do
-                    local o = objs:get(i)
-                    if tagged(o, gid) and #out < Homes.MAX_PLACED then
-                        local kind = o:getModData()[Homes.TAG_KIND]
-                        out[#out + 1] = { k = Homes.KINDS[kind] and kind or "crate", x = sq:getX(), y = sq:getY(),
-                                          z = sq:getZ() }
-                    end
+    for x, y in LivingKnox.Geo.squaresAround(home.x, home.y, R) do
+        local sq = cell:getGridSquare(x, y, home.z)
+        if sq ~= nil then
+            local objs = sq:getObjects()
+            for i = 0, objs:size() - 1 do
+                local o = objs:get(i)
+                if tagged(o, gid) and #out < Homes.MAX_PLACED then
+                    local kind = o:getModData()[Homes.TAG_KIND]
+                    out[#out + 1] = { k = Homes.KINDS[kind] and kind or "crate", x = sq:getX(), y = sq:getY(),
+                                      z = sq:getZ() }
                 end
             end
         end
@@ -522,7 +501,7 @@ function Homes.findTagged(gid, home)
 end
 
 local function writeMark(gid, mark)
-    return Groups().update(function(data)
+    return LivingKnox.Groups.update(function(data)
         local live = data.groups[gid]
         if live == nil then return false, false end
         live.furnish = mark
@@ -533,18 +512,18 @@ end
 -- Marque le foyer actuel d'un groupe comme aménagé sans rien poser (groupes des suites de test, qui ne doivent pas
 -- barricader ni meubler le site de leurs essais). Rend vrai si la marque est écrite.
 function Homes.skip(gid)
-    local g = Groups().get(gid)
+    local g = LivingKnox.Groups.get(gid)
     if g == nil or type(g.home) ~= "table" then return false end
     local home = g.home
     local ok = writeMark(gid, { v = Homes.FORMAT, hx = home.x, hy = home.y, hz = home.z, style = "building",
-                                day = Groups().today(), state = "done", placed = {} })
+                                day = LivingKnox.Groups.today(), state = "done", placed = {} })
     if ok then Homes.state.done[gid] = homeKey(home) end
     return ok == true
 end
 
 -- Foyers en attente d'aménagement : { { gid, home, members } } triés par identifiant (lecture du registre sans copie).
 function Homes.pending()
-    local out = Groups().update(function(data)
+    local out = LivingKnox.Groups.update(function(data)
         local list = {}
         for gid, g in pairs(data.groups) do
             local home = g.home
@@ -571,7 +550,7 @@ end
 function Homes.check(gid, opts)
     opts = opts or {}
     local st = Homes.state
-    local g = Groups().get(gid)
+    local g = LivingKnox.Groups.get(gid)
     if g == nil or type(g.home) ~= "table" then return nil, "no group or no home" end
     local home = g.home
     local hk = homeKey(home)
@@ -579,7 +558,7 @@ function Homes.check(gid, opts)
     local ok = Homes.validMark(g.furnish, home)
     if ok then
         if g.furnish.state == "placing" then
-            log().warn("homes: group %s home %s was left half furnished (interrupted); not furnished again", gid, hk)
+            LivingKnox.Log.warn("homes: group %s home %s was left half furnished (interrupted); not furnished again", gid, hk)
         end
         st.done[gid] = hk
         return "done"
@@ -590,16 +569,16 @@ function Homes.check(gid, opts)
     local style, def = Homes.ready(home)
     if style == nil then
         Homes.stats.notReady = Homes.stats.notReady + 1
-        log().debug("homes: group %s home %s not ready: %s", gid, hk, tostring(def))
+        LivingKnox.Log.debug("homes: group %s home %s not ready: %s", gid, hk, tostring(def))
         return nil, def
     end
     local found = Homes.findTagged(gid, home)
     if #found > 0 then
         local restored = { v = Homes.FORMAT, hx = home.x, hy = home.y, hz = home.z, style = style,
-                           day = Groups().today(), state = "done", placed = found }
+                           day = LivingKnox.Groups.today(), state = "done", placed = found }
         writeMark(gid, restored)
         st.done[gid] = hk
-        log().warn("homes: group %s home %s already has %d furnishing object(s) but no mark: mark restored, nothing"
+        LivingKnox.Log.warn("homes: group %s home %s already has %d furnishing object(s) but no mark: mark restored, nothing"
             .. " placed", gid, hk, #found)
         return restored
     end
@@ -618,14 +597,14 @@ function Homes.check(gid, opts)
         -- LK05-T19 : générateurs déjà là quand le bâtiment devient le foyer = ceux du groupe. Avant la marque : un arrêt
         -- entre les deux refait seulement ce marquage (sans effet sur un générateur déjà marqué).
         local adopted = Homes.adoptGenerators(gid, home, def:getIDString())
-        if adopted > 0 then log().info("homes: group %s home %s: %d generator(s) of the building marked as the group's",
+        if adopted > 0 then LivingKnox.Log.info("homes: group %s home %s: %d generator(s) of the building marked as the group's",
             gid, hk, adopted) end
     end
-    local mark = { v = Homes.FORMAT, hx = home.x, hy = home.y, hz = home.z, style = style, day = Groups().today(),
+    local mark = { v = Homes.FORMAT, hx = home.x, hy = home.y, hz = home.z, style = style, day = LivingKnox.Groups.today(),
                    state = "placing", placed = {} }
-    if g.furnish ~= nil then log().warn("homes: group %s furnish mark replaced (home moved or bad mark)", gid) end
-    if not writeMark(gid, mark) or not Groups().flush() then   -- LK13-T06 : marque écrite avant le monde
-        log().warn("homes: group %s home %s: mark not written, nothing placed", gid, hk)
+    if g.furnish ~= nil then LivingKnox.Log.warn("homes: group %s furnish mark replaced (home moved or bad mark)", gid) end
+    if not writeMark(gid, mark) or not LivingKnox.Groups.flush() then   -- LK13-T06 : marque écrite avant le monde
+        LivingKnox.Log.warn("homes: group %s home %s: mark not written, nothing placed", gid, hk)
         return nil, "mark not written"
     end
     local counts, failed = {}, 0
@@ -637,7 +616,7 @@ function Homes.check(gid, opts)
             counts[a.k] = (counts[a.k] or 0) + 1
         else
             failed = failed + 1
-            log().warn("homes: group %s: %s at %d,%d,%d not placed: %s", gid, a.k, a.x, a.y, a.z,
+            LivingKnox.Log.warn("homes: group %s: %s at %d,%d,%d not placed: %s", gid, a.k, a.x, a.y, a.z,
                 tostring(done and why or res))
         end
     end
@@ -651,7 +630,7 @@ function Homes.check(gid, opts)
     for _, s in ipairs(Homes.furnishings.list) do
         if counts[s.kind] then parts[#parts + 1] = counts[s.kind] .. " " .. s.kind end
     end
-    log().info("homes: group %s home %s furnished (%s, %d member(s)): %s%s", gid, hk, style, alive,
+    LivingKnox.Log.info("homes: group %s home %s furnished (%s, %d member(s)): %s%s", gid, hk, style, alive,
         #parts > 0 and table.concat(parts, ", ") or "nothing", failed > 0 and (", " .. failed .. " failed") or "")
     local R = LivingKnox.Routines
     if R and R.resurvey then R.resurvey(gid) end
@@ -684,31 +663,29 @@ end
 -- propre à un aménagement par son clear, par exemple barricade d'une fenêtre ou feu de camp de la marque) et efface la
 -- marque. Rend le nombre d'objets retirés.
 function Homes.clear(gid)
-    local g = Groups().get(gid)
+    local g = LivingKnox.Groups.get(gid)
     local m = g and g.furnish
     local removed, kept = 0, {}
     local cell = getCell()
-    if cell ~= nil and type(m) == "table" and isInt(m.hx, 0, 2147483647) and isInt(m.hy, 0, 2147483647)
-        and isInt(m.hz, -32, 31) then
+    if cell ~= nil and type(m) == "table" and LivingKnox.Num.isInt(m.hx, 0, 2147483647)
+        and LivingKnox.Num.isInt(m.hy, 0, 2147483647) and LivingKnox.Num.isInt(m.hz, -32, 31) then
         local R = cfg().RADIUS + 8
-        for dy = -R, R do
-            for dx = -R, R do
-                local sq = cell:getGridSquare(m.hx + dx, m.hy + dy, m.hz)
-                if sq ~= nil then
-                    local objs = sq:getObjects()
-                    for i = objs:size() - 1, 0, -1 do
-                        local o = objs:get(i)
-                        if tagged(o, gid) then
-                            local kind = o:getModData()[Homes.TAG_KIND]
-                            local spec = furnishingRegistry:get(kind)
-                            local entry = spec ~= nil and spec.clear ~= nil and spec.clear.collect(o, sq) or nil
-                            if entry ~= nil then
-                                kept[kind] = kept[kind] or {}
-                                kept[kind][#kept[kind] + 1] = entry
-                            else
-                                sq:transmitRemoveItemFromSquare(o)
-                                removed = removed + 1
-                            end
+        for x, y in LivingKnox.Geo.squaresAround(m.hx, m.hy, R) do
+            local sq = cell:getGridSquare(x, y, m.hz)
+            if sq ~= nil then
+                local objs = sq:getObjects()
+                for i = objs:size() - 1, 0, -1 do
+                    local o = objs:get(i)
+                    if tagged(o, gid) then
+                        local kind = o:getModData()[Homes.TAG_KIND]
+                        local spec = furnishingRegistry:get(kind)
+                        local entry = spec ~= nil and spec.clear ~= nil and spec.clear.collect(o, sq) or nil
+                        if entry ~= nil then
+                            kept[kind] = kept[kind] or {}
+                            kept[kind][#kept[kind] + 1] = entry
+                        else
+                            sq:transmitRemoveItemFromSquare(o)
+                            removed = removed + 1
                         end
                     end
                 end
@@ -720,7 +697,7 @@ function Homes.clear(gid)
     end
     if g ~= nil and g.furnish ~= nil then writeMark(gid, nil) end
     Homes.state.done[gid], Homes.state.tried[gid] = nil, nil
-    log().info("homes: group %s furnishing cleared, %d object(s) removed", tostring(gid), removed)
+    LivingKnox.Log.info("homes: group %s furnishing cleared, %d object(s) removed", tostring(gid), removed)
     return removed
 end
 

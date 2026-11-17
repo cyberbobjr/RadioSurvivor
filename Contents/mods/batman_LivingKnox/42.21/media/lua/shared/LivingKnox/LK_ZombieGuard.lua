@@ -101,8 +101,6 @@ Guard.stats.preSilenced = Guard.stats.preSilenced or 0       -- copies rendues m
 Guard.stats.adopted = Guard.stats.adopted or 0               -- copies confirmées à leur apparition
 Guard.stats.restored = Guard.stats.restored or 0             -- voix rendue à un zombie pris à tort (liste périmée)
 
-local function log() return LivingKnox.Log end
-
 -- ---------------------------------------------------------------- trajets (consultés par la garde, posés en LK02-T07)
 
 -- Autorité : ouvre ou ferme un trajet autorisé. Le changement part aux clients avec la liste suivante (champ t).
@@ -193,7 +191,7 @@ function Guard.silence(z, sweep)
     local ok, changed = pcall(silenceNow, z, sweep == true)
     if ok then return changed end
     Guard.voiceBroken = true  -- une seule ligne d'erreur, pas une par passage
-    log().error("voice cut failed, voices left on: %s", tostring(changed))
+    LivingKnox.Log.error("voice cut failed, voices left on: %s", tostring(changed))
     return 0
 end
 
@@ -209,7 +207,7 @@ function Guard.unsilence(z)
         return true
     end)
     if not ok then
-        log().error("voice restore failed: %s", tostring(done))
+        LivingKnox.Log.error("voice restore failed: %s", tostring(done))
         return false
     end
     if done then Guard.stats.restored = Guard.stats.restored + 1 end
@@ -279,7 +277,7 @@ function Guard.checkHazards(z, npcId)
     local key = tostring(npcId) .. "@" .. sq:getX() .. "," .. sq:getY() .. "," .. sq:getZ() .. ":" .. what
     if not Guard.hazardSeen[key] then
         Guard.hazardSeen[key] = true
-        log().warn("npc %s is on a %s at %s,%s,%s: the engine may destroy it (not preventable)", tostring(npcId),
+        LivingKnox.Log.warn("npc %s is on a %s at %s,%s,%s: the engine may destroy it (not preventable)", tostring(npcId),
             what, tostring(sq:getX()), tostring(sq:getY()), tostring(sq:getZ()))
     end
     return what
@@ -331,7 +329,7 @@ function Guard.publish(force)
     st.rev = st.rev + 1
     sendServerCommand(Guard.MODULE, Guard.CMD_ROSTER, Guard.rosterArgs(list))
     Guard.stats.published = Guard.stats.published + 1
-    log().debug("guard roster %d sent (%d body(ies))", st.rev, #list)
+    LivingKnox.Log.debug("guard roster %d sent (%d body(ies))", st.rev, #list)
     return true
 end
 
@@ -357,7 +355,7 @@ function Guard.bodyBound(npcId, z)
     if not LivingKnox.isAuthority() or z == nil then return false end
     local ok, err = pcall(Guard.apply, z, Guard.travel[npcId] == true, Guard.simulatedHere(z),
         LivingKnox.hasLocalPlayer(), true)
-    if not ok then log().error("guard not applied to npc %s at bind: %s", tostring(npcId), tostring(err)) end
+    if not ok then LivingKnox.Log.error("guard not applied to npc %s at bind: %s", tostring(npcId), tostring(err)) end
     Guard.publish(false)
     return true
 end
@@ -447,7 +445,7 @@ function Guard.adopt(z, entry)
     -- Copie née au sol par l'identifiant du cadavre réanimé : remise debout (LK02-T14, LK_Stand.lua).
     if LivingKnox.Stand ~= nil then LivingKnox.Stand.watch(z) end
     Guard.stats.adopted = Guard.stats.adopted + 1
-    log().debug("guard: npc %s copy adopted at its appearance (onlineId %s)", entry.id, tostring(entry.o))
+    LivingKnox.Log.debug("guard: npc %s copy adopted at its appearance (onlineId %s)", entry.id, tostring(entry.o))
 end
 
 -- Client : entrées de la liste dont la copie est née récemment ici (Guard.seen) mais pas encore reconnue.
@@ -585,7 +583,7 @@ function Guard.clientScan(budget)
             local entry = Guard.roster.byOnline[z:getOnlineID()]
             if entry ~= nil and Guard.cache[entry.id] ~= z and matches(z, entry) then
                 Guard.cache[entry.id] = z
-                log().debug("guard: npc %s found here (onlineId %s)", entry.id, tostring(entry.o))
+                LivingKnox.Log.debug("guard: npc %s found here (onlineId %s)", entry.id, tostring(entry.o))
             end
         end
     end

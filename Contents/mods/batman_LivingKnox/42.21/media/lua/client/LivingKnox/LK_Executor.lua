@@ -99,10 +99,6 @@ Executor.stats = Executor.stats or { passes = 0, started = 0, resumed = 0, relea
     arrived = 0, failed = 0, older = 0, stale = 0, waiting = 0, asks = 0, hands = 0, revoked = 0, claims = 0,
     healthSet = 0, muted = 0, soon = 0 }
 
-local function log() return LivingKnox.Log end
-local function D() return LivingKnox.Directives end
-local function Mv() return LivingKnox.Movement end
-
 local function now() return getTimestampMs() end
 
 local function serverTime()
@@ -113,7 +109,7 @@ end
 -- Consignes connues ici : { [npcId] = consigne }.
 function Executor.directives()
     if LivingKnox.isAuthority() then
-        local Dir = D()
+        local Dir = LivingKnox.Directives
         return Dir and Dir.entries or {}
     end
     return Executor.remote.d
@@ -179,7 +175,7 @@ local function receiveHands(d, me)
                 elseif Executor.hands[id] ~= nil then
                     Executor.hands[id] = nil
                     count("revoked")
-                    log().debug("npc %s: state handed over to %s, reports stop here", id, h.o)
+                    LivingKnox.Log.debug("npc %s: state handed over to %s, reports stop here", id, h.o)
                 end
             end
         end
@@ -189,7 +185,7 @@ end
 -- Consignes reçues, PNJ par PNJ : la plus récente selon r ; { gone } retire la consigne. Bail reçu pour soi :
 -- passage à l'image suivante (reprise rapide, LK03-T03).
 function Executor.onServerCommand(module, command, args)
-    local Dir = D()
+    local Dir = LivingKnox.Directives
     if Dir == nil or module ~= Dir.MODULE or not isClient() then return end
     if command ~= Dir.CMD_STATE and command ~= Dir.CMD_HAND then return end
     if type(args) ~= "table" or type(args.d) ~= "table" then return end   -- table vide envoyée = nil reçu
@@ -232,7 +228,7 @@ end
 
 -- Remet un rapport à l'autorité : appel direct en solo, commande au serveur sur un client MP.
 function Executor.report(id, run, z, s, why, detail)
-    local Dir = D()
+    local Dir = LivingKnox.Directives
     -- Revérifié à chaque envoi (LK03-T03) : copie simulée ici et, sur un client MP, bail courant à soi.
     local e = isClient() and Executor.remote.d[id] or nil
     if not LivingKnox.ZombieGuard.simulatedHere(z)
@@ -264,7 +260,7 @@ end
 
 -- Recherche de chemin vers la case de l'étape k (destination si k absent), mode pathfind imposé (voir l'en-tête).
 function Executor.issuePath(z, e, k)
-    local tx, ty, tz = D().stepTarget(e, k)
+    local tx, ty, tz = LivingKnox.Directives.stepTarget(e, k)
     z:pathToLocation(tx, ty, tz)
     z:setVariable("bPathfind", true)
     z:setMoving(false)
@@ -292,7 +288,7 @@ function Executor.haltAfterCrossing(id, run, z)
     if z:getVariableBoolean("bPathfind") or z:isMoving() then
         Executor.halt(z)
         count("haltedAfterCrossing")
-        log().info("npc %s: %s #%d body stopped again after its crossing (the engine resumed its path)", id,
+        LivingKnox.Log.info("npc %s: %s #%d body stopped again after its crossing (the engine resumed its path)", id,
             tostring(run.op), run.v)
     end
 end
@@ -352,14 +348,14 @@ local function start(id, e, z, previous)
     if e.op == "move" then
         if e.s == "moving" or previous ~= nil or again then Executor.stats.resumed = Executor.stats.resumed + 1 end
         -- Étape publiée par l'autorité (reprise par un nouveau propriétaire : pas de retour aux points déjà atteints).
-        local n = D().stepCount(e)
+        local n = LivingKnox.Directives.stepCount(e)
         local k = (type(e.k) == "number" and e.k >= 1) and math.floor(e.k) or 1
         if k > n then k = n end
         run.k = k
         Executor.issuePath(z, e, k)
         mark(run, z)
-        Mv().begin(run, now())
-        log().debug("npc %s: move #%d to %d,%d,%d step %d/%d from %.1f,%.1f (%s)", id, e.v, e.x, e.y, e.z, k, n,
+        LivingKnox.Movement.begin(run, now())
+        LivingKnox.Log.debug("npc %s: move #%d to %d,%d,%d step %d/%d from %.1f,%.1f (%s)", id, e.v, e.x, e.y, e.z, k, n,
             z:getX(), z:getY(), e.s == "moving" and "resumed" or "started")
         Executor.report(id, run, z, "moving")
     elseif e.op == "stop" then
@@ -380,7 +376,7 @@ local function fail(id, run, z, why, detail)
     run.phase = "failed"
     run.unblock = nil
     Executor.stats.failed = Executor.stats.failed + 1
-    log().warn("npc %s: move #%d failed here (%s%s)", id, run.v, why, detail and (": " .. detail) or "")
+    LivingKnox.Log.warn("npc %s: move #%d failed here (%s%s)", id, run.v, why, detail and (": " .. detail) or "")
     Executor.report(id, run, z, "failed", why, detail)
 end
 
@@ -389,7 +385,7 @@ end
 local function passageWait(id, e, z, run)
     local P = LivingKnox.PassageSignal
     if P == nil then return false end
-    local tx, ty = D().stepTarget(e, run.k)
+    local tx, ty = LivingKnox.Directives.stepTarget(e, run.k)
     local r = P.step(id, run, z, Executor.known, tx, ty, now())
     if r == nil then
         if run.passage ~= nil and run.passage.k == run.k and not run.passage.counted then
@@ -401,41 +397,41 @@ local function passageWait(id, e, z, run)
     if r == "signal" then
         run.passage.counted = true
         count("passageSignals")
-        log().info("npc %s: move #%d blocked by npc %s at %.1f,%.1f, passage asked, waiting up to %d ms", id, run.v,
+        LivingKnox.Log.info("npc %s: move #%d blocked by npc %s at %.1f,%.1f, passage asked, waiting up to %d ms", id, run.v,
             tostring(run.passage.by), z:getX(), z:getY(), P.WAIT_MS)
     elseif r == "clear" then
         count("passageCleared")
-        log().info("npc %s: move #%d npc %s out of the way, path to the step again", id, run.v,
+        LivingKnox.Log.info("npc %s: move #%d npc %s out of the way, path to the step again", id, run.v,
             tostring(run.passage.by))
         Executor.issuePath(z, e, run.k)
     end
     mark(run, z)
-    Mv().pause(run, now())
+    LivingKnox.Movement.pause(run, now())
     return true
 end
 
 -- Blocage (LK04-T05) : nouvelle requête de chemin, point de déblocage, ou échec "stuck" (LK_Movement.respond).
 local function escalate(id, e, z, run, cause)
     if passageWait(id, e, z, run) then return end   -- LK18-T02 : PNJ devant, passage demandé
-    local M = Mv()
+    local M = LivingKnox.Movement
     local t = now()
-    local tx, ty = D().stepTarget(e, run.k)
+    local tx, ty = LivingKnox.Directives.stepTarget(e, run.k)
     count("stuckSeen")
     local act, arg = M.respond(run, z, tx, ty, cause, t)
     if act ~= "repath" and M.around ~= nil then
         -- Diagnostic only: what stands around the body (never a reason to stop the move).
         local ok, around = pcall(M.around, z)
-        log().info("npc %s: move #%d stuck at %.1f,%.1f, %s", id, run.v, z:getX(), z:getY(),
+        LivingKnox.Log.info("npc %s: move #%d stuck at %.1f,%.1f, %s", id, run.v, z:getX(), z:getY(),
             ok and around or ("around not read: " .. tostring(around)))
     end
     if act == "repath" then
-        log().info("npc %s: move #%d no progress for %d ms at %.1f,%.1f (%s), new path request", id, run.v,
+        LivingKnox.Log.info("npc %s: move #%d no progress for %d ms at %.1f,%.1f (%s), new path request", id, run.v,
             M.stillMs(run, t), z:getX(), z:getY(), cause)
         Executor.issuePath(z, e, run.k)
         mark(run, z)
         M.pause(run, t)
     elseif act == "unblock" then
-        log().info("npc %s: move #%d stuck at %.1f,%.1f (%s), unblocking through %d,%d before step %d,%d", id, run.v,
+        LivingKnox.Log.info("npc %s: move #%d stuck at %.1f,%.1f (%s), unblocking through %d,%d before step %d,%d", id, run.v,
             z:getX(), z:getY(), cause, arg.x, arg.y, tx, ty)
         z:pathToLocation(arg.x, arg.y, math.floor(z:getZ()))
         z:setVariable("bPathfind", true)
@@ -486,8 +482,8 @@ function Executor.follow(id, e, z, run)
         end
         if z:getVariableBoolean("bPathfind") or z:isMoving() then Executor.halt(z) end
         mark(run, z)
-        Mv().pause(run, now())
-        if now() - run.lastReport >= D().REPORT_MS then Executor.report(id, run, z, "moving") end
+        LivingKnox.Movement.pause(run, now())
+        if now() - run.lastReport >= LivingKnox.Directives.REPORT_MS then Executor.report(id, run, z, "moving") end
         return
     elseif run.acting then
         run.acting = nil
@@ -496,16 +492,16 @@ function Executor.follow(id, e, z, run)
         count("actResumed")
         Executor.issuePath(z, e, run.k)
         mark(run, z)
-        Mv().pause(run, now())
+        LivingKnox.Movement.pause(run, now())
         return
     end
-    local Dir = D()
+    local Dir = LivingKnox.Directives
     local d = Dir.distToTarget(e, z:getX(), z:getY(), z:getZ())
     if d ~= nil and d <= Dir.ARRIVE and not Executor.acrossEdge(z, e.x, e.y, e.z) then
         Executor.halt(z)
         run.phase = "arrived"
         Executor.stats.arrived = Executor.stats.arrived + 1
-        log().debug("npc %s: move #%d arrived in %d ms", id, run.v, now() - run.started)
+        LivingKnox.Log.debug("npc %s: move #%d arrived in %d ms", id, run.v, now() - run.started)
         Executor.report(id, run, z, "arrived")
         return
     end
@@ -519,12 +515,12 @@ function Executor.follow(id, e, z, run)
             Executor.stats.steps = (Executor.stats.steps or 0) + 1
             local tx, ty = Dir.stepTarget(e, run.k)
             -- Solo : l'autorité journalise déjà l'étape (INFO) ; ici en DEBUG pour ne pas doubler la ligne.
-            local say = LivingKnox.isAuthority() and log().debug or log().info
+            local say = LivingKnox.isAuthority() and LivingKnox.Log.debug or LivingKnox.Log.info
             say("npc %s: move #%d step %d/%d reached here at %.1f,%.1f, next %d,%d", id, run.v, run.k - 1, n,
                 z:getX(), z:getY(), tx, ty)
             Executor.issuePath(z, e, run.k)
             mark(run, z)
-            Mv().begin(run, now())
+            LivingKnox.Movement.begin(run, now())
             Executor.report(id, run, z, "moving")
             return
         end
@@ -535,20 +531,20 @@ function Executor.follow(id, e, z, run)
     if cross ~= nil then
         if run.cross == nil then run.cross = { kind = cross, ms = now() } end
         mark(run, z)
-        Mv().pause(run, now())
+        LivingKnox.Movement.pause(run, now())
         if now() - run.lastReport >= Dir.REPORT_MS then Executor.report(id, run, z, "moving") end
         return
     elseif run.cross ~= nil then
         local ms = now() - run.cross.ms
         count("crossings")
         Executor.stats.crossMs = ms
-        log().debug("npc %s: move #%d %s crossed in %d ms", id, run.v, run.cross.kind, ms)
+        LivingKnox.Log.debug("npc %s: move #%d %s crossed in %d ms", id, run.v, run.cross.kind, ms)
         run.cross = nil
     end
     local searching = z:getVariableBoolean("bPathfind") or z:isMoving()
     -- Détour vers un point de déblocage (LK04-T05) : point atteint, recherche finie ou délai passé -> chemin relancé
     -- vers l'étape ; un point atteint remet les nouveaux essais à zéro (le corps a bougé).
-    local M = Mv()
+    local M = LivingKnox.Movement
     local leg = M.legEnd(run, z, searching, Dir.ARRIVE, now())
     if leg ~= nil then
         count(leg == "reached" and "unblockReached" or "unblockEnded")
@@ -558,7 +554,7 @@ function Executor.follow(id, e, z, run)
         elseif leg == "timeout" then
             M.stats.unblockTimeout = (M.stats.unblockTimeout or 0) + 1
         end
-        log().debug("npc %s: move #%d unblocking point %d,%d %s at %.1f,%.1f, path to the step again", id, run.v,
+        LivingKnox.Log.debug("npc %s: move #%d unblocking point %d,%d %s at %.1f,%.1f, path to the step again", id, run.v,
             run.unblock.x, run.unblock.y, leg, z:getX(), z:getY())
         run.unblock = nil
         Executor.issuePath(z, e, run.k)
@@ -648,7 +644,7 @@ function Executor.loadedBodies()
 end
 
 function Executor.pass()
-    local Dir = D()
+    local Dir = LivingKnox.Directives
     if Dir == nil then return end
     local G = LivingKnox.ZombieGuard
     local known = Executor.loadedBodies()
@@ -667,7 +663,7 @@ function Executor.pass()
     for _, id in ipairs(drop) do   -- table modifiée hors de pairs
         Executor.runs[id] = nil
         Executor.stats.released = Executor.stats.released + 1
-        log().debug("npc %s: execution released here (directive gone or body no longer simulated here)", id)
+        LivingKnox.Log.debug("npc %s: execution released here (directive gone or body no longer simulated here)", id)
     end
     if isClient() then Executor.applyHands(known, me) end
     local waitLocal = {}
@@ -683,7 +679,7 @@ function Executor.pass()
             local h = Executor.history[id]
             if h ~= nil and h.v == run.v and h.l == run.l then h.final = true end
             count("closed")
-            log().info("npc %s: %s #%d closed by the authority (%s), body stopped here", id, e.op, e.v, tostring(e.s))
+            LivingKnox.Log.info("npc %s: %s #%d closed by the authority (%s), body stopped here", id, e.op, e.v, tostring(e.s))
         end
         if z ~= nil and run ~= nil and run.crossHalt and run.phase ~= "moving" and G.simulatedHere(z) then
             Executor.haltAfterCrossing(id, run, z)
@@ -738,7 +734,7 @@ function Executor.applyHand(id, z, h)
         if hp > h.hp + c.HP_EPSILON then
             z:setHealth(h.hp)
             count("healthSet")
-            log().debug("npc %s: health %.3f of the new local copy lowered to the accepted %.3f", id, hp, h.hp)
+            LivingKnox.Log.debug("npc %s: health %.3f of the new local copy lowered to the accepted %.3f", id, hp, h.hp)
         end
     end
     local Eq = LivingKnox.Equipment
@@ -760,7 +756,7 @@ end
 
 -- Copies locales sans remise pour soi : demande au serveur ("dirClaim"), une par CLAIM_MS et par PNJ.
 function Executor.claimHands(known, me)
-    local Dir = D()
+    local Dir = LivingKnox.Directives
     local G = LivingKnox.ZombieGuard
     local t = now()
     local ids = {}
@@ -815,7 +811,7 @@ local function stateDue(last, act, pose, z, hp, t, sig)
     if (act ~= last.act or pose ~= last.pose or sig ~= last.sig) and age >= c.MIN_MS then return true end
     if age >= c.IDLE_MS then return true end
     if age < c.STATE_MS then return false end
-    return D().dist(z:getX(), z:getY(), last.x, last.y) >= c.MOVED or math.abs(z:getZ() - last.z) >= c.MOVED
+    return LivingKnox.Directives.dist(z:getX(), z:getY(), last.x, last.y) >= c.MOVED or math.abs(z:getZ() - last.z) >= c.MOVED
         or hp ~= last.hp
 end
 
@@ -867,7 +863,7 @@ end
 -- Client MP : copies de corps apparues depuis le passage précédent (chargement, recréation après 5 s sans paquet,
 -- retour dans la zone) : consigne courante demandée au serveur ("dirAsk"), une fois par ASK_MS et par PNJ.
 function Executor.askNew(known)
-    local Dir = D()
+    local Dir = LivingKnox.Directives
     local ids = {}
     local t = now()
     for id, z in pairs(known) do

@@ -143,4 +143,9 @@ function LK.publish(name, info)
     return called
 end
 
+-- LK20-T01 : petites fonctions pures communes (LivingKnox.Num, LivingKnox.Geo), chargées ici pour que tout module
+-- qui requiert LK_Core les trouve à l'exécution. Elles ne requièrent pas LK_Core.
+require "LivingKnox/LK_Num"
+require "LivingKnox/LK_Geo"
+
 return LK

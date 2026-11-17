@@ -28,6 +28,7 @@
 -- PROBE_MS.
 if isClient() then return end
 
+require 'LivingKnox/LK_Config'
 local Talk = require 'LivingKnox/LK_TalkHost'
 local C = require 'CoreAI/CA_SpeechConfig'
 local T = require 'CoreAI/CA_Transport'
@@ -35,7 +36,7 @@ local P, Obs = Talk.provider, Talk.observations
 
 local I = {}
 I.KIND = 'npc_initiative'
-I.OPTION = 'LivingKnox.InitiativeFrequency' -- E18-T27: option of Living Knox
+I.OPTION_NAME = 'InitiativeFrequency' -- E18-T27: option of Living Knox (page LivingKnox, LK_Config)
 -- Niveaux de l'option enum (index 1..4) : délai par PNJ (heures de jeu) et demandes LLM par heure réelle (serveur).
 I.LEVELS = {
     [1] = nil,                                  -- désactivées
@@ -43,7 +44,6 @@ I.LEVELS = {
     [3] = {npcHours = 1, perHour = 6},          -- normales
     [4] = {npcHours = 0.5, perHour = 12},       -- fréquentes
 }
-I.DEFAULT_LEVEL = 3
 I.CFG = {
     RECENT_HOURS = 1,      -- observation rangée depuis moins d'une heure de jeu
     EVERY_MS = 5000,       -- un passage au plus toutes les 5 s réelles
@@ -58,18 +58,10 @@ local nextPass = 0
 
 local function count(name) I.stats[name] = (I.stats[name] or 0) + 1 end
 
--- Niveau de l'option (1..4) : option enregistrée (Java) d'abord, puis SandboxVars, puis la valeur par défaut.
+-- Niveau de l'option (1..4), lu par Config.readInt (LK20-T04) : option enregistrée (Java) d'abord, puis SandboxVars ;
+-- absente ou invalide : valeur par défaut de Config.INTS.
 function I.level()
-    local options = getSandboxOptions and getSandboxOptions()
-    local option = options and options.getOptionByName and options:getOptionByName(I.OPTION)
-    local value = option and option:getValue() or nil
-    if value == nil then
-        local vars = SandboxVars and SandboxVars.LivingKnox
-        value = vars and vars.InitiativeFrequency
-    end
-    value = math.floor(tonumber(value) or I.DEFAULT_LEVEL)
-    if value < 1 or value > 4 then value = I.DEFAULT_LEVEL end
-    return value
+    return LivingKnox.Config.readInt(I.OPTION_NAME)
 end
 
 -- État privé : { done = { [fiche|clé] = heure de jeu }, last = { [fiche] = heure de la dernière initiative } }.

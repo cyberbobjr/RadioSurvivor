@@ -86,9 +86,6 @@ Loot.stats = Loot.stats or { built = 0, items = 0, rounds = 0, deaths = 0, weapo
     unloaded = 0, skipped = 0, missions = 0 }
 
 local function cfg() return LivingKnox.Config.LOOT end
-local function log() return LivingKnox.Log end
-local function Ammo() return LivingKnox.Ammo end
-local function Equipment() return LivingKnox.Equipment end
 
 local function count(name, n)
     Loot.stats[name] = (Loot.stats[name] or 0) + (n or 1)
@@ -97,7 +94,7 @@ end
 local function reportOnce(key, msg, ...)
     if Loot.reported[key] then return end
     Loot.reported[key] = true
-    log().warn(msg, ...)
+    LivingKnox.Log.warn(msg, ...)
 end
 
 local function isType(item, fullType)
@@ -130,7 +127,7 @@ end
 -- Munitions de départ de l'arme à feu gunType au niveau level (0..100) : cartouches dans l'arme, chargeurs pleins et
 -- cartouches libres de réserve. Rend nil si ce n'est pas une arme à feu.
 function Loot.ammoPlan(gunType, level)
-    local spec = Ammo().spec(gunType)
+    local spec = LivingKnox.Ammo.spec(gunType)
     if spec == nil then return nil end
     local f = math.max(0, math.min(100, tonumber(level) or 0)) / 100
     local c = cfg()
@@ -207,7 +204,7 @@ Loot.registerContent({ id = "ammo", order = 10, add = function(id, z, _, info)
     local gun = info.npc and info.npc.weapon
     local plan = gun and Loot.ammoPlan(gun, info.level) or nil
     if plan == nil then return nil end
-    local A = Ammo()
+    local A = LivingKnox.Ammo
     local items, rounds = 0, 0
     if not A.hasState(z) then
         local n = A.setLoaded(z, gun, plan.loaded)
@@ -239,7 +236,7 @@ Loot.registerContent({ id = "mission", order = 90, add = function(id, _, inv, in
     local ok, list = pcall(Loot.missionItems, id, { npc = info.npc, group = info.group, member = info.member,
         role = info.role })
     if not ok then
-        log().error("npc %s mission items failed: %s", id, tostring(list))
+        LivingKnox.Log.error("npc %s mission items failed: %s", id, tostring(list))
         return nil
     end
     local n = 0
@@ -272,7 +269,7 @@ function Loot.build(id, z)
     count("built")
     count("items", items)
     count("rounds", rounds)
-    log().info("npc %s loot built: %s", id, #parts > 0 and table.concat(parts, "; ") or "nothing")
+    LivingKnox.Log.info("npc %s loot built: %s", id, #parts > 0 and table.concat(parts, "; ") or "nothing")
     return true
 end
 
@@ -282,7 +279,7 @@ function Loot.onDeath(id, z)
     if not LivingKnox.isAuthority() or z == nil then return false end
     local md = z:getModData()
     if md[Loot.MD_DEAD] then return false end
-    local E0 = Equipment()
+    local E0 = LivingKnox.Equipment
     if E0 ~= nil and E0.adoptSafe ~= nil then
         E0.adoptSafe(id, z)   -- LK07-T08 : arme remplacée par un autre mod depuis le dernier passage
     end
@@ -290,7 +287,7 @@ function Loot.onDeath(id, z)
     md[Loot.MD_DEAD] = true
     count("deaths")
     local inv = z:getInventory()
-    local E = Equipment()
+    local E = LivingKnox.Equipment
     local w = E ~= nil and E.wantedOf(id) or nil
     local kept, unloaded = "none", 0
     if w ~= nil then
@@ -317,12 +314,12 @@ function Loot.onDeath(id, z)
             if not holds(inv, item) then inv:AddItem(item) end
             if kept == "created" then count("weaponsCreated") else count("weaponsKept") end
         end
-        unloaded = Ammo().unload(z, w.t)
+        unloaded = LivingKnox.Ammo.unload(z, w.t)
     else
-        Ammo().unload(z, nil)   -- état noté d'une ancienne arme : effacé
+        LivingKnox.Ammo.unload(z, nil)   -- état noté d'une ancienne arme : effacé
     end
     count("unloaded", unloaded)
-    log().info("npc %s death loot: weapon %s (%s), %d round(s) of the weapon turned into items, %d item(s) in the "
+    LivingKnox.Log.info("npc %s death loot: weapon %s (%s), %d round(s) of the weapon turned into items, %d item(s) in the "
         .. "corpse", id, w and w.t or "none", kept, unloaded, inv:getItems():size())
     return true
 end
@@ -343,7 +340,7 @@ function Loot.pass()
         if z ~= nil and B.inWorld(z) and z:getModData()[Loot.MD_BUILT] == nil then
             local ok, err = pcall(Loot.build, id, z)
             if not ok then
-                log().error("npc %s loot not built: %s", id, tostring(err))
+                LivingKnox.Log.error("npc %s loot not built: %s", id, tostring(err))
             else
                 n = n + 1
             end

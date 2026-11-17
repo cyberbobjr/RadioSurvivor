@@ -16,17 +16,15 @@ local Food = LivingKnox.Food
 
 Ex.FISH = Food.FISH_KIND   -- identifiant public du genre (lu par la suite en jeu lk.forage)
 
-local function log() return LivingKnox.Log end
-
 -- Rive visée (Food.fishTarget) ; sans rive, la raison est rendue (« no fishing: ... ») ; une erreur est notée.
 local function pickTarget(gid, g)
     local ok, tg, why = pcall(Food.fishTarget, gid, g)
     if not ok then
-        log().error("expedition: group %s fishing place failed: %s", gid, tostring(tg))
+        LivingKnox.Log.error("expedition: group %s fishing place failed: %s", gid, tostring(tg))
         return nil
     end
     if tg ~= nil then return tg end
-    log().debug("expedition: group %s does not fish: %s", gid, tostring(why))
+    LivingKnox.Log.debug("expedition: group %s does not fish: %s", gid, tostring(why))
     return nil, "no fishing: " .. tostring(why)
 end
 

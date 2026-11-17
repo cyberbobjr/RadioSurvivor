@@ -46,18 +46,14 @@ Bodies.bound = Bodies.bound or {}
 Bodies.foundCache = {}
 Bodies.scanState = Bodies.scanState or { cursor = 0, ticks = 0, sweeps = 0 }
 
-local function Identity() return LivingKnox.Identity end
-local function Store() return LivingKnox.Store end
-local function log() return LivingKnox.Log end
-
 -- Vrai si cette machine peut toucher aux corps ; sinon faux et la raison.
 function Bodies.canAct(creating)
     if not LivingKnox.isAuthority() then return false, "not the authority (MP client)" end
     if creating and not LivingKnox.Config.isEnabled() then return false, "Living Knox is disabled (sandbox)" end
     -- Registre relu par OnInitGlobalModData ; rattrapage ici après une remise à zéro du Lua (événement passé).
-    if not Store().isReady() and not Store().isBlocked() then Store().ensure() end
-    if not Store().isReady() then
-        local _, why = Store().isBlocked()
+    if not LivingKnox.Store.isReady() and not LivingKnox.Store.isBlocked() then LivingKnox.Store.ensure() end
+    if not LivingKnox.Store.isReady() then
+        local _, why = LivingKnox.Store.isBlocked()
         return false, "registry unavailable" .. (why and (": " .. why) or "")
     end
     if getCell() == nil then return false, "world not ready" end
@@ -72,13 +68,13 @@ function Bodies.inWorld(z)
 end
 
 local function positionOf(z)
-    return Identity().position(math.floor(z:getX()), math.floor(z:getY()), math.floor(z:getZ()))
+    return LivingKnox.Identity.position(math.floor(z:getX()), math.floor(z:getY()), math.floor(z:getZ()))
 end
 
 local function embodiedCount()
     local n = 0
-    for _, npc in pairs(Store().data().npcs) do
-        if npc.state == Identity().STATE_EMBODIED then n = n + 1 end
+    for _, npc in pairs(LivingKnox.Store.data().npcs) do
+        if npc.state == LivingKnox.Identity.STATE_EMBODIED then n = n + 1 end
     end
     return n
 end
@@ -102,13 +98,13 @@ function Bodies.recordClothes(npc, z)
     if not ok then
         if not Bodies.clothesFailed[npc.id] then
             Bodies.clothesFailed[npc.id] = true
-            log().error("npc %s clothes not recorded: %s", npc.id, tostring(clothes))
+            LivingKnox.Log.error("npc %s clothes not recorded: %s", npc.id, tostring(clothes))
         end
         return false
     end
     if clothes == nil then return false end
     npc.clothes = clothes
-    log().info("npc %s clothes recorded (%s item(s))", npc.id, tostring(#clothes))
+    LivingKnox.Log.info("npc %s clothes recorded (%s item(s))", npc.id, tostring(#clothes))
     return true
 end
 
@@ -139,10 +135,10 @@ function Bodies.removeBody(z, why)
     end
     Bodies.foundCache = {} -- C30
     if not ok then
-        log().error("body at %s not removed (%s): %s", where, tostring(why), tostring(err))
+        LivingKnox.Log.error("body at %s not removed (%s): %s", where, tostring(why), tostring(err))
         return false
     end
-    log().info("body removed at %s (%s)", where, tostring(why))
+    LivingKnox.Log.info("body removed at %s (%s)", where, tostring(why))
     -- Serveur dédié : copie du client qui simulait ce corps retirée aussi (LivingKnox.Zombies.tellBodyGone).
     local Zm = LivingKnox.Zombies
     if Zm ~= nil and Zm.tellBodyGone ~= nil then Zm.tellBodyGone(gone) end
@@ -160,7 +156,7 @@ function Bodies.standUp(z, id)
     if not ok then why = "engine error: " .. tostring(stood) end
     if not Bodies.standFailed then
         Bodies.standFailed = true
-        log().warn("npc %s body not stood up at once, vanilla get-up instead (%s)", tostring(id), tostring(why))
+        LivingKnox.Log.warn("npc %s body not stood up at once, vanilla get-up instead (%s)", tostring(id), tostring(why))
     end
     return false
 end
@@ -183,10 +179,10 @@ function Bodies.createBody(sq, profile, id, generation, clothes)
         if list == nil or list:size() == 0 then return nil, "addZombiesInOutfit created no zombie" end
         tmp = list:get(0)
         LivingKnox.Stand.rememberFresh(tmp) -- patron de l'état d'action « idle » (zombie qui vient de naître)
-        Identity().writeTag(tmp:getModData(), id, generation)
+        LivingKnox.Identity.writeTag(tmp:getModData(), id, generation)
         local _, skipped, placed = Bodies.prepare(tmp, profile, clothes)
         if skipped > 0 then
-            log().warn("npc %s: %s recorded clothing item(s) no longer exist and were left out", tostring(id),
+            LivingKnox.Log.warn("npc %s: %s recorded clothing item(s) no longer exist and were left out", tostring(id),
                 tostring(skipped))
         end
         tmp:DoZombieInventory()
@@ -194,12 +190,12 @@ function Bodies.createBody(sq, profile, id, generation, clothes)
         -- exclusif d'un autre (mod qui change les emplacements) garde le dernier vêtement posé.
         local worn = (placed or 0) > 0 and tmp:getWornItems():size() or nil
         if worn ~= nil and worn < placed then
-            log().warn("npc %s: %s recorded clothing item(s) could not be worn with the others (body locations "
+            LivingKnox.Log.warn("npc %s: %s recorded clothing item(s) could not be worn with the others (body locations "
                 .. "changed by a mod) and were left out", tostring(id), tostring(placed - worn))
         end
         body = sq:createCorpse(tmp)
         if body == nil then return nil, "createCorpse returned nil" end
-        Identity().clearTag(tmp:getModData()) -- le cadavre a sa propre copie (IsoDeadBody.java:378)
+        LivingKnox.Identity.clearTag(tmp:getModData()) -- le cadavre a sa propre copie (IsoDeadBody.java:378)
         tmp = nil
         local z = body:reanimate()
         if z == nil then return nil, "reanimate returned nil" end
@@ -245,7 +241,7 @@ local function standing(o)
     if not instanceof(o, "IsoGameCharacter") or o:isDead() then return false end
     if o:getVehicle() ~= nil then return false end
     if not o:isOnFloor() then return true end
-    return instanceof(o, "IsoZombie") and o:hasModData() and Identity().readTag(o:getModData()) ~= nil
+    return instanceof(o, "IsoZombie") and o:hasModData() and LivingKnox.Identity.readTag(o:getModData()) ~= nil
 end
 
 -- Vrai si un personnage debout occupe la case (x, y, z) (case non chargée : faux). LK18-T02 : case de retrait d'un
@@ -262,10 +258,8 @@ end
 
 -- Vrai si aucun personnage debout n'occupe la case (x, y, z) ni ses 8 voisines.
 function Bodies.clearAround(x, y, z)
-    for dy = -1, 1 do
-        for dx = -1, 1 do
-            if Bodies.standingOn(x + dx, y + dy, z) then return false end
-        end
+    for sx, sy in LivingKnox.Geo.squaresAround(x, y, 1) do
+        if Bodies.standingOn(sx, sy, z) then return false end
     end
     return true
 end
@@ -375,14 +369,14 @@ function Bodies.guardNow(npcId, z)
     local H = LivingKnox.Health
     if H ~= nil and H.bodyBound ~= nil then
         local ok, err = pcall(H.bodyBound, npcId, z)
-        if not ok then log().error("npc %s: reference health not set at bind: %s", tostring(npcId), tostring(err)) end
+        if not ok then LivingKnox.Log.error("npc %s: reference health not set at bind: %s", tostring(npcId), tostring(err)) end
     end
     -- Clé du foyer (LK04-T12, LivingKnox.Obstacles.giveKey) : posée dans l'inventaire du corps à sa liaison
     -- (incarnation, retour de chunk, redémarrage), une fois par corps et par foyer.
     local O = LivingKnox.Obstacles
     if O ~= nil and O.giveKey ~= nil then
         local okK, errK = pcall(O.giveKey, npcId, z)
-        if not okK then log().error("npc %s: home key not given at bind: %s", tostring(npcId), tostring(errK)) end
+        if not okK then LivingKnox.Log.error("npc %s: home key not given at bind: %s", tostring(npcId), tostring(errK)) end
     end
     local G = LivingKnox.ZombieGuard
     if G == nil or G.bodyBound == nil then return false end
@@ -393,24 +387,24 @@ local function embodyOn(npc, sq, want)
     if embodiedCount() >= Bodies.MAX_EMBODIED then
         return nil, "too many embodied npcs (" .. Bodies.MAX_EMBODIED .. ")"
     end
-    local generation = Identity().nextGeneration(npc)
+    local generation = LivingKnox.Identity.nextGeneration(npc)
     local z, why = Bodies.createBody(sq, npc.profile, npc.id, generation, npc.clothes)
     if z == nil then return nil, why end
-    Identity().markEmbodied(npc, generation)
+    LivingKnox.Identity.markEmbodied(npc, generation)
     npc.want = want             -- position demandée ; la case retenue est npc.last
     npc.last = positionOf(z)
     -- Santé de naissance (réécrite par reanimate() selon la robustesse, J/iso/objects/IsoDeadBody.java:1876-1889) :
     -- référence de la conversion santé <-> blessure abstraite (LK09-T03, LK_Materialize).
     local full = z:getHealth()
-    if Identity().validHealth(full) and full > 0 then npc.hpMax = full end
+    if LivingKnox.Identity.validHealth(full) and full > 0 then npc.hpMax = full end
     Bodies.bound[npc.id] = z
     Bodies.guardNow(npc.id, z)
     Bodies.recordClothes(npc, z)
     -- LK13-T10 : écriture à la fin de l'image (créations d'une même image écrites une fois). Le corps neuf n'est
     -- sauvegardé par le moteur qu'avec la sauvegarde du monde (reanimated.bin), qui passe en tête d'image sur un
     -- serveur et après OnSave en solo : le registre est toujours écrit avant (fiche corps-registre.md).
-    Store().markChanged()
-    log().info("npc %s embodied (generation %s) at %s,%s,%s (wanted %s,%s,%s)", npc.id, tostring(generation),
+    LivingKnox.Store.markChanged()
+    LivingKnox.Log.info("npc %s embodied (generation %s) at %s,%s,%s (wanted %s,%s,%s)", npc.id, tostring(generation),
         tostring(sq:getX()), tostring(sq:getY()), tostring(sq:getZ()), tostring(want.x), tostring(want.y),
         tostring(want.z))
     return z
@@ -424,18 +418,18 @@ end
 function Bodies.spawn(profile, x, y, z)
     local ok, why = Bodies.canAct(true)
     if not ok then return nil, why end
-    local p, bad = Identity().normalizeProfile(profile) -- refus immédiat d'une entrée fausse
+    local p, bad = LivingKnox.Identity.normalizeProfile(profile) -- refus immédiat d'une entrée fausse
     if not p then return nil, bad end
     local sq, refused = Bodies.findFreeSquare(x, y, z)
     if not sq then return nil, refused end
-    local registry = Store().data()
+    local registry = LivingKnox.Store.data()
     -- Entrée brute : Identity.create résout l'apparence avec le numéro du PNJ pour graine.
-    local npc, err = Identity().create(registry, profile, math.floor(x), math.floor(y), math.floor(z))
+    local npc, err = LivingKnox.Identity.create(registry, profile, math.floor(x), math.floor(y), math.floor(z))
     if not npc then return nil, err end
     local body, failed = embodyOn(npc, sq, npc.want)
     if not body then
-        Identity().forget(registry, npc.id) -- numéro consommé, jamais réattribué
-        Store().markChanged()
+        LivingKnox.Identity.forget(registry, npc.id) -- numéro consommé, jamais réattribué
+        LivingKnox.Store.markChanged()
         return nil, failed
     end
     return npc.id, body
@@ -446,12 +440,12 @@ end
 function Bodies.embody(npcId, x, y, z)
     local ok, why = Bodies.canAct(true)
     if not ok then return nil, why end
-    local npc = Identity().get(Store().data(), npcId)
+    local npc = LivingKnox.Identity.get(LivingKnox.Store.data(), npcId)
     if not npc then return nil, "unknown npc " .. tostring(npcId) end
-    if npc.state ~= Identity().STATE_VIRTUAL then return nil, "npc " .. npcId .. " is " .. npc.state end
+    if npc.state ~= LivingKnox.Identity.STATE_VIRTUAL then return nil, "npc " .. npcId .. " is " .. npc.state end
     local sq, refused = Bodies.findFreeSquare(x, y, z)
     if not sq then return nil, refused end
-    return embodyOn(npc, sq, Identity().position(math.floor(x), math.floor(y), math.floor(z)))
+    return embodyOn(npc, sq, LivingKnox.Identity.position(math.floor(x), math.floor(y), math.floor(z)))
 end
 
 -- Corps courant d'un PNJ s'il est dans le monde. Rend le zombie et "bound", ou nil et l'état
@@ -481,8 +475,8 @@ local function boundInWorld(npcId, z)
 end
 
 function Bodies.find(npcId)
-    local registry = Store().data()
-    local npc = registry and Identity().get(registry, npcId)
+    local registry = LivingKnox.Store.data()
+    local npc = registry and LivingKnox.Identity.get(registry, npcId)
     if not npc then return nil, "unknown" end
     local z = Bodies.bound[npcId]
     if z ~= nil and getCell() ~= nil and boundInWorld(npcId, z) then return z, "bound" end
@@ -494,8 +488,8 @@ end
 function Bodies.despawn(npcId, forget)
     local ok, why = Bodies.canAct(false)
     if not ok then return false, why end
-    local registry = Store().data()
-    local npc = Identity().get(registry, npcId)
+    local registry = LivingKnox.Store.data()
+    local npc = LivingKnox.Identity.get(registry, npcId)
     if not npc then return false, "unknown npc " .. tostring(npcId) end
     local removed = 0
     local z = Bodies.bound[npcId]
@@ -506,22 +500,22 @@ function Bodies.despawn(npcId, forget)
     Bodies.bound[npcId] = nil
     Bodies.lastHits[npcId] = nil
     if forget then
-        Identity().forget(registry, npcId)
-    elseif npc.state == Identity().STATE_EMBODIED then
-        Identity().markVirtual(npc)
+        LivingKnox.Identity.forget(registry, npcId)
+    elseif npc.state == LivingKnox.Identity.STATE_EMBODIED then
+        LivingKnox.Identity.markVirtual(npc)
     end
-    Store().markChanged()   -- LK13-T10 : fin de l'image (retraits d'une même image écrits une fois)
-    log().info("npc %s despawned (%s body removed%s)", npcId, tostring(removed), forget and ", forgotten" or "")
+    LivingKnox.Store.markChanged()   -- LK13-T10 : fin de l'image (retraits d'une même image écrits une fois)
+    LivingKnox.Log.info("npc %s despawned (%s body removed%s)", npcId, tostring(removed), forget and ", forgotten" or "")
     return true, removed
 end
 
 -- Résumé de chaque PNJ, trié par numéro : { id, generation, state, profile, want, last, weapon, clothes, inWorld }.
 function Bodies.list()
-    local registry = Store().data()
+    local registry = LivingKnox.Store.data()
     local out = {}
     if not registry then return out end
     local cellReady = getCell() ~= nil
-    for _, id in ipairs(Identity().sortedIds(registry)) do
+    for _, id in ipairs(LivingKnox.Identity.sortedIds(registry)) do
         local npc = registry.npcs[id]
         local z = Bodies.bound[id]
         out[#out + 1] = { id = id, generation = npc.generation, state = npc.state, profile = npc.profile,
@@ -577,13 +571,13 @@ function Bodies.layDown(z, id, why)
         z:die()
     end)
     if not ok then
-        log().error("npc %s: risen corpse not laid down (%s): %s", tostring(id), tostring(why), tostring(err))
+        LivingKnox.Log.error("npc %s: risen corpse not laid down (%s): %s", tostring(id), tostring(why), tostring(err))
         return false
     end
     Bodies.risenSeen[z] = nil
     Bodies.stats.laidDown = Bodies.stats.laidDown + 1
     Bodies.trackCorpse(id, z, "laid down")
-    log().warn("npc %s is dead but its corpse rose again (%s): laid down at %s,%s,%s", tostring(id), tostring(why),
+    LivingKnox.Log.warn("npc %s is dead but its corpse rose again (%s): laid down at %s,%s,%s", tostring(id), tostring(why),
         tostring(math.floor(z:getX())), tostring(math.floor(z:getY())), tostring(math.floor(z:getZ())))
     return true
 end
@@ -593,7 +587,7 @@ function Bodies.trackCorpse(id, z, why)
     local D = LivingKnox.Death
     if D == nil or D.track == nil then return end
     local ok, err = pcall(D.track, id, z, why)
-    if not ok then log().error("npc %s: corpse not tracked: %s", tostring(id), tostring(err)) end
+    if not ok then LivingKnox.Log.error("npc %s: corpse not tracked: %s", tostring(id), tostring(err)) end
 end
 
 -- Vrai si z est le zombie temporaire d'un cadavre traîné (prise B42).
@@ -604,10 +598,10 @@ end
 -- Zombie ordinaire (pas un joueur réanimé) étiqueté d'un PNJ mort : cadavre faux mort relevé, remis à terre.
 local function examineRisen(z)
     if not z:hasModData() then return nil end
-    local I = Identity()
+    local I = LivingKnox.Identity
     local id, generation = I.readTag(z:getModData())
     if not id then return nil end
-    local _, npc = I.classify(Store().data(), id, generation)
+    local _, npc = I.classify(LivingKnox.Store.data(), id, generation)
     if npc == nil or npc.state ~= I.STATE_DEAD or Bodies.isDragged(z) then return nil end
     if not risenReady(z) then return "rising" end
     Bodies.layDown(z, id, "fake dead corpse")
@@ -621,10 +615,10 @@ function Bodies.examine(z)
     if z == nil or z:isDead() then return nil end
     if not z:isReanimatedPlayer() then return examineRisen(z) end
     if not z:hasModData() then return nil end
-    local I = Identity()
+    local I = LivingKnox.Identity
     local id, generation = I.readTag(z:getModData())
     if not id then return nil end
-    local class, npc = I.classify(Store().data(), id, generation)
+    local class, npc = I.classify(LivingKnox.Store.data(), id, generation)
     if class ~= I.CURRENT and Bodies.isDragged(z) then return nil end   -- cadavre traîné : rendu par le moteur
     if class ~= I.CURRENT and npc ~= nil and npc.state == I.STATE_DEAD then
         if not risenReady(z) then return "rising" end
@@ -642,9 +636,9 @@ function Bodies.examine(z)
         if not last or math.abs(last.x - p.x) >= Bodies.MOVE_EPSILON or math.abs(last.y - p.y) >= Bodies.MOVE_EPSILON
             or last.z ~= p.z then
             npc.last = p
-            Store().markDirty()
+            LivingKnox.Store.markDirty()
         end
-        if Bodies.recordClothes(npc, z) then Store().markDirty() end
+        if Bodies.recordClothes(npc, z) then LivingKnox.Store.markDirty() end
         return "seen"
     end
     if b ~= nil and Bodies.inWorld(b) then
@@ -656,8 +650,8 @@ function Bodies.examine(z)
     Bodies.guardNow(id, z)
     npc.last = positionOf(z)
     Bodies.recordClothes(npc, z)
-    Store().markDirty()
-    log().info("npc %s bound to its body (generation %s)", id, tostring(generation))
+    LivingKnox.Store.markDirty()
+    LivingKnox.Log.info("npc %s bound to its body (generation %s)", id, tostring(generation))
     return "bound"
 end
 
@@ -722,18 +716,18 @@ function Bodies.hazardPass()
                 Bodies.hazardMoves[id] = { ms = t, x = x, y = y }
                 if sq == nil then
                     if last == nil or last.x ~= x or last.y ~= y then
-                        log().warn("npc %s stopped next to a %s at %s,%s,%s and no safe square within %s",
+                        LivingKnox.Log.warn("npc %s stopped next to a %s at %s,%s,%s and no safe square within %s",
                             id, what, tostring(hx), tostring(hy), tostring(zz), tostring(Bodies.HAZARD_RADIUS))
                     end
                 else
                     local v, why = D.moveTo(id, sq:getX(), sq:getY(), sq:getZ(), "walk")
                     if v ~= nil then
                         issued = issued + 1
-                        log().info("npc %s stopped next to a %s at %s,%s,%s: moved away to %s,%s (#%s)", id, what,
+                        LivingKnox.Log.info("npc %s stopped next to a %s at %s,%s,%s: moved away to %s,%s (#%s)", id, what,
                             tostring(hx), tostring(hy), tostring(zz), tostring(sq:getX()), tostring(sq:getY()),
                             tostring(v))
                     else
-                        log().warn("npc %s next to a %s: move away refused: %s", id, what, tostring(why))
+                        LivingKnox.Log.warn("npc %s next to a %s: move away refused: %s", id, what, tostring(why))
                     end
                 end
             end
@@ -799,10 +793,10 @@ function Bodies.keptHealth(id, z)
     local hp = nil
     local R = LivingKnox.Reports
     local s = R and R.states and R.states[id]
-    if s ~= nil and z ~= nil and rawequal(s.body, z) and Identity().validHealth(s.hp) then hp = s.hp end
+    if s ~= nil and z ~= nil and rawequal(s.body, z) and LivingKnox.Identity.validHealth(s.hp) then hp = s.hp end
     if z ~= nil and not z:isDead() and (not isServer() or z:getOwner() == nil) then
         local own = z:getHealth()
-        if Identity().validHealth(own) and (hp == nil or own < hp) then hp = own end
+        if LivingKnox.Identity.validHealth(own) and (hp == nil or own < hp) then hp = own end
     end
     return hp
 end
@@ -818,9 +812,9 @@ end
 function Bodies.release(npcId, why)
     local ok, refused = Bodies.canAct(false)
     if not ok then return false, refused end
-    local npc = Identity().get(Store().data(), npcId)
+    local npc = LivingKnox.Identity.get(LivingKnox.Store.data(), npcId)
     if not npc then return false, "unknown npc " .. tostring(npcId) end
-    if npc.state ~= Identity().STATE_EMBODIED then return false, "npc " .. npcId .. " is " .. npc.state end
+    if npc.state ~= LivingKnox.Identity.STATE_EMBODIED then return false, "npc " .. npcId .. " is " .. npc.state end
     local z = Bodies.bound[npcId]
     local hp = Bodies.keptHealth(npcId, z)
     if hp ~= nil then npc.hp = hp end
@@ -839,7 +833,7 @@ function Bodies.release(npcId, why)
     -- jour, santé -> blessure abstraite, présent au foyer).
     LivingKnox.publish("bodyReleased", { npc = npcId, hp = hp, record = npc })
     local last = npc.last or npc.want
-    log().info("npc %s released to the offscreen simulation (%s): body %s, last seen %s,%s,%s, health %s, "
+    LivingKnox.Log.info("npc %s released to the offscreen simulation (%s): body %s, last seen %s,%s,%s, health %s, "
         .. "weapon %s, directive %s", npcId, tostring(why), inWorld and "removed" or "out of the loaded area",
         tostring(last.x), tostring(last.y), tostring(last.z), hp and string.format("%.3f", hp) or "unknown",
         tostring(npc.weapon or "none"), dropped)
@@ -856,13 +850,13 @@ function Bodies.releasePass()
         Bodies.farSince = {}   -- pause ou serveur figé : le temps sans passage ne compte pas
     end
     st.releaseMs = t
-    local registry = Store().data()
+    local registry = LivingKnox.Store.data()
     local players = Bodies.livingPlayers()
     local due = {}
-    for _, id in ipairs(Identity().sortedIds(registry)) do
+    for _, id in ipairs(LivingKnox.Identity.sortedIds(registry)) do
         local npc = registry.npcs[id]
         local far = false
-        if npc.state == Identity().STATE_EMBODIED then
+        if npc.state == LivingKnox.Identity.STATE_EMBODIED then
             local z = Bodies.bound[id]
             local x, y, owned
             if z ~= nil and Bodies.inWorld(z) then
@@ -889,7 +883,7 @@ function Bodies.releasePass()
         if ok then
             n = n + 1
         else
-            log().warn("npc %s not released: %s", id, tostring(why))
+            LivingKnox.Log.warn("npc %s not released: %s", id, tostring(why))
             Bodies.farSince[id] = t
         end
     end
@@ -963,11 +957,11 @@ end
 
 -- Abonné OnHitZombie (autorité) : dernier coup d'un joueur sur un corps courant de PNJ.
 function Bodies.onHitZombie(z, wielder, _, weapon)
-    if not LivingKnox.isAuthority() or not Store().isReady() or z == nil or not z:hasModData() then return end
+    if not LivingKnox.isAuthority() or not LivingKnox.Store.isReady() or z == nil or not z:hasModData() then return end
     if not isPlayer(wielder) or weapon == nil then return end
-    local I = Identity()
+    local I = LivingKnox.Identity
     local id, generation = I.readTag(z:getModData())
-    if not id or I.classify(Store().data(), id, generation) ~= I.CURRENT then return end
+    if not id or I.classify(LivingKnox.Store.data(), id, generation) ~= I.CURRENT then return end
     local hit = { player = wielder, username = wielder:getUsername(), weapon = weapon:getFullType(),
         category = Bodies.weaponCategory(weapon), ms = getTimestampMs() }
     Bodies.lastHits[id] = hit
@@ -994,7 +988,7 @@ function Bodies.deathCause(z, id)
     local out = { cause = "unknown", burning = burning }
     local H = LivingKnox.Health
     local decided = H ~= nil and H.causeOf ~= nil and H.causeOf(id) or nil
-    if decided ~= nil and Identity().DEATH_CAUSES[decided] then
+    if decided ~= nil and LivingKnox.Identity.DEATH_CAUSES[decided] then
         out.cause = decided
         return out
     end
@@ -1030,11 +1024,11 @@ end
 -- cause relevée (npc.death). Un second OnZombieDead (feu, cadavre traîné puis lâché, cadavre relevé remis à terre)
 -- ne trouve plus de corps courant et ne fait rien : une seule mort par PNJ (LK07-T04).
 function Bodies.onZombieDead(z)
-    if not LivingKnox.isAuthority() or not Store().isReady() or z == nil or not z:hasModData() then return end
-    local I = Identity()
+    if not LivingKnox.isAuthority() or not LivingKnox.Store.isReady() or z == nil or not z:hasModData() then return end
+    local I = LivingKnox.Identity
     local id, generation = I.readTag(z:getModData())
     if not id then return end
-    local class, npc = I.classify(Store().data(), id, generation)
+    local class, npc = I.classify(LivingKnox.Store.data(), id, generation)
     if class ~= I.CURRENT then return end
     local cause = Bodies.deathCause(z, id)
     -- LK16-T04 : événement "bodyDying", avant le cadavre ; écouté par LK_Health (order 10 : mort décidée par la santé
@@ -1048,12 +1042,12 @@ function Bodies.onZombieDead(z)
     Bodies.trackCorpse(id, z, "death")   -- LK07-T10 : cadavre renvoyé à un client MP sans copie
     -- Écriture immédiate gardée (LK13-T10) : mort unique (LK07-T04), rare ; le cadavre et son butin (LK07-T05) sont
     -- déjà dans le monde, que le moteur peut sauvegarder avec son chunk sans attendre la fin de l'image.
-    Store().save()
-    log().info("npc %s died (generation %s): cause %s, killer %s, weapon %s%s", id, tostring(generation), cause.cause,
+    LivingKnox.Store.save()
+    LivingKnox.Log.info("npc %s died (generation %s): cause %s, killer %s, weapon %s%s", id, tostring(generation), cause.cause,
         tostring(cause.killer), tostring(cause.weapon), cause.burning and ", burning" or "")
     if Bodies.onDied ~= nil then
         local ok, err = pcall(Bodies.onDied, id, z, copyCause(cause))
-        if not ok then log().error("npc %s death listener failed: %s", id, tostring(err)) end
+        if not ok then LivingKnox.Log.error("npc %s death listener failed: %s", id, tostring(err)) end
     end
     -- E08-T07 : mort d'un membre de groupe devant les autres (fait "memberDied" de LK_Core, corps présent ; les
     -- témoins sont choisis par l'abonné d'après la scène). Le registre des groupes n'est pas modifié ici (LK07).

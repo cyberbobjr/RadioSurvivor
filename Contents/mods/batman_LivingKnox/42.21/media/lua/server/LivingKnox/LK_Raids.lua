@@ -89,16 +89,11 @@ Raids.stats = Raids.stats or { surveys = 0, spotted = 0, scouts = 0, announced =
     ended = 0, spawned = 0, spawnWaits = 0 }
 Raids.state = Raids.state or { warned = {}, lines = {} }
 
-local function log() return LivingKnox.Log end
-local function Groups() return LivingKnox.Groups end
-local function Hostility() return LivingKnox.Hostility end
-local function Relations() return LivingKnox.Relations end
 local function cfg() return Raids.CFG end
 
 local function isNumber(v) return type(v) == "number" and v == v and v > -1e12 and v < 1e12 end
 local function isInt(v, lo, hi) return isNumber(v) and math.floor(v) == v and v >= lo and v <= hi end
-local function cheb(ax, ay, bx, by) return math.max(math.abs(ax - bx), math.abs(ay - by)) end
-local function cut(s) return string.sub(s, 1, Groups().TEXT_MAX or 200) end
+local function cut(s) return string.sub(s, 1, LivingKnox.Groups.TEXT_MAX or 200) end
 
 local function inList(list, v)
     for _, x in ipairs(list or {}) do
@@ -107,7 +102,7 @@ local function inList(list, v)
     return false
 end
 
-local function byNumber(a, b) return (Groups().memberNumber(a) or 0) < (Groups().memberNumber(b) or 0) end
+local function byNumber(a, b) return (LivingKnox.Groups.memberNumber(a) or 0) < (LivingKnox.Groups.memberNumber(b) or 0) end
 
 -- Réglages sandbox (LivingKnox.Config.raids) : { enabled, days }.
 function Raids.settings()
@@ -130,7 +125,7 @@ local function validOccupants(list)
     local n = 0
     for k, o in pairs(list) do
         if not isInt(k, 1, cfg().OCCUPANTS_MAX) or type(o) ~= "table" or type(o.u) ~= "string" or #o.u < 1
-            or #o.u > 64 or (o.k ~= nil and not Hostility().validPlayerKey(o.k)) then
+            or #o.u > 64 or (o.k ~= nil and not LivingKnox.Hostility.validPlayerKey(o.k)) then
             return false
         end
         n = n + 1
@@ -142,7 +137,7 @@ local function validTeam(list)
     if type(list) ~= "table" then return false end
     local n = 0
     for k, mid in pairs(list) do
-        if not isInt(k, 1, 32) or not Groups().memberNumber(mid) then return false end
+        if not isInt(k, 1, 32) or not LivingKnox.Groups.memberNumber(mid) then return false end
         n = n + 1
     end
     return n >= 1 and n == #list
@@ -177,21 +172,21 @@ end
 local function raidOf(g, gid)
     if type(g) ~= "table" then return nil end
     if g.raidLast ~= nil and not isInt(g.raidLast, 0, 1e9) then
-        log().warn("raid: group %s raidLast dropped: %s", tostring(gid), tostring(g.raidLast))
+        LivingKnox.Log.warn("raid: group %s raidLast dropped: %s", tostring(gid), tostring(g.raidLast))
         g.raidLast = nil
     end
     local r = g.raid
     if r == nil then return nil end
     local ok, why = Raids.validRaid(r)
     if ok then return r end
-    log().warn("raid: group %s record dropped: %s", tostring(gid), tostring(why))
+    LivingKnox.Log.warn("raid: group %s record dropped: %s", tostring(gid), tostring(why))
     g.raid = nil
     return nil
 end
 Raids.raidOf = raidOf
 
 local function liveGroups()
-    local G = Groups()
+    local G = LivingKnox.Groups
     if not G.isReady() then return nil end
     return G.state.data
 end
@@ -340,7 +335,7 @@ end
 -- Foyer d'un groupe à HOME_GAP cases au plus du centre de la base (ses propres défenses) : vrai.
 local function nearGroupHome(data, b)
     for _, g in pairs(data.groups) do
-        if type(g.home) == "table" and cheb(g.home.x, g.home.y, b.x, b.y) <= cfg().HOME_GAP then return true end
+        if type(g.home) == "table" and LivingKnox.Geo.cheb(g.home.x, g.home.y, b.x, b.y) <= cfg().HOME_GAP then return true end
     end
     return false
 end
@@ -348,7 +343,7 @@ end
 -- Groupe pillard qui repère la base b (registre passé en argument) : type pillard, présent (non disparu), un vivant
 -- au moins, foyer à DETECT_RANGE cases au plus ; le plus proche (puis par numéro). Rend gid, ou nil.
 function Raids.watcherFor(data, b)
-    local G = Groups()
+    local G = LivingKnox.Groups
     local best, bestD
     local ids = {}
     for gid in pairs(data.groups) do ids[#ids + 1] = gid end
@@ -356,7 +351,7 @@ function Raids.watcherFor(data, b)
     for _, gid in ipairs(ids) do
         local g = data.groups[gid]
         if not G.isGone(g) and type(g.home) == "table" and G.livingCount(g) > 0 and Raids.isRaiderType(g.type) then
-            local d = cheb(g.home.x, g.home.y, b.x, b.y)
+            local d = LivingKnox.Geo.cheb(g.home.x, g.home.y, b.x, b.y)
             if d <= cfg().DETECT_RANGE and (bestD == nil or d < bestD) then best, bestD = gid, d end
         end
     end
@@ -386,10 +381,10 @@ end
 -- Signe d'occupation de la base b vu le jour day chez le joueur de compte u (clé du carnet k ou nil), noté par le
 -- groupe g (registre vivant). Rend "spotted", "seen", "occupant" ou nil (rien de changé).
 function Raids.note(g, gid, b, signs, u, k, day)
-    local G = Groups()
+    local G = LivingKnox.Groups
     local r = raidOf(g, gid)
     if r ~= nil and r.phase == "watch" and r.base.id ~= b.id and r.last <= day - cfg().FORGET_DAYS then
-        log().info("raid: group %s forgets the base at %d,%d (not seen since day %d)", gid, r.base.x, r.base.y, r.last)
+        LivingKnox.Log.info("raid: group %s forgets the base at %d,%d (not seen since day %d)", gid, r.base.x, r.base.y, r.last)
         g.raid, r = nil, nil
     end
     if r == nil then
@@ -397,7 +392,7 @@ function Raids.note(g, gid, b, signs, u, k, day)
             last = day, k = 0, occ = { { u = u, k = k } } }
         G.appendLog(g, "raid", cut(string.format("spotted a player base at %d,%d (%s)", b.x, b.y, signs.text)), day)
         Raids.stats.spotted = Raids.stats.spotted + 1
-        log().info("raid: group %s spotted the base %s at %d,%d (%s, score %d) of %s", gid, b.id, b.x, b.y, signs.text,
+        LivingKnox.Log.info("raid: group %s spotted the base %s at %d,%d (%s, score %d) of %s", gid, b.id, b.x, b.y, signs.text,
             signs.score, u)
         return "spotted"
     end
@@ -405,7 +400,7 @@ function Raids.note(g, gid, b, signs, u, k, day)
     local added = addOccupant(r, u, k)
     if r.phase == "watch" and r.last ~= day then
         r.seen, r.last, r.signs = r.seen + 1, day, string.sub(signs.text, 1, 64)
-        log().info("raid: group %s saw the base at %d,%d again (day %d, %d day(s), %s)", gid, b.x, b.y, day, r.seen,
+        LivingKnox.Log.info("raid: group %s saw the base at %d,%d again (day %d, %d day(s), %s)", gid, b.x, b.y, day, r.seen,
             signs.text)
         return "seen"
     end
@@ -419,7 +414,7 @@ function Raids.survey()
     local C = LivingKnox.Config
     if C ~= nil and not C.isEnabled() then return 0 end
     if not Raids.settings().enabled then return 0 end
-    local G, B = Groups(), LivingKnox.Bodies
+    local G, B = LivingKnox.Groups, LivingKnox.Bodies
     if B == nil or not G.ensure() then return 0 end
     Raids.stats.surveys = Raids.stats.surveys + 1
     local seen, done = {}, {}
@@ -433,7 +428,7 @@ function Raids.survey()
                 done[b.id] = key
             end
             if key.score >= cfg().SCORE_MIN then
-                seen[#seen + 1] = { b = b, signs = key, u = u, k = Hostility().keyOf(p) }
+                seen[#seen + 1] = { b = b, signs = key, u = u, k = LivingKnox.Hostility.keyOf(p) }
             end
         end
     end
@@ -445,7 +440,7 @@ function Raids.survey()
             if nearGroupHome(data, s.b) then
                 if Raids.state.warned[s.b.id] ~= "home" then
                     Raids.state.warned[s.b.id] = "home"
-                    log().info("raid: base %s at %d,%d is next to a group home: ignored", s.b.id, s.b.x, s.b.y)
+                    LivingKnox.Log.info("raid: base %s at %d,%d is next to a group home: ignored", s.b.id, s.b.x, s.b.y)
                 end
             else
                 local gid = Raids.watcherFor(data, s.b)
@@ -466,7 +461,7 @@ local function publishRaid(name, gid, r, extra)
     local keys = {}
     for _, o in ipairs(r.occ) do keys[#keys + 1] = o.k or o.u end
     local info = { group = gid, base = r.base.id, x = r.base.x, y = r.base.y, src = r.base.src, players = keys,
-        day = Groups().today() }
+        day = LivingKnox.Groups.today() }
     for k, v in pairs(extra or {}) do info[k] = v end
     LivingKnox.publish(name, info)
 end
@@ -474,7 +469,7 @@ end
 -- Un occupant au moins est hostile au groupe (attitude dans LEVELS ; sans identité du carnet : niveau de départ du
 -- type). Registre des attitudes illisible : non (pas de raid sur une erreur de lecture).
 function Raids.hostileOccupant(gid, g, r)
-    local H = Hostility()
+    local H = LivingKnox.Hostility
     local start = H.levelOf(H.startFor(g.type))
     for _, o in ipairs(r.occ) do
         local level = start
@@ -518,10 +513,10 @@ local function teamText(team) return table.concat(team, " ") end
 local function endRaid(g, gid, r, ending, day)
     g.raid = nil
     if isNumber(r.start) then g.raidLast = r.start end
-    Groups().appendLog(g, "raid", cut(string.format("raid on %d,%d ended: %s", r.base.x, r.base.y, ending)), day)
+    LivingKnox.Groups.appendLog(g, "raid", cut(string.format("raid on %d,%d ended: %s", r.base.x, r.base.y, ending)), day)
     Raids.stats.ended = Raids.stats.ended + 1
     if ending == "cancelled" then Raids.stats.cancelled = Raids.stats.cancelled + 1 end
-    log().info("raid: group %s raid on %s ended: %s", gid, r.base.id, ending)
+    LivingKnox.Log.info("raid: group %s raid on %s ended: %s", gid, r.base.id, ending)
     publishRaid("raidEnded", gid, r, { ending = ending })
 end
 Raids.endRaid = endRaid
@@ -543,7 +538,7 @@ local function depart(g, gid, r, hour, day, scouting)
     end
     local team, copy = {}, {}
     for i = 1, size do team[i], copy[i] = cands[i], cands[i] end
-    local travel = Relations().travelHours(g.home, r.base, c.SPEED)
+    local travel = LivingKnox.Relations.travelHours(g.home, r.base, c.SPEED)
     r.phase = scouting and "scout" or "raid"
     r.step, r.team, r.travel, r.dep, r.arrive = "out", team, travel, hour, hour + travel
     r.leave = r.arrive + math.max(1, math.floor(scouting and c.SCOUT_HOURS or c.ATTACK_HOURS))
@@ -551,9 +546,9 @@ local function depart(g, gid, r, hour, day, scouting)
     if scouting then r.start = hour end
     g.expedition = { place = "raid", team = copy, departed = hour, returns = r.leave + travel }
     local what = scouting and "scouts" or "raiders"
-    Groups().appendLog(g, "raid", cut(string.format("%s %s left for the base at %d,%d, %d h away", what,
+    LivingKnox.Groups.appendLog(g, "raid", cut(string.format("%s %s left for the base at %d,%d, %d h away", what,
         teamText(team), r.base.x, r.base.y, travel)), day)
-    log().info("raid: group %s %s %s left at hour %d for the base %s at %d,%d, arrival hour %d", gid, what,
+    LivingKnox.Log.info("raid: group %s %s %s left at hour %d for the base %s at %d,%d, arrival hour %d", gid, what,
         teamText(team), hour, r.base.id, r.base.x, r.base.y, r.arrive)
     if scouting then
         Raids.stats.scouts = Raids.stats.scouts + 1
@@ -569,13 +564,13 @@ end
 -- journal, fait public.
 local function announce(g, gid, r, hour, day)
     local wait = math.max(1, math.min(r.travel, hour - r.dep)) + math.floor(cfg().ANNOUNCE_HOURS)
-    Groups().appendLog(g, "raid", cut(string.format("scouts saw the base at %d,%d (%s): attack in about %d h",
+    LivingKnox.Groups.appendLog(g, "raid", cut(string.format("scouts saw the base at %d,%d (%s): attack in about %d h",
         r.base.x, r.base.y, r.signs, wait)), day)
     Raids.stats.announced = Raids.stats.announced + 1
-    log().info("raid: group %s scouts saw the base %s at %d,%d: raid announced, attack in about %d h", gid, r.base.id,
+    LivingKnox.Log.info("raid: group %s scouts saw the base %s at %d,%d: raid announced, attack in about %d h", gid, r.base.id,
         r.base.x, r.base.y, wait)
     local B = LivingKnox.Bodies
-    for _, mid in ipairs(Relations().livingTeam(g, r.team)) do
+    for _, mid in ipairs(LivingKnox.Relations.livingTeam(g, r.team)) do
         local m = g.members[mid]
         if m.npc ~= nil and B ~= nil and B.find ~= nil and B.find(m.npc) ~= nil then
             Raids.state.lines[#Raids.state.lines + 1] = { npc = m.npc, key = "IGUI_LK_Raid_Scouted" }
@@ -595,7 +590,7 @@ function Raids.offscreenHour(data, g, gid, hour)
     local set = Raids.settings()
     local trip = r.phase == "scout" or r.phase == "raid"
     if trip and (type(g.expedition) ~= "table" or g.expedition.place ~= "raid") then
-        log().warn("raid: group %s lost its %s expedition: raid closed", gid, r.phase)
+        LivingKnox.Log.warn("raid: group %s lost its %s expedition: raid closed", gid, r.phase)
         endRaid(g, gid, r, "cancelled", day)
         return nil
     end
@@ -614,7 +609,7 @@ function Raids.offscreenHour(data, g, gid, hour)
         if ok then ok, why = depart(g, gid, r, hour, day, true) end
         if not ok and Raids.state.warned[gid] ~= why then
             Raids.state.warned[gid] = why
-            log().info("raid: group %s does not scout the base at %d,%d yet: %s", gid, r.base.x, r.base.y,
+            LivingKnox.Log.info("raid: group %s does not scout the base at %d,%d yet: %s", gid, r.base.x, r.base.y,
                 tostring(why))
         end
         return r.phase
@@ -628,15 +623,15 @@ function Raids.offscreenHour(data, g, gid, hour)
         local ok, why = depart(g, gid, r, hour, day, false)
         if not ok and Raids.state.warned[gid] ~= why then
             Raids.state.warned[gid] = why
-            log().info("raid: group %s cannot launch the raid yet: %s", gid, tostring(why))
+            LivingKnox.Log.info("raid: group %s cannot launch the raid yet: %s", gid, tostring(why))
         end
         return r.phase
     end
     -- Équipe dehors (éclaireurs ou attaque).
-    if #Relations().livingTeam(g, r.team) == 0 then
+    if #LivingKnox.Relations.livingTeam(g, r.team) == 0 then
         g.expedition = nil
         if r.phase == "scout" then
-            Groups().appendLog(g, "raid", cut(string.format("scouts %s did not come back: raid on %d,%d called off",
+            LivingKnox.Groups.appendLog(g, "raid", cut(string.format("scouts %s did not come back: raid on %d,%d called off",
                 teamText(r.team), r.base.x, r.base.y)), day)
             endRaid(g, gid, r, "cancelled", day)
         else
@@ -646,17 +641,17 @@ function Raids.offscreenHour(data, g, gid, hour)
     end
     if r.step == "out" and hour >= r.arrive then
         r.step = "at"
-        log().info("raid: group %s %s reached the base at %d,%d at hour %d, until hour %d", gid,
+        LivingKnox.Log.info("raid: group %s %s reached the base at %d,%d at hour %d, until hour %d", gid,
             r.phase == "scout" and "scouts" or "raiders", r.base.x, r.base.y, hour, r.leave)
     end
     if r.step == "at" and hour >= r.leave then
         if r.phase == "scout" then
             announce(g, gid, r, hour, day)
         else
-            Groups().appendLog(g, "raid", cut(string.format("raid on %d,%d: %d still standing, heading home",
-                r.base.x, r.base.y, #Relations().livingTeam(g, r.team))), day)
+            LivingKnox.Groups.appendLog(g, "raid", cut(string.format("raid on %d,%d: %d still standing, heading home",
+                r.base.x, r.base.y, #LivingKnox.Relations.livingTeam(g, r.team))), day)
         end
-        Relations().turnBack(g, r, hour, "raid", "step")
+        LivingKnox.Relations.turnBack(g, r, hour, "raid", "step")
     end
     return r.phase
 end
@@ -665,12 +660,12 @@ end
 -- si l'expédition est close.
 function Raids.raidReturn(g, gid, hour, day)
     local r = raidOf(g, gid)
-    if r ~= nil and (r.phase == "scout" or r.phase == "raid") and Relations().delayReturn(g, r.team, hour) then
+    if r ~= nil and (r.phase == "scout" or r.phase == "raid") and LivingKnox.Relations.delayReturn(g, r.team, hour) then
         return false
     end
     g.expedition = nil
     if r == nil or (r.phase ~= "scout" and r.phase ~= "raid") then return true end
-    local back = Relations().livingTeam(g, r.team)
+    local back = LivingKnox.Relations.livingTeam(g, r.team)
     if r.phase == "scout" then
         if #back == 0 then
             endRaid(g, gid, r, "cancelled", day)
@@ -678,12 +673,12 @@ function Raids.raidReturn(g, gid, hour, day)
         end
         r.phase, r.due = "ready", hour + math.max(0, math.floor(cfg().ANNOUNCE_HOURS))
         r.step, r.team, r.dep, r.arrive, r.leave, r.travel = nil, nil, nil, nil, nil, nil
-        Groups().appendLog(g, "raid", cut(string.format("scouts back home (%d): raid on %d,%d at hour %d", #back,
+        LivingKnox.Groups.appendLog(g, "raid", cut(string.format("scouts back home (%d): raid on %d,%d at hour %d", #back,
             r.base.x, r.base.y, r.due)), day)
-        log().info("raid: group %s scouts back home at hour %d, raid due at hour %d", gid, hour, r.due)
+        LivingKnox.Log.info("raid: group %s scouts back home at hour %d, raid due at hour %d", gid, hour, r.due)
         return true
     end
-    Groups().appendLog(g, "raid", cut(string.format("raid on %d,%d: %d back home", r.base.x, r.base.y, #back)), day)
+    LivingKnox.Groups.appendLog(g, "raid", cut(string.format("raid on %d,%d: %d back home", r.base.x, r.base.y, #back)), day)
     endRaid(g, gid, r, "done", day)
     return true
 end
@@ -717,7 +712,7 @@ function Raids.flushLines()
     Raids.state.lines = {}
     local said = 0
     for _, l in ipairs(lines) do
-        if Relations().say(l.npc, l.key, nil, "hostile") then said = said + 1 end
+        if LivingKnox.Relations.say(l.npc, l.key, nil, "hostile") then said = said + 1 end
     end
     return said
 end
@@ -734,13 +729,13 @@ function Raids.pass()
     local players = B.livingPlayers()
     if #players == 0 then return 0 end
     local c, created = cfg(), 0
-    for _, gid in ipairs(Groups().list()) do
+    for _, gid in ipairs(LivingKnox.Groups.list()) do
         local g = data.groups[gid]
         local r = g and g.raid or nil
         if type(r) == "table" and (r.phase == "scout" or r.phase == "raid") and r.step == "at"
             and type(g.expedition) == "table" and g.expedition.place == "raid" and Raids.validRaid(r)
             and B.playerNear(players, r.base.x + 0.5, r.base.y + 0.5, c.MAT_RADIUS) then
-            created = created + Relations().embodyTeam(gid, g, r.team, { x = r.base.x, y = r.base.y, z = r.base.z },
+            created = created + LivingKnox.Relations.embodyTeam(gid, g, r.team, { x = r.base.x, y = r.base.y, z = r.base.z },
                 players, c.PER_PASS - created, "raid", Raids.stats, Raids.state.warned)
             if created >= c.PER_PASS then return created end
         end

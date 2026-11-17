@@ -15,10 +15,8 @@ end
 
 local function plan(ctx, out)
     local R, spots = ctx.cfg.FIRE_RADIUS, {}
-    for dy = -R, R do
-        for dx = -R, R do
-            spots[#spots + 1] = { x = ctx.home.x + dx, y = ctx.home.y + dy, d = Homes.cheb(dx, dy, 0, 0) }
-        end
+    for x, y in LivingKnox.Geo.squaresAround(ctx.home.x, ctx.home.y, R) do
+        spots[#spots + 1] = { x = x, y = y, d = LivingKnox.Geo.cheb(x, y, ctx.home.x, ctx.home.y) }
     end
     table.sort(spots, Homes.byPlace)
     for _, s in ipairs(spots) do

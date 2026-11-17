@@ -20,9 +20,7 @@ LivingKnox.Routines = Routines
 Routines.DIRS = { { 0, -1, 270 }, { 1, 0, 0 }, { 0, 1, 90 }, { -1, 0, 180 } }
 local DIRS = Routines.DIRS
 
-local function log() return LivingKnox.Log end
 local function cfg() return Routines.CFG end
-local function Decisions() return LivingKnox.Decisions end
 
 -- ================================================================ outils de case (pur)
 
@@ -70,7 +68,7 @@ local function entryOf(id)
 end
 
 local function note(id, m, v, why, what)
-    if not Decisions().noteIssued(id, v, why) then
+    if not LivingKnox.Decisions.noteIssued(id, v, why) then
         Routines.stats.refused = Routines.stats.refused + 1
         return false
     end
@@ -127,7 +125,7 @@ local function goTo(id, ctx, x, y, z, m, e)
     local v, why = LivingKnox.Directives.moveTo(id, x, y, z, "walk")
     if not note(id, m, v, why, "moves") then
         m.fails = m.fails + 1
-        log().debug("npc %s: routine move to %d,%d,%d refused: %s", id, x, y, z, tostring(why))
+        LivingKnox.Log.debug("npc %s: routine move to %d,%d,%d refused: %s", id, x, y, z, tostring(why))
         return m.fails >= cfg().MAX_FAILS and "failed" or "moving"
     end
     -- Regard d'une arrivée précédente oublié : il est refait à la nouvelle arrivée (lk.expedition MP du 2026-11-16 :
@@ -149,7 +147,8 @@ local function sitPlace(ctx)
     local here = cell:getGridSquare(math.floor(ctx.x), math.floor(ctx.y), ctx.z)
     if here ~= nil and buildingId(here) == bid then return nil end
     local Mat = LivingKnox.Materialize
-    local place = Mat ~= nil and Mat.placeFor ~= nil and Mat.placeFor(home, bid, Decisions().CFG.HOME_PLACE_RADIUS) or nil
+    local place = Mat ~= nil and Mat.placeFor ~= nil and Mat.placeFor(home, bid, LivingKnox.Decisions.CFG.HOME_PLACE_RADIUS)
+        or nil
     if place == nil then return home.x, home.y, home.z end
     return place:getX(), place:getY(), place:getZ()
 end
@@ -174,7 +173,7 @@ local function runRound(id, ctx, plan, m, e)
         if res == "moving" then return end
         if res == "failed" then
             Routines.stats.gaveUp = Routines.stats.gaveUp + 1
-            log().debug("npc %s: round point %d,%d skipped", id, p.x, p.y)
+            LivingKnox.Log.debug("npc %s: round point %d,%d skipped", id, p.x, p.y)
         end
         m.k = (m.k % n) + 1
         if m.k == plan.start then Routines.stats.laps = Routines.stats.laps + 1 end
@@ -203,9 +202,9 @@ function Routines.execPlan(id, st, ctx, plan, fresh)
             local by = Routines.state.byChore or {}
             Routines.state.byChore = by
             by[plan.chore] = (by[plan.chore] or 0) + 1
-            log().debug("npc %s: chore %s (%s, %s)", id, plan.key, tostring(ctx.duty), st.why or st.b)
+            LivingKnox.Log.debug("npc %s: chore %s (%s, %s)", id, plan.key, tostring(ctx.duty), st.why or st.b)
         else
-            log().debug("npc %s: routine %s (%s)", id, plan.key, st.b)
+            LivingKnox.Log.debug("npc %s: routine %s (%s)", id, plan.key, st.b)
         end
     end
     local gesture = plan.gesture or (plan.sit and Routines.SIT or nil)
@@ -238,7 +237,7 @@ function Routines.execPlan(id, st, ctx, plan, fresh)
             if not m.gaveUp then
                 m.gaveUp = true
                 Routines.stats.gaveUp = Routines.stats.gaveUp + 1
-                log().info("npc %s: cannot reach %s, staying here", id, plan.key)
+                LivingKnox.Log.info("npc %s: cannot reach %s, staying here", id, plan.key)
             end
             if gesture ~= nil then sitHere(id, m, e, gesture) elseif m.faceV == nil then faceTo(id, m, plan.a) end
             return

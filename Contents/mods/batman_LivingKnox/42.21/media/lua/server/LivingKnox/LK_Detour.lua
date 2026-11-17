@@ -59,11 +59,6 @@ Detour.OUTSIDE = "outside"  -- lieu d'une case hors de tout bâtiment
 Detour.memory = Detour.memory or {}   -- npcId -> { v, keys = { [clé de bord] = vrai }, n } du "move" courant
 Detour.stats = Detour.stats or { detours = 0, lastResorts = 0, none = 0 }
 
-local function O() return LivingKnox.Obstacles end
-local function Dir() return LivingKnox.Directives end
-local function Corridor() return LivingKnox.DetourCorridor end
-local function log() return LivingKnox.Log end
-
 local function count(name)
     local st = Detour.stats
     st[name] = (st[name] or 0) + 1
@@ -71,14 +66,14 @@ end
 
 -- Lieu de la case sq : identifiant de son bâtiment, ou OUTSIDE.
 function Detour.placeOf(sq)
-    return O().buildingOf(sq) or Detour.OUTSIDE
+    return LivingKnox.Obstacles.buildingOf(sq) or Detour.OUTSIDE
 end
 
 -- Raison (anglais) pour laquelle le PNJ npcId ne passera pas la porte d (cases sqA, sqB) abordée depuis la case from,
 -- ou nil s'il la passe : ouverte et non barricadée, portail bas fermé (enjambé), ou décision "open" de
 -- Obstacles.decide (trapped : règles de dernier recours, LK04-T20).
 function Detour.doorRefusal(npcId, d, sqA, sqB, from, trapped)
-    local Ob = O()
+    local Ob = LivingKnox.Obstacles
     if d:isBarricaded() then return "barricaded door" end
     if Ob.isOpen(d) or Ob.isLowGate(d) then return nil end
     local act, why = Ob.decide(npcId, d, sqA, sqB, nil, from, trapped)
@@ -90,7 +85,7 @@ end
 -- recours, ou nil : fenêtre qui n'arrête pas le corps (ouverte, cassée, cadre ; franchie par le moteur), ou décision
 -- "open" de Obstacles.decideWindow avec trapped.
 function Detour.windowRefusal(npcId, w, wk, sqA, sqB, from, far)
-    local Ob = O()
+    local Ob = LivingKnox.Obstacles
     if w:isBarricaded() then return "barricaded window" end
     if not Ob.windowBlocks(w, wk) then return nil end
     local act, why = Ob.decideWindow(npcId, w, wk, sqA, sqB, far, true, from)
@@ -112,7 +107,7 @@ end
 -- basses ; avec windows (dernier recours), fenêtres aussi. Chaque élément : { e (Obstacles.edge), sqA, sqB, kind
 -- ("door", "fence", "window"), obj, wk }.
 local function openingsNear(fx, fy, z, windows)
-    local Ob, cell = O(), getCell()
+    local Ob, cell = LivingKnox.Obstacles, getCell()
     local out = {}
     local R = Detour.RADIUS
     for x = fx - R, fx + R do
@@ -141,7 +136,7 @@ local function openingsNear(fx, fy, z, windows)
 end
 
 local function centerDist(px, py, sq)
-    return O().dist(px, py, sq:getX() + 0.5, sq:getY() + 0.5)
+    return LivingKnox.Obstacles.dist(px, py, sq:getX() + 0.5, sq:getY() + 0.5)
 end
 
 -- Cases avant et après de l'ouverture c pour aller du lieu near vers le lieu far (destination dans le lieu goal),
@@ -172,7 +167,7 @@ local function edgeKeyOf(a, b)
     if b:getX() > x then x = b:getX()
     elseif b:getY() > y then y, side = b:getY(), "N"
     elseif b:getY() < y then side = "N" end
-    return O().edge(x, y, a:getZ(), side).key
+    return LivingKnox.Obstacles.edge(x, y, a:getZ(), side).key
 end
 
 -- Règles d'un tronçon de couloir du PNJ id : lieux permis (places : lieu -> vrai), portes jugées avec trapped (dernier
@@ -207,7 +202,7 @@ end
 -- Coins des deux couloirs de l'ouverture (cases before et after) pour le trajet t (voir pick) : way (corps -> case
 -- avant) et tail (case après -> destination ; vide si la destination est sur un autre niveau), ou nil si l'un manque.
 local function corridorsOf(t, before, after, trapped)
-    local C = Corridor()
+    local C = LivingKnox.DetourCorridor
     local near = corridorGrid(t.z, laneOf(t.id, trapped, t.skip, { [t.near] = true }))
     local way = C.plan(near, t.px, t.py, before:getX(), before:getY(), Detour.RADIUS)
     if way == nil then return nil end
@@ -236,7 +231,7 @@ local function pick(t, trapped)
         if not t.skip[c.e.key] then
             local before, after, rank = sidesOf(c, t.near, t.far, t.goal, t.px, t.py)
             if before ~= nil and before:isFree(false) and after:isFree(false) then
-                local d = O().dist(t.px, t.py, c.e.mx, c.e.my)
+                local d = LivingKnox.Obstacles.dist(t.px, t.py, c.e.mx, c.e.my)
                 local better = best == nil or rank < best.rank or (rank == best.rank and (d < best.d - 1e-9
                     or (math.abs(d - best.d) <= 1e-9 and c.e.key < best.c.e.key)))
                 if better and usable(t.id, c, before, after, trapped) then
@@ -265,7 +260,7 @@ local function pointsOf(e, best, px, py)
         local last = w[#w]
         sx, sy = last.x + 0.5, last.y + 0.5
     end
-    local around = Dir().planDetour(sx, sy, e.x, e.y, e.z)
+    local around = LivingKnox.Directives.planDetour(sx, sy, e.x, e.y, e.z)
     if around ~= nil then
         for _, p in ipairs(around) do w[#w + 1] = { x = p.x, y = p.y } end
     end
@@ -281,7 +276,7 @@ end
 -- Détour du PNJ id (corps z, consigne e) après le refus de l'ouverture c (clés déjà refusées : skip). Rend
 -- { w, dk, lr, via, kind } ou nil et la raison (anglais).
 function Detour.plan(id, e, c, z, skip)
-    local Ob = O()
+    local Ob = LivingKnox.Obstacles
     local px, py, pz = z:getX(), z:getY(), math.floor(z:getZ())
     local nearSq, farSq = c.sqA, c.sqB
     if Ob.sideOf(c.e, px, py) ~= "a" then nearSq, farSq = c.sqB, c.sqA end
@@ -311,25 +306,25 @@ end
 -- PNJ id pendant la consigne e (what "door" ou "window", raison why). Rend vrai si la consigne a reçu un détour
 -- (LK_Obstacles ne la close pas), faux sinon (refus inchangé).
 function Detour.afterRefusal(id, e, c, why, what)
-    if e == nil or e.done or e.op ~= Dir().OP_MOVE then return false end
+    if e == nil or e.done or e.op ~= LivingKnox.Directives.OP_MOVE then return false end
     local z = LivingKnox.Bodies.find(id)
     if z == nil or math.floor(z:getZ()) ~= c.e.z then return false end
     local mem = memoryOf(id, e)
     local key = c.e.key
     if mem.keys[key] then
-        log().info("npc %s: move #%d refused again at the %s %s: no second detour", id, e.v, tostring(what), key)
+        LivingKnox.Log.info("npc %s: move #%d refused again at the %s %s: no second detour", id, e.v, tostring(what), key)
         return false
     end
     mem.keys[key] = true
     if mem.n >= Detour.MAX_PER_MOVE then
-        log().warn("npc %s: move #%d no detour after the refused %s %s: %d detours already", id, e.v, tostring(what),
+        LivingKnox.Log.warn("npc %s: move #%d no detour after the refused %s %s: %d detours already", id, e.v, tostring(what),
             key, mem.n)
         return false
     end
     local p, none = Detour.plan(id, e, c, z, mem.keys)
     if p == nil then
         count("none")
-        log().warn("npc %s: move #%d no detour after the refused %s %s (%s): %s", id, e.v, tostring(what), key,
+        LivingKnox.Log.warn("npc %s: move #%d no detour after the refused %s %s (%s): %s", id, e.v, tostring(what), key,
             tostring(why), tostring(none))
         return false
     end
@@ -342,8 +337,8 @@ function Detour.afterRefusal(id, e, c, why, what)
     else
         text = "detour through the " .. p.kind .. " " .. p.via
     end
-    if not Dir().reroute(id, { w = p.w, dk = p.dk, lr = p.lr }, text .. " after the refused " .. tostring(what) .. " "
-        .. key .. " (" .. tostring(why) .. ")") then
+    if not LivingKnox.Directives.reroute(id, { w = p.w, dk = p.dk, lr = p.lr },
+        text .. " after the refused " .. tostring(what) .. " " .. key .. " (" .. tostring(why) .. ")") then
         return false
     end
     count(p.lr and "lastResorts" or "detours")

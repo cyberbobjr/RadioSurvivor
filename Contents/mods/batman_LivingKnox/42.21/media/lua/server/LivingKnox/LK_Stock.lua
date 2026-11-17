@@ -195,18 +195,11 @@ for _, k in ipairs({ "offMeals", "offEaten", "offShort", "offLoot", "applied", "
     Stock.stats[k] = Stock.stats[k] or 0            -- LK09-T06 : stock hors écran et application des écarts
 end
 
-local function log() return LivingKnox.Log end
-local function Groups() return LivingKnox.Groups end
-local function Homes() return LivingKnox.Homes end
 local function cfg() return Stock.CFG end
 local function now() return getTimestampMs() end
 
 local CATEGORY_SET = {}
 for _, c in ipairs(Stock.CATEGORIES) do CATEGORY_SET[c] = true end
-
-local function isInt(v, lo, hi)
-    return type(v) == "number" and v == v and math.floor(v) == v and v >= lo and v <= hi
-end
 
 local function homeKey(home) return home.x .. "," .. home.y .. "," .. home.z end
 
@@ -230,7 +223,7 @@ end
 -- ================================================================ référence (registre des groupes)
 
 local function validItem(e)
-    return type(e) == "table" and isInt(e.i, -2147483648, 2147483647) and type(e.t) == "string" and #e.t > 0
+    return type(e) == "table" and LivingKnox.Num.isInt(e.i, -2147483648, 2147483647) and type(e.t) == "string" and #e.t > 0
         and #e.t <= Stock.TYPE_MAX and CATEGORY_SET[e.c] == true and type(e.k) == "string" and #e.k > 0
         and #e.k <= Stock.KEY_MAX
 end
@@ -248,7 +241,7 @@ function Stock.validRef(s, home)
 end
 
 local function writeRef(gid, ref)
-    return Groups().update(function(data)
+    return LivingKnox.Groups.update(function(data)
         local live = data.groups[gid]
         if live == nil then return false, false end
         live.stock = ref
@@ -259,7 +252,7 @@ end
 -- LK09-T06 : journal d'écarts en attente (champ facultatif stock.pend). Invalide = ignoré (jamais une raison
 -- d'écarter la référence : le kit serait recréé).
 local function validOp(op, n)
-    if type(op) ~= "table" or not isInt(op.u, 1, n) then return false end
+    if type(op) ~= "table" or not LivingKnox.Num.isInt(op.u, 1, n) then return false end
     if op.o == "take" then return validItem(op) end
     if op.o == "add" then
         return type(op.t) == "string" and #op.t > 0 and #op.t <= Stock.TYPE_MAX and CATEGORY_SET[op.c] == true
@@ -268,7 +261,8 @@ local function validOp(op, n)
 end
 
 function Stock.validPend(p)
-    if type(p) ~= "table" or not isInt(p.n, 0, 2147483647) or type(p.ops) ~= "table" or #p.ops > Stock.PEND_MAX then
+    if type(p) ~= "table" or not LivingKnox.Num.isInt(p.n, 0, 2147483647) or type(p.ops) ~= "table"
+        or #p.ops > Stock.PEND_MAX then
         return false
     end
     local seen = {}
@@ -285,7 +279,7 @@ local function pendOf(s, create, gid)
     local p = type(s) == "table" and s.pend or nil
     if p ~= nil and Stock.validPend(p) then return p end
     if p ~= nil and create then
-        log().warn("stock: group %s pending stock changes malformed, dropped", tostring(gid))
+        LivingKnox.Log.warn("stock: group %s pending stock changes malformed, dropped", tostring(gid))
     end
     if create then return { n = 0, ops = {} } end
     return nil
@@ -317,7 +311,7 @@ end
 -- compte les ajouts en attente, pending = nombre d'écarts en attente, LK09-T06). Serveur seulement (les identifiants
 -- d'objets et la composition du stock ne s'envoient pas à un client).
 function Stock.reference(gid)
-    local g = Groups().get(gid)
+    local g = LivingKnox.Groups.get(gid)
     if g == nil then return nil, "unknown group" end
     if type(g.home) ~= "table" or not Stock.validRef(g.stock, g.home) then return nil, "no stock reference" end
     return { items = g.stock.items, totals = Stock.count(g.stock.items, g.stock.pend), day = g.stock.day,
@@ -334,7 +328,7 @@ end
 -- ================================================================ conteneurs du foyer
 
 local function tagged(o, gid)
-    return o ~= nil and o:hasModData() and o:getModData()[Homes().TAG] == gid
+    return o ~= nil and o:hasModData() and o:getModData()[LivingKnox.Homes.TAG] == gid
 end
 
 -- Conteneurs du foyer : liste triée { { key, container, owned, object, x, y, z } } (owned = objet posé par LK_Homes
@@ -342,29 +336,26 @@ end
 function Stock.containers(gid, home, style, bid)
     local cell = getCell()
     if cell == nil then return nil, "no cell" end
-    local R, z = Homes().CFG.RADIUS, home.z
+    local R, z = LivingKnox.Homes.CFG.RADIUS, home.z
     local out = {}
-    for dy = -R, R do
-        for dx = -R, R do
-            local x, y = home.x + dx, home.y + dy
-            local sq = cell:getGridSquare(x, y, z)
-            if sq == nil then return nil, "home area not loaded" end
-            local inBuilding = style == "building" and Homes().buildingId(sq) == bid
-            local objs = sq:getObjects()
-            local seen = {}
-            for i = 0, objs:size() - 1 do
-                local o = objs:get(i)
-                local owned = tagged(o, gid)
-                if owned or inBuilding then
-                    for ci = 0, o:getContainerCount() - 1 do
-                        local c = o:getContainerByIndex(ci)
-                        if c ~= nil then
-                            local ctype = tostring(c:getType())
-                            local n = (seen[ctype] or 0) + 1
-                            seen[ctype] = n
-                            out[#out + 1] = { key = x .. "," .. y .. "," .. z .. "," .. ctype .. "," .. n,
-                                              container = c, owned = owned, object = o, x = x, y = y, z = z }
-                        end
+    for x, y in LivingKnox.Geo.squaresAround(home.x, home.y, R) do
+        local sq = cell:getGridSquare(x, y, z)
+        if sq == nil then return nil, "home area not loaded" end
+        local inBuilding = style == "building" and LivingKnox.Homes.buildingId(sq) == bid
+        local objs = sq:getObjects()
+        local seen = {}
+        for i = 0, objs:size() - 1 do
+            local o = objs:get(i)
+            local owned = tagged(o, gid)
+            if owned or inBuilding then
+                for ci = 0, o:getContainerCount() - 1 do
+                    local c = o:getContainerByIndex(ci)
+                    if c ~= nil then
+                        local ctype = tostring(c:getType())
+                        local n = (seen[ctype] or 0) + 1
+                        seen[ctype] = n
+                        out[#out + 1] = { key = x .. "," .. y .. "," .. z .. "," .. ctype .. "," .. n,
+                                          container = c, owned = owned, object = o, x = x, y = y, z = z }
                     end
                 end
             end
@@ -435,7 +426,7 @@ function Stock.fill(gid, gtype, containers)
                 made = made + 1
             else
                 failed = failed + 1
-                log().warn("stock: group %s: %s not created: %s", gid, tostring(entry[1]), tostring(ok and why or item))
+                LivingKnox.Log.warn("stock: group %s: %s not created: %s", gid, tostring(entry[1]), tostring(ok and why or item))
             end
         end
     end
@@ -480,24 +471,24 @@ local function reportTheft(gid, player, n)
     local key, why = H.keyOf(player)
     local name = tostring(player:getUsername())
     if key == nil then
-        log().warn("stock: group %s: %d item(s) taken by %s, not reported: %s", gid, n, name, tostring(why))
+        LivingKnox.Log.warn("stock: group %s: %d item(s) taken by %s, not reported: %s", gid, n, name, tostring(why))
         return "no key"
     end
     local slot = gid .. "|" .. key
     local h = hourNow()
     local last = Stock.state.lastTheft[slot]
     if last ~= nil and h - last < cfg().THEFT_COOLDOWN_HOURS and h >= last then
-        log().info("stock: group %s: %d more item(s) taken by %s (theft already reported this hour)", gid, n, name)
+        LivingKnox.Log.info("stock: group %s: %d more item(s) taken by %s (theft already reported this hour)", gid, n, name)
         return "cooldown"
     end
-    local res, err = H.record(gid, key, "theft", { attributable = true, day = Groups().today() })
+    local res, err = H.record(gid, key, "theft", { attributable = true, day = LivingKnox.Groups.today() })
     if res == nil then
-        log().warn("stock: group %s: theft by %s not recorded: %s", gid, name, tostring(err))
+        LivingKnox.Log.warn("stock: group %s: theft by %s not recorded: %s", gid, name, tostring(err))
         return "no key"
     end
     Stock.state.lastTheft[slot] = h
     Stock.stats.thefts = Stock.stats.thefts + 1
-    log().info("stock: group %s: %d item(s) taken by %s, theft reported (attitude %s)", gid, n, name,
+    LivingKnox.Log.info("stock: group %s: %d item(s) taken by %s, theft reported (attitude %s)", gid, n, name,
         tostring(res.level))
     return "reported"
 end
@@ -570,21 +561,21 @@ function Stock.check(gid, opts)
     opts = opts or {}
     -- LK13-T08 : contrôles d'entrée sur la lecture en place (seule, sans copie : appelé à chaque minute de jeu) ;
     -- copie du groupe seulement pour une relecture effective (zone chargée, conteneurs trouvés).
-    local view = Groups().peek(gid)
+    local view = LivingKnox.Groups.peek(gid)
     if view == nil or type(view.home) ~= "table" then return nil, "no group or no home" end
-    if not Homes().validMark(view.furnish, view.home) then return nil, "home not furnished yet" end
+    if not LivingKnox.Homes.validMark(view.furnish, view.home) then return nil, "home not furnished yet" end
     local t = now()
     local st = Stock.state
     if not opts.force and st.checked[gid] ~= nil and t - st.checked[gid] < cfg().CHECK_MS then
         return nil, "checked recently"
     end
     st.checked[gid] = t
-    local style, def = Homes().ready(view.home)
+    local style, def = LivingKnox.Homes.ready(view.home)
     if style == nil then return nil, def end
     local bid = def ~= nil and def:getIDString() or nil
     local containers, why = Stock.containers(gid, view.home, style, bid)
     if containers == nil then return nil, why end
-    local g = Groups().get(gid)
+    local g = LivingKnox.Groups.get(gid)
     if g == nil or type(g.home) ~= "table" then return nil, "no group or no home" end
     local home = g.home
     Stock.stats.checks = Stock.stats.checks + 1
@@ -594,17 +585,17 @@ function Stock.check(gid, opts)
     local report = { missing = 0, added = 0, moved = 0, thefts = {}, lost = 0 }
 
     if not Stock.validRef(ref, home) then
-        if ref ~= nil then log().warn("stock: group %s stock reference replaced (home moved or bad reference)", gid) end
+        if ref ~= nil then LivingKnox.Log.warn("stock: group %s stock reference replaced (home moved or bad reference)", gid) end
         local mark = { v = Stock.FORMAT, hx = home.x, hy = home.y, hz = home.z, fill = "filling",
-                       day = Groups().today(), items = {} }
+                       day = LivingKnox.Groups.today(), items = {} }
         if anyTagged(real, gid) then
             mark.fill = "done"
             report.action = "restored"
-            log().warn("stock: group %s home %s already holds the group's stock but no reference: reference restored,"
+            LivingKnox.Log.warn("stock: group %s home %s already holds the group's stock but no reference: reference restored,"
                 .. " nothing created", gid, hk)
         else
-            if not writeRef(gid, mark) or not Groups().flush() then   -- LK13-T06 : marque écrite avant le monde
-                log().warn("stock: group %s home %s: stock mark not written, nothing created", gid, hk)
+            if not writeRef(gid, mark) or not LivingKnox.Groups.flush() then   -- LK13-T06 : marque écrite avant le monde
+                LivingKnox.Log.warn("stock: group %s home %s: stock mark not written, nothing created", gid, hk)
                 return nil, "mark not written"
             end
             local made, failed = Stock.fill(gid, g.type, containers)
@@ -613,12 +604,12 @@ function Stock.check(gid, opts)
             Stock.stats.filled = Stock.stats.filled + 1
             Stock.stats.created = Stock.stats.created + made
             real = Stock.read(containers)
-            log().info("stock: group %s home %s: %d item(s) stored (%s kit)%s", gid, hk, made,
+            LivingKnox.Log.info("stock: group %s home %s: %d item(s) stored (%s kit)%s", gid, hk, made,
                 Stock.KITS[g.type] and g.type or Stock.DEFAULT_KIT, failed > 0 and (", " .. failed .. " failed") or "")
         end
         local items, over = bounded(real, {})
         mark.items = items
-        if over > 0 then log().info("stock: group %s: %d item(s) beyond the tracked limit", gid, over) end
+        if over > 0 then LivingKnox.Log.info("stock: group %s: %d item(s) beyond the tracked limit", gid, over) end
         writeRef(gid, mark)
         report.items, report.totals = items, Stock.count(items)
         report.ration = Stock.updateRation(gid)
@@ -626,12 +617,12 @@ function Stock.check(gid, opts)
     end
 
     if ref.fill == "filling" then
-        log().warn("stock: group %s home %s was left half filled (interrupted); not filled again", gid, hk)
+        LivingKnox.Log.warn("stock: group %s home %s was left half filled (interrupted); not filled again", gid, hk)
     end
     -- LK09-T06 : écarts de la vie hors écran appliqués aux conteneurs réels avant la différence.
     if Stock.pendingCount(ref) > 0 then
         report.applied = Stock.applyPending(gid, containers, g)
-        g = Groups().get(gid)
+        g = LivingKnox.Groups.get(gid)
         ref = g ~= nil and g.stock or nil
         if g == nil or not Stock.validRef(ref, home) then return nil, "reference lost while applying" end
         real = Stock.read(containers)
@@ -659,7 +650,7 @@ function Stock.check(gid, opts)
         end
         if report.lost > 0 then
             Stock.stats.lost = Stock.stats.lost + report.lost
-            log().info("stock: group %s: %d item(s) gone without a known taker", gid, report.lost)
+            LivingKnox.Log.info("stock: group %s: %d item(s) gone without a known taker", gid, report.lost)
         end
     end
     local oldIds = {}
@@ -668,10 +659,10 @@ function Stock.check(gid, opts)
     report.action = "checked"
     report.items, report.totals = items, Stock.count(items, ref.pend)
     if not sameItems(items, ref.items) or ref.fill ~= "done" then
-        writeRef(gid, { v = Stock.FORMAT, hx = home.x, hy = home.y, hz = home.z, fill = "done", day = Groups().today(),
+        writeRef(gid, { v = Stock.FORMAT, hx = home.x, hy = home.y, hz = home.z, fill = "done", day = LivingKnox.Groups.today(),
                         items = items, ration = ref.ration, pend = ref.pend })
         if d.added > 0 or d.moved > 0 then
-            log().debug("stock: group %s: %d item(s) added, %d moved", gid, d.added, d.moved)
+            LivingKnox.Log.debug("stock: group %s: %d item(s) added, %d moved", gid, d.added, d.moved)
         end
     end
     report.ration = Stock.updateRation(gid)   -- LK08-T07 : membres ou stock changés
@@ -684,7 +675,7 @@ local function tenths(v) return math.floor(v * 10 + 1e-9) / 10 end
 
 local function rationOf(s)
     local r = type(s) == "table" and s.ration or nil
-    if isInt(r, 0, #Stock.RATIONS - 1) then return r end
+    if LivingKnox.Num.isInt(r, 0, #Stock.RATIONS - 1) then return r end
     return 0
 end
 
@@ -701,7 +692,7 @@ end
 -- { members, have, want, levels (0..100), days = { food, water }, autonomy, needs = { { c, have, want, missing,
 -- level, status }, ... } } (besoins dans l'ordre de STATUS_ORDER, niveau, CATEGORIES), ou nil.
 function Stock.assess(totals, members)
-    if type(totals) ~= "table" or not isInt(members, 1, 100000) then return nil end
+    if type(totals) ~= "table" or not LivingKnox.Num.isInt(members, 1, 100000) then return nil end
     local S = Stock.SUPPLY
     local out = { members = members, have = {}, want = {}, levels = {}, days = {}, needs = {} }
     local rank = {}
@@ -709,7 +700,7 @@ function Stock.assess(totals, members)
     for i, c in ipairs(Stock.CATEGORIES) do
         rank[c] = i
         local have = totals[c]
-        if not isInt(have, 0, 1000000) then have = 0 end
+        if not LivingKnox.Num.isInt(have, 0, 1000000) then have = 0 end
         local daily = S.DAILY[c]
         local per = daily ~= nil and daily * S.TARGET_DAYS or (S.PER_MEMBER[c] or 0)
         local want = math.ceil(per * members - 1e-9)
@@ -752,7 +743,7 @@ end
 function Stock.rationLevel(a, current)
     local out = (a.have.food or 0) == 0 or (a.have.water or 0) == 0
     local level = band(a.autonomy, out)
-    if not isInt(current, 0, #Stock.RATIONS - 1) then current = 0 end
+    if not LivingKnox.Num.isInt(current, 0, #Stock.RATIONS - 1) then current = 0 end
     if level >= current then return level end
     local eased = math.min(2, band(a.autonomy - Stock.SUPPLY.RATION_MARGIN, false))
     return math.max(level, math.min(current, eased))
@@ -773,7 +764,7 @@ end
 
 -- Besoins du groupe gid (copie de Stock.assessGroup), ou nil et une raison. Serveur seulement.
 function Stock.needs(gid)
-    local g = Groups().get(gid)
+    local g = LivingKnox.Groups.get(gid)
     if g == nil then return nil, "unknown group" end
     local a = Stock.assessGroup(g)
     if a == nil then return nil, "no stock reference or no living member" end
@@ -790,9 +781,9 @@ end
 -- entrée « ration » au journal du groupe, ligne au journal du moteur. Rend le niveau en vigueur, ou nil.
 function Stock.updateRation(gid)
     local level
-    Groups().update(function(data)
+    LivingKnox.Groups.update(function(data)
         local changed
-        level, changed = Stock.applyRation(data.groups[gid], gid, Groups().today())
+        level, changed = Stock.applyRation(data.groups[gid], gid, LivingKnox.Groups.today())
         return changed, true
     end)
     return level
@@ -804,12 +795,12 @@ function Stock.applyRation(g, gid, day)
     local a = Stock.assessGroup(g)
     if a == nil then return nil, false end
     if a.next == a.ration then return a.next, false end
-    local G = Groups()
+    local G = LivingKnox.Groups
     local text = string.format("ration %s (was %s): %.1f day(s) of food and water for %d (food %d, water %d)",
         Stock.RATIONS[a.next + 1], Stock.RATIONS[a.ration + 1], a.autonomy, a.members, a.have.food, a.have.water)
     g.stock.ration = a.next
     G.appendLog(g, "ration", string.sub(text, 1, G.TEXT_MAX), day or G.today())
-    log().info("stock: group %s %s", gid, text)
+    LivingKnox.Log.info("stock: group %s %s", gid, text)
     return a.next, true
 end
 
@@ -834,10 +825,10 @@ end
 
 -- Conteneurs lisibles du foyer du groupe gid : liste de Stock.containers, ou nil et une raison.
 local function homeContainers(gid)
-    local g = Groups().get(gid)
+    local g = LivingKnox.Groups.get(gid)
     if g == nil or type(g.home) ~= "table" then return nil, "no group or no home" end
     if not Stock.validRef(g.stock, g.home) then return nil, "no stock reference" end
-    local style, def = Homes().ready(g.home)
+    local style, def = LivingKnox.Homes.ready(g.home)
     if style == nil then return nil, def end
     local list, why = Stock.containers(gid, g.home, style, def ~= nil and def:getIDString() or nil)
     -- LK09-T06 : écarts hors écran appliqués avant toute prise du groupe dans les conteneurs.
@@ -889,7 +880,7 @@ function Stock.takeMeal(gid, cat, key, apply, who)
     local id, t = item:getID(), item:getFullType()
     ct.container:DoRemoveItem(item)
     if isServer() then sendRemoveItemFromContainer(ct.container, item) end
-    local written = Groups().update(function(data)
+    local written = LivingKnox.Groups.update(function(data)
         local live = data.groups[gid]
         if live == nil then return false, false end
         if type(live.home) == "table" and Stock.validRef(live.stock, live.home) then
@@ -903,10 +894,10 @@ function Stock.takeMeal(gid, cat, key, apply, who)
         return true, true
     end)
     if not written then
-        log().warn("stock: group %s: %s taken from %s but the registry was not written (counted as lost)", gid, t, key)
+        LivingKnox.Log.warn("stock: group %s: %s taken from %s but the registry was not written (counted as lost)", gid, t, key)
     end
     Stock.stats.meals = Stock.stats.meals + 1
-    log().info("stock: group %s: %s %s %s (%s) from %s", gid, tostring(who or "member"),
+    LivingKnox.Log.info("stock: group %s: %s %s %s (%s) from %s", gid, tostring(who or "member"),
         cat == "water" and "drank" or "ate", t, tostring(id), key)
     local Ac = LivingKnox.Activity   -- LK13-T14 : journal d'activité (mémoire seulement)
     if Ac ~= nil then Ac.note(gid, who, "meal", (cat == "water" and "drank " or "ate ") .. t .. " from " .. key) end
@@ -931,7 +922,7 @@ function Stock.reportShortage(gid, cat, who)
         or "food to eat"
     local text = string.format("no %s left for %s (ration %s)", what,
         tostring(who or "a member"), a ~= nil and a.rationName or "unknown")
-    local G = Groups()
+    local G = LivingKnox.Groups
     G.update(function(data)
         local g = data.groups[gid]
         if g == nil then return false, false end
@@ -939,7 +930,7 @@ function Stock.reportShortage(gid, cat, who)
         return true, true
     end)
     Stock.stats.shortages = Stock.stats.shortages + 1
-    log().info("stock: group %s %s", gid, text)
+    LivingKnox.Log.info("stock: group %s %s", gid, text)
     return true
 end
 
@@ -1009,7 +1000,7 @@ function Stock.drawFluid(gid, fluids, want, least, who, use)
     fc:adjustAmount(amount - q)
     if isServer() then sendItemStats(item) end
     Stock.stats.fluids = (Stock.stats.fluids or 0) + 1
-    log().info("stock: group %s: %s used %.3f l of %s from %s (%s) in %s for %s", gid, tostring(who or "member"), q,
+    LivingKnox.Log.info("stock: group %s: %s used %.3f l of %s from %s (%s) in %s for %s", gid, tostring(who or "member"), q,
         name, found.t, tostring(found.i), found.key, tostring(use or "upkeep"))
     return { i = found.i, t = found.t, k = found.key, fluid = name, amount = q, left = fc:getAmount() }
 end
@@ -1025,7 +1016,7 @@ function Stock.takeItem(gid, pred, who, use, apply)
     container:DoRemoveItem(item)
     if isServer() then sendRemoveItemFromContainer(container, item) end
     local id = found.i
-    local written = Groups().update(function(data)
+    local written = LivingKnox.Groups.update(function(data)
         local live = data.groups[gid]
         if live == nil or type(live.home) ~= "table" or not Stock.validRef(live.stock, live.home) then
             return false, live ~= nil
@@ -1040,11 +1031,11 @@ function Stock.takeItem(gid, pred, who, use, apply)
         return true, true
     end)
     if not written then
-        log().warn("stock: group %s: %s taken from %s but the registry was not read (reference unchanged)", gid,
+        LivingKnox.Log.warn("stock: group %s: %s taken from %s but the registry was not read (reference unchanged)", gid,
             found.t, found.key)
     end
     Stock.stats.parts = (Stock.stats.parts or 0) + 1
-    log().info("stock: group %s: %s used %s (%s) from %s for %s", gid, tostring(who or "member"), found.t,
+    LivingKnox.Log.info("stock: group %s: %s used %s (%s) from %s for %s", gid, tostring(who or "member"), found.t,
         tostring(id), found.key, tostring(use or "upkeep"))
     return { i = id, t = found.t, k = found.key }, item
 end
@@ -1053,7 +1044,7 @@ end
 -- ôté de la référence, pour que la relecture suivante ne le compte pas perdu. Rend vrai s'il y était.
 function Stock.untrack(gid, id)
     local gone = false
-    Groups().update(function(data)
+    LivingKnox.Groups.update(function(data)
         local live = data.groups[gid]
         if live == nil or type(live.home) ~= "table" or not Stock.validRef(live.stock, live.home) then
             return false, false
@@ -1148,7 +1139,7 @@ function Stock.offscreenHour(g, gid, hour, day)
     if out.food + out.water > 0 or s.pend ~= nil then s.pend = p end
     Stock.stats.offMeals = Stock.stats.offMeals + 1
     if short then Stock.stats.offShort = Stock.stats.offShort + 1 end
-    log().debug("stock: group %s offscreen meal (hour %s, %d eater(s), ration %s): food %d/%d, water %d/%d", gid,
+    LivingKnox.Log.debug("stock: group %s offscreen meal (hour %s, %d eater(s), ration %s): food %d/%d, water %d/%d", gid,
         tostring(hour), eaters, tostring(a.rationName), out.food, out.wantFood, out.water, out.wantWater)
     Stock.applyRation(g, gid, day)
     return out
@@ -1187,7 +1178,7 @@ function Stock.offscreenLoot(g, gid, gains, day)
     if added == 0 then return 0 end
     s.pend = p
     Stock.stats.offLoot = Stock.stats.offLoot + added
-    log().debug("stock: group %s offscreen expedition loot pending: %s", gid, table.concat(parts, " "))
+    LivingKnox.Log.debug("stock: group %s offscreen expedition loot pending: %s", gid, table.concat(parts, " "))
     Stock.applyRation(g, gid, day)
     return added
 end
@@ -1217,7 +1208,7 @@ end
 -- joueur comme ceux du repas abstrait). Rend n, ou 0 si la référence n'en a pas assez (rien de pris).
 function Stock.offscreenTake(g, gid, types, n)
     if type(g) ~= "table" or type(g.home) ~= "table" or not Stock.validRef(g.stock, g.home) then return 0 end
-    if not isInt(n, 1, Stock.MAX_ITEMS) or Stock.offscreenCount(g.stock, types) < n then return 0 end
+    if not LivingKnox.Num.isInt(n, 1, Stock.MAX_ITEMS) or Stock.offscreenCount(g.stock, types) < n then return 0 end
     local s = g.stock
     local p = pendOf(s, true, gid)
     if #p.ops + n > Stock.PEND_MAX then return 0 end
@@ -1275,7 +1266,7 @@ end
 -- traités ôtés du journal (par numéro : un écart ajouté entre-temps reste) et objets créés ajoutés à la référence ;
 -- marques effacées après l'écriture. Rend { removed, gone, made, adopted, dropped, kept }, ou nil et une raison.
 function Stock.applyPending(gid, containers, g)
-    g = g or Groups().get(gid)
+    g = g or LivingKnox.Groups.get(gid)
     if g == nil or type(g.home) ~= "table" or not Stock.validRef(g.stock, g.home) then
         return nil, "no stock reference"
     end
@@ -1326,10 +1317,10 @@ function Stock.applyPending(gid, containers, g)
                 elseif ok then
                     done[op.u] = true
                     rep.dropped = rep.dropped + 1
-                    log().warn("stock: group %s pending %s not created: %s (dropped)", gid, op.t, tostring(why))
+                    LivingKnox.Log.warn("stock: group %s pending %s not created: %s (dropped)", gid, op.t, tostring(why))
                 else
                     rep.kept = rep.kept + 1
-                    log().error("stock: group %s pending %s not created: %s (kept)", gid, op.t, tostring(made))
+                    LivingKnox.Log.error("stock: group %s pending %s not created: %s (kept)", gid, op.t, tostring(made))
                 end
             else
                 rep.kept = rep.kept + 1
@@ -1342,7 +1333,7 @@ function Stock.applyPending(gid, containers, g)
             end
         end
     end
-    local written = Groups().update(function(data)
+    local written = LivingKnox.Groups.update(function(data)
         local live = data.groups[gid]
         if live == nil or type(live.home) ~= "table" or not Stock.validRef(live.stock, live.home) then
             return false, false
@@ -1367,18 +1358,18 @@ function Stock.applyPending(gid, containers, g)
     end)
     -- LK13-T06 : registre écrit dans son fichier avant d'effacer les marques (sinon une sauvegarde du monde sans marque
     -- suivie d'un arrêt avant l'écriture différée ferait recréer les objets).
-    if written then written = Groups().flush() end
+    if written then written = LivingKnox.Groups.flush() end
     if written then
         for _, item in ipairs(marked) do item:getModData()[Stock.OP_TAG] = nil end
     else
-        log().warn("stock: group %s pending stock changes applied but the registry was not written (marks kept)", gid)
+        LivingKnox.Log.warn("stock: group %s pending stock changes applied but the registry was not written (marks kept)", gid)
     end
     Stock.stats.applied = Stock.stats.applied + 1
     Stock.stats.removed = Stock.stats.removed + rep.removed
     Stock.stats.gone = Stock.stats.gone + rep.gone
     Stock.stats.made = Stock.stats.made + rep.made
     Stock.stats.adopted = Stock.stats.adopted + rep.adopted
-    log().info("stock: group %s offscreen changes applied into %s: %d removed, %d already gone, %d created, "
+    LivingKnox.Log.info("stock: group %s offscreen changes applied into %s: %d removed, %d already gone, %d created, "
         .. "%d resumed, %d dropped, %d kept", gid, depot ~= nil and depot.key or "no container", rep.removed, rep.gone,
         rep.made, rep.adopted, rep.dropped, rep.kept)
     Stock.updateRation(gid)
@@ -1387,11 +1378,11 @@ end
 
 -- Groupes à relire : foyer aménagé dont la case est chargée, triés par identifiant.
 local function candidates(cell)
-    local out = Groups().update(function(data)
+    local out = LivingKnox.Groups.update(function(data)
         local list = {}
         for gid, g in pairs(data.groups) do
             local home = g.home
-            if type(home) == "table" and Homes().validMark(g.furnish, home)
+            if type(home) == "table" and LivingKnox.Homes.validMark(g.furnish, home)
                 and cell:getGridSquare(home.x, home.y, home.z) ~= nil then
                 list[#list + 1] = gid
             end
@@ -1425,11 +1416,11 @@ end
 function Stock.checkOne(gid)
     local ok, res, why = pcall(Stock.check, gid)
     if not ok then
-        log().error("stock: group %s check failed: %s", gid, tostring(res))
+        LivingKnox.Log.error("stock: group %s check failed: %s", gid, tostring(res))
     elseif type(res) == "table" then
         return true
     elseif why ~= "checked recently" then
-        log().debug("stock: group %s not checked: %s", gid, tostring(why))
+        LivingKnox.Log.debug("stock: group %s not checked: %s", gid, tostring(why))
     end
     return false
 end
@@ -1460,7 +1451,7 @@ function Stock.queueScan()
     end
     if q.head <= #q.list then
         q.fresh, q.write = true, true
-        Groups().hold("stock", #q.list - q.head + 1 + Stock.QUEUE_HOLD_MARGIN)
+        LivingKnox.Groups.hold("stock", #q.list - q.head + 1 + Stock.QUEUE_HOLD_MARGIN)
     end
     return n
 end
@@ -1481,7 +1472,7 @@ function Stock.onFrame(finish)
         if q.write then
             q.write = false
             q.list, q.head, q.queued = {}, 1, {}
-            local G = Groups()
+            local G = LivingKnox.Groups
             G.release("stock")
             if G.isDirty() and not G.isHeld() then G.flush() end   -- une autre retenue (pas horaire) écrira à sa fin
         end
@@ -1491,7 +1482,7 @@ function Stock.onFrame(finish)
     local F = LivingKnox.Fortify
     if F ~= nil and F.isQueued ~= nil and F.isQueued(gid) then
         if finish ~= true then
-            Groups().hold("stock", #q.list - q.head + 1 + Stock.QUEUE_HOLD_MARGIN)
+            LivingKnox.Groups.hold("stock", #q.list - q.head + 1 + Stock.QUEUE_HOLD_MARGIN)
             return false
         end
         F.settleQueued(gid)
@@ -1509,13 +1500,13 @@ function Stock.finishQueue()
         if Stock.onFrame(true) then n = n + 1 end
     end
     q.write = false
-    Groups().release("stock")
+    LivingKnox.Groups.release("stock")
     return n
 end
 
 -- Efface la référence d'un groupe (suites en jeu, administration). Les objets restent où ils sont.
 function Stock.clear(gid)
-    local g = Groups().get(gid)
+    local g = LivingKnox.Groups.get(gid)
     if g ~= nil and g.stock ~= nil then writeRef(gid, nil) end
     Stock.state.checked[gid] = nil
 end
@@ -1523,7 +1514,7 @@ end
 function Stock.reset()
     Stock.state = { checked = {}, lastScan = nil, lastTheft = {}, shortage = {} }
     Stock.queue = { list = {}, head = 1, queued = {}, fresh = false, write = false }
-    if Groups() ~= nil and Groups().release ~= nil then Groups().release("stock") end
+    if LivingKnox.Groups ~= nil and LivingKnox.Groups.release ~= nil then LivingKnox.Groups.release("stock") end
 end
 
 -- Événements : LoadChunk et EveryOneMinute, inscrits après ceux de LK_Homes (ordre des fichiers) : le stock d'un

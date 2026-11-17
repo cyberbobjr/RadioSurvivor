@@ -52,8 +52,6 @@ Speech.recent = Speech.recent or {}   -- "npc|situation|compte" -> ms
 Speech.recentCount = Speech.recentCount or 0
 Speech.stats = Speech.stats or { said = 0, barks = 0, sent = 0, refused = 0, silent = 0 }
 
-local function Data() return LivingKnox.SpeechData end
-local function log() return LivingKnox.Log end
 local function now() return getTimestampMs() end
 
 local function count(name)
@@ -79,17 +77,17 @@ end
 -- ---------------------------------------------------------------- catalogue
 
 function Speech.isSituation(s)
-    return type(s) == "string" and contains(Data().SITUATIONS, s)
+    return type(s) == "string" and contains(LivingKnox.SpeechData.SITUATIONS, s)
 end
 
 -- Attitude (bande) d'un niveau de LK_Hostility ; "neutral" pour un niveau inconnu.
 function Speech.bandOf(level)
-    return Data().BAND_OF_LEVEL[level] or "neutral"
+    return LivingKnox.SpeechData.BAND_OF_LEVEL[level] or "neutral"
 end
 
 -- Répliques d'une situation admises par le contexte { type, role, band }, avec leur poids : { { line, w }, ... }.
 function Speech.candidates(situation, ctx)
-    local D = Data()
+    local D = LivingKnox.SpeechData
     local out = {}
     ctx = ctx or {}
     for _, line in ipairs(D.lines) do
@@ -135,7 +133,7 @@ end
 -- Contrôle du catalogue : identifiants uniques et propres, situations et bandes connues, au moins une réplique sans
 -- type ni rôle par situation et par bande. Rend la liste des problèmes (vide = bon).
 function Speech.checkData()
-    local D = Data()
+    local D = LivingKnox.SpeechData
     local problems, seen = {}, {}
     for i, line in ipairs(D.lines) do
         local where = "line " .. i
@@ -345,7 +343,7 @@ function Speech.say(npcId, what, opts)
         return nil, "nobody hears"
     end
     local band = opts.band
-    if not contains(Data().BANDS, band) then band = "neutral" end
+    if not contains(LivingKnox.SpeechData.BANDS, band) then band = "neutral" end
     local entry = { id = id or nextId(), npc = npcId, o = z:getOnlineID(), r = range, b = band, k = c.k, p = c.p,
         t = c.t, chat = opts.chat ~= false }
     local name = clean(opts.name, Speech.MAX_NAME)
@@ -356,7 +354,7 @@ function Speech.say(npcId, what, opts)
     for i, h in ipairs(heard) do
         out.heard[i], out.names[i] = h.player, h.name
     end
-    log().debug("speech %s by %s heard by %d player(s): %s", entry.id, npcId, #heard, table.concat(out.names, ", "))
+    LivingKnox.Log.debug("speech %s by %s heard by %d player(s): %s", entry.id, npcId, #heard, table.concat(out.names, ", "))
     return out
 end
 
@@ -387,12 +385,12 @@ function Speech.bark(npcId, situation, opts)
     if said ~= nil and t - said < Speech.SAME_MS then return nil, "said recently" end
     local ctx = Speech.context(npcId, opts.player)
     if opts.band ~= nil then
-        if not contains(Data().BANDS, opts.band) then return nil, "unknown band " .. tostring(opts.band) end
+        if not contains(LivingKnox.SpeechData.BANDS, opts.band) then return nil, "unknown band " .. tostring(opts.band) end
         ctx.band = opts.band
     end
     local line = Speech.pick(situation, ctx, opts.roll, last and last.line or nil)
     if line == nil then return nil, "no line for " .. situation .. "/" .. tostring(ctx.band) end
-    local out, why = Speech.say(npcId, { key = Data().KEY_PREFIX .. line.id },
+    local out, why = Speech.say(npcId, { key = LivingKnox.SpeechData.KEY_PREFIX .. line.id },
         { range = opts.range, chat = opts.chat == true, band = ctx.band, name = opts.name })
     if out == nil then return nil, why end
     Speech.last[npcId] = { ms = t, line = line.id }

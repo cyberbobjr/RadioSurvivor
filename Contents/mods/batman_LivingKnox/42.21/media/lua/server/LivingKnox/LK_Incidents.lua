@@ -19,7 +19,6 @@ local C = require 'CoreAI/CA_SpeechConfig'
 local P = Talk.provider
 -- E18-T20: the agreements and their incidents; read when used, LK_Agreements may load after this file.
 local F = {}
-local function agreements() return LivingKnox.Agreements end
 
 local I = {KIND = 'npc_incident', CHARACTER = 'group', MAX_REPLY = 400, bindings = {}}
 I.DECISIONS = {maintain = true, repair = true, ['break'] = true}
@@ -91,7 +90,7 @@ end
 
 -- One pass of the notebook tick (once a second). Returns the number of requests sent (0 or 1).
 function I.tick(server, now)
-    F = agreements()
+    F = LivingKnox.Agreements
     if not F then return end
     F.installHook()
     -- Requests no longer pending (answered, refused or timed out): the incident, if still open, is asked again later.
@@ -139,7 +138,7 @@ end
 -- Reply of the model (common checks already made by the notebook). Returns true, the agreement and the incident
 -- (copies), or false and the reason.
 function I.reply(_, req, result, npc)
-    F = agreements() or F
+    F = LivingKnox.Agreements or F
     local b = I.bindings[req.id]
     if type(b) ~= 'table' then return false, 'incident request without binding' end
     if not F.decideIncident then return false, 'no Living Knox agreements' end

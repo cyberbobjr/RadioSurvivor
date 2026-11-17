@@ -78,20 +78,11 @@ Encounters.state = Encounters.state or { list = {}, n = 0 }
 Encounters.stats = Encounters.stats or { started = 0, resumed = 0, advanced = 0, eased = 0, stoodDown = 0,
     escalated = 0, forgotten = 0, said = 0, unheard = 0, shots = 0, noShot = 0 }
 
-local function log() return LivingKnox.Log end
 local function cfg() return Encounters.CFG end
 local function now() return getTimestampMs() end
 
 local function count(name)
     Encounters.stats[name] = (Encounters.stats[name] or 0) + 1
-end
-
-local function cheb(ax, ay, bx, by) return math.max(math.abs(ax - bx), math.abs(ay - by)) end
-
-local function angleGap(a, b)
-    local d = math.abs(a - b) % 360
-    if d > 180 then d = 360 - d end
-    return d
 end
 
 local function hashText(s)
@@ -176,7 +167,7 @@ function Encounters.zones(px, py, pz, d, home)
     local homeZone, homeSafe, memberZone, memberSafe = Encounters.radii()
     local inZone, inSafe = d <= memberZone, d <= memberSafe
     if home ~= nil and math.abs(math.floor(pz) - home.z) <= 1 then
-        local hd = cheb(math.floor(px), math.floor(py), home.x, home.y)
+        local hd = LivingKnox.Geo.cheb(math.floor(px), math.floor(py), home.x, home.y)
         if hd <= homeZone then inZone = true end
         if hd <= homeSafe then inSafe = true end
     end
@@ -224,7 +215,7 @@ function Encounters.say(enc, npc, kind, band)
     local out, why = S.say(npc, { key = key }, { range = cfg().RANGE, band = band or "hostile", chat = true })
     count("said")
     if out == nil then
-        log().debug("npc %s: warning %s to %s not said: %s", npc, key, enc.u, tostring(why))
+        LivingKnox.Log.debug("npc %s: warning %s to %s not said: %s", npc, key, enc.u, tostring(why))
         return false
     end
     for _, p in ipairs(out.heard or {}) do
@@ -243,7 +234,7 @@ end
 local function close(key, enc, why, stat)
     Encounters.state.list[key] = nil
     count(stat)
-    log().info("group %s: warning of %s over at stage %d: %s", enc.gid, enc.u, enc.stage, why)
+    LivingKnox.Log.info("group %s: warning of %s over at stage %d: %s", enc.gid, enc.u, enc.stage, why)
 end
 
 -- Rencontres d'un groupe gid fermées par un engagement : la cascade prend « fight » (targetRule rend "attack").
@@ -271,7 +262,7 @@ local function stepEncounter(key, enc, npc, obs, t)
     end
     local stat = { start = "started", resume = "resumed", advance = "advanced", ease = "eased", standdown = "stoodDown" }
     count(stat[ev])
-    log().info("npc %s: warning of %s (%s): %s, stage %d %s (%.1f squares%s)", npc, enc.u, tostring(enc.gid), ev,
+    LivingKnox.Log.info("npc %s: warning of %s (%s): %s, stage %d %s (%.1f squares%s)", npc, enc.u, tostring(enc.gid), ev,
         enc.stage, enc.stage > 0 and Encounters.STAGES[enc.stage] or "none", obs.d < 1e9 and obs.d or -1,
         obs.inSafe and ", inside the safety distance" or "")
     if ev == "standdown" then Encounters.say(enc, npc, "back", bandOf(enc.level)) end
@@ -324,7 +315,7 @@ function Encounters.contextFor(gid, g, mid, m, body, ctx, per, players, minute)
             count("forgotten")
         else
             if enc.npc ~= npc and warned[enc.u] ~= nil and (enc.npcMs == nil or t - enc.npcMs > lead) then
-                log().info("npc %s takes over the warning of %s from npc %s", npc, enc.u, tostring(enc.npc))
+                LivingKnox.Log.info("npc %s takes over the warning of %s from npc %s", npc, enc.u, tostring(enc.npc))
                 enc.npc = npc
             end
             if enc.npc == npc then
@@ -393,7 +384,7 @@ local function warningShot(id, enc, z, gun, t)
     enc.shotUntil = t + cfg().SHOT_MS
     C.shotEffects(id, { t = gun.t }, z, gun.w)
     count("shots")
-    log().info("npc %s fired a warning shot with %s at %s (%d round(s) left)", id, gun.t, enc.u, Am.loaded(z, gun.t))
+    LivingKnox.Log.info("npc %s fired a warning shot with %s at %s (%d round(s) left)", id, gun.t, enc.u, Am.loaded(z, gun.t))
     return true
 end
 
@@ -418,7 +409,7 @@ function Encounters.apply(id, st, ctx, fresh)
     local open = De.ownOpen ~= nil and De.ownOpen(id) or nil
     if open ~= nil and open.op == D.OP_MOVE then issue(id, D.stop(id)) end
     local a = De.angleTo(w.x + 0.5 - ctx.x, w.y + 0.5 - ctx.y)
-    if a ~= nil and (fresh or enc.faced == nil or angleGap(a, enc.faced) >= cfg().FACE_DELTA) then
+    if a ~= nil and (fresh or enc.faced == nil or LivingKnox.Geo.angleGap(a, enc.faced) >= cfg().FACE_DELTA) then
         if issue(id, D.face(id, a)) then enc.faced = a end
     end
     if enc.pending ~= nil and (enc.saidMs == nil or t - enc.saidMs >= cfg().MIN_STEP_MS) then

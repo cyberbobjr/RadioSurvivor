@@ -75,23 +75,9 @@ Hostility.state = Hostility.state or { data = nil, seq = 0, blocked = false, rea
 
 local NOT_READY = "attitude registry not ready"
 
-local function log() return LivingKnox.Log end
-local function Store() return LivingKnox.Store end
-local function Groups() return LivingKnox.Groups end
-
 local function isNumber(v) return type(v) == "number" and v == v end
 
-local function isInt(v, lo, hi)
-    return isNumber(v) and math.floor(v) == v and v >= lo and v <= hi
-end
-
 local function round(v) return math.floor(v + 0.5) end
-
-local function clamp(v, lo, hi)
-    if v < lo then return lo end
-    if v > hi then return hi end
-    return v
-end
 
 local function inList(list, value)
     for _, v in ipairs(list) do
@@ -119,7 +105,7 @@ end
 local function num(name, lo, hi)
     local v = raw()[name]
     if not isNumber(v) then v = FALLBACK[name] end
-    return clamp(v, lo, hi)
+    return LivingKnox.Num.clamp(v, lo, hi)
 end
 
 -- Seuils bas des niveaux au-dessus de hostile, dans l'ordre de LEVELS ; seuils de repli s'ils ne sont pas entiers
@@ -130,7 +116,7 @@ local function levelMins()
     if type(t) == "table" then
         for i = 2, #Hostility.LEVELS do
             local v = t[Hostility.LEVELS[i]]
-            if not isInt(v, previous + 1, Hostility.MAX) then out = nil break end
+            if not LivingKnox.Num.isInt(v, previous + 1, Hostility.MAX) then out = nil break end
             out[#out + 1] = v
             previous = v
         end
@@ -150,7 +136,7 @@ function Hostility.effect(fact)
     local v = type(t) == "table" and t[fact] or nil
     if not isNumber(v) then v = FALLBACK.EFFECTS[fact] end
     local m = num("EFFECT_MAX", 0, 200)
-    return round(clamp(v, -m, m))
+    return round(LivingKnox.Num.clamp(v, -m, m))
 end
 
 -- Niveau d'une valeur interne.
@@ -178,7 +164,7 @@ function Hostility.startFor(groupType)
     local def = LivingKnox.GroupTypes.peek(groupType)   -- LK13-T11 : lecture en place (un champ lu)
     local hostility = def and def.hostility or 50
     if not isNumber(hostility) then hostility = 50 end
-    return clamp(round((50 - hostility) * num("START_SCALE", 0, 10)), Hostility.MIN, Hostility.MAX)
+    return LivingKnox.Num.clamp(round((50 - hostility) * num("START_SCALE", 0, 10)), Hostility.MIN, Hostility.MAX)
 end
 
 -- E04-T11 (Q14, confirmé par défaut le 2026-10-15) : niveau de réputation interne d'un personnage (« good », « neutral »,
@@ -193,7 +179,7 @@ function Hostility.reputationOf(playerKey)
     local ok, level = pcall(fn, playerKey)
     if not ok then
         Hostility.hookStats.reputationErrors = (Hostility.hookStats.reputationErrors or 0) + 1
-        log().error("hook reputation failed for %s: %s", tostring(playerKey), tostring(level))
+        LivingKnox.Log.error("hook reputation failed for %s: %s", tostring(playerKey), tostring(level))
         return nil
     end
     return REPUTATION_LEVELS[level] and level or nil
@@ -214,10 +200,10 @@ function Hostility.startForPlayer(groupType, playerKey)
         if base >= v then index = i + 1 end
     end
     if rep == "good" and index < #Hostility.LEVELS then
-        return clamp(math.max(base, mins[index]), Hostility.MIN, Hostility.MAX)
+        return LivingKnox.Num.clamp(math.max(base, mins[index]), Hostility.MIN, Hostility.MAX)
     end
     if rep == "bad" and index > 1 then
-        return clamp(math.min(base, mins[index - 1] - 1), Hostility.MIN, Hostility.MAX)
+        return LivingKnox.Num.clamp(math.min(base, mins[index - 1] - 1), Hostility.MIN, Hostility.MAX)
     end
     return base
 end
@@ -233,12 +219,13 @@ local function validFacts(list)
     if type(list) ~= "table" then return false end
     local n = 0
     for k, f in pairs(list) do
-        if not isInt(k, 1, Hostility.TREND_FACTS) or type(f) ~= "table" then return false end
-        if not inList(Hostility.FACTS, f.fact) or not isInt(f.sign, -1, 1) or not isInt(f.day, 0, Hostility.DAY_MAX) then
+        if not LivingKnox.Num.isInt(k, 1, Hostility.TREND_FACTS) or type(f) ~= "table" then return false end
+        if not inList(Hostility.FACTS, f.fact) or not LivingKnox.Num.isInt(f.sign, -1, 1)
+            or not LivingKnox.Num.isInt(f.day, 0, Hostility.DAY_MAX) then
             return false
         end
         -- E09-T04 : numéro du fait dans la paire (facultatif : faits enregistrés avant son ajout).
-        if f.n ~= nil and not isInt(f.n, 1, Hostility.DAY_MAX) then return false end
+        if f.n ~= nil and not LivingKnox.Num.isInt(f.n, 1, Hostility.DAY_MAX) then return false end
         n = n + 1
     end
     return #list == n
@@ -247,13 +234,13 @@ end
 -- Contrôle d'une paire relue. Rend vrai, ou faux et une raison.
 function Hostility.validPair(p)
     if type(p) ~= "table" then return false, "pair is not a table" end
-    if not isInt(p.value, Hostility.MIN, Hostility.MAX) then return false, "bad value" end
-    if not isInt(p.start, Hostility.MIN, Hostility.MAX) then return false, "bad start" end
+    if not LivingKnox.Num.isInt(p.value, Hostility.MIN, Hostility.MAX) then return false, "bad value" end
+    if not LivingKnox.Num.isInt(p.start, Hostility.MIN, Hostility.MAX) then return false, "bad start" end
     if not validFacts(p.facts) then return false, "bad facts" end
     if p.murder ~= nil and p.murder ~= true then return false, "bad murder flag" end
-    if not isInt(p.decayDay, 0, Hostility.DAY_MAX) then return false, "bad decay day" end
-    if not isInt(p.seen, 0, Hostility.DAY_MAX) then return false, "bad seen day" end
-    if p.count ~= nil and not isInt(p.count, 0, Hostility.DAY_MAX) then return false, "bad fact count" end
+    if not LivingKnox.Num.isInt(p.decayDay, 0, Hostility.DAY_MAX) then return false, "bad decay day" end
+    if not LivingKnox.Num.isInt(p.seen, 0, Hostility.DAY_MAX) then return false, "bad seen day" end
+    if p.count ~= nil and not LivingKnox.Num.isInt(p.count, 0, Hostility.DAY_MAX) then return false, "bad fact count" end
     return true
 end
 
@@ -276,7 +263,7 @@ function Hostility.validate(data)
     table.sort(gids)
     for _, gid in ipairs(gids) do
         local pairsOf = data.groups[gid]
-        if not Groups().idNumber(gid) or type(pairsOf) ~= "table" then
+        if not LivingKnox.Groups.idNumber(gid) or type(pairsOf) ~= "table" then
             dropped[#dropped + 1] = { id = gid, why = "bad group entry" }
         else
             local keep, count = {}, 0
@@ -297,7 +284,7 @@ function Hostility.validate(data)
             out.groups[gid] = keep
         end
     end
-    if data.decayDay ~= nil and isInt(data.decayDay, 0, Hostility.DAY_MAX) then out.decayDay = data.decayDay end
+    if data.decayDay ~= nil and LivingKnox.Num.isInt(data.decayDay, 0, Hostility.DAY_MAX) then out.decayDay = data.decayDay end
     return out, dropped
 end
 
@@ -311,7 +298,7 @@ Hostility.slotPath = slotPath
 local function block(reason)
     local st = Hostility.state
     st.blocked, st.reason = true, reason
-    log().error("attitude registry BLOCKED: %s; files kept for recovery (%s-0.txt, -1.txt)", reason,
+    LivingKnox.Log.error("attitude registry BLOCKED: %s; files kept for recovery (%s-0.txt, -1.txt)", reason,
         tostring(st.path))
     return false
 end
@@ -320,9 +307,9 @@ end
 function Hostility.init(newWorld)
     local st = Hostility.state
     st.data, st.seq, st.blocked, st.reason, st.dropped = nil, 0, false, nil, 0
-    st.path = Store().worldFileBase(Hostility.FILE)
-    local a, existsA = Store().readSlotFile(slotPath(0), Hostility.HEADER)
-    local b, existsB = Store().readSlotFile(slotPath(1), Hostility.HEADER)
+    st.path = LivingKnox.Store.worldFileBase(Hostility.FILE)
+    local a, existsA = LivingKnox.Store.readSlotFile(slotPath(0), Hostility.HEADER)
+    local b, existsB = LivingKnox.Store.readSlotFile(slotPath(1), Hostility.HEADER)
     local best = a
     if b and (not a or b.seq > a.seq) then best = b end
     local lastSeq = 0
@@ -330,13 +317,13 @@ function Hostility.init(newWorld)
     if b and b.seq > lastSeq then lastSeq = b.seq end
     if newWorld then
         st.data, st.seq = Hostility.newRegistry(), lastSeq
-        log().info("attitudes: new world, empty attitude registry")
+        LivingKnox.Log.info("attitudes: new world, empty attitude registry")
         return Hostility.save()
     end
     if not best then
         if existsA or existsB then return block("both attitude registry files are unreadable") end
         st.data, st.seq = Hostility.newRegistry(), 0
-        log().info("attitudes: no file yet, empty attitude registry")
+        LivingKnox.Log.info("attitudes: no file yet, empty attitude registry")
         return true
     end
     local data, why, kind = Hostility.validate(best.data)
@@ -345,10 +332,10 @@ function Hostility.init(newWorld)
         return block("attitude registry file #" .. best.seq .. " is invalid: " .. why)
     end
     for _, d in ipairs(why) do
-        log().error("attitude %s dropped at load (file #%s): %s", d.id, tostring(best.seq), d.why)
+        LivingKnox.Log.error("attitude %s dropped at load (file #%s): %s", d.id, tostring(best.seq), d.why)
     end
     st.data, st.seq, st.dropped = data, best.seq, #why
-    log().info("attitudes loaded: %s dropped, file #%s", tostring(#why), tostring(best.seq))
+    LivingKnox.Log.info("attitudes loaded: %s dropped, file #%s", tostring(#why), tostring(best.seq))
     return true
 end
 
@@ -370,7 +357,7 @@ function Hostility.save()
     local st = Hostility.state
     if st.blocked or not st.data then return false end
     local seq = st.seq + 1
-    local ok, why = Store().writeSlotFile(slotPath(seq % 2), Hostility.HEADER, seq, st.data)
+    local ok, why = LivingKnox.Store.writeSlotFile(slotPath(seq % 2), Hostility.HEADER, seq, st.data)
     if not ok then return block("attitude registry " .. why) end
     st.seq = seq
     return true
@@ -384,16 +371,16 @@ end
 
 -- Groupe connu du registre des groupes : rend (groupe vivant) ou (nil, raison).
 local function knownGroup(gid)
-    if not Groups().ensure() then return nil, "group registry not ready" end
-    local g = type(gid) == "string" and Groups().state.data.groups[gid] or nil
+    if not LivingKnox.Groups.ensure() then return nil, "group registry not ready" end
+    local g = type(gid) == "string" and LivingKnox.Groups.state.data.groups[gid] or nil
     if not g then return nil, "unknown group " .. tostring(gid) end
     return g
 end
 
 -- Retire les entrées des groupes qui n'existent plus (registre des groupes prêt seulement). Rend le nombre retiré.
 local function pruneOrphans(data)
-    if not Groups().ensure() then return 0 end
-    local live = Groups().state.data.groups
+    if not LivingKnox.Groups.ensure() then return 0 end
+    local live = LivingKnox.Groups.state.data.groups
     local doomed = {}
     for gid in pairs(data.groups) do
         if not live[gid] then doomed[#doomed + 1] = gid end
@@ -423,8 +410,8 @@ local function evictKey(pairsOf)
 end
 
 local function dayOf(day)
-    if day == nil then return Groups().today() end
-    if not isInt(day, 0, Hostility.DAY_MAX) then return nil end
+    if day == nil then return LivingKnox.Groups.today() end
+    if not LivingKnox.Num.isInt(day, 0, Hostility.DAY_MAX) then return nil end
     return day
 end
 
@@ -458,19 +445,19 @@ function Hostility.record(gid, playerKey, fact, opts)
         for _ in pairs(pairsOf) do n = n + 1 end
         if n >= Hostility.MAX_PLAYERS then
             local victim = evictKey(pairsOf)
-            log().info("attitude %s/%s forgotten (group full)", gid, victim)
+            LivingKnox.Log.info("attitude %s/%s forgotten (group full)", gid, victim)
             pairsOf[victim] = nil
         end
         local start = Hostility.startForPlayer(g.type, playerKey) -- E04-T11 : premier contact selon la réputation
         p = { value = start, start = start, facts = {}, decayDay = day, seen = day }
         pairsOf[playerKey] = p
     end
-    p.value = clamp(p.value + delta, Hostility.MIN, Hostility.MAX)
+    p.value = LivingKnox.Num.clamp(p.value + delta, Hostility.MIN, Hostility.MAX)
     local sign = 0
     if delta > 0 then sign = 1 elseif delta < 0 then sign = -1 end
     -- E09-T04 : chaque fait reçoit un numéro propre à la paire (count), qui le désigne sans ambiguïté pour les
     -- relations personnelles du carnet (un fait ne motive qu'un changement).
-    p.count = (isInt(p.count, 0, Hostility.DAY_MAX) and p.count or 0) + 1
+    p.count = (LivingKnox.Num.isInt(p.count, 0, Hostility.DAY_MAX) and p.count or 0) + 1
     p.facts[#p.facts + 1] = { fact = fact, sign = sign, day = day, n = p.count }
     while #p.facts > Hostility.TREND_FACTS do table.remove(p.facts, 1) end
     if Hostility.MURDER_FACTS[fact] then p.murder = true end
@@ -514,7 +501,7 @@ function Hostility.facts(gid, playerKey)
     local p = pairsOf and Hostility.validPlayerKey(playerKey) and pairsOf[playerKey] or nil
     if not p then return out end
     for _, f in ipairs(p.facts) do
-        if isInt(f.n, 1, Hostility.DAY_MAX) then
+        if LivingKnox.Num.isInt(f.n, 1, Hostility.DAY_MAX) then
             out[#out + 1] = { n = f.n, fact = f.fact, sign = f.sign, day = f.day }
         end
     end
@@ -580,7 +567,7 @@ end
 -- Une fois par heure de jeu (LK_Server) : déclin quand le jour de jeu a changé.
 function Hostility.onEveryHours()
     if not Hostility.ensure() then return end
-    if Hostility.state.data.decayDay == Groups().today() then return end
+    if Hostility.state.data.decayDay == LivingKnox.Groups.today() then return end
     Hostility.decay()
 end
 
@@ -662,7 +649,7 @@ local function askHook(name, gid, playerKey, npcId, onError)
     if not ok then
         local stat = name .. "Errors"
         Hostility.hookStats[stat] = (Hostility.hookStats[stat] or 0) + 1
-        log().error("hook %s failed for %s/%s: %s", name, tostring(gid), tostring(playerKey), tostring(res))
+        LivingKnox.Log.error("hook %s failed for %s/%s: %s", name, tostring(gid), tostring(playerKey), tostring(res))
         return onError
     end
     return res == true

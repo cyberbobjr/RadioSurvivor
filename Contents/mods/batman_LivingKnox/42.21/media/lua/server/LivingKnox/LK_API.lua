@@ -49,24 +49,20 @@ function API.version()
     return API.VERSION
 end
 
-local function Groups() return LivingKnox.Groups end
-local function Store() return LivingKnox.Store end
-local function Identity() return LivingKnox.Identity end
-
 -- Vrai si le registre des groupes est lisible (relu, non bloqué).
 function API.isReady()
-    return Groups().ensure() == true
+    return LivingKnox.Groups.ensure() == true
 end
 
 -- Registre vivant des groupes (lecture seule ici), ou nil.
 local function groupData()
-    if not Groups().ensure() then return nil end
-    return Groups().state.data
+    if not LivingKnox.Groups.ensure() then return nil end
+    return LivingKnox.Groups.state.data
 end
 
 -- Registre vivant des PNJ (lecture seule ici), ou nil. Rattrapage paresseux comme LK_Bodies.canAct.
 local function npcData()
-    local S = Store()
+    local S = LivingKnox.Store
     if not S.isReady() and not S.isBlocked() then S.ensure() end
     return S.data()
 end
@@ -93,7 +89,7 @@ local function sortedMembers(members)
     local ids = {}
     for mid in pairs(members) do ids[#ids + 1] = mid end
     table.sort(ids, function(a, b)
-        local na, nb = Groups().memberNumber(a), Groups().memberNumber(b)
+        local na, nb = LivingKnox.Groups.memberNumber(a), LivingKnox.Groups.memberNumber(b)
         if na and nb then return na < nb end
         return tostring(a) < tostring(b)
     end)
@@ -180,7 +176,7 @@ function API.listGroups(playerKey)
     local data = groupData()
     local out = {}
     if not data then return out end
-    for _, gid in ipairs(Groups().list()) do
+    for _, gid in ipairs(LivingKnox.Groups.list()) do
         out[#out + 1] = view(data.groups[gid], false, playerKey)
     end
     return out
@@ -402,7 +398,7 @@ function API.enrichStory(gid, lang, text, opts)
     if not validTarget(g, target) then return nil, "unknown member " .. tostring(target) end
     local _, version = template(g)
     if opts.version ~= nil and opts.version ~= version then return nil, "stale version" end
-    local result, err = Groups().update(function(reg)
+    local result, err = LivingKnox.Groups.update(function(reg)
         local live = reg.groups[gid]
         local kept = {}
         if type(live.enrich) == "table" then
@@ -413,7 +409,7 @@ function API.enrichStory(gid, lang, text, opts)
         end
         local key = target .. ":" .. l
         if clean ~= nil then
-            kept[key] = { text = clean, mode = mode, version = version, day = Groups().today() }
+            kept[key] = { text = clean, mode = mode, version = version, day = LivingKnox.Groups.today() }
         else
             kept[key] = nil
         end
@@ -472,12 +468,12 @@ function API.npcsNear(a, b, c, d)
     local cellReady = getCell ~= nil and getCell() ~= nil
     local out = {}
     for id, npc in pairs(registry.npcs) do
-        if npc.state == Identity().STATE_EMBODIED then
+        if npc.state == LivingKnox.Identity.STATE_EMBODIED then
             local px, py, pz, inWorld
             local body = Bodies and Bodies.bound[id] or nil
             if cellReady and body ~= nil and Bodies.inWorld(body) then
                 px, py, pz, inWorld = body:getX(), body:getY(), body:getZ(), true
-            elseif Identity().isPosition(npc.last) then
+            elseif LivingKnox.Identity.isPosition(npc.last) then
                 px, py, pz, inWorld = npc.last.x, npc.last.y, npc.last.z, false
             end
             if px ~= nil then
@@ -496,7 +492,7 @@ function API.npcsNear(a, b, c, d)
     end
     table.sort(out, function(p, q)
         if p.distance ~= q.distance then return p.distance < q.distance end
-        return (Identity().idNumber(p.id) or 0) < (Identity().idNumber(q.id) or 0)
+        return (LivingKnox.Identity.idNumber(p.id) or 0) < (LivingKnox.Identity.idNumber(q.id) or 0)
     end)
     return out
 end
@@ -776,7 +772,7 @@ function API.missionOffers(gid, playerKey)
     if hostile then return {} end
     local hour = API.currentHour()
     if hour == nil then return nil, "no game clock" end
-    return Groups().update(function(reg)
+    return LivingKnox.Groups.update(function(reg)
         local live = reg.groups[gid]
         local changed = refreshOffers(live, hour)
         local out = {}
@@ -834,7 +830,7 @@ function API.deliver(gid, offerId, delivered, receiptKey, playerKey)
     if not isText(offerId) then return nil, "unknown offer " .. tostring(offerId) end
     local hour = API.currentHour()
     if hour == nil then return nil, "no game clock" end
-    local result, err = Groups().update(function(reg)
+    local result, err = LivingKnox.Groups.update(function(reg)
         local live = reg.groups[gid]
         local s, repaired = supplyOf(live)
         for _, r in ipairs(s.receipts) do
@@ -864,10 +860,10 @@ function API.deliver(gid, offerId, delivered, receiptKey, playerKey)
         local gain = roundHalf(rec.delivered / S.V_PER_POINT) - roundHalf(before / S.V_PER_POINT)
         local old = live.needs[need]
         local level = old + gain
-        if level > Groups().LEVEL_MAX then level = Groups().LEVEL_MAX end
+        if level > LivingKnox.Groups.LEVEL_MAX then level = LivingKnox.Groups.LEVEL_MAX end
         live.needs[need] = level
         local r = { key = receiptKey, offer = offerId, need = need, value = counted, points = level - old,
-            level = level, completed = rec.delivered >= rec.value, day = Groups().today() }
+            level = level, completed = rec.delivered >= rec.value, day = LivingKnox.Groups.today() }
         local text = need .. " +" .. tostring(level - old) .. " (" .. offerId .. ", " .. tostring(counted) .. " V)"
         if r.completed then
             if rec.rewardType then
@@ -885,7 +881,7 @@ function API.deliver(gid, offerId, delivered, receiptKey, playerKey)
         end
         s.receipts[#s.receipts + 1] = r
         while #s.receipts > S.RECEIPTS_MAX do table.remove(s.receipts, 1) end
-        Groups().appendLog(live, "supply", string.sub(text, 1, Groups().TEXT_MAX), r.day)
+        LivingKnox.Groups.appendLog(live, "supply", string.sub(text, 1, LivingKnox.Groups.TEXT_MAX), r.day)
         return true, { ok = receiptView(r, false) }
     end)
     if not result then return nil, err end
@@ -1059,7 +1055,7 @@ local function enqueue(f)
     end
 end
 
-local function today() return Groups().today() end
+local function today() return LivingKnox.Groups.today() end
 
 -- Abonnés aux faits internes (LK_Core.listen, idempotents par clé). Les champs privés du fait (corps, tueur, arme,
 -- case exacte, témoins) ne sont jamais recopiés tels quels dans la charge utile.
@@ -1101,7 +1097,7 @@ function API.checkNeeds()
     local low, ok = simCfg("NEED_LOW"), simCfg("NEED_OK")
     local sent = 0
     local seeding = not st.seeded
-    for _, gid in ipairs(Groups().list()) do
+    for _, gid in ipairs(LivingKnox.Groups.list()) do
         local g = data.groups[gid]
         local alive = counts(g)
         for _, need in ipairs(API.NEEDS) do
@@ -1151,8 +1147,8 @@ function API.engaged(npcId)
         end
     end
     local Al, D = LivingKnox.Alert, LivingKnox.Decisions
-    if Al ~= nil and Al.isActive ~= nil and D ~= nil and D.currentMinute ~= nil and Groups().ensure() then
-        local gid = Groups().findNpc(npcId)
+    if Al ~= nil and Al.isActive ~= nil and D ~= nil and D.currentMinute ~= nil and LivingKnox.Groups.ensure() then
+        local gid = LivingKnox.Groups.findNpc(npcId)
         local minute = D.currentMinute()
         if gid ~= nil and minute ~= nil and Al.isActive(gid, minute) then return true, "alert" end
     end

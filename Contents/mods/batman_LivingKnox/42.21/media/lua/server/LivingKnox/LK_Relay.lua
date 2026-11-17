@@ -59,8 +59,6 @@ end
 Relay.stats = Relay.stats or newStats()
 
 local function cfg() return LivingKnox.Config.RELAY end
-local function log() return LivingKnox.Log end
-local function D() return LivingKnox.Directives end
 local function now() return getTimestampMs() end
 
 -- Taille approximative d'arguments réseau (même règle que la sonde du mod de dev : chaînes et clés par leur longueur,
@@ -85,7 +83,7 @@ local function snapshot(id)
     local s = { g = A.shownOf(id), ms = now() }
     local act, fa = A.actOf(id)
     if act ~= nil and type(fa) == "number" then s.fa = fa end
-    local pose = D().poses[id]
+    local pose = LivingKnox.Directives.poses[id]
     if pose ~= nil then
         s.p = { pr = pose.pr, v = pose.v, s = pose.s, a = pose.a, x = pose.x, y = pose.y, z = pose.z, t = pose.t,
             ts = pose.ts }
@@ -123,7 +121,7 @@ function Relay.touch(id)
                 st.kept = st.kept + 1
             else
                 st.keptDropped = st.keptDropped + 1
-                log().warn("npc %s: gesture relay keeps %d states already, %s dropped", id, #it.kept,
+                LivingKnox.Log.warn("npc %s: gesture relay keeps %d states already, %s dropped", id, #it.kept,
                     tostring(it.cur.g))
             end
         end
@@ -165,7 +163,7 @@ function Relay.refresh(id)
         if where == "unknown" or where == "dead" or where == "virtual" then Relay.drop(id) end
         return
     end
-    local targets, any = D().targets(z)
+    local targets, any = LivingKnox.Directives.targets(z)
     if not any then return end
     Relay.near[id] = targets
     local n = it.pub and it.pub.n
@@ -349,7 +347,7 @@ local function meterRoll(t)
     if m.msgs > st.maxMsgsPerSec then st.maxMsgsPerSec = m.msgs end
     if m.bytes > st.maxBytesPerSec then st.maxBytesPerSec = m.bytes end
     if m.msgs > 0 then
-        log().debug("gesture relay: %d msg, %d B in %d ms (%s), %d deferred so far", m.msgs, m.bytes, ms,
+        LivingKnox.Log.debug("gesture relay: %d msg, %d B in %d ms (%s), %d deferred so far", m.msgs, m.bytes, ms,
             clientLine(m.byClient), st.deferred)
     end
     m.startMs, m.msgs, m.bytes, m.byClient = t, 0, 0, {}
@@ -397,7 +395,7 @@ end
 -- Client entré en partie ("guardHello", première connexion ou reconnexion) : son état Lua est neuf ; tout état publié
 -- d'un PNJ à sa portée (ou dont il est propriétaire) lui est envoyé à l'image suivante.
 function Relay.onHello(player)
-    local name = D().senderName(player)
+    local name = LivingKnox.Directives.senderName(player)
     Relay.sent[name] = {}
     Relay.players[name] = player
     local B = LivingKnox.Bodies
@@ -405,7 +403,8 @@ function Relay.onHello(player)
     local n = 0
     for id, it in pairs(Relay.items) do
         local z = B.find(id)
-        if it.pub ~= nil and z ~= nil and (D().isNear(player, z) or D().isOwner(z, player)) then
+        if it.pub ~= nil and z ~= nil
+            and (LivingKnox.Directives.isNear(player, z) or LivingKnox.Directives.isOwner(z, player)) then
             local near = Relay.near[id]
             if near == nil then
                 near = {}

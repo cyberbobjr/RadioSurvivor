@@ -127,11 +127,6 @@ Directives.stats = Directives.stats or { issued = 0, published = 0, reports = 0,
     graced = 0, handed = 0, claims = 0, claimIgnored = 0, previousOwner = 0, resumed = 0, suspended = 0,
     unsuspended = 0 }
 
-local function log() return LivingKnox.Log end
-local function Bodies() return LivingKnox.Bodies end
-local function Guard() return LivingKnox.ZombieGuard end
-local function Anim() return LivingKnox.Anim end
-
 local function now() return getTimestampMs() end
 
 local function serverTime()
@@ -144,8 +139,6 @@ local function dist(ax, ay, bx, by)
     return math.sqrt(dx * dx + dy * dy)
 end
 Directives.dist = dist
-
-local function finite(v) return type(v) == "number" and v == v and v > -1e9 and v < 1e9 end
 
 -- Distance du point (x, y, z) au centre de la case visée ; nil si le niveau diffère.
 function Directives.distToTarget(e, x, y, z)
@@ -199,7 +192,7 @@ end
 -- Angle (degrés) d'une direction : nom ("N", "SE"...) ou nombre. Rend l'angle dans [0, 360), ou nil.
 function Directives.angleOf(dir)
     if type(dir) == "string" then return Directives.ANGLES[string.upper(dir)] end
-    if finite(dir) then return dir - math.floor(dir / 360) * 360 end
+    if LivingKnox.Num.finite(dir) then return dir - math.floor(dir / 360) * 360 end
     return nil
 end
 
@@ -323,7 +316,7 @@ function Directives.sync(id, force)
     if not isServer() then return 0 end
     local e = Directives.entries[id]
     local held = Directives.holders[id] or {}
-    local B = Bodies()
+    local B = LivingKnox.Bodies
     local z = B and B.find(id)
     local targets, any = nil, false
     if z ~= nil then targets, any = Directives.targets(z) end
@@ -366,12 +359,12 @@ end
 -- Trajet ouvert fermé (aucun module n'en ouvre depuis LK03-T04 ; fermeture gardée par prudence) : useless rendu par
 -- la garde au passage suivant.
 local function endServerRun(id)
-    if Guard().isTravelling(id) then Guard().setTravelling(id, false) end
+    if LivingKnox.ZombieGuard.isTravelling(id) then LivingKnox.ZombieGuard.setTravelling(id, false) end
 end
 
 local function setGesture(id, g)
-    local ok, why = Anim().setGesture(id, g)
-    if not ok then log().warn("npc %s: gesture %s refused: %s", id, tostring(g), tostring(why)) end
+    local ok, why = LivingKnox.Anim.setGesture(id, g)
+    if not ok then LivingKnox.Log.warn("npc %s: gesture %s refused: %s", id, tostring(g), tostring(why)) end
 end
 
 -- Enregistre une nouvelle consigne (numéro suivant, bail donné au propriétaire actuel du corps z), geste, envoi aux
@@ -393,7 +386,7 @@ local function issue(id, e, z)
     Directives.lastN[id] = nil
     Directives.stats.issued = Directives.stats.issued + 1
     local held = Directives.serverHeld(z)   -- LK03-T04 : aucun client propriétaire, consigne suspendue d'emblée
-    if e.op == Directives.OP_MOVE and not held then setGesture(id, e.g) else setGesture(id, Anim().DEFAULT) end
+    if e.op == Directives.OP_MOVE and not held then setGesture(id, e.g) else setGesture(id, LivingKnox.Anim.DEFAULT) end
     Directives.sync(id, true)
     if held then Directives.suspend(id, e, z) end
     return e.v
@@ -401,7 +394,7 @@ end
 
 -- Corps relié d'un PNJ connu, ou nil et une raison.
 local function boundBody(id)
-    local B = Bodies()
+    local B = LivingKnox.Bodies
     if B == nil then return nil, "LivingKnox.Bodies is not loaded" end
     local ok, why = B.canAct(true)
     if not ok then return nil, why end
@@ -423,7 +416,7 @@ Directives.SHIFT_RADIUS = 3
 -- memo (facultatif) : table case -> danger | false partagée entre appels de même margin. Rend le nombre et la première
 -- trouvée ("x,y danger"), ou 0.
 function Directives.hazardsOnLine(x0, y0, x1, y1, z, margin, memo)
-    local B = Bodies()
+    local B = LivingKnox.Bodies
     local len = dist(x0, y0, x1, y1)
     local steps = math.max(1, math.ceil(len * 4))
     local seen, n, first = {}, 0, nil
@@ -477,7 +470,7 @@ Directives.NUDGE = 1             -- point de passage impraticable : case de remp
 -- Boîte englobante des dangers proches de la ligne, étendue de proche en proche (LINK). Rend minx, miny, maxx, maxy,
 -- ou nil et une raison.
 local function hazardBox(x0, y0, x1, y1, z)
-    local B = Bodies()
+    local B = LivingKnox.Bodies
     local cell = getCell()
     local m = B.HAZARD_AVOID
     local found, queue = {}, {}
@@ -527,7 +520,7 @@ end
 
 -- Point de passage praticable hors zone à (x, y, z), ou à NUDGE case au plus. Rend x, y, ou nil.
 local function waypointAt(x, y, z)
-    local B = Bodies()
+    local B = LivingKnox.Bodies
     local sq = getCell():getGridSquare(x, y, z)
     if sq ~= nil and sq:isFree(false) and B.hazardNear(x, y, z, B.HAZARD_AVOID + 1) == nil then return x, y end
     local alt = B.safeSquare(x, y, z, Directives.NUDGE, B.HAZARD_AVOID + 1)
@@ -538,7 +531,7 @@ end
 -- Points de passage du trajet (x0, y0) (position du corps) -> case (tx, ty) au niveau z. Rend une liste
 -- { { x, y }, ... } (vide si la ligne droite est hors zone), ou nil et une raison (aucun contournement simple).
 function Directives.planDetour(x0, y0, tx, ty, z)
-    local B = Bodies()
+    local B = LivingKnox.Bodies
     local m = B.HAZARD_AVOID
     local memo = {}
     local ex, ey = tx + 0.5, ty + 0.5
@@ -600,7 +593,7 @@ end
 -- (Bodies.HAZARD_AVOID, à SHIFT_RADIUS cases au plus). Rend x, y et, si la case est décalée, le danger et ses
 -- coordonnées ; ou nil et une raison. Lecture seule (moveTo, et LK_Upkeep pour garder une place au foyer).
 function Directives.standTarget(x, y, z)
-    local B = Bodies()
+    local B = LivingKnox.Bodies
     local what, hx, hy = B.hazardNear(x, y, z, B.HAZARD_AVOID)
     if what == nil then return x, y end
     local safe = B.safeSquare(x, y, z, Directives.SHIFT_RADIUS, B.HAZARD_AVOID + 1)
@@ -619,7 +612,9 @@ function Directives.moveTo(id, x, y, z, gesture)
     if refused then return nil, refused end
     local body, why = boundBody(id)
     if not body then return nil, why end
-    if not finite(x) or not finite(y) or not finite(z) then return nil, "target must be three numbers" end
+    if not LivingKnox.Num.finite(x) or not LivingKnox.Num.finite(y) or not LivingKnox.Num.finite(z) then
+        return nil, "target must be three numbers"
+    end
     x, y, z = math.floor(x), math.floor(y), math.floor(z)
     local g = gesture or "walk"
     if not Directives.MOVE_GESTURES[g] then return nil, "move gesture must be walk, run or crouch, not " .. tostring(g) end
@@ -636,7 +631,7 @@ function Directives.moveTo(id, x, y, z, gesture)
     local sx, sy, what, hx, hy = Directives.standTarget(x, y, z)
     if sx == nil then return nil, sy end
     if what ~= nil then
-        log().info("npc %s: move target %d,%d,%d shifted to %d,%d (%s at %d,%d)", id, x, y, z, sx, sy, what, hx, hy)
+        LivingKnox.Log.info("npc %s: move target %d,%d,%d shifted to %d,%d (%s at %d,%d)", id, x, y, z, sx, sy, what, hx, hy)
         x, y = sx, sy
         avoid = Mv ~= nil and Mv.avoided ~= nil and Mv.avoided(id, x, y, z) or nil
         if avoid ~= nil then return nil, avoid end
@@ -646,19 +641,19 @@ function Directives.moveTo(id, x, y, z, gesture)
     local e = { op = Directives.OP_MOVE, x = x, y = y, z = z, g = g }
     if steps ~= nil and #steps > 0 then e.w, e.k = steps, 1 end
     local v = issue(id, e, body)
-    log().info("npc %s: move #%d to %d,%d,%d (%s) from %.1f,%.1f", id, v, x, y, z, g, bx, by)
+    LivingKnox.Log.info("npc %s: move #%d to %d,%d,%d (%s) from %.1f,%.1f", id, v, x, y, z, g, bx, by)
     if e.w ~= nil then
         local parts = {}
         for i = 1, #e.w do parts[i] = e.w[i].x .. "," .. e.w[i].y end
-        log().info("npc %s: move #%d split into %d steps around farming plants or campfires: %s then %d,%d", id,
+        LivingKnox.Log.info("npc %s: move #%d split into %d steps around farming plants or campfires: %s then %d,%d", id,
             v, #e.w + 1, table.concat(parts, " "), x, y)
     elseif steps == nil then
         local n, first = Directives.hazardsOnLine(bx, by, x + 0.5, y + 0.5, z)
         if n > 0 then
-            log().warn("npc %s: move #%d straight line crosses %d farming plant or campfire square(s) (first %s) and "
+            LivingKnox.Log.warn("npc %s: move #%d straight line crosses %d farming plant or campfire square(s) (first %s) and "
                 .. "%s: the vanilla path may cross them", id, v, n, first, tostring(noDetour))
         else
-            log().warn("npc %s: move #%d straight line passes next to farming plants or campfires and %s", id, v,
+            LivingKnox.Log.warn("npc %s: move #%d straight line passes next to farming plants or campfires and %s", id, v,
                 tostring(noDetour))
         end
     end
@@ -669,7 +664,7 @@ end
 local function advanceStep(id, e, k, by)
     e.k = k
     local tx, ty = Directives.stepTarget(e, k)
-    log().info("npc %s: move #%d step %d/%d reached (by %s), next %d,%d", id, e.v, k - 1, Directives.stepCount(e),
+    LivingKnox.Log.info("npc %s: move #%d step %d/%d reached (by %s), next %d,%d", id, e.v, k - 1, Directives.stepCount(e),
         tostring(by), tx, ty)
     Directives.sync(id, true)
 end
@@ -681,7 +676,7 @@ function Directives.stop(id)
     local z, why = boundBody(id)
     if not z then return nil, why end
     local v = issue(id, { op = Directives.OP_STOP }, z)
-    log().info("npc %s: stop #%d", id, v)
+    LivingKnox.Log.info("npc %s: stop #%d", id, v)
     return v
 end
 
@@ -695,7 +690,7 @@ function Directives.face(id, dir)
     local a = Directives.angleOf(dir)
     if a == nil then return nil, "direction must be N, NE, E, SE, S, SW, W, NW or a number, not " .. tostring(dir) end
     local v = issue(id, { op = Directives.OP_FACE, a = a }, z)
-    log().info("npc %s: face #%d to %s degrees", id, v, tostring(a))
+    LivingKnox.Log.info("npc %s: face #%d to %s degrees", id, v, tostring(a))
     return v
 end
 
@@ -748,17 +743,17 @@ local function finish(id, e, s, by, why, detail)
     if s == "failed" then e.why, e.wd = why, detail end
     endServerRun(id)
     if e.op == Directives.OP_MOVE then
-        setGesture(id, (e.g == "crouch" and s == "arrived") and "crouch" or Anim().DEFAULT)
+        setGesture(id, (e.g == "crouch" and s == "arrived") and "crouch" or LivingKnox.Anim.DEFAULT)
     end
     Directives.sync(id, true)
     local ms = now() - (e.issued or now())
     if s == "failed" then
-        log().warn("npc %s: %s #%d failed after %d ms (%s%s, by %s)", id, e.op, e.v, ms, tostring(why),
+        LivingKnox.Log.warn("npc %s: %s #%d failed after %d ms (%s%s, by %s)", id, e.op, e.v, ms, tostring(why),
             detail and (": " .. detail) or "", tostring(by))
         local Mv = LivingKnox.Movement   -- LK04-T05 : case visée d'un échec "stuck" évitée par ce PNJ
         if Mv ~= nil and why == Mv.REASON and e.op == Directives.OP_MOVE then Mv.noteStuck(id, e) end
     else
-        log().info("npc %s: %s #%d %s after %d ms (by %s)", id, e.op, e.v, s, ms, tostring(by))
+        LivingKnox.Log.info("npc %s: %s #%d %s after %d ms (by %s)", id, e.op, e.v, s, ms, tostring(by))
     end
 end
 
@@ -783,7 +778,7 @@ function Directives.reroute(id, route, why)
     if not LivingKnox.isAuthority() then return false end
     local e = Directives.entries[id]
     if e == nil or e.done or e.op ~= Directives.OP_MOVE or e.suspended ~= nil then return false end
-    local z = Bodies().find(id)
+    local z = LivingKnox.Bodies.find(id)
     if z == nil then return false end
     if type(route.w) == "table" and #route.w > 0 then e.w, e.k = route.w, 1 else e.w, e.k = nil, nil end
     e.dk = route.dk
@@ -793,7 +788,7 @@ function Directives.reroute(id, route, why)
     count("rerouted")
     local parts = {}
     for i = 1, #(e.w or {}) do parts[i] = e.w[i].x .. "," .. e.w[i].y end
-    log().info("npc %s: move #%d %s: %d step(s)%s then %d,%d (lease %d)", id, e.v, tostring(why), #parts,
+    LivingKnox.Log.info("npc %s: move #%d %s: %d step(s)%s then %d,%d (lease %d)", id, e.v, tostring(why), #parts,
         #parts > 0 and (" " .. table.concat(parts, " ")) or "", e.x, e.y, e.l)
     Directives.sync(id, true)
     return true
@@ -804,7 +799,7 @@ end
 local function relay(id, e, s, x, y, z, a, t, by)
     local st = Directives.state
     st.pr = st.pr + 1
-    local g = Anim().gestureOf(id)
+    local g = LivingKnox.Anim.gestureOf(id)
     local pose = { pr = st.pr, v = e.v, s = s, a = a, g = g, x = x, y = y, z = z, t = t or 0, ts = serverTime() }
     Directives.poses[id] = pose
     pose.by = by
@@ -824,7 +819,7 @@ local function reject(name, id, reason, detail)
     local last = Directives.warned[key]
     if last == nil or now() - last >= Directives.WARN_EVERY_MS then
         Directives.warned[key] = now()
-        log().warn("report on npc %s from %s refused: %s%s", tostring(id), tostring(name), reason,
+        LivingKnox.Log.warn("report on npc %s from %s refused: %s%s", tostring(id), tostring(name), reason,
             detail and (" (" .. detail .. ")") or "")
     end
     return false, reason
@@ -878,7 +873,8 @@ function Directives.onReport(player, args)
     if type(args) ~= "table" then return reject(name, "?", "bad report") end
     local id = args.id
     if type(id) ~= "string" or type(args.v) ~= "number" or type(args.n) ~= "number" or type(args.l) ~= "number"
-        or not Directives.REPORT_STATES[args.s] or not finite(args.x) or not finite(args.y) or not finite(args.z) then
+        or not Directives.REPORT_STATES[args.s] or not LivingKnox.Num.finite(args.x) or not LivingKnox.Num.finite(args.y)
+            or not LivingKnox.Num.finite(args.z) then
         return reject(name, id, "bad report")
     end
     local e = Directives.entries[id]
@@ -890,7 +886,7 @@ function Directives.onReport(player, args)
         return false, "stale"
     end
     if not Directives.OP_STATES[e.op][args.s] then return reject(name, id, "state " .. args.s .. " for " .. e.op) end
-    local B = Bodies()
+    local B = LivingKnox.Bodies
     local z = B and B.find(id)
     if z == nil then return reject(name, id, "no body") end
     local last = Directives.lastN[id]
@@ -942,7 +938,7 @@ function Directives.onReport(player, args)
     end
     if graced then
         count("graced")
-        log().info("npc %s: %s #%d final report %s from %s (previous lease %d) accepted after the transfer to %s", id,
+        LivingKnox.Log.info("npc %s: %s #%d final report %s from %s (previous lease %d) accepted after the transfer to %s", id,
             e.op, e.v, args.s, name, args.l, tostring(e.o))
     else
         Directives.lastN[id] = { l = e.l, n = args.n }
@@ -952,7 +948,7 @@ function Directives.onReport(player, args)
             st.resumed = st.resumed + 1
             st.resumeLast = ms
             if st.resumeMax == nil or ms > st.resumeMax then st.resumeMax = ms end
-            log().info("npc %s: %s #%d resumed by %s %d ms after the owner change (lease %d)", id, e.op, e.v, name,
+            LivingKnox.Log.info("npc %s: %s #%d resumed by %s %d ms after the owner change (lease %d)", id, e.op, e.v, name,
                 ms, e.l)
             e.handMs, e.handL = nil, nil
         end
@@ -961,11 +957,11 @@ function Directives.onReport(player, args)
     Directives.stats.accepted = Directives.stats.accepted + 1
     if not graced then Directives.syncServerCopy(z, args.x, args.y, args.z) end
     if e.by ~= name then
-        if e.by ~= nil then log().info("npc %s: %s #%d now executed by %s (was %s)", id, e.op, e.v, name, e.by) end
+        if e.by ~= nil then LivingKnox.Log.info("npc %s: %s #%d now executed by %s (was %s)", id, e.op, e.v, name, e.by) end
         e.by = name
     end
     endServerRun(id)   -- un client simule le corps : le serveur cesse tout trajet en ligne droite
-    local a = finite(args.a) and args.a or nil
+    local a = LivingKnox.Num.finite(args.a) and args.a or nil
     -- Étape (LK05-T12) : k = étape suivante annoncée à l'arrivée sur un point de passage ; acceptée seulement d'une
     -- étape à la fois et près du point atteint, sinon ignorée (le rapport de position reste valable).
     local cur = e.k or 1
@@ -1002,9 +998,9 @@ function Directives.suspend(id, e, z)
     e.suspended = now()
     endServerRun(id)
     if z ~= nil then z:setMoving(false) end
-    setGesture(id, Anim().DEFAULT)
+    setGesture(id, LivingKnox.Anim.DEFAULT)
     count("suspended")
-    log().info("npc %s: %s #%d suspended, no client simulates the body: at rest until a client owns it", id, e.op,
+    LivingKnox.Log.info("npc %s: %s #%d suspended, no client simulates the body: at rest until a client owns it", id, e.op,
         e.v)
     return true
 end
@@ -1018,7 +1014,7 @@ local function unsuspend(id, e, name)
     e.suspended = nil
     if e.op == Directives.OP_MOVE then setGesture(id, e.g) end
     count("unsuspended")
-    log().info("npc %s: %s #%d resumed by %s after %d ms suspended", id, e.op, e.v, tostring(name), paused)
+    LivingKnox.Log.info("npc %s: %s #%d resumed by %s after %d ms suspended", id, e.op, e.v, tostring(name), paused)
     return true
 end
 
@@ -1046,7 +1042,7 @@ function Directives.transfer(id, e, z, name)
     Directives.lastN[id] = nil
     count("leases")
     if not e.done and name ~= "server" then e.handMs, e.handL = e.leasedMs, e.l else e.handMs, e.handL = nil, nil end
-    local say = e.done and log().debug or log().info
+    local say = e.done and LivingKnox.Log.debug or LivingKnox.Log.info
     say("npc %s: %s #%d leased to %s (was %s, lease %d)", id, e.op, e.v, name, tostring(was), e.l)
     noteBody(id, z)
     -- LK03-T04 : rendue au serveur, la consigne ouverte est suspendue ; reprise par un client, elle repart.
@@ -1069,7 +1065,7 @@ function Directives.watch(id, e, z)
         noteBody(id, z)
         if seen ~= nil then
             count("reemitted")
-            log().debug("npc %s: body reappeared (onlineId %s), directive #%d sent again", id,
+            LivingKnox.Log.debug("npc %s: body reappeared (onlineId %s), directive #%d sent again", id,
                 tostring(z:getOnlineID()), e.v)
             Directives.sync(id, true)
             return "body"
@@ -1086,7 +1082,7 @@ end
 -- serveur seulement : bail, réémission et destinataires (Directives.watch), consigne ouverte d'un corps sans client
 -- propriétaire suspendue (LK03-T04 ; filet si le changement n'est pas passé par transfer).
 function Directives.serverPass()
-    local B = Bodies()
+    local B = LivingKnox.Bodies
     if B == nil or not B.canAct(false) then return end
     local gone = {}
     for id, e in pairs(Directives.entries) do
@@ -1104,7 +1100,7 @@ function Directives.serverPass()
         end
     end
     for _, id in ipairs(gone) do   -- table modifiée hors de pairs
-        log().info("npc %s: directive dropped (npc %s)", id, tostring(select(2, B.find(id))))
+        LivingKnox.Log.info("npc %s: directive dropped (npc %s)", id, tostring(select(2, B.find(id))))
         Directives.forget(id)
     end
 end
@@ -1144,7 +1140,7 @@ function Directives.handState(id, z, name)
     local out = { o = name, l = e and e.l or 0 }
     local R = LivingKnox.Reports
     local s = R and R.states and R.states[id]
-    if s ~= nil and rawequal(s.body, z) and finite(s.hp) then out.hp = s.hp end
+    if s ~= nil and rawequal(s.body, z) and LivingKnox.Num.finite(s.hp) then out.hp = s.hp end
     local Eq = LivingKnox.Equipment
     if Eq ~= nil and type(Eq.wantedOf) == "function" then
         local w = Eq.wantedOf(id)
@@ -1170,7 +1166,7 @@ function Directives.handover(id, z, name, player, outside)
             if was ~= "server" then to[was] = onlinePlayer(was) end
         end
         if name ~= "server" and not outside then to[name] = z:getOwnerPlayer() end
-        log().debug("npc %s: state handed to %s (was %s)", id, name, tostring(was))
+        LivingKnox.Log.debug("npc %s: state handed to %s (was %s)", id, name, tostring(was))
     end
     if player ~= nil then to[senderName(player)] = player end
     local hand = nil
@@ -1187,7 +1183,7 @@ end
 -- Serveur, à chaque image : propriétaire de chaque corps relié comparé au détenteur de la remise.
 function Directives.ownerWatch()
     if not isServer() then return end
-    local B = Bodies()
+    local B = LivingKnox.Bodies
     if B == nil or B.bound == nil or getCell() == nil then return end
     local changed = nil
     for id, z in pairs(B.bound) do
@@ -1208,7 +1204,7 @@ end
 function Directives.onClaim(player, args)
     local ids = type(args) == "table" and args.ids or nil
     if type(ids) ~= "table" then return 0 end
-    local B = Bodies()
+    local B = LivingKnox.Bodies
     local n = 0
     for i = 1, Directives.ASK_MAX do
         local id = ids[i]
@@ -1233,7 +1229,7 @@ end
 -- rapport repartent de 1). Rend le nombre de consignes envoyées.
 function Directives.onHello(player)
     local name = senderName(player)
-    local B = Bodies()
+    local B = LivingKnox.Bodies
     local d, n = {}, 0
     -- Remises détenues par ce compte (LK03-T03) : son nouvel état Lua n'en a plus ; renvoyées à l'image suivante.
     local mine = {}
@@ -1249,7 +1245,7 @@ function Directives.onHello(player)
             grant(e, z)
             Directives.lastN[id] = nil
             count("leases")
-            local say = e.done and log().debug or log().info
+            local say = e.done and LivingKnox.Log.debug or LivingKnox.Log.info
             say("npc %s: %s #%d leased to %s after %s joined (lease %d)", id, e.op, e.v, tostring(e.o), name, e.l)
             Directives.sync(id, true)
             held = Directives.holders[id]
@@ -1304,8 +1300,8 @@ function Directives.onClientCommand(module, command, player, args)
         Directives.onAsk(player, args)
     elseif command == Directives.CMD_CLAIM then
         Directives.onClaim(player, args)
-    elseif command == Guard().CMD_HELLO then
-        if not Guard().helloAllowed(player, "Directives") then return end
+    elseif command == LivingKnox.ZombieGuard.CMD_HELLO then
+        if not LivingKnox.ZombieGuard.helloAllowed(player, "Directives") then return end
         Directives.onHello(player)   -- gestes et poses : LivingKnox.Relay.onHello (LK03-T05)
     end
 end

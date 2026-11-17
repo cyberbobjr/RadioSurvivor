@@ -37,8 +37,6 @@ Store.state = Store.state or { data = nil, seq = 0, blocked = false, reason = ni
 -- écriture ; verified = une écriture de la session relue. dirty = changements mineurs (OnSave).
 Store.stats = Store.stats or { marks = 0, writes = 0, verified = 0 }
 
-local function log() return LivingKnox.Log end
-
 function Store.worldKey()
     local w = getWorld()
     return tostring(w:getGameMode()) .. "/" .. tostring(w:getWorld())
@@ -145,7 +143,7 @@ end
 local function block(reason)
     Store.state.blocked = true
     Store.state.reason = reason
-    log().error("registry BLOCKED: %s; files kept for recovery (%s-0.txt, -1.txt)", reason,
+    LivingKnox.Log.error("registry BLOCKED: %s; files kept for recovery (%s-0.txt, -1.txt)", reason,
         tostring(Store.state.path))
     return false
 end
@@ -168,13 +166,13 @@ function Store.init(newWorld)
     if b and b.seq > lastSeq then lastSeq = b.seq end
     if newWorld then
         st.data, st.seq = LivingKnox.Identity.newRegistry(), lastSeq
-        log().info("registry: new world, empty registry")
+        LivingKnox.Log.info("registry: new world, empty registry")
         return Store.save()
     end
     if not best then
         if existsA or existsB then return block("both registry files are unreadable") end
         st.data, st.seq = LivingKnox.Identity.newRegistry(), 0
-        log().info("registry: no file yet, empty registry")
+        LivingKnox.Log.info("registry: no file yet, empty registry")
         return true
     end
     local from = LivingKnox.Identity.upgrade(best.data)
@@ -186,9 +184,9 @@ function Store.init(newWorld)
     st.data, st.seq = data, best.seq
     local count = 0
     for _ in pairs(data.npcs) do count = count + 1 end
-    log().info("registry loaded: %s npc(s), file #%s", tostring(count), tostring(best.seq))
+    LivingKnox.Log.info("registry loaded: %s npc(s), file #%s", tostring(count), tostring(best.seq))
     if from then
-        log().info("registry migrated from schema %s to %s", tostring(from), tostring(LivingKnox.Identity.SCHEMA))
+        LivingKnox.Log.info("registry migrated from schema %s to %s", tostring(from), tostring(LivingKnox.Identity.SCHEMA))
         return Store.save()
     end
     return true

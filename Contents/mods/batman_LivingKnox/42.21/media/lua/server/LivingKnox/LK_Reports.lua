@@ -65,13 +65,8 @@ Reports.stats = Reports.stats or { received = 0, accepted = 0, rejected = 0, ign
 Reports.GONE = { unknown = true, dead = true, virtual = true }   -- états de Bodies.find : plus de corps à suivre
 
 local function cfg() return LivingKnox.Config.REPORTS end
-local function log() return LivingKnox.Log end
-local function D() return LivingKnox.Directives end
-local function Bodies() return LivingKnox.Bodies end
 
 local function now() return getTimestampMs() end
-
-local function finite(v) return type(v) == "number" and v == v and v > -1e9 and v < 1e9 end
 
 -- Raisons suspectes (WARN) ; les autres sont des courses attendues du réseau (INFO).
 Reports.SUSPECT = { ["bad report"] = true, ["out of bounds"] = true, ["not the owner"] = true,
@@ -98,7 +93,7 @@ local function reject(name, id, reason, detail, absent)
     local last = Reports.warned[key]
     if last == nil or now() - last >= cfg().WARN_EVERY_MS then
         Reports.warned[key] = now()
-        local say = Reports.SUSPECT[reason] and log().warn or log().info
+        local say = Reports.SUSPECT[reason] and LivingKnox.Log.warn or LivingKnox.Log.info
         say("state report on npc %s from %s refused: %s%s", tostring(id), tostring(name), reason,
             detail and (" (" .. detail .. ")") or "")
     end
@@ -133,7 +128,7 @@ local function ignore(name, id, reason)
     local last = Reports.warned[key]
     if last == nil or now() - last >= cfg().WARN_EVERY_MS then
         Reports.warned[key] = now()
-        log().info("state report on npc %s from %s ignored: %s", tostring(id), tostring(name), reason)
+        LivingKnox.Log.info("state report on npc %s from %s ignored: %s", tostring(id), tostring(name), reason)
     end
     return false, reason
 end
@@ -164,8 +159,10 @@ end
 -- Forme et bornes d'un rapport. Rend nil, ou la raison et un détail.
 local function badShape(args)
     if type(args) ~= "table" or type(args.id) ~= "string" or type(args.l) ~= "number" or args.l < 0
-        or type(args.n) ~= "number" or not finite(args.x) or not finite(args.y) or not finite(args.z)
-        or not finite(args.a) or not finite(args.hp) or type(args.act) ~= "string" or type(args.pose) ~= "string" then
+        or type(args.n) ~= "number" or not LivingKnox.Num.finite(args.x) or not LivingKnox.Num.finite(args.y)
+            or not LivingKnox.Num.finite(args.z)
+        or not LivingKnox.Num.finite(args.a) or not LivingKnox.Num.finite(args.hp) or type(args.act) ~= "string"
+            or type(args.pose) ~= "string" then
         return "bad report"
     end
     local c = cfg()
@@ -185,7 +182,7 @@ end
 
 -- Bail (LK03-T01) : rend nil si le rapport est sous le bail courant de son expéditeur, sinon la raison et un détail.
 local function badLease(id, args, name)
-    local Dir = D()
+    local Dir = LivingKnox.Directives
     local e = Dir.entries[id]
     if e == nil then
         if args.l == 0 then return nil end
@@ -204,7 +201,7 @@ end
 -- Plausibilité face à la copie du serveur z et au dernier état accepté s. Rend nil, ou la raison et un détail.
 local function implausible(id, args, z, s)
     local c = cfg()
-    local Dir = D()
+    local Dir = LivingKnox.Directives
     local gap = Dir.dist(args.x, args.y, z:getX(), z:getY())
     if gap > c.MAX_GAP then return "far from the body", string.format("%.1f squares", gap) end
     local lgap = math.abs(args.z - z:getZ())
@@ -242,12 +239,12 @@ function Reports.onReport(player, args)
     if not LivingKnox.isAuthority() then return false, "not the authority" end
     local st = Reports.stats
     st.received = st.received + 1
-    local Dir = D()
+    local Dir = LivingKnox.Directives
     local name = Dir.senderName(player)
     local id = type(args) == "table" and args.id or nil
     local bad, detail = badShape(args)
     if bad then return reject(name, id, bad, detail) end
-    local z, where = Bodies().find(id)
+    local z, where = LivingKnox.Bodies.find(id)
     if z == nil then
         if Reports.GONE[where] then Reports.forget(id) end
         return rejectAbsent(name, id, tostring(where))
@@ -273,7 +270,7 @@ function Reports.onReport(player, args)
         st.healed = st.healed + 1
     end
     if s ~= nil and s.by ~= name then
-        log().info("npc %s: state now reported by %s (was %s)", id, name, tostring(s.by))
+        LivingKnox.Log.info("npc %s: state now reported by %s (was %s)", id, name, tostring(s.by))
     end
     Reports.lastN[id] = { by = name, l = args.l, n = args.n }
     Reports.states[id] = { x = args.x, y = args.y, z = args.z, a = args.a, act = args.act, hp = args.hp,
@@ -287,7 +284,8 @@ end
 
 -- Soin connu de l'autorité (LK07-T03) : la santé rapportée pourra remonter d'autant. Rend vrai si noté.
 function Reports.noteHeal(id, amount)
-    if not LivingKnox.isAuthority() or type(id) ~= "string" or not finite(amount) or amount <= 0 then return false end
+    if not LivingKnox.isAuthority() or type(id) ~= "string" or not LivingKnox.Num.finite(amount)
+        or amount <= 0 then return false end
     Reports.heals[id] = (Reports.heals[id] or 0) + amount
     return true
 end
@@ -297,7 +295,7 @@ end
 function Reports.get(id)
     local s = Reports.states[id]
     if s == nil then return nil end
-    local z, where = Bodies().find(id)
+    local z, where = LivingKnox.Bodies.find(id)
     if z == nil and Reports.GONE[where] then
         Reports.forget(id)
         return nil
@@ -324,7 +322,7 @@ end
 
 -- Entrée en partie d'un joueur (nouvel état Lua, numéros n repartis de 1) : ses derniers numéros sont oubliés.
 function Reports.onHello(player)
-    local name = D().senderName(player)
+    local name = LivingKnox.Directives.senderName(player)
     for _, last in pairs(Reports.lastN) do
         if last.by == name then last.n = -1 end
     end

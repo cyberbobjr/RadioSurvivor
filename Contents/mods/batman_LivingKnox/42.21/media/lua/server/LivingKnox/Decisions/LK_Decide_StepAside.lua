@@ -35,14 +35,11 @@ StepAside.orders = StepAside.orders or {}   -- bloqueur -> { to, action, mover, 
 StepAside.state = StepAside.state or { lastCheck = 0 }
 StepAside.stats = StepAside.stats or { ordered = 0, passed = 0, timeout = 0, left = 0, resumed = 0 }
 
-local function log() return LivingKnox.Log end
 local function now() return getTimestampMs() end
-local function B() return LivingKnox.Bodies end
-local function D() return LivingKnox.Directives end
 
 -- Consigne ouverte du PNJ id emise hors du cadre de decision (suite de test, API, autre module), ou nil.
 local function foreignOpen(id)
-    local e = D().get(id)
+    local e = LivingKnox.Directives.get(id)
     if e == nil or e.done or Decisions.ownOpen(id) ~= nil then return nil end
     return e
 end
@@ -56,29 +53,29 @@ end
 -- moverId. Rend vrai, ou faux et la raison.
 function StepAside.order(id, decision, moverId)
     if StepAside.orders[id] ~= nil then return false, "already stepping aside" end
-    local body = B().find(id)
+    local body = LivingKnox.Bodies.find(id)
     if body == nil then return false, "no body" end
     local foreign = foreignOpen(id)
     local o = { to = decision.to, action = decision.action, mover = moverId, ms = now(),
         from = { x = math.floor(body:getX()), y = math.floor(body:getY()), z = math.floor(body:getZ()) },
         member = Decisions.get(id) ~= nil and foreign == nil }
-    local mz = B().find(moverId)
+    local mz = LivingKnox.Bodies.find(moverId)
     if mz ~= nil then o.start = { x = mz:getX(), y = mz:getY() } end
     if not o.member then
-        if foreign ~= nil and foreign.op == D().OP_MOVE then
+        if foreign ~= nil and foreign.op == LivingKnox.Directives.OP_MOVE then
             o.resume = { x = foreign.x, y = foreign.y, z = foreign.z, g = foreign.g }
         else
             o.resume = { x = o.from.x, y = o.from.y, z = o.from.z, g = "walk" }
         end
     end
     local aim = decision.aim or decision.to
-    local v, why = D().moveTo(id, aim.x, aim.y, aim.z, "walk")
+    local v, why = LivingKnox.Directives.moveTo(id, aim.x, aim.y, aim.z, "walk")
     if v == nil then return false, why end
     if o.member then Decisions.noteIssued(id, v) end
     o.v = v
     StepAside.orders[id] = o
     StepAside.stats.ordered = StepAside.stats.ordered + 1
-    log().info("npc %s: %s to %d,%d,%d for %s (%s)", id, tostring(o.action), o.to.x, o.to.y, o.to.z, moverId,
+    LivingKnox.Log.info("npc %s: %s to %d,%d,%d for %s (%s)", id, tostring(o.action), o.to.x, o.to.y, o.to.z, moverId,
         o.member and "decision frame resumes after" or "move resumed after")
     return true
 end
@@ -96,8 +93,8 @@ end
 -- Raison de finir l'ordre o a l'instant t ("timeout", "passed"), ou nil.
 function StepAside.endOf(o, t)
     if t - o.ms >= StepAside.HOLD_MS then return "timeout" end
-    local mz = B().find(o.mover)
-    local e = D().get(o.mover)
+    local mz = LivingKnox.Bodies.find(o.mover)
+    local e = LivingKnox.Directives.get(o.mover)
     local open = mz ~= nil and e ~= nil and not e.done
     if StepAside.passed(o, mz and mz:getX() or nil, mz and mz:getY() or nil, open) then return "passed" end
     return nil
@@ -111,9 +108,9 @@ function StepAside.finish(id, why)
     StepAside.orders[id] = nil
     StepAside.stats[why] = (StepAside.stats[why] or 0) + 1
     local resumed = "behaviour resumed by the decision frame"
-    if o.resume ~= nil and B().find(id) ~= nil then
+    if o.resume ~= nil and LivingKnox.Bodies.find(id) ~= nil then
         local r = o.resume
-        local v, rwhy = D().moveTo(id, r.x, r.y, r.z, r.g)
+        local v, rwhy = LivingKnox.Directives.moveTo(id, r.x, r.y, r.z, r.g)
         if v ~= nil then
             StepAside.stats.resumed = StepAside.stats.resumed + 1
             resumed = string.format("move to %d,%d,%d resumed (#%d)", r.x, r.y, r.z, v)
@@ -121,7 +118,7 @@ function StepAside.finish(id, why)
             resumed = "move not resumed: " .. tostring(rwhy)
         end
     end
-    log().info("npc %s: stepped aside for %s, %s after %d ms, %s", id, tostring(o.mover), why, now() - o.ms, resumed)
+    LivingKnox.Log.info("npc %s: stepped aside for %s, %s after %d ms, %s", id, tostring(o.mover), why, now() - o.ms, resumed)
     return true
 end
 

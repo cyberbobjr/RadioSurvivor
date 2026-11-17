@@ -76,19 +76,10 @@ Routines.stats = Routines.stats or { surveys = 0, notLoaded = 0, moves = 0, face
 Routines.stats.meals = Routines.stats.meals or 0        -- LK05-T07 : objets pris pour un repas
 Routines.stats.fasts = Routines.stats.fasts or 0        -- LK05-T07 : besoins mis de côté (rien à prendre)
 
-local function log() return LivingKnox.Log end
 local function cfg() return Routines.CFG end
-local function Decisions() return LivingKnox.Decisions end
-local function Groups() return LivingKnox.Groups end
 local function now() return getTimestampMs() end
 
-local function isInt(v, lo, hi)
-    return type(v) == "number" and v == v and math.floor(v) == v and v >= lo and v <= hi
-end
-
-local function cheb(ax, ay, bx, by) return math.max(math.abs(ax - bx), math.abs(ay - by)) end
-
-local function leash() return Decisions().CFG.HOME_RADIUS end
+local function leash() return LivingKnox.Decisions.CFG.HOME_RADIUS end
 
 -- ================================================================ heures (pur)
 
@@ -96,14 +87,14 @@ function Routines.hourOfDay(hour) return (hour + 7) % 24 end
 
 -- "night", "dawn" ou "day" à l'heure d'âge hour (nuit de Config.SIMULATION, comme le cadre de décision).
 function Routines.period(hour)
-    if Decisions().isNight(hour) then return "night" end
+    if LivingKnox.Decisions.isNight(hour) then return "night" end
     if Routines.hourOfDay(hour) < cfg().DAWN_END then return "dawn" end
     return "day"
 end
 
 -- Heure dans le quart (0 = première heure du quart).
 function Routines.hourInWatch(hour)
-    local c = Decisions().CFG
+    local c = LivingKnox.Decisions.CFG
     return (hour + 7 + 24 - c.WATCH_START) % c.WATCH_HOURS
 end
 
@@ -148,7 +139,7 @@ local function roundAround(cell, home, x1, y1, x2, y2)
         for _, m in ipairs(cfg().ROUND_MARGINS) do
             local x, y = s[1] + s[2] * m, s[3] + s[4] * m
             local sq = cell:getGridSquare(x, y, home.z)
-            if standable(sq) and buildingId(sq) == nil and cheb(x, y, home.x, home.y) <= leash() then
+            if standable(sq) and buildingId(sq) == nil and LivingKnox.Geo.cheb(x, y, home.x, home.y) <= leash() then
                 local last = out[#out]
                 if last == nil or last.x ~= x or last.y ~= y then out[#out + 1] = { x = x, y = y, z = home.z } end
                 break
@@ -180,32 +171,29 @@ function Routines.survey(home)
     end
     local posts, beds, used = {}, {}, {}
     local x1, y1, x2, y2
-    for dy = -R, R do
-        for dx = -R, R do
-            local x, y = home.x + dx, home.y + dy
-            local sq = cell:getGridSquare(x, y, home.z)
-            if sq ~= nil and buildingId(sq) == bid then
-                if x1 == nil or x < x1 then x1 = x end
-                if x2 == nil or x > x2 then x2 = x end
-                if y1 == nil or y < y1 then y1 = y end
-                if y2 == nil or y > y2 then y2 = y end
-                local q = Routines.bedQuality(sq)
-                if q ~= nil then
-                    beds[#beds + 1] = { x = x, y = y, q = q, rank = -q, d = cheb(x, y, home.x, home.y) }
-                elseif standable(sq) then
-                    for _, d in ipairs(DIRS) do
-                        local nb = cell:getGridSquare(x + d[1], y + d[2], home.z)
-                        if nb ~= nil and buildingId(nb) ~= bid then
-                            local kind
-                            if sq:getDoorTo(nb) ~= nil then
-                                kind = "door"
-                            elseif sq:getWindowTo(nb) ~= nil or sq:getWindowThumpableTo(nb) ~= nil then
-                                kind = "window"
-                            end
-                            if kind ~= nil then
-                                posts[#posts + 1] = { x = x, y = y, z = home.z, a = d[3], k = kind,
-                                    rank = kind == "door" and 1 or 2, d = cheb(x, y, home.x, home.y) }
-                            end
+    for x, y in LivingKnox.Geo.squaresAround(home.x, home.y, R) do
+        local sq = cell:getGridSquare(x, y, home.z)
+        if sq ~= nil and buildingId(sq) == bid then
+            if x1 == nil or x < x1 then x1 = x end
+            if x2 == nil or x > x2 then x2 = x end
+            if y1 == nil or y < y1 then y1 = y end
+            if y2 == nil or y > y2 then y2 = y end
+            local q = Routines.bedQuality(sq)
+            if q ~= nil then
+                beds[#beds + 1] = { x = x, y = y, q = q, rank = -q, d = LivingKnox.Geo.cheb(x, y, home.x, home.y) }
+            elseif standable(sq) then
+                for _, d in ipairs(DIRS) do
+                    local nb = cell:getGridSquare(x + d[1], y + d[2], home.z)
+                    if nb ~= nil and buildingId(nb) ~= bid then
+                        local kind
+                        if sq:getDoorTo(nb) ~= nil then
+                            kind = "door"
+                        elseif sq:getWindowTo(nb) ~= nil or sq:getWindowThumpableTo(nb) ~= nil then
+                            kind = "window"
+                        end
+                        if kind ~= nil then
+                            posts[#posts + 1] = { x = x, y = y, z = home.z, a = d[3], k = kind,
+                                rank = kind == "door" and 1 or 2, d = LivingKnox.Geo.cheb(x, y, home.x, home.y) }
                         end
                     end
                 end
@@ -236,7 +224,7 @@ function Routines.survey(home)
         if #out.beds >= cfg().MAX_BEDS then break end
         local same = false
         for _, c in ipairs(chosen) do
-            if cheb(b.x, b.y, c.x, c.y) <= 1 then same = true end
+            if LivingKnox.Geo.cheb(b.x, b.y, c.x, c.y) <= 1 then same = true end
         end
         if not same then
             chosen[#chosen + 1] = b
@@ -262,14 +250,14 @@ local function validList(list, max, check)
     if type(list) ~= "table" then return false end
     local n = 0
     for k in pairs(list) do
-        if not isInt(k, 1, max) then return false end
+        if not LivingKnox.Num.isInt(k, 1, max) then return false end
         n = n + 1
     end
     if list[n] == nil and n > 0 then return false end
     for i = 1, n do
         local e = list[i]
-        if type(e) ~= "table" or not isInt(e.x, 0, 2147483647) or not isInt(e.y, 0, 2147483647)
-            or not isInt(e.z, -32, 31) or not check(e) then
+        if type(e) ~= "table" or not LivingKnox.Num.isInt(e.x, 0, 2147483647) or not LivingKnox.Num.isInt(e.y, 0, 2147483647)
+            or not LivingKnox.Num.isInt(e.z, -32, 31) or not check(e) then
             return false
         end
     end
@@ -282,13 +270,14 @@ function Routines.validPosts(p, home)
     if p.camp ~= nil and p.camp ~= true then return false, "bad camp flag" end
     local c = cfg()
     if not validList(p.posts, c.MAX_POSTS, function(e)
-        return isInt(e.a, 0, 359) and Routines.POST_KINDS[e.k] == true
+        return LivingKnox.Num.isInt(e.a, 0, 359) and Routines.POST_KINDS[e.k] == true
     end) then
         return false, "bad posts"
     end
     if not validList(p.round, c.MAX_ROUND, function() return true end) then return false, "bad round" end
     if not validList(p.beds, c.MAX_BEDS, function(e)
-        return isInt(e.bx, 0, 2147483647) and isInt(e.by, 0, 2147483647) and isInt(e.a, 0, 359) and isInt(e.q, 1, 4)
+        return LivingKnox.Num.isInt(e.bx, 0, 2147483647) and LivingKnox.Num.isInt(e.by, 0, 2147483647)
+            and LivingKnox.Num.isInt(e.a, 0, 359) and LivingKnox.Num.isInt(e.q, 1, 4)
     end) then
         return false, "bad beds"
     end
@@ -323,12 +312,12 @@ function Routines.ensurePosts(gid, g)
     local p, notLoaded = Routines.survey(home)
     if p == nil then
         Routines.stats.notLoaded = Routines.stats.notLoaded + 1
-        log().debug("group %s: home survey postponed: %s", gid, tostring(notLoaded))
+        LivingKnox.Log.debug("group %s: home survey postponed: %s", gid, tostring(notLoaded))
         return nil
     end
-    p.day = Groups().today()
-    if g.posts ~= nil then log().warn("group %s: home survey redone (%s)", gid, tostring(why)) end
-    Groups().update(function(data)
+    p.day = LivingKnox.Groups.today()
+    if g.posts ~= nil then LivingKnox.Log.warn("group %s: home survey redone (%s)", gid, tostring(why)) end
+    LivingKnox.Groups.update(function(data)
         local live = data.groups[gid]
         if live == nil then return false end
         live.posts = p
@@ -337,14 +326,14 @@ function Routines.ensurePosts(gid, g)
     g.posts = p   -- g peut être une copie : même relevé que le registre
     st.valid[gid] = key
     Routines.stats.surveys = Routines.stats.surveys + 1
-    log().info("group %s home %s surveyed: %s", gid, key, summary(p))
+    LivingKnox.Log.info("group %s home %s surveyed: %s", gid, key, summary(p))
     return p
 end
 
 -- Oublie le relevé d'un groupe (foyer modifié, essais) : il sera refait au prochain passage. Rend vrai si oublié.
 function Routines.resurvey(gid)
     Routines.state.valid[gid], Routines.state.tried[gid] = nil, nil
-    local done = Groups().update(function(data)
+    local done = LivingKnox.Groups.update(function(data)
         local live = data.groups[gid]
         if live == nil or live.posts == nil then return false, false end
         live.posts = nil
@@ -365,7 +354,7 @@ function Routines.present(g)
     for mid, m in pairs(g.members) do
         if m.alive and not away[mid] then out[#out + 1] = mid end
     end
-    local G = Groups()
+    local G = LivingKnox.Groups
     table.sort(out, function(a, b) return (G.memberNumber(a) or 0) < (G.memberNumber(b) or 0) end)
     return out
 end
@@ -391,7 +380,7 @@ function Routines.postFor(posts, g, mid, hour)
     local list = type(posts) == "table" and posts.posts or nil
     if type(list) ~= "table" or #list == 0 then return nil end
     local i = rankOf(Routines.sentries(g), mid) or 1
-    return list[((Decisions().watchOf(hour) + i - 1) % #list) + 1]
+    return list[((LivingKnox.Decisions.watchOf(hour) + i - 1) % #list) + 1]
 end
 
 -- Point de départ de la ronde du guetteur mid (guetteurs répartis sur la boucle).
@@ -426,8 +415,8 @@ function Routines.bedFor(posts, g, mid)
     return list[r]
 end
 
--- Outils de tri et de voisinage partagés avec les corvées (LK_Routine_Chores.lua).
-Routines.cheb, Routines.byPlace, Routines.rankOf = cheb, byPlace, rankOf
+-- Outils de tri partagés avec les corvées (LK_Routine_Chores.lua).
+Routines.byPlace, Routines.rankOf = byPlace, rankOf
 
 -- ================================================================ registre des activités (LK15-T02, ADR D04)
 
@@ -480,7 +469,7 @@ end
 -- Routine du comportement st.b pour le membre id : les activités de ce comportement, par ordre ; la première qui rend
 -- vrai l'emporte. Groupe absent : rien. Aucun module ni comportement n'est nommé ici.
 function Routines.apply(id, st, ctx, fresh)
-    local data = Groups().state.data
+    local data = LivingKnox.Groups.state.data
     local g = data ~= nil and data.groups[ctx.gid] or nil
     if g == nil then return end
     for _, a in ipairs(Routines.activities) do

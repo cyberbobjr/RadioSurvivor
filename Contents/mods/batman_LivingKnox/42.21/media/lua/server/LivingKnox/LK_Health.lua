@@ -104,14 +104,8 @@ Health.stats.bleedStops = Health.stats.bleedStops or 0      -- LK07-T03 : saigne
 
 local function cfg() return LivingKnox.Config.HEALTH end
 local function bcfg() return LivingKnox.Config.BLEEDING end
-local function log() return LivingKnox.Log end
-local function Identity() return LivingKnox.Identity end
-local function Store() return LivingKnox.Store end
-local function Bodies() return LivingKnox.Bodies end
-local function D() return LivingKnox.Directives end
 
 local function now() return getTimestampMs() end
-local function finite(v) return type(v) == "number" and v == v and v > -1e9 and v < 1e9 end
 local function round3(v) return math.floor(v * 1000 + 0.5) / 1000 end
 
 local function isPlayer(o)
@@ -134,7 +128,7 @@ local function note(name, id, reason, detail)
     local last = Health.warned[key]
     if last ~= nil and now() - last < cfg().WARN_EVERY_MS then return end
     Health.warned[key] = now()
-    local say = Health.SUSPECT[reason] and log().warn or log().info
+    local say = Health.SUSPECT[reason] and LivingKnox.Log.warn or LivingKnox.Log.info
     say("hit on npc %s by %s refused: %s%s", tostring(id), tostring(name), reason,
         detail and (" (" .. detail .. ")") or "")
 end
@@ -149,17 +143,17 @@ end
 
 -- PNJ du registre (table vivante) ou nil.
 local function npcOf(id)
-    if not Store().isReady() then return nil end
-    return Identity().get(Store().data(), id)
+    if not LivingKnox.Store.isReady() then return nil end
+    return LivingKnox.Identity.get(LivingKnox.Store.data(), id)
 end
 
 -- Identifiant du PNJ dont z est le corps courant relié (Bodies.bound), ou nil.
 function Health.currentId(z)
     if z == nil or not instanceof(z, "IsoZombie") or z:isDead() or not z:hasModData() then return nil end
-    if not Store().isReady() then return nil end
-    local id = Identity().readTag(z:getModData())
+    if not LivingKnox.Store.isReady() then return nil end
+    local id = LivingKnox.Identity.readTag(z:getModData())
     if not id then return nil end
-    local B = Bodies()
+    local B = LivingKnox.Bodies
     if B == nil or not rawequal(B.bound[id], z) then return nil end
     return id
 end
@@ -190,10 +184,10 @@ local function touch(id)
 end
 
 local function fullOf(npc, z)
-    if Identity().validHealth(npc.hpMax) and npc.hpMax > 0 then return npc.hpMax end
+    if LivingKnox.Identity.validHealth(npc.hpMax) and npc.hpMax > 0 then return npc.hpMax end
     if z ~= nil then
         local h = z:getHealth()
-        if Identity().validHealth(h) and h > 0 then return h end
+        if LivingKnox.Identity.validHealth(h) and h > 0 then return h end
     end
     return nil
 end
@@ -207,15 +201,15 @@ function Health.bodyBound(id, z)
     Health.decided[id] = nil
     local full = fullOf(npc, z)
     local hp = npc.hp
-    if not Identity().validHealth(hp) or hp <= 0 then
+    if not LivingKnox.Identity.validHealth(hp) or hp <= 0 then
         hp = z:getHealth()
-        if not Identity().validHealth(hp) or hp <= 0 then hp = full end
+        if not LivingKnox.Identity.validHealth(hp) or hp <= 0 then hp = full end
     end
     if hp == nil then return nil end
     if full ~= nil and hp > full then hp = full end
     if npc.hp ~= hp then
         npc.hp = hp
-        Store().markDirty()
+        LivingKnox.Store.markDirty()
     end
     touch(id)
     return hp
@@ -223,11 +217,11 @@ end
 
 -- Santé de naissance décidée par l'autorité (matérialisation d'un membre, LK09-T03). Rend vrai si posée.
 function Health.setBirth(id, hp)
-    if not LivingKnox.isAuthority() or not Identity().validHealth(hp) or hp <= 0 then return false end
+    if not LivingKnox.isAuthority() or not LivingKnox.Identity.validHealth(hp) or hp <= 0 then return false end
     local npc = npcOf(id)
-    if npc == nil or npc.state ~= Identity().STATE_EMBODIED then return false end
+    if npc == nil or npc.state ~= LivingKnox.Identity.STATE_EMBODIED then return false end
     npc.hp = hp
-    Store().markDirty()
+    LivingKnox.Store.markDirty()
     touch(id)
     return true
 end
@@ -235,7 +229,8 @@ end
 -- Santé de référence du PNJ incarné id, ou nil (inconnue, PNJ virtuel ou mort).
 function Health.reference(id)
     local npc = npcOf(id)
-    if npc == nil or npc.state ~= Identity().STATE_EMBODIED or not Identity().validHealth(npc.hp) then return nil end
+    if npc == nil or npc.state ~= LivingKnox.Identity.STATE_EMBODIED
+        or not LivingKnox.Identity.validHealth(npc.hp) then return nil end
     return npc.hp
 end
 
@@ -243,12 +238,12 @@ end
 -- ou nil.
 function Health.get(id)
     local npc = npcOf(id)
-    if npc == nil or not Identity().validHealth(npc.hp) then return nil end
+    if npc == nil or not LivingKnox.Identity.validHealth(npc.hp) then return nil end
     local wounds = {}
     if type(npc.wounds) == "table" then
         for i, w in ipairs(npc.wounds) do wounds[i] = { p = w.p, d = w.d } end
     end
-    return { hp = npc.hp, max = npc.hpMax, dead = npc.state == Identity().STATE_DEAD, wounds = wounds,
+    return { hp = npc.hp, max = npc.hpMax, dead = npc.state == LivingKnox.Identity.STATE_DEAD, wounds = wounds,
         bleed = Health.bleeding(id) }
 end
 
@@ -258,21 +253,21 @@ end
 function Health.bleeding(id)
     local npc = npcOf(id)
     local b = npc and npc.bleed
-    if not finite(b) or b <= 0 then return 0 end
+    if not LivingKnox.Num.finite(b) or b <= 0 then return 0 end
     return b
 end
 
 -- Blessure de amount (non mortelle) sur le PNJ npc : saignement augmenté. Rend le nouveau saignement.
 local function startBleeding(id, npc, amount)
     local full = fullOf(npc, nil)
-    if full == nil or full <= 0 or not finite(amount) or amount <= 0 then return nil end
+    if full == nil or full <= 0 or not LivingKnox.Num.finite(amount) or amount <= 0 then return nil end
     local c = bcfg()
     local b = Health.bleeding(id) + c.PER_DAMAGE * amount / full
     if b > c.MAX then b = c.MAX end
     if b < c.STOP then return nil end
     if (npc.bleed or 0) <= 0 then Health.stats.bleeds = Health.stats.bleeds + 1 end
     npc.bleed = math.floor(b * 1e6 + 0.5) / 1e6
-    log().info("npc %s is bleeding: %.4f of full health per hour", id, npc.bleed)
+    LivingKnox.Log.info("npc %s is bleeding: %.4f of full health per hour", id, npc.bleed)
     return npc.bleed
 end
 
@@ -282,11 +277,11 @@ function Health.stopBleeding(id, why)
     local b = Health.bleeding(id)
     if npc == nil or npc.bleed == nil then return b end
     npc.bleed = nil
-    Store().markDirty()
+    LivingKnox.Store.markDirty()
     touch(id)
     if b > 0 then
         Health.stats.bleedStops = Health.stats.bleedStops + 1
-        log().info("npc %s stopped bleeding (%s)", id, tostring(why or "care"))
+        LivingKnox.Log.info("npc %s stopped bleeding (%s)", id, tostring(why or "care"))
     end
     return b
 end
@@ -296,14 +291,14 @@ local function gameMinute()
     local gt = getGameTime and getGameTime()
     if gt == nil then return nil end
     local h = gt:getWorldAgeHours()
-    if not finite(h) or h < 0 then return nil end
+    if not LivingKnox.Num.finite(h) or h < 0 then return nil end
     return math.floor(h * 60 + 0.5)
 end
 
 -- Perte de sang des corps reliés depuis le dernier passage (minutes manquées rattrapées, au plus STEP_MAX). Mort
 -- décidée par Health.kill quand la référence atteint 0. Rend le nombre de PNJ qui saignent encore.
 function Health.bleedPass(minute)
-    if not LivingKnox.isAuthority() or not Store().isReady() then return 0 end
+    if not LivingKnox.isAuthority() or not LivingKnox.Store.isReady() then return 0 end
     minute = minute or gameMinute()
     if minute == nil then return 0 end
     local st = Health.state
@@ -312,7 +307,7 @@ function Health.bleedPass(minute)
     if last == nil or minute <= last then return 0 end
     local c = bcfg()
     local steps = math.min(minute - last, c.STEP_MAX)
-    local B = Bodies()
+    local B = LivingKnox.Bodies
     if B == nil then return 0 end
     local ids = {}
     for id in pairs(B.bound) do ids[#ids + 1] = id end
@@ -323,8 +318,8 @@ function Health.bleedPass(minute)
         local npc = npcOf(id)
         local b = Health.bleeding(id)
         -- Corps mis de côté (chunk déchargé, encore dans Bodies.bound) : saignement suspendu (LK07-T04).
-        if b > 0 and z ~= nil and B.inWorld(z) and npc ~= nil and npc.state == Identity().STATE_EMBODIED
-            and not Health.decided[id] and Identity().validHealth(npc.hp) then
+        if b > 0 and z ~= nil and B.inWorld(z) and npc ~= nil and npc.state == LivingKnox.Identity.STATE_EMBODIED
+            and not Health.decided[id] and LivingKnox.Identity.validHealth(npc.hp) then
             local full = fullOf(npc, z) or npc.hp
             local loss = b * full * steps / 60
             local hp = npc.hp - loss
@@ -332,16 +327,16 @@ function Health.bleedPass(minute)
             npc.hp = round3(hp)
             if npc.hp <= 0 and hp > 0 then npc.hp = 0.001 end
             local nb = b * math.exp(-0.6931471805599453 * steps / (60 * c.HALF_HOURS))   -- 0,5 ^ (h / HALF_HOURS)
-            Store().markDirty()
+            LivingKnox.Store.markDirty()
             touch(id)
             if hp <= 0 then
                 Health.stats.bleedDeaths = Health.stats.bleedDeaths + 1
-                log().info("npc %s bled to death (bleeding %.4f per hour)", id, b)
+                LivingKnox.Log.info("npc %s bled to death (bleeding %.4f per hour)", id, b)
                 Health.kill(id, z, nil, nil, "bleeding")
             elseif nb < c.STOP then
                 npc.bleed = nil
                 Health.stats.bleedStops = Health.stats.bleedStops + 1
-                log().info("npc %s stopped bleeding on its own, health %.3f", id, npc.hp)
+                LivingKnox.Log.info("npc %s stopped bleeding on its own, health %.3f", id, npc.hp)
             else
                 npc.bleed = math.floor(nb * 1e6 + 0.5) / 1e6
                 left = left + 1
@@ -353,19 +348,19 @@ end
 
 -- Soin connu de l'autorité (LK07-T03) : seule hausse de la référence, jusqu'à hpMax. Rend la nouvelle santé, ou nil.
 function Health.noteHeal(id, amount)
-    if not LivingKnox.isAuthority() or not finite(amount) or amount <= 0 then return nil end
+    if not LivingKnox.isAuthority() or not LivingKnox.Num.finite(amount) or amount <= 0 then return nil end
     local npc = npcOf(id)
-    if npc == nil or npc.state ~= Identity().STATE_EMBODIED or Health.decided[id] then return nil end
-    if not Identity().validHealth(npc.hp) then return nil end
+    if npc == nil or npc.state ~= LivingKnox.Identity.STATE_EMBODIED or Health.decided[id] then return nil end
+    if not LivingKnox.Identity.validHealth(npc.hp) then return nil end
     local hp = npc.hp + amount
     local full = fullOf(npc, nil)
     if full ~= nil and hp > full then hp = full end
-    if hp > Identity().HP_MAX then hp = Identity().HP_MAX end
+    if hp > LivingKnox.Identity.HP_MAX then hp = LivingKnox.Identity.HP_MAX end
     npc.hp = hp
     Health.stats.heals = Health.stats.heals + 1
-    Store().markDirty()
+    LivingKnox.Store.markDirty()
     touch(id)
-    log().info("npc %s healed by %.3f: health %.3f", id, amount, hp)
+    LivingKnox.Log.info("npc %s healed by %.3f: health %.3f", id, amount, hp)
     return hp
 end
 
@@ -376,17 +371,17 @@ end
 function Health.setByAdmin(id, hp, bleed)
     if not LivingKnox.isAuthority() then return nil, "not the authority" end
     local npc = npcOf(id)
-    if npc == nil or npc.state ~= Identity().STATE_EMBODIED or Health.decided[id] then return nil, "npc not embodied" end
+    if npc == nil or npc.state ~= LivingKnox.Identity.STATE_EMBODIED or Health.decided[id] then return nil, "npc not embodied" end
     if hp ~= nil then
-        if not finite(hp) or hp <= 0 or hp > Identity().HP_MAX then return nil, "bad health" end
+        if not LivingKnox.Num.finite(hp) or hp <= 0 or hp > LivingKnox.Identity.HP_MAX then return nil, "bad health" end
         npc.hp = round3(hp)
         if npc.hp <= 0 then npc.hp = 0.001 end
     end
     if bleed ~= nil then
-        if not finite(bleed) or bleed < 0 then return nil, "bad bleeding" end
+        if not LivingKnox.Num.finite(bleed) or bleed < 0 then return nil, "bad bleeding" end
         if bleed > 0 then npc.bleed = math.floor(bleed * 1e6 + 0.5) / 1e6 else npc.bleed = nil end
     end
-    Store().markChanged()
+    LivingKnox.Store.markChanged()
     touch(id)
     return true
 end
@@ -395,7 +390,7 @@ end
 
 local function combat(key, default)
     local ok, v = pcall(function() return getCombatConfig():get(CombatConfigKey[key]) end)
-    if ok and finite(v) then return v end
+    if ok and LivingKnox.Num.finite(v) then return v end
     return default
 end
 
@@ -413,7 +408,7 @@ function Health.soloValue(wielder, weapon, damage)
     if weapon:isExplosive() then return damage end
     local v = damage * combat("NON_PLAYER_RECEIVED_DAMAGE_MULTIPLIER", 1.5) * levelMult(wielder:getWeaponLevel())
     local crit = weapon:getCriticalDamageMultiplier()
-    if not finite(crit) then crit = 0 end
+    if not LivingKnox.Num.finite(crit) then crit = 0 end
     if not weapon:isRanged() and wielder:isAimAtFloor() and not (isPlayer(wielder) and wielder:isDoShove()) then
         v = v * math.max(5, crit)
     end
@@ -452,7 +447,7 @@ local function implausible(id, z, wielder, weapon)
     local dx, dy = wielder:getX() - z:getX(), wielder:getY() - z:getY()
     local dist = math.sqrt(dx * dx + dy * dy)
     local reach = weapon:getMaxRange(wielder)
-    if not finite(reach) or reach < 0 then reach = 0 end
+    if not LivingKnox.Num.finite(reach) or reach < 0 then reach = 0 end
     reach = reach + (ranged and c.RANGED_SLACK or c.MELEE_SLACK)
     if dist > reach then return "out of reach", string.format("%.1f squares, reach %.1f", dist, reach) end
     local dz = math.abs(wielder:getZ() - z:getZ())
@@ -469,7 +464,7 @@ end
 function Health.judge(id, z, wielder, weapon, damage)
     local name = nameOf(wielder)
     if weapon == nil or wielder == nil then return refuse(name, id, "bad damage", "no weapon or attacker") end
-    if not finite(damage) or damage < 0 then return refuse(name, id, "bad damage", tostring(damage)) end
+    if not LivingKnox.Num.finite(damage) or damage < 0 then return refuse(name, id, "bad damage", tostring(damage)) end
     if shoving(wielder) then
         Health.stats.shoves = Health.stats.shoves + 1
         return 0
@@ -489,8 +484,8 @@ end
 function Health.applyHit(id, z, amount, part, wielder, weapon)
     local npc = npcOf(id)
     if npc == nil or Health.decided[id] then return nil end
-    if not Identity().validHealth(npc.hp) then Health.bodyBound(id, z) end
-    if not Identity().validHealth(npc.hp) then return nil end
+    if not LivingKnox.Identity.validHealth(npc.hp) then Health.bodyBound(id, z) end
+    if not LivingKnox.Identity.validHealth(npc.hp) then return nil end
     if amount <= 0 then return npc.hp end
     if amount > npc.hp then amount = npc.hp end   -- borne : la santé restante (blessure notée à sa vraie valeur)
     local hp = npc.hp - amount
@@ -503,9 +498,9 @@ function Health.applyHit(id, z, amount, part, wielder, weapon)
     npc.wounds = wounds
     if hp > 0 then startBleeding(id, npc, amount) end   -- LK07-T03
     Health.stats.applied = Health.stats.applied + 1
-    Store().markDirty()
+    LivingKnox.Store.markDirty()
     touch(id)
-    log().debug("npc %s hit by %s with %s: %.3f, health %.3f", id, nameOf(wielder),
+    LivingKnox.Log.debug("npc %s hit by %s with %s: %.3f, health %.3f", id, nameOf(wielder),
         weapon and tostring(weapon:getFullType()) or "nothing", amount, npc.hp)
     if hp <= 0 then Health.kill(id, z, wielder, weapon) end
     local De = LivingKnox.Decisions   -- LK06-T05 : coup reçu (danger, reddition rompue, appel à l'aide)
@@ -534,8 +529,8 @@ end
 function Health.kill(id, z, wielder, weapon, cause)
     if Health.decided[id] then return false, "death already decided" end
     local npc = npcOf(id)
-    if npc == nil or npc.state ~= Identity().STATE_EMBODIED then return false, "npc not embodied" end
-    local B = Bodies()
+    if npc == nil or npc.state ~= LivingKnox.Identity.STATE_EMBODIED then return false, "npc not embodied" end
+    local B = LivingKnox.Bodies
     if z == nil and B ~= nil then z = B.bound[id] end
     if z == nil or B == nil or not rawequal(B.bound[id], z) or not B.inWorld(z) then
         return false, "body not in the world"
@@ -548,7 +543,7 @@ function Health.kill(id, z, wielder, weapon, cause)
     touch(id)
     Health.stats.deaths = Health.stats.deaths + 1
     if isServer() then Health.flush(id, z) end   -- santé nulle aux destinataires avant le paquet de mort
-    log().info("npc %s: reference health 0, death decided by the authority (%s, %s%s)", id, nameOf(wielder),
+    LivingKnox.Log.info("npc %s: reference health 0, death decided by the authority (%s, %s%s)", id, nameOf(wielder),
         weapon and tostring(weapon:getFullType()) or "no weapon", cause and (", " .. cause) or "")
     Health.makeMortal(z)
     if z:isFakeDead() then z:setFakeDead(false) end   -- un cadavre faux mort se relèverait (sante.md, section 5)
@@ -575,8 +570,8 @@ function Health.onBodyDied(id, z)
     touch(id)
     if decided then return true end
     Health.stats.engineDeaths = Health.stats.engineDeaths + 1
-    log().warn("npc %s died without a decision of the authority (engine death, reference health was %s)", id,
-        finite(before) and string.format("%.3f", before) or "unknown")
+    LivingKnox.Log.warn("npc %s died without a decision of the authority (engine death, reference health was %s)", id,
+        LivingKnox.Num.finite(before) and string.format("%.3f", before) or "unknown")
     if z ~= nil then
         Health.makeMortal(z)
         if z:getHealth() > 0 then z:setHealth(0) end
@@ -614,7 +609,7 @@ end
 
 local function wire(id)
     local npc = npcOf(id)
-    if npc == nil or not Identity().validHealth(npc.hp) then return nil end
+    if npc == nil or not LivingKnox.Identity.validHealth(npc.hp) then return nil end
     return { r = Health.rev[id], hp = round3(npc.hp), mx = npc.hpMax and round3(npc.hpMax) or nil,
         w = type(npc.wounds) == "table" and #npc.wounds or 0 }
 end
@@ -633,7 +628,7 @@ local function sendBatch(batch)
 end
 
 local function collect(batch, id, z)
-    local Dir = D()
+    local Dir = LivingKnox.Directives
     if Dir == nil or Dir.targets == nil or Health.rev[id] == nil then return end
     local targets = Dir.targets(z)
     local e = nil
@@ -663,7 +658,7 @@ end
 -- Passage d'envoi : corps reliés dans le monde, destinataires sans la révision courante. Rend le nombre de messages.
 function Health.sendPass()
     if not isServer() then return 0 end
-    local B = Bodies()
+    local B = LivingKnox.Bodies
     if B == nil then return 0 end
     local batch = {}
     for id, z in pairs(B.bound) do
@@ -676,7 +671,7 @@ end
 
 -- Entrée en partie d'un client ("guardHello") : tout lui est renvoyé au prochain passage.
 function Health.onHello(player)
-    local Dir = D()
+    local Dir = LivingKnox.Directives
     local name = Dir and Dir.senderName and Dir.senderName(player) or nameOf(player)
     Health.sent[name] = nil
 end
@@ -687,7 +682,7 @@ function Health.tick()
     st.ticks = st.ticks + 1
     if st.ticks >= cfg().APPLY_EVERY then
         st.ticks = 0
-        local B = Bodies()
+        local B = LivingKnox.Bodies
         if B ~= nil and getCell() ~= nil then
             for id, z in pairs(B.bound) do
                 if z ~= nil and not z:isDead() and not Health.decided[id] then Health.protect(z) end

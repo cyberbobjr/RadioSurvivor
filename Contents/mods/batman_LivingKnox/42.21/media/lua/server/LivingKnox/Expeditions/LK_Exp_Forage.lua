@@ -15,16 +15,14 @@ local Food = LivingKnox.Food
 
 Ex.FORAGE = Food.KIND   -- identifiant public du genre (lu par la suite en jeu lk.forage)
 
-local function log() return LivingKnox.Log end
-
 -- Zone de cueillette (Food.pickTarget) ; une erreur est notée et laisse la place aux genres suivants.
 local function pickTarget(gid, g)
     local ok, tg, why = pcall(Food.pickTarget, gid, g)
     if not ok then
-        log().error("expedition: group %s foraging place failed: %s", gid, tostring(tg))
+        LivingKnox.Log.error("expedition: group %s foraging place failed: %s", gid, tostring(tg))
         return nil
     end
-    if tg == nil then log().debug("expedition: group %s does not forage: %s", gid, tostring(why)) end
+    if tg == nil then LivingKnox.Log.debug("expedition: group %s does not forage: %s", gid, tostring(why)) end
     return tg, why
 end
 

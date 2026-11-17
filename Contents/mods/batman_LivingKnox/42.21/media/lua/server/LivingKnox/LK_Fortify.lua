@@ -270,9 +270,6 @@ for _, k in ipairs({ "started", "planks", "finished", "skipped", "boxes", "stage
 end
 Fortify.state.needs = Fortify.state.needs or {}   -- LK14-T06 : gid -> besoin de réparation { materials, tools, ... }
 
-local function log() return LivingKnox.Log end
-local function Groups() return LivingKnox.Groups end
-local function Homes() return LivingKnox.Homes end
 local function cfg() return Fortify.CFG end
 
 -- Ports (LK16-T04, A-A20, A-A21) : tout ce que la fortification lit hors d'elle dans le stock, la simulation, les
@@ -315,8 +312,6 @@ local function Stock() return Fortify.ports.stock() end
 -- Fortify.minuteJobs plus bas) : PLAN_MS compté comme si le relevé avait été fait dans l'image de la minute.
 local function now() return Fortify.clockAt or getTimestampMs() end
 local settle   -- LK13-T11 : relevé en file du groupe gid fait tout de suite (défini avec la file, plus bas)
-
-local function cheb(ax, ay, bx, by) return math.max(math.abs(ax - bx), math.abs(ay - by)) end
 
 local function buildingId(sq)
     if sq == nil then return nil end
@@ -448,13 +443,13 @@ end
 -- Relevé du foyer d'un groupe : { gid, style, bid, home, levels, openings, ring, ringKind, bounds, outerSkipped },
 -- ou nil et la raison (zone non chargée...). Lecture seule.
 function Fortify.survey(gid)
-    local G = Groups()
+    local G = LivingKnox.Groups
     if G == nil or not G.isReady() then return nil, "registry not ready" end
     local g = G.get(gid)
     if g == nil then return nil, "unknown group" end
     local home = g.home
     if type(home) ~= "table" then return nil, "no home" end
-    local style, def = Homes().ready(home)
+    local style, def = LivingKnox.Homes.ready(home)
     if style == nil then return nil, def end
     local cell = getCell()
     local c = cfg()
@@ -648,7 +643,7 @@ function Fortify.entryOf(survey)
     local h = survey.home
     for _, e in ipairs(survey.openings or {}) do
         if e.kind == "door" and e.z == 0 and e.allowed then
-            local d = cheb(e.inX, e.inY, h.x, h.y)
+            local d = LivingKnox.Geo.cheb(e.inX, e.inY, h.x, h.y)
             local better = best == nil or d < best.d
                 or (d == best.d and (e.y < best.e.y or (e.y == best.e.y and (e.x < best.e.x
                 or (e.x == best.e.x and e.north and not best.e.north)))))
@@ -700,7 +695,7 @@ function Fortify.build(survey, opts)
         elseif e ~= entry then
             local tier = e.z == 0 and "ground" or "upper"
             local site = barricadeSite(e, tier, c.PLANKS[tier])
-            site.d = cheb(e.inX, e.inY, h.x, h.y)
+            site.d = LivingKnox.Geo.cheb(e.inX, e.inY, h.x, h.y)
             if tier == "ground" then ground[#ground + 1] = site else upper[#upper + 1] = site end
             -- LK14-T06 : barricade complète dont la planche extérieure est abîmée (une barricade incomplète reçoit
             -- d'abord ses planches : la nouvelle devient la planche extérieure).
@@ -914,11 +909,11 @@ local function planFinish(ctx)
         for _, s in ipairs(plan.sites) do
             if not s.done then counts[s.tier] = counts[s.tier] + 1 end
         end
-        log().info("fortify: group %s plan (%s): %d site(s), %d to do (ground %d, upper %d, outer %d), %d gap(s), "
+        LivingKnox.Log.info("fortify: group %s plan (%s): %d site(s), %d to do (ground %d, upper %d, outer %d), %d gap(s), "
             .. "%d skipped, level %d, %d repair(s)%s", gid, plan.style, #plan.sites, plan.todo, counts.ground,
             counts.upper, counts.outer, #plan.gaps, #plan.skipped, plan.level, plan.repairs,
             plan.urgent and " first (after an attack)" or "")
-        if plan.outerSkipped then log().info("fortify: group %s: no outer defence (%s)", gid, plan.outerSkipped) end
+        if plan.outerSkipped then LivingKnox.Log.info("fortify: group %s: no outer defence (%s)", gid, plan.outerSkipped) end
     end
     Fortify.state.plans[gid] = { plan = plan, ms = ctx.t }
     return plan
@@ -1045,8 +1040,8 @@ local function noteNeed(gid, plan, shortage)
     Fortify.stats.needs = Fortify.stats.needs + 1
     local line = string.format("materials to repair %d defence(s): %s%s", shortage.sites, text,
         attack ~= nil and (" (after " .. attack .. ")") or "")
-    log().info("fortify: group %s %s", gid, line)
-    local G = Groups()
+    LivingKnox.Log.info("fortify: group %s %s", gid, line)
+    local G = LivingKnox.Groups
     if G ~= nil and G.addLog ~= nil then G.addLog(gid, "shortage", line) end
 end
 
@@ -1105,7 +1100,7 @@ end
 -- Chantier proposé au membre mid de poste « builder » (point d'appel de LK14-T03) : le k-ième faisable pour le
 -- k-ième ouvrier vivant (numéro de membre croissant). Rend le chantier, ou nil et la raison.
 function Fortify.siteFor(gid, mid)
-    local G = Groups()
+    local G = LivingKnox.Groups
     local g = G ~= nil and G.isReady() and G.get(gid) or nil
     if g == nil then return nil, "unknown group" end
     local m = g.members and g.members[mid]
@@ -1139,8 +1134,6 @@ end
 
 -- ================================================================ pose des barricades (LK14-T03)
 -- Fiche docs/annexes/conception/fortification.md §7. Autorité seulement (module absent d'un client MP).
-
-local function R() return LivingKnox.Routines end
 
 local function ofType(t)
     return function(it) return it:getFullType() == t end
@@ -1188,7 +1181,7 @@ local function openBox(gid, box, ctr, who, use)
     local list = ctr:AddItems(Fortify.NAILS, cfg().BOX_NAILS)
     if isServer() and list ~= nil then sendAddItemsToContainer(ctr, list) end
     Fortify.stats.boxes = Fortify.stats.boxes + 1
-    log().info("fortify: group %s: %s opened a box of nails (%d nail(s))", gid, tostring(who or "member"),
+    LivingKnox.Log.info("fortify: group %s: %s opened a box of nails (%d nail(s))", gid, tostring(who or "member"),
         list ~= nil and list:size() or 0)
     Stock().check(gid, { force = true })
     return true
@@ -1705,11 +1698,11 @@ local function finishSite(id, m, minute, why)
     local unit = spec ~= nil and spec.unit or "stage(s)"
     if why == nil then
         Fortify.stats.finished = Fortify.stats.finished + 1
-        log().info("npc %s (%s %s): %s %s done, %d %s", tostring(id), tostring(m.gid), tostring(m.mid), m.site.kind,
+        LivingKnox.Log.info("npc %s (%s %s): %s %s done, %d %s", tostring(id), tostring(m.gid), tostring(m.mid), m.site.kind,
             m.site.id, m.placed, unit)
     else
         Fortify.stats.skipped = Fortify.stats.skipped + 1
-        log().info("npc %s (%s %s): %s %s stopped after %d %s: %s", tostring(id), tostring(m.gid), tostring(m.mid),
+        LivingKnox.Log.info("npc %s (%s %s): %s %s stopped after %d %s: %s", tostring(id), tostring(m.gid), tostring(m.mid),
             m.site.kind, m.site.id, m.placed, unit, tostring(why))
     end
 end
@@ -1730,7 +1723,7 @@ end
 local function placeFor(site)
     local cell = getCell()
     if cell == nil then return nil end
-    local X = R().exec
+    local X = LivingKnox.Routines.exec
     local sq = cell:getGridSquare(site.inside.x, site.inside.y, site.z)
     if X.standable(sq) then
         return { x = site.inside.x, y = site.inside.y, z = site.z,
@@ -1741,7 +1734,7 @@ local function placeFor(site)
 end
 
 local function step(id, ctx, m)
-    local X = R().exec
+    local X = LivingKnox.Routines.exec
     local e = X.entryOf(id)
     if m.lastV ~= nil and (e == nil or e.v ~= m.lastV) and (m.phase == "go" or m.phase == "face") then
         -- Une autre consigne est passée (suite de test, autre module) : retour à la place.
@@ -1780,12 +1773,12 @@ local function step(id, ctx, m)
         m.phase = "nail"   -- avant l'effet : jamais deux fois la même pose, même si le Java lève une erreur
         local ok, text, n = pcall(effect, m.site, m.gid, m.mid)
         if not ok then
-            log().error("npc %s: %s %s failed: %s", tostring(id), m.site.kind, m.site.id, tostring(text))
+            LivingKnox.Log.error("npc %s: %s %s failed: %s", tostring(id), m.site.kind, m.site.id, tostring(text))
             return finishSite(id, m, ctx.minute, "error")
         end
         if text == nil then return finishSite(id, m, ctx.minute, n) end
         m.placed = m.placed + 1
-        log().info("npc %s (%s %s): %s", tostring(id), tostring(m.gid), tostring(m.mid), text)
+        LivingKnox.Log.info("npc %s (%s %s): %s", tostring(id), tostring(m.gid), tostring(m.mid), text)
         if n >= m.site.steps then return finishSite(id, m, ctx.minute, nil) end
         m.since, m.phase = ctx.minute, "work"
     end
@@ -1796,7 +1789,7 @@ end
 -- tient). Rend vrai si le membre est occupé par la fortification (corvée et entretien attendent), faux sinon.
 function Fortify.run(id, st, ctx, g)
     if ctx.gid == nil or ctx.duty ~= "builder" or type(g) ~= "table" or type(g.home) ~= "table" then return false end
-    local mem = R().state.npcs
+    local mem = LivingKnox.Routines.state.npcs
     local m = mem[id]
     if m ~= nil and m.kind == "fortify" then
         if m.phase == "done" then return false end
@@ -1810,7 +1803,7 @@ function Fortify.run(id, st, ctx, g)
     if site == nil or not Fortify.KINDS[site.kind] or site.inside == nil
         or (Fortify.state.claims[k] ~= nil and Fortify.state.claims[k] ~= id) then
         Fortify.state.rest[id] = ctx.minute + cfg().IDLE_MINUTES
-        log().debug("npc %s: no fortification site: %s", tostring(id), tostring(site ~= nil and site.id or why))
+        LivingKnox.Log.debug("npc %s: no fortification site: %s", tostring(id), tostring(site ~= nil and site.id or why))
         return false
     end
     -- Place du chantier évitée par ce PNJ (échec "stuck" récent, LivingKnox.Movement.avoided) : il le reprend après
@@ -1818,16 +1811,16 @@ function Fortify.run(id, st, ctx, g)
     local Mv = LivingKnox.Movement
     if Mv ~= nil and Mv.avoided ~= nil and Mv.avoided(id, site.inside.x, site.inside.y, site.z) ~= nil then
         Fortify.state.rest[id] = ctx.minute + cfg().REST_MINUTES
-        log().debug("npc %s: site %s avoided for now (recent stuck move)", tostring(id), site.id)
+        LivingKnox.Log.debug("npc %s: site %s avoided for now (recent stuck move)", tostring(id), site.id)
         return false
     end
-    if m ~= nil then R().leave(id) end   -- corvée visible en cours : debout d'abord
+    if m ~= nil then LivingKnox.Routines.leave(id) end   -- corvée visible en cours : debout d'abord
     Fortify.state.claims[k] = id
     m = { key = "fortify " .. site.id, kind = "fortify", site = site, gid = ctx.gid, mid = ctx.mid, phase = "place",
         fails = 0, placed = 0, release = releaseMemory }
     mem[id] = m
     Fortify.stats.started = Fortify.stats.started + 1
-    log().info("npc %s (%s %s): %s %s (%s, %d/%d step(s), %s)", tostring(id), tostring(ctx.gid), tostring(ctx.mid),
+    LivingKnox.Log.info("npc %s (%s %s): %s %s (%s, %d/%d step(s), %s)", tostring(id), tostring(ctx.gid), tostring(ctx.mid),
         site.kind, site.id, tostring(site.opening or site.side), site.have, site.steps, tostring(st.why or st.b))
     step(id, ctx, m)
     return true
@@ -1886,10 +1879,6 @@ for _, k in ipairs({ "offHours", "offSteps", "applied", "placed", "already", "ad
     Fortify.stats[k] = Fortify.stats[k] or 0
 end
 
-local function isInt(v, lo, hi)
-    return type(v) == "number" and v == v and math.floor(v) == v and v >= lo and v <= hi
-end
-
 local TIER_SET = { ground = true, upper = true, outer = true }
 
 -- Vue de travail f (forme 1) valide pour le foyer home.
@@ -1900,28 +1889,33 @@ local function validView(f, home)
     if type(f.sites) ~= "table" or type(f.boxes) ~= "table" or type(f.pend) ~= "table" then return false end
     if type(f.work) ~= "number" or f.work ~= f.work or f.work < 0 then return false end
     local p = f.pend
-    if not isInt(p.n, 0, 2147483647) or type(p.ops) ~= "table" or #p.ops > Fortify.OFF_PEND_MAX then return false end
+    if not LivingKnox.Num.isInt(p.n, 0, 2147483647) or type(p.ops) ~= "table"
+        or #p.ops > Fortify.OFF_PEND_MAX then return false end
     for name, t in pairs(f.tiers) do
-        if not TIER_SET[name] or type(t) ~= "table" or not isInt(t.s, 0, 100000) or not isInt(t.h, 0, t.s) then
+        if not TIER_SET[name] or type(t) ~= "table" or not LivingKnox.Num.isInt(t.s, 0, 100000)
+            or not LivingKnox.Num.isInt(t.h, 0, t.s) then
             return false
         end
     end
     for _, e in ipairs(f.sites) do
         if type(e) ~= "table" or type(e.id) ~= "string" or not Fortify.OFF_KINDS[e.k] or not TIER_SET[e.t]
-            or not isInt(e.x, -1e7, 1e7) or not isInt(e.y, -1e7, 1e7) or not isInt(e.z, -32, 31)
-            or not isInt(e.s, 1, 4) or not isInt(e.h, 0, e.s) then
+            or not LivingKnox.Num.isInt(e.x, -1e7, 1e7) or not LivingKnox.Num.isInt(e.y, -1e7, 1e7)
+                or not LivingKnox.Num.isInt(e.z, -32, 31)
+            or not LivingKnox.Num.isInt(e.s, 1, 4) or not LivingKnox.Num.isInt(e.h, 0, e.s) then
             return false
         end
     end
     for _, op in ipairs(p.ops) do
-        if type(op) ~= "table" or not isInt(op.u, 1, p.n) or type(op.id) ~= "string" or not Fortify.OFF_KINDS[op.k]
-            or not isInt(op.x, -1e7, 1e7) or not isInt(op.y, -1e7, 1e7) or not isInt(op.z, -32, 31)
-            or not isInt(op.a, 0, 3) or not isInt(op.b, op.a + 1, 4) then
+        if type(op) ~= "table" or not LivingKnox.Num.isInt(op.u, 1, p.n) or type(op.id) ~= "string" or not Fortify.OFF_KINDS[op.k]
+            or not LivingKnox.Num.isInt(op.x, -1e7, 1e7) or not LivingKnox.Num.isInt(op.y, -1e7, 1e7)
+                or not LivingKnox.Num.isInt(op.z, -32, 31)
+            or not LivingKnox.Num.isInt(op.a, 0, 3) or not LivingKnox.Num.isInt(op.b, op.a + 1, 4) then
             return false
         end
     end
     for _, b in ipairs(f.boxes) do
-        if type(b) ~= "table" or not isInt(b.i, -2147483648, 2147483647) or not isInt(b.u, 1, cfg().BOX_NAILS) then
+        if type(b) ~= "table" or not LivingKnox.Num.isInt(b.i, -2147483648, 2147483647)
+            or not LivingKnox.Num.isInt(b.u, 1, cfg().BOX_NAILS) then
             return false
         end
     end
@@ -2088,7 +2082,7 @@ end
 -- mêmes marques d'application) et boîtes entamées compris, en une écriture du registre ; relevé invalide laissé tel
 -- quel (remplacé au prochain relevé, comme avant). Rend le nombre de relevés convertis.
 function Fortify.migrate()
-    local G = Groups()
+    local G = LivingKnox.Groups
     if G == nil or not G.isReady() then return 0 end
     local n = G.update(function(data)
         local count = 0
@@ -2107,7 +2101,7 @@ function Fortify.migrate()
     if type(n) ~= "number" then return 0 end
     if n > 0 then
         Fortify.stats.migrated = Fortify.stats.migrated + n
-        log().info("fortify: %d offscreen survey(s) rewritten in the compact form", n)
+        LivingKnox.Log.info("fortify: %d offscreen survey(s) rewritten in the compact form", n)
     end
     return n
 end
@@ -2120,7 +2114,7 @@ Fortify.validFort = validFort
 
 -- Groupe vivant du registre (lecture seule, sans copie), ou nil.
 local function liveGroup(gid)
-    local G = Groups()
+    local G = LivingKnox.Groups
     if G == nil or not G.isReady() then return nil end
     local g = G.update(function(data) return false, data.groups[gid] end)
     if type(g) ~= "table" then return nil end
@@ -2320,7 +2314,7 @@ offscreenHour = function(g, gid, hour, f)
     if steps == 0 then return { builders = builders, steps = 0, sites = 0, left = #f.sites }, changed end
     Fortify.stats.offSteps = Fortify.stats.offSteps + steps
     Fortify.invalidate(gid)   -- plan en mémoire relevé de nouveau (zone non chargée : relevé hors écran)
-    log().info("fortify: group %s offscreen hour %s: %d builder(s), %d step(s) on %d site(s), %d site(s) left, "
+    LivingKnox.Log.info("fortify: group %s offscreen hour %s: %d builder(s), %d step(s) on %d site(s), %d site(s) left, "
         .. "%d change(s) to place", gid, tostring(hour), builders, steps, touched, #f.sites, #f.pend.ops)
     return { builders = builders, steps = steps, sites = touched, left = #f.sites }, changed
 end
@@ -2367,7 +2361,7 @@ end
 -- a changé et si rien n'attend d'être posé. Rend vrai si écrit.
 function Fortify.snapshot(gid, plan, tools)
     if plan == nil or plan.stale then return false end
-    local G = Groups()
+    local G = LivingKnox.Groups
     if G == nil or not G.isReady() then return false end
     local sites, skipped = {}, {}
     local tiers = {}
@@ -2416,7 +2410,7 @@ function Fortify.snapshot(gid, plan, tools)
             if f.key == key and live.fort.v == Fortify.FORT_FORMAT then return false, false end
             n = f.pend.n
         elseif live.fort ~= nil then
-            log().warn("fortify: group %s offscreen survey malformed or for another home: replaced", gid)
+            LivingKnox.Log.warn("fortify: group %s offscreen survey malformed or for another home: replaced", gid)
         end
         local h = live.home
         live.fort = packFort({ hx = h.x, hy = h.y, hz = h.z, key = key, day = G.today(), tools = toolSet,
@@ -2425,7 +2419,7 @@ function Fortify.snapshot(gid, plan, tools)
     end)
     if written == true then
         Fortify.stats.snapshots = Fortify.stats.snapshots + 1
-        log().debug("fortify: group %s offscreen survey kept: %d site(s) to do, level %d", gid, #sites, plan.level)
+        LivingKnox.Log.debug("fortify: group %s offscreen survey kept: %d site(s) to do, level %d", gid, #sites, plan.level)
         return true
     end
     return false
@@ -2532,7 +2526,7 @@ local function openUsedBox(gid, b)
     local f, box, ctr = St.findItem(gid, function(it) return it:getID() == b.i end)
     if f == nil then
         if St.findItem(gid, function(it) return markOf(it) == mark end) ~= nil then return "adopted" end
-        log().warn("fortify: group %s: used box of nails %s gone before it was opened", gid, tostring(b.i))
+        LivingKnox.Log.warn("fortify: group %s: used box of nails %s gone before it was opened", gid, tostring(b.i))
         return "dropped"
     end
     local n = cfg().BOX_NAILS - b.u
@@ -2545,7 +2539,9 @@ local function openUsedBox(gid, b)
     end
     local id = box:getID()
     local got, why = St.takeItem(gid, function(it) return it:getID() == id end, "offscreen", "fortify box")
-    if got == nil then log().warn("fortify: group %s: used box of nails %s not removed: %s", gid, tostring(id), tostring(why)) end
+    if got == nil then
+        LivingKnox.Log.warn("fortify: group %s: used box of nails %s not removed: %s", gid, tostring(id), tostring(why))
+    end
     Fortify.stats.boxesOpened = Fortify.stats.boxesOpened + 1
     return "placed"
 end
@@ -2588,7 +2584,7 @@ function Fortify.applyPending(gid)
         local ok, res, obj, n, reason = pcall(apply, gid, op, mark)
         if not ok then
             rep.kept = rep.kept + 1
-            log().error("fortify: group %s offscreen change %s (%s) not placed: %s (kept)", gid, tostring(op.u), op.id,
+            LivingKnox.Log.error("fortify: group %s offscreen change %s (%s) not placed: %s (kept)", gid, tostring(op.u), op.id,
                 tostring(res))
         elseif res == "kept" then
             rep.kept = rep.kept + 1
@@ -2598,7 +2594,7 @@ function Fortify.applyPending(gid)
             rep.steps = rep.steps + (n or 0)
             if obj ~= nil then marked[#marked + 1] = obj end
             if res == "dropped" then
-                log().warn("fortify: group %s offscreen change %s (%s, %d -> %d) dropped: %s", gid, tostring(op.u),
+                LivingKnox.Log.warn("fortify: group %s offscreen change %s (%s, %d -> %d) dropped: %s", gid, tostring(op.u),
                     op.id, op.a, op.b, tostring(reason))
             end
         end
@@ -2607,7 +2603,8 @@ function Fortify.applyPending(gid)
         local ok, res = pcall(openUsedBox, gid, b)
         if not ok then
             rep.kept = rep.kept + 1
-            log().error("fortify: group %s used box of nails %s not opened: %s (kept)", gid, tostring(b.i), tostring(res))
+            LivingKnox.Log.error("fortify: group %s used box of nails %s not opened: %s (kept)", gid,
+                tostring(b.i), tostring(res))
         elseif res == "kept" then
             rep.kept = rep.kept + 1
         else
@@ -2615,7 +2612,7 @@ function Fortify.applyPending(gid)
             if res == "placed" then rep.boxes = rep.boxes + 1 end
         end
     end
-    local written = Groups().update(function(data)
+    local written = LivingKnox.Groups.update(function(data)
         local live = data.groups[gid]
         local lf = live ~= nil and fortView(live.fort, live.home) or nil
         if lf == nil then return false, false end
@@ -2632,12 +2629,12 @@ function Fortify.applyPending(gid)
         live.fort = packFort(lf)   -- LK13-T07 : forme compacte (ancienne forme réécrite)
         return true, true
     end)
-    if written == true and not Groups().flush() then written = false end   -- LK13-T06 : écrit avant d'ôter les marques
+    if written == true and not LivingKnox.Groups.flush() then written = false end   -- LK13-T06 : écrit avant d'ôter les marques
     if written == true then
         for _, o in ipairs(marked) do o:getModData()[Fortify.OP_TAG] = nil end
         if rep.boxes > 0 or #boxes > 0 then clearNailMarks(gid) end
     else
-        log().warn("fortify: group %s offscreen work placed but the registry was not written (marks kept)", gid)
+        LivingKnox.Log.warn("fortify: group %s offscreen work placed but the registry was not written (marks kept)", gid)
     end
     if rep.boxes > 0 then Stock().check(gid, { force = true }) end   -- clous ajoutés acceptés dans la référence
     Fortify.invalidate(gid)
@@ -2645,7 +2642,7 @@ function Fortify.applyPending(gid)
     for _, k in ipairs({ "placed", "already", "adopted", "dropped", "kept" }) do
         Fortify.stats[k] = Fortify.stats[k] + rep[k]
     end
-    log().info("fortify: group %s offscreen work placed: %d change(s) placed (%d step(s)), %d already there, "
+    LivingKnox.Log.info("fortify: group %s offscreen work placed: %d change(s) placed (%d step(s)), %d already there, "
         .. "%d resumed, %d dropped, %d kept, %d box(es) of nails opened", gid, rep.placed, rep.steps, rep.already,
         rep.adopted, rep.dropped, rep.kept, rep.boxes)
     return rep
@@ -2709,7 +2706,7 @@ local function runJob(e, all)
     Fortify.clockAt = prev
     if not ok then
         q.queued[e.gid] = nil
-        log().error("fortify: group %s survey failed: %s", e.gid, tostring(err))
+        LivingKnox.Log.error("fortify: group %s survey failed: %s", e.gid, tostring(err))
     end
     return true
 end
@@ -2761,7 +2758,7 @@ function Fortify.onFrame()
     if q.write then
         q.write = false
         q.list, q.head = {}, 1
-        local G = Groups()
+        local G = LivingKnox.Groups
         G.release("fortify")
         if G.isDirty() and not G.isHeld() then G.flush() end   -- une autre retenue écrira à sa fin
     end
@@ -2778,7 +2775,7 @@ function Fortify.finishQueue()
         if runJob(e, true) then n = n + 1 end
     end
     q.list, q.head, q.write = {}, 1, false
-    local G = Groups()
+    local G = LivingKnox.Groups
     if G ~= nil and G.release ~= nil then G.release("fortify") end
     return n
 end
@@ -2790,7 +2787,7 @@ end
 function Fortify.scan(reason)
     local Config = LivingKnox.Config
     if Config and Config.isEnabled and not Config.isEnabled() then return 0 end
-    local G = Groups()
+    local G = LivingKnox.Groups
     if G == nil or not G.isReady() then return 0 end
     local st = Fortify.state
     if st.migratedFor ~= G.state.data then   -- LK13-T07 : une fois par registre chargé
@@ -2806,7 +2803,7 @@ function Fortify.scan(reason)
         local list = {}
         for gid, g in pairs(data.groups) do
             local home = g.home
-            if type(home) == "table" and Homes().validMark(g.furnish, home)
+            if type(home) == "table" and LivingKnox.Homes.validMark(g.furnish, home)
                 and cell:getGridSquare(home.x, home.y, home.z) ~= nil then
                 list[#list + 1] = gid
             end
@@ -2820,11 +2817,11 @@ function Fortify.scan(reason)
         if Fortify.hasPending(gid) then
             local ok, res, why = pcall(Fortify.applyPending, gid)
             if not ok then
-                log().error("fortify: group %s offscreen work not placed: %s", gid, tostring(res))
+                LivingKnox.Log.error("fortify: group %s offscreen work not placed: %s", gid, tostring(res))
             elseif type(res) == "table" then
                 n = n + 1
             else
-                log().debug("fortify: group %s offscreen work waits: %s", gid, tostring(why))
+                LivingKnox.Log.debug("fortify: group %s offscreen work waits: %s", gid, tostring(why))
             end
         elseif reason == "minute" and Fortify.minuteJobs.queued[gid] == nil then
             local plan = st.plans[gid]
@@ -2858,7 +2855,7 @@ LivingKnox.subscribe("OnSave", "Fortify.minuteSave", function() Fortify.finishQu
 function Fortify.reset()
     Fortify.state = { plans = {}, rest = {}, claims = {}, needs = {} }
     Fortify.minuteJobs = { list = {}, head = 1, queued = {}, fresh = false, write = false }   -- LK13-T11
-    if Groups() ~= nil and Groups().release ~= nil then Groups().release("fortify") end
+    if LivingKnox.Groups ~= nil and LivingKnox.Groups.release ~= nil then LivingKnox.Groups.release("fortify") end
 end
 
 -- Activité « chore » (ADR D04, ordre 10) : barricades du foyer pour un membre de poste « builder », avant l'entretien

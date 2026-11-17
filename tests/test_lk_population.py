@@ -559,8 +559,7 @@ class FileTests(unittest.TestCase):
                 o = options[f'LivingKnox.{name}']
                 self.assertEqual(o, {'type': 'integer', 'min': str(lo), 'max': str(hi), 'default': str(default),
                                      'page': 'LivingKnox', 'translation': f'LivingKnox_{name}'})
-                self.assertRegex(config, rf'\n    {name} = {default},\n')
-                self.assertRegex(config, rf'\n    {name} = {{ {lo}, {hi} }},\n')
+                self.assertRegex(config, rf'\n    {name} = {{ {lo}, {hi}, {default} }},\n')
                 for lang in (en, fr):
                     self.assertTrue(lang[f'Sandbox_LivingKnox_{name}'].strip())
                     self.assertTrue(lang[f'Sandbox_LivingKnox_{name}_tooltip'].strip())

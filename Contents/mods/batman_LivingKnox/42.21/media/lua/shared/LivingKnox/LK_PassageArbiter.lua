@@ -47,10 +47,6 @@ local function onPath(sq, path)
     return false
 end
 
-local function cheb(ax, ay, bx, by)
-    return math.max(math.abs(ax - bx), math.abs(ay - by))
-end
-
 local function d2(ax, ay, bx, by)
     local dx, dy = ax - bx, ay - by
     return dx * dx + dy * dy
@@ -85,7 +81,7 @@ function Arbiter.decide(mover, blocker, free, path, priorityOf)
     if not Arbiter.moverPasses(mover, blocker, priorityOf) then return nil end
     free = free or {}
     local aside = best(free, blocker, mover, function(sq)
-        return cheb(sq.x, sq.y, blocker.x, blocker.y) == 1 and usable(sq, mover, blocker, path)
+        return LivingKnox.Geo.cheb(sq.x, sq.y, blocker.x, blocker.y) == 1 and usable(sq, mover, blocker, path)
     end)
     if aside ~= nil then return { action = Arbiter.STEP_ASIDE, to = { x = aside.x, y = aside.y, z = blocker.z } } end
     -- Face à face sans case de côté : recul vers la case libre la plus proche derrière le bloqueur (côté opposé au

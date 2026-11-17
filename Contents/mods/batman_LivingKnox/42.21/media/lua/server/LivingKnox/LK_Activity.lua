@@ -32,7 +32,6 @@ Activity.KINDS = { behaviour = true, objective = true, alert = true, meal = true
 Activity.state = Activity.state or { seq = 0, groups = {} }   -- groups[gid] = { n = lignes écrites, items = anneau }
 Activity.stats = Activity.stats or { notes = 0, replaced = 0, ignored = 0 }
 
-local function finite(v) return type(v) == "number" and v == v and v > -1e9 and v < 1e9 end
 local function round1(v) return math.floor(v * 10 + 0.5) / 10 end
 
 -- Minute de jeu courante (âge du monde en minutes), ou nil sans horloge.
@@ -40,7 +39,7 @@ function Activity.minute()
     local gt = getGameTime and getGameTime()
     if not gt then return nil end
     local hours = gt:getWorldAgeHours()
-    if not finite(hours) or hours < 0 then return nil end
+    if not LivingKnox.Num.finite(hours) or hours < 0 then return nil end
     return math.floor(hours * 60 + 0.5)
 end
 
@@ -82,7 +81,7 @@ function Activity.entries(gid, after)
     local buf = Activity.state.groups[gid]
     local out = {}
     if buf == nil then return out end
-    after = finite(after) and after or 0
+    after = LivingKnox.Num.finite(after) and after or 0
     local count = math.min(buf.n, Activity.MAX)
     local first = buf.n - count            -- index (0..) de la plus ancienne ligne gardée
     for i = first, buf.n - 1 do
@@ -196,7 +195,8 @@ local function memberView(gid, g, mid, m, reg)
     v.gesture = An ~= nil and An.shownOf ~= nil and An.shownOf(id) or nil
     local H = LivingKnox.Health
     local h = H ~= nil and H.get ~= nil and H.get(id) or nil
-    if h ~= nil and finite(h.hp) and finite(h.max) and h.max > 0 then v.hp = round1(100 * h.hp / h.max) end
+    if h ~= nil and LivingKnox.Num.finite(h.hp) and LivingKnox.Num.finite(h.max)
+        and h.max > 0 then v.hp = round1(100 * h.hp / h.max) end
     return v
 end
 

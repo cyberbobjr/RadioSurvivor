@@ -49,8 +49,6 @@ Sheet.CLICK = 1.5         -- distance au plus entre le corps et une case cliqué
 Sheet.state = Sheet.state or { n = 0, pending = {}, npc = nil, data = nil, status = nil, window = nil, lastMs = nil }
 Sheet.stats = Sheet.stats or { offered = 0, sent = 0, received = 0, stale = 0, refused = 0, polls = 0, teleports = 0 }
 
-local function log() return LivingKnox.Log end
-
 local function tr(key, ...)
     return getText("IGUI_LK_Sheet_" .. key, ...)
 end
@@ -626,7 +624,7 @@ if ISCollapsableWindow ~= nil then
     -- Ouvre la fiche du PNJ npc (une seule fenêtre : elle passe au nouveau PNJ). Rend la fenêtre, ou nil sans droit.
     function Sheet.open(npc)
         if not Sheet.canUse() then
-            log().warn("npc sheet: not allowed for this player")
+            LivingKnox.Log.warn("npc sheet: not allowed for this player")
             return nil
         end
         local st = Sheet.state

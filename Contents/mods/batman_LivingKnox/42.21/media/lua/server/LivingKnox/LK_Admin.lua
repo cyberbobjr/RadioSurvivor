@@ -112,14 +112,6 @@ Admin.stats = Admin.stats or { requests = 0, refused = 0, done = 0, failed = 0 }
 
 local CELL = 256
 
-local function log() return LivingKnox.Log end
-local function Groups() return LivingKnox.Groups end
-local function Population() return LivingKnox.Population end
-
-local function isInt(v, lo, hi)
-    return type(v) == "number" and v == v and math.floor(v) == v and v >= lo and v <= hi
-end
-
 local function count(name)
     Admin.stats[name] = (Admin.stats[name] or 0) + 1
 end
@@ -156,7 +148,7 @@ local function refuse(player, op, why)
     end
     local muted = r and r.muted or 0
     Admin.refusals[key] = { ms = t, muted = 0 }
-    log().warn("admin: request %s refused for %s (%s)%s", tostring(op), name, tostring(why),
+    LivingKnox.Log.warn("admin: request %s refused for %s (%s)%s", tostring(op), name, tostring(why),
         muted > 0 and (", " .. muted .. " more refusal(s) not logged") or "")
 end
 
@@ -170,7 +162,7 @@ end
 local function sortedMembers(g)
     local ids = {}
     for mid in pairs(g.members) do ids[#ids + 1] = mid end
-    table.sort(ids, function(a, b) return (Groups().memberNumber(a) or 0) < (Groups().memberNumber(b) or 0) end)
+    table.sort(ids, function(a, b) return (LivingKnox.Groups.memberNumber(a) or 0) < (LivingKnox.Groups.memberNumber(b) or 0) end)
     return ids
 end
 
@@ -236,16 +228,16 @@ end
 -- Opérations (registre prêt, accès déjà vérifié) ------------------------------------------------------------------
 
 local function registry()
-    if not Groups().ensure() then return nil end
-    return Groups().state.data
+    if not LivingKnox.Groups.ensure() then return nil end
+    return LivingKnox.Groups.state.data
 end
 
 function Admin.list()
     local data = registry()
     if not data then return nil, "group registry not ready" end
-    local hour = Population().currentHour()
+    local hour = LivingKnox.Population.currentHour()
     local out = {}
-    for _, gid in ipairs(Groups().list()) do out[#out + 1] = row(data.groups[gid], hour) end
+    for _, gid in ipairs(LivingKnox.Groups.list()) do out[#out + 1] = row(data.groups[gid], hour) end
     return { groups = out, hour = hour, enabled = LivingKnox.Config.isEnabled() }
 end
 
@@ -254,13 +246,13 @@ function Admin.group(gid)
     if not data then return nil, "group registry not ready" end
     local g = type(gid) == "string" and data.groups[gid] or nil
     if not g then return nil, "unknown group " .. tostring(gid) end
-    return { group = detail(data, g, Population().currentHour()) }
+    return { group = detail(data, g, LivingKnox.Population.currentHour()) }
 end
 
 -- Relève forcée d'un groupe disparu (ou sans plus aucun vivant : le pas de relève le marque d'abord). Rend
 -- { relief, created }, ou nil et la raison (relève impossible : nouvel essai prévu par le pas, heure rendue).
 function Admin.forceRelief(gid, who)
-    local G, P = Groups(), Population()
+    local G, P = LivingKnox.Groups, LivingKnox.Population
     if not LivingKnox.Config.isEnabled() then return nil, "engine disabled" end
     local data = registry()
     if not data then return nil, "group registry not ready" end
@@ -290,14 +282,14 @@ function Admin.forceRelief(gid, who)
         return nil, "no relief possible now (see the WARN relief line), next try at hour "
             .. tostring(after and after.gone and after.gone.due)
     end
-    log().info("admin: %s forced the relief of %s: %s", who, gid, after.gone.relief)
+    LivingKnox.Log.info("admin: %s forced the relief of %s: %s", who, gid, after.gone.relief)
     return { relief = after.gone.relief, created = created }
 end
 
 -- Contrôle d'une case de foyer (sans chargement : métagrille et refuges seulement). Rend vrai, ou faux et la raison.
 function Admin.checkHome(gid, x, y, z, data)
-    if not isInt(x, 0, Groups().COORD_MAX) or not isInt(y, 0, Groups().COORD_MAX)
-        or not isInt(z, Groups().Z_MIN, Groups().Z_MAX) then
+    if not LivingKnox.Num.isInt(x, 0, LivingKnox.Groups.COORD_MAX) or not LivingKnox.Num.isInt(y, 0, LivingKnox.Groups.COORD_MAX)
+        or not LivingKnox.Num.isInt(z, LivingKnox.Groups.Z_MIN, LivingKnox.Groups.Z_MAX) then
         return false, "bad square"
     end
     local world = getWorld and getWorld() or nil
@@ -341,7 +333,7 @@ function Admin.moveHome(gid, x, y, z, who)
     if old ~= nil and old.x == x and old.y == y and old.z == z then return nil, "home unchanged" end
     local oldText = old and (old.x .. "," .. old.y .. "," .. old.z) or "none"
     local newText = x .. "," .. y .. "," .. z
-    local G = Groups()
+    local G = LivingKnox.Groups
     local done, err = G.update(function(reg)
         local live = reg.groups[gid]
         live.home = { x = x, y = y, z = z }
@@ -349,7 +341,7 @@ function Admin.moveHome(gid, x, y, z, who)
         return true, true
     end)
     if not done then return nil, err end
-    log().info("admin: %s moved the home of %s from %s to %s", who, gid, oldText, newText)
+    LivingKnox.Log.info("admin: %s moved the home of %s from %s to %s", who, gid, oldText, newText)
     return { home = { x = x, y = y, z = z }, old = old }
 end
 
@@ -369,14 +361,14 @@ function Admin.load(args, who)
         if s == nil then return nil, why end
         lines = { "measure started on " .. s.side .. " (window " .. s.windowMs .. " ms, log " .. tostring(s.log)
             .. "), from the next tick on" }
-        log().info("admin: %s started a load measure (window %s ms)", who, tostring(s.windowMs))
+        LivingKnox.Log.info("admin: %s started a load measure (window %s ms)", who, tostring(s.windowMs))
     else
         local sum, why
         if action == "stop" then sum, why = L.stop() else sum, why = L.summary() end
         if sum == nil then return nil, why end
         lines = L.lines(sum)
-        log().info("admin: %s %s the load measure", who, action == "stop" and "stopped" or "read")
-        for _, line in ipairs(lines) do log().info("load: %s", line) end
+        LivingKnox.Log.info("admin: %s %s the load measure", who, action == "stop" and "stopped" or "read")
+        for _, line in ipairs(lines) do LivingKnox.Log.info("load: %s", line) end
     end
     local out = {}
     for i = 1, math.min(#lines, Admin.LOAD_MAX_LINES) do out[i] = lines[i] end
@@ -390,7 +382,6 @@ Admin.SHEET = Admin.SHEET or {
     PLAYERS_MAX = 8,       -- joueurs perçus recopiés dans la fiche (les plus attentifs d'abord, ordre du résumé)
 }
 
-local function finite(v) return type(v) == "number" and v == v and v > -1e9 and v < 1e9 end
 local function round1(v) return math.floor(v * 10 + 0.5) / 10 end
 
 -- Valeurs simples (chaîne, nombre, booléen) d'une table, copiées ; nil sans table.
@@ -420,7 +411,7 @@ local function memberOfNpc(id)
     local data = registry()
     if not data then return nil, "group registry not ready" end
     if type(id) ~= "string" then return nil, "bad npc" end
-    local gid, mid = Groups().findNpc(id)
+    local gid, mid = LivingKnox.Groups.findNpc(id)
     if gid == nil then return nil, "npc " .. id .. " is not in a group" end
     local g = data.groups[gid]
     local m = g and g.members[mid] or nil
@@ -449,12 +440,12 @@ function Admin.positionOf(g, m)
         local St = LivingKnox.Store
         local reg = St ~= nil and St.isReady() and LivingKnox.Identity.get(St.data(), m.npc) or nil
         local p = reg ~= nil and reg.last or nil
-        if type(p) == "table" and finite(p.x) and finite(p.y) and finite(p.z) then
+        if type(p) == "table" and LivingKnox.Num.finite(p.x) and LivingKnox.Num.finite(p.y) and LivingKnox.Num.finite(p.z) then
             return { x = p.x, y = p.y, z = p.z, src = "last", last = true }
         end
     end
     local h = g.home
-    if type(h) == "table" and finite(h.x) and finite(h.y) and finite(h.z) then
+    if type(h) == "table" and LivingKnox.Num.finite(h.x) and LivingKnox.Num.finite(h.y) and LivingKnox.Num.finite(h.z) then
         return { x = h.x, y = h.y, z = h.z, src = "home" }
     end
     return nil
@@ -551,7 +542,8 @@ function Admin.npcView(id)
     if h ~= nil then
         v.health = { hp = h.hp, max = h.max, wounds = type(h.wounds) == "table" and #h.wounds or 0,
             bleedPct = round1((h.bleed or 0) * 100) }
-        if finite(h.hp) and finite(h.max) and h.max > 0 then v.health.pct = round1(100 * h.hp / h.max) end
+        if LivingKnox.Num.finite(h.hp) and LivingKnox.Num.finite(h.max)
+            and h.max > 0 then v.health.pct = round1(100 * h.hp / h.max) end
         local last = type(h.wounds) == "table" and h.wounds[#h.wounds] or nil
         if last ~= nil then v.health.last = { p = tostring(last.p), d = last.d } end
     end
@@ -590,8 +582,8 @@ function Admin.npcSet(id, field, value, who)
     local g, m, gid, mid = memberOfNpc(id)
     if g == nil then return nil, m end
     if not m.alive then return nil, "member " .. mid .. " is dead" end
-    if not finite(value) then return nil, "bad value" end
-    local G, N = Groups(), LivingKnox.Needs
+    if not LivingKnox.Num.finite(value) then return nil, "bad value" end
+    local G, N = LivingKnox.Groups, LivingKnox.Needs
     local isNeed = false
     for _, key in ipairs(N ~= nil and N.GAUGES or {}) do
         if key == field then isNeed = true end
@@ -615,7 +607,7 @@ function Admin.npcSet(id, field, value, who)
     elseif field == "health" or field == "bleed" then
         local H = LivingKnox.Health
         local h = H ~= nil and H.get ~= nil and H.get(id) or nil
-        if h == nil or bodyOf(id) == nil or not finite(h.max) or h.max <= 0 then return nil, "npc not embodied" end
+        if h == nil or bodyOf(id) == nil or not LivingKnox.Num.finite(h.max) or h.max <= 0 then return nil, "npc not embodied" end
         local ok, err
         if field == "health" then
             new = round1(math.max(Admin.SHEET.HEALTH_MIN, math.min(100, value)))
@@ -638,7 +630,7 @@ function Admin.npcSet(id, field, value, who)
         return true, true
     end)
     if not done then return nil, err end
-    log().info("admin: %s set %s of %s (%s %s) from %s to %s", who, field, id, gid, mid, tostring(old), tostring(new))
+    LivingKnox.Log.info("admin: %s set %s of %s (%s %s) from %s to %s", who, field, id, gid, mid, tostring(old), tostring(new))
     local out = Admin.npcView(id)
     if out == nil then return nil, "npc view unavailable" end
     out.field, out.value, out.old = field, new, old
@@ -650,7 +642,7 @@ end
 -- Écriture d'un membre vivant et de l'entrée « admin » du journal du groupe (une sauvegarde). Rend vrai, ou nil et la
 -- raison.
 local function writeMember(gid, mid, apply, text)
-    local G = Groups()
+    local G = LivingKnox.Groups
     return G.update(function(reg)
         local live = reg.groups[gid]
         if apply ~= nil then apply(live.members[mid]) end
@@ -681,7 +673,7 @@ function Admin.npcRole(id, role, who)
     local text = string.format("role %s (%s) %s -> %s set by admin %s", mid, id, tostring(old), role, who)
     local done, err = writeMember(gid, mid, function(live) live.role = role end, text)
     if not done then return nil, err end
-    log().info("admin: %s set the role of %s (%s %s) from %s to %s", who, id, gid, mid, tostring(old), role)
+    LivingKnox.Log.info("admin: %s set the role of %s (%s %s) from %s to %s", who, id, gid, mid, tostring(old), role)
     local out = Admin.npcView(id)
     if out == nil then return nil, "npc view unavailable" end
     out.field, out.value, out.old = "role", role, old
@@ -703,7 +695,7 @@ function Admin.npcName(id, first, last, who)
     local text = string.format("name %s (%s) %s -> %s set by admin %s", mid, id, old, new, who)
     local done, err = writeMember(gid, mid, function(live) live.firstName, live.lastName = f, l end, text)
     if not done then return nil, err end
-    log().info("admin: %s renamed %s (%s %s) from %s to %s", who, id, gid, mid, old, new)
+    LivingKnox.Log.info("admin: %s renamed %s (%s %s) from %s to %s", who, id, gid, mid, old, new)
     local out = Admin.npcView(id)
     if out == nil then return nil, "npc view unavailable" end
     out.field, out.value, out.old = "name", new, old
@@ -762,7 +754,7 @@ function Admin.npcGoto(id, who, player)
     local done, err = writeMember(gid, mid, nil, text)
     if not done then return nil, err end
     local moved = moveTo(player, x, y, z)
-    log().info("admin: %s teleported to %s (%s %s) at %s%s%s", who, id, gid, mid, where, note,
+    LivingKnox.Log.info("admin: %s teleported to %s (%s %s) at %s%s%s", who, id, gid, mid, where, note,
         moved and "" or " (requested from the client)")
     return { dest = { x = x, y = y, z = z, src = p.src, last = p.src == "last" }, moved = moved }
 end
@@ -775,19 +767,20 @@ function Admin.homeGoto(gid, who, player)
     local g = type(gid) == "string" and data.groups[gid] or nil
     if not g then return nil, "unknown group " .. tostring(gid) end
     local h = g.home
-    if type(h) ~= "table" or not finite(h.x) or not finite(h.y) or not finite(h.z) then
+    if type(h) ~= "table" or not LivingKnox.Num.finite(h.x) or not LivingKnox.Num.finite(h.y)
+        or not LivingKnox.Num.finite(h.z) then
         return nil, "no known position"
     end
     local x, y, z = beside(h.x, h.y, h.z)
     local where = x .. "," .. y .. "," .. z
-    local G = Groups()
+    local G = LivingKnox.Groups
     local done, err = G.update(function(reg)
         G.appendLog(reg.groups[gid], "admin", "teleport of admin " .. who .. " to the group home at " .. where, G.today())
         return true, true
     end)
     if not done then return nil, err end
     local moved = moveTo(player, x, y, z)
-    log().info("admin: %s teleported to the home of %s at %s%s", who, gid, where,
+    LivingKnox.Log.info("admin: %s teleported to the home of %s at %s%s", who, gid, where,
         moved and "" or " (requested from the client)")
     return { dest = { x = x, y = y, z = z, src = "home", last = false }, moved = moved }
 end
@@ -797,7 +790,7 @@ end
 -- donné (carnet, dernières pages, missions, nom du chef de LK.composition qui l'appelle) et son context le nom du chef
 -- donné (contexte du LLM). Le résumé d'histoire déjà composé garde le nom d'origine. Rend vrai si posées.
 local function groupMemberOfNpc(id)
-    local G = Groups()
+    local G = LivingKnox.Groups
     if G == nil or type(id) ~= "string" or not G.ensure() then return nil end
     local gid, mid = G.findNpc(id)
     local g = gid ~= nil and G.state.data.groups[gid] or nil
@@ -860,7 +853,7 @@ function Admin.activity(gid, after)
     local g = type(gid) == "string" and data.groups[gid] or nil
     if not g then return nil, "unknown group " .. tostring(gid) end
     if Ac == nil or Ac.groupView == nil then return nil, "activity log not loaded" end
-    out.group = Ac.groupView(gid, g, isInt(after, 0, 2147483647) and after or 0)
+    out.group = Ac.groupView(gid, g, LivingKnox.Num.isInt(after, 0, 2147483647) and after or 0)
     for _, mv in ipairs(out.group.members or {}) do
         local m = g.members[mv.id]
         mv.name = Admin.memberDisplayName(m)
@@ -903,7 +896,7 @@ function Admin.request(player, args)
     count("requests")
     if type(args) ~= "table" then args = {} end
     local op = type(args.op) == "string" and args.op or nil
-    local n = isInt(args.n, 0, 2147483647) and args.n or 0
+    local n = LivingKnox.Num.isInt(args.n, 0, 2147483647) and args.n or 0
     local reply = { n = n, op = op, ok = false }
     local allowed, why = Admin.isAllowed(player, op)
     if not allowed then
@@ -929,7 +922,7 @@ function Admin.request(player, args)
         count("failed")
         reply.err = tostring(err)
         if handler.logFailure then
-            log().info("admin: %s by %s on %s failed: %s", op, who, tostring(reply.gid or reply.id), reply.err)
+            LivingKnox.Log.info("admin: %s by %s on %s failed: %s", op, who, tostring(reply.gid or reply.id), reply.err)
         end
         return reply
     end

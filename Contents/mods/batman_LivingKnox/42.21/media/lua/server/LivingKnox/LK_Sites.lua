@@ -104,8 +104,6 @@ Sites.KINDS_BY_TYPE = {
 
 local CELL = 256
 
-local function log() return LivingKnox.Log end
-
 local function metaGrid()
     local world = getWorld and getWorld()
     return world and world:getMetaGrid()
@@ -440,7 +438,7 @@ local function pickNear(ctx)
         local note = string.format("ring %d (%d-%d squares from %d,%d): %d building(s), %d examined%s", tier,
             near.min, maxR, near.x, near.y, #list, examined, examined > 0 and (": " .. reasonSummary(reasons)) or "")
         notes[#notes + 1] = note
-        log().warn("sites: no building for %s in %s%s", tostring(ctx.groupType), note,
+        LivingKnox.Log.warn("sites: no building for %s in %s%s", tostring(ctx.groupType), note,
             tier < #tiers and "; widening" or "; whole map next")
     end
     ctx.nearMax = nil
@@ -628,14 +626,14 @@ function Sites.pick(groupType, opts)
             local whole, why2 = pickBuilding(ctx)
             if whole then
                 whole.nearTier, whole.nearMin, whole.nearFallback = 0, ctx.near.min, reason
-                log().warn("sites: no building for %s in any ring; whole map: %s %d squares from %d,%d",
+                LivingKnox.Log.warn("sites: no building for %s in any ring; whole map: %s %d squares from %d,%d",
                     groupType, whole.key, whole.nearDistance, ctx.near.x, ctx.near.y)
                 site = whole
             else
                 reason = reason .. "; whole map: " .. why2
             end
         elseif site.nearTier > 1 then
-            log().info("sites: %s for %s in widened ring %d (%d-%d squares), %d squares from %d,%d", site.key,
+            LivingKnox.Log.info("sites: %s for %s in widened ring %d (%d-%d squares), %d squares from %d,%d", site.key,
                 groupType, site.nearTier, site.nearMin, site.nearMax, site.nearDistance, ctx.near.x, ctx.near.y)
         end
     elseif style == "building" then
@@ -647,7 +645,7 @@ function Sites.pick(groupType, opts)
             if fallback then
                 fallback.fallback = "isolated-building"
                 fallback.fallbackReason = reason
-                log().warn("sites: no forest clearing for %s (%s); fallback to an isolated building: %s %s,"
+                LivingKnox.Log.warn("sites: no forest clearing for %s (%s); fallback to an isolated building: %s %s,"
                     .. " isolation %d (tier %d), best of %d candidate(s)", groupType, reason, fallback.buildingKind,
                     fallback.key, fallback.isolation, fallback.isolationTier, fallback.candidates)
                 site = fallback
@@ -657,10 +655,10 @@ function Sites.pick(groupType, opts)
         end
     end
     if site == nil then
-        log().warn("sites: no site for %s: %s", tostring(groupType), reason)
+        LivingKnox.Log.warn("sites: no site for %s: %s", tostring(groupType), reason)
         return nil, reason
     end
-    log().info("sites: picked a %s (%s) for %s after %d draw(s)", site.kind, site.key, groupType, site.attempts)
+    LivingKnox.Log.info("sites: picked a %s (%s) for %s after %d draw(s)", site.kind, site.key, groupType, site.attempts)
     return site
 end
 

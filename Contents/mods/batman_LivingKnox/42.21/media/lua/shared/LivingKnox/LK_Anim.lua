@@ -74,9 +74,6 @@ Anim.stats = Anim.stats or { passes = 0, sets = 0, cleared = 0, relayed = 0, old
 Anim.stats.acts = Anim.stats.acts or 0
 Anim.stats.actsEnded = Anim.stats.actsEnded or 0
 
-local function log() return LivingKnox.Log end
-local function Guard() return LivingKnox.ZombieGuard end
-
 function Anim.isGesture(g)
     return type(g) == "string" and Anim.GESTURES[g] == true
 end
@@ -150,7 +147,7 @@ function Anim.setGesture(npcId, gesture)
     if gesture == Anim.DEFAULT then value = nil end
     if Anim.wanted[npcId] == value then return true end
     Anim.wanted[npcId] = value
-    log().debug("npc %s gesture %s", npcId, gesture)
+    LivingKnox.Log.debug("npc %s gesture %s", npcId, gesture)
     Anim.notify(npcId)
     return true
 end
@@ -165,7 +162,7 @@ function Anim.startAct(npcId, g, ms, a)
     if a ~= nil and type(a) ~= "number" then return false, "bad act angle " .. tostring(a) end
     Anim.acts[npcId] = { g = g, a = a, untilMs = getTimestampMs() + ms }
     Anim.stats.acts = Anim.stats.acts + 1
-    log().debug("npc %s act %s for %d ms", npcId, g, ms)
+    LivingKnox.Log.debug("npc %s act %s for %d ms", npcId, g, ms)
     Anim.notify(npcId)
     return true
 end
@@ -264,7 +261,7 @@ function Anim.knownBodies()
         end
         return out
     end
-    local G = Guard()
+    local G = LivingKnox.ZombieGuard
     for id, z in pairs(G.cache) do
         local entry = G.roster.byId[id]
         if entry ~= nil and z ~= nil and not z:isDead() and z:getOnlineID() == entry.o and z:isReanimatedPlayer() then

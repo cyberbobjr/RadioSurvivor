@@ -38,8 +38,6 @@ View.state = View.state or { n = 0, pending = {}, groups = {}, hour = nil, enabl
     detail = nil, status = nil, window = nil, load = nil, showLoad = false }
 View.stats = View.stats or { sent = 0, received = 0, stale = 0, refused = 0 }
 
-local function log() return LivingKnox.Log end
-
 local function tr(key, ...)
     return getText("IGUI_LK_Admin_" .. key, ...)
 end
@@ -443,7 +441,7 @@ if ISCollapsableWindow ~= nil then
     -- Ouvre (ou ramène devant) la fenêtre et demande la liste. Rend la fenêtre, ou nil si le joueur n'y a pas droit.
     function View.open()
         if not View.canUse() then
-            log().warn("admin window: not allowed for this player (capability %s)", View.CAPABILITY)
+            LivingKnox.Log.warn("admin window: not allowed for this player (capability %s)", View.CAPABILITY)
             return nil
         end
         local st = View.state

@@ -113,18 +113,10 @@ Groups.state = Groups.state or { data = nil, seq = 0, blocked = false, reason = 
 -- à nil) ; age = OnTickEvenPaused passés depuis, sans écriture ; verified = une écriture de la session relue.
 Groups.stats = Groups.stats or { marks = 0, writes = 0, verified = 0 }
 
-local function log() return LivingKnox.Log end
-local function Store() return LivingKnox.Store end
-local function Config() return LivingKnox.Config end
-
 -- Type de groupe enregistré (LK08-T02 : registre LivingKnox.GroupTypes, rempli par les fichiers de données).
 local function typeKnown(t) return LivingKnox.GroupTypes.isKnown(t) end
 
 -- Contrôles de base ------------------------------------------------------------------------------------------------
-
-local function isInt(v, lo, hi)
-    return type(v) == "number" and v == v and math.floor(v) == v and v >= lo and v <= hi
-end
 
 local function isText(v, minLen, maxLen)
     return type(v) == "string" and #v >= minLen and #v <= maxLen
@@ -140,7 +132,7 @@ end
 
 -- Rang d'un rôle dans l'ordre de succession (nil si inconnu).
 local function roleRank(role)
-    for i, v in ipairs(Config().GROUP_ROLES) do
+    for i, v in ipairs(LivingKnox.Config.GROUP_ROLES) do
         if v == role then return i end
     end
     return nil
@@ -176,7 +168,8 @@ end
 
 local function validHome(h)
     if type(h) ~= "table" then return false end
-    return isInt(h.x, 0, Groups.COORD_MAX) and isInt(h.y, 0, Groups.COORD_MAX) and isInt(h.z, Groups.Z_MIN, Groups.Z_MAX)
+    return LivingKnox.Num.isInt(h.x, 0, Groups.COORD_MAX) and LivingKnox.Num.isInt(h.y, 0, Groups.COORD_MAX)
+        and LivingKnox.Num.isInt(h.z, Groups.Z_MIN, Groups.Z_MAX)
 end
 
 local function validKind(kind)
@@ -193,7 +186,7 @@ local function validTraits(list)
     if type(list) ~= "table" then return false end
     local n = 0
     for key, v in pairs(list) do
-        if not isInt(key, 1, Groups.TRAITS_MAX) or not validKind(v) then return false end
+        if not LivingKnox.Num.isInt(key, 1, Groups.TRAITS_MAX) or not validKind(v) then return false end
         n = n + 1
     end
     return n >= 1 and list[n] ~= nil
@@ -211,14 +204,15 @@ end
 local function validExpedition(e, nextMember)
     if type(e) ~= "table" then return false, "expedition is not a table" end
     if not validKind(e.place) then return false, "bad expedition place" end
-    if not isInt(e.departed, 0, Groups.COORD_MAX) or not isInt(e.returns, e.departed or 0, Groups.COORD_MAX) then
+    if not LivingKnox.Num.isInt(e.departed, 0, Groups.COORD_MAX)
+        or not LivingKnox.Num.isInt(e.returns, e.departed or 0, Groups.COORD_MAX) then
         return false, "bad expedition hours"
     end
     if type(e.team) ~= "table" then return false, "bad expedition team" end
     local n, seen = 0, {}
     for key, mid in pairs(e.team) do
         local k = Groups.memberNumber(mid)
-        if not isInt(key, 1, Groups.MAX_MEMBERS) or not k or k >= nextMember or seen[mid] then
+        if not LivingKnox.Num.isInt(key, 1, Groups.MAX_MEMBERS) or not k or k >= nextMember or seen[mid] then
             return false, "bad expedition team"
         end
         seen[mid] = true
@@ -235,8 +229,8 @@ Groups.GONE_CAUSES = { "wiped", "dispersed" }
 local function validGone(gone, nextId)
     if type(gone) ~= "table" then return false, "gone is not a table" end
     if not inList(Groups.GONE_CAUSES, gone.cause) then return false, "bad gone cause" end
-    if not isInt(gone.day, 0, Groups.COORD_MAX) or not isInt(gone.hour, 0, Groups.COORD_MAX)
-        or not isInt(gone.due, gone.hour or 0, Groups.COORD_MAX) then
+    if not LivingKnox.Num.isInt(gone.day, 0, Groups.COORD_MAX) or not LivingKnox.Num.isInt(gone.hour, 0, Groups.COORD_MAX)
+        or not LivingKnox.Num.isInt(gone.due, gone.hour or 0, Groups.COORD_MAX) then
         return false, "bad gone hours"
     end
     if gone.relief ~= nil then
@@ -269,9 +263,9 @@ function Groups.validGroup(g, id, nextId)
     if not typeKnown(g.type) then return false, "unknown type " .. tostring(g.type) end
     if not isText(g.name, 1, Groups.NAME_MAX) then return false, "bad name" end
     if not isText(g.story, 0, Groups.STORY_MAX) then return false, "bad story" end
-    if g.storySeed ~= nil and not isInt(g.storySeed, 0, Groups.COORD_MAX) then return false, "bad story seed" end
-    if not isInt(g.founded, 0, Groups.COORD_MAX) then return false, "bad founding day" end
-    if not isInt(g.nextMember, 1, Groups.COORD_MAX) then return false, "bad nextMember" end
+    if g.storySeed ~= nil and not LivingKnox.Num.isInt(g.storySeed, 0, Groups.COORD_MAX) then return false, "bad story seed" end
+    if not LivingKnox.Num.isInt(g.founded, 0, Groups.COORD_MAX) then return false, "bad founding day" end
+    if not LivingKnox.Num.isInt(g.nextMember, 1, Groups.COORD_MAX) then return false, "bad nextMember" end
     if type(g.members) ~= "table" then return false, "members is not a table" end
     local count, npcs = 0, {}
     for mid, m in pairs(g.members) do
@@ -280,7 +274,7 @@ function Groups.validGroup(g, id, nextId)
         if type(m) ~= "table" or m.id ~= mid then return false, "member " .. mid .. ": id mismatch" end
         if not roleRank(m.role) then return false, "member " .. mid .. ": unknown role " .. tostring(m.role) end
         if type(m.alive) ~= "boolean" then return false, "member " .. mid .. ": bad alive flag" end
-        if m.wound ~= nil and not isInt(m.wound, 0, Groups.LEVEL_MAX) then
+        if m.wound ~= nil and not LivingKnox.Num.isInt(m.wound, 0, Groups.LEVEL_MAX) then
             return false, "member " .. mid .. ": bad wound"
         end
         local extrasOk, extrasWhy = validMemberExtras(m)
@@ -309,10 +303,10 @@ function Groups.validGroup(g, id, nextId)
     if g.home ~= nil and not validHome(g.home) then return false, "bad home" end
     if type(g.needs) ~= "table" then return false, "needs is not a table" end
     for _, key in ipairs(Groups.NEEDS) do
-        if not isInt(g.needs[key], 0, Groups.LEVEL_MAX) then return false, "bad need " .. key end
+        if not LivingKnox.Num.isInt(g.needs[key], 0, Groups.LEVEL_MAX) then return false, "bad need " .. key end
     end
-    if not isInt(g.morale, 0, Groups.LEVEL_MAX) then return false, "bad morale" end
-    if g.rest ~= nil and not isInt(g.rest, 0, Groups.LEVEL_MAX) then return false, "bad rest" end
+    if not LivingKnox.Num.isInt(g.morale, 0, Groups.LEVEL_MAX) then return false, "bad morale" end
+    if g.rest ~= nil and not LivingKnox.Num.isInt(g.rest, 0, Groups.LEVEL_MAX) then return false, "bad rest" end
     if g.task ~= nil and not validKind(g.task) then return false, "bad task" end
     if g.objective ~= nil and not validKind(g.objective) then return false, "bad objective" end
     if g.expedition ~= nil then
@@ -325,7 +319,7 @@ function Groups.validGroup(g, id, nextId)
     if entries > Groups.LOG_SIZE or #g.log ~= entries then return false, "bad log size" end
     for i = 1, entries do
         local e = g.log[i]
-        if type(e) ~= "table" or not isInt(e.day, 0, Groups.COORD_MAX) or not validKind(e.kind)
+        if type(e) ~= "table" or not LivingKnox.Num.isInt(e.day, 0, Groups.COORD_MAX) or not validKind(e.kind)
             or not isText(e.text, 0, Groups.TEXT_MAX) then
             return false, "bad log entry " .. i
         end
@@ -355,10 +349,10 @@ function Groups.validate(data)
         return nil, "unknown group registry schema " .. tostring(data.schema) .. " (this version reads "
             .. Groups.SCHEMA .. ")", "schema"
     end
-    if not isInt(data.nextId, 1, Groups.COORD_MAX) then return nil, "bad nextId", "invalid" end
+    if not LivingKnox.Num.isInt(data.nextId, 1, Groups.COORD_MAX) then return nil, "bad nextId", "invalid" end
     if type(data.groups) ~= "table" then return nil, "groups is not a table", "invalid" end
     -- Heure simulée (LK09-T01) : facultative ; invalide, elle est oubliée (aucun rattrapage), le registre reste lisible.
-    if data.simHour ~= nil and not isInt(data.simHour, 0, Groups.COORD_MAX) then data.simHour = nil end
+    if data.simHour ~= nil and not LivingKnox.Num.isInt(data.simHour, 0, Groups.COORD_MAX) then data.simHour = nil end
     -- Population faite (LK08-T05) : facultative ; une valeur non booléenne vaut vrai (jamais de seconde population).
     if data.populated ~= nil and type(data.populated) ~= "boolean" then data.populated = true end
     local dropped, npcs = {}, {}
@@ -412,7 +406,9 @@ local function appendLog(g, kind, text, day)
     local tap = Groups.onLog
     if tap ~= nil then
         local ok, err = pcall(tap, g, kind, text, day)
-        if not ok then log().error("journal: %s entry of %s failed: %s", tostring(kind), tostring(g.id), tostring(err)) end
+        if not ok then
+            LivingKnox.Log.error("journal: %s entry of %s failed: %s", tostring(kind), tostring(g.id), tostring(err))
+        end
     end
 end
 Groups.appendLog = appendLog
@@ -464,7 +460,7 @@ end
 function Groups.applyGone(g, cause, day, hour, due)
     g.gone = { cause = cause, day = day, hour = hour, due = due }
     appendLog(g, "gone", cause, day)
-    log().info("group %s gone (%s) at hour %s, relief due at hour %s", g.id, cause, tostring(hour), tostring(due))
+    LivingKnox.Log.info("group %s gone (%s) at hour %s, relief due at hour %s", g.id, cause, tostring(hour), tostring(due))
 end
 
 -- Nouveau chef (membre vivant ou nil) sur un groupe passé en argument (logique pure, sans contrôle ni sauvegarde).
@@ -483,7 +479,7 @@ Groups.slotPath = slotPath
 local function block(reason)
     local st = Groups.state
     st.blocked, st.reason = true, reason
-    log().error("group registry BLOCKED: %s; files kept for recovery (%s-0.txt, -1.txt)", reason, tostring(st.path))
+    LivingKnox.Log.error("group registry BLOCKED: %s; files kept for recovery (%s-0.txt, -1.txt)", reason, tostring(st.path))
     return false
 end
 
@@ -496,9 +492,9 @@ function Groups.init(newWorld)
     st.data, st.seq, st.blocked, st.reason, st.dropped = nil, 0, false, nil, 0
     st.dirty, st.pending, st.age, st.verified = false, nil, 0, false
     if Groups.peekState ~= nil then Groups.peekState.byGid = {} end   -- LK13-T08 : vues du registre précédent oubliées
-    st.path = Store().worldFileBase(Groups.FILE)
-    local a, existsA = Store().readSlotFile(slotPath(0), Groups.HEADER)
-    local b, existsB = Store().readSlotFile(slotPath(1), Groups.HEADER)
+    st.path = LivingKnox.Store.worldFileBase(Groups.FILE)
+    local a, existsA = LivingKnox.Store.readSlotFile(slotPath(0), Groups.HEADER)
+    local b, existsB = LivingKnox.Store.readSlotFile(slotPath(1), Groups.HEADER)
     local best = a
     if b and (not a or b.seq > a.seq) then best = b end
     local lastSeq = 0
@@ -506,13 +502,13 @@ function Groups.init(newWorld)
     if b and b.seq > lastSeq then lastSeq = b.seq end
     if newWorld then
         st.data, st.seq = Groups.newRegistry(), lastSeq
-        log().info("groups: new world, empty group registry")
+        LivingKnox.Log.info("groups: new world, empty group registry")
         return Groups.save()
     end
     if not best then
         if existsA or existsB then return block("both group registry files are unreadable") end
         st.data, st.seq = Groups.newRegistry(), 0
-        log().info("groups: no file yet, empty group registry")
+        LivingKnox.Log.info("groups: no file yet, empty group registry")
         return true
     end
     local data, why, kind = Groups.validate(best.data)
@@ -521,12 +517,12 @@ function Groups.init(newWorld)
         return block("group registry file #" .. best.seq .. " is invalid: " .. why)
     end
     for _, d in ipairs(why) do
-        log().error("group %s dropped at load (file #%s): %s", d.id, tostring(best.seq), d.why)
+        LivingKnox.Log.error("group %s dropped at load (file #%s): %s", d.id, tostring(best.seq), d.why)
     end
     st.data, st.seq, st.dropped = data, best.seq, #why
     local count = 0
     for _ in pairs(data.groups) do count = count + 1 end
-    log().info("groups loaded: %s group(s), %s dropped, file #%s", tostring(count), tostring(#why),
+    LivingKnox.Log.info("groups loaded: %s group(s), %s dropped, file #%s", tostring(count), tostring(#why),
         tostring(best.seq))
     return true
 end
@@ -552,7 +548,7 @@ local function write(data, verify)
     if st.blocked or not data then return false end
     verify = verify == true or not st.verified
     local seq = st.seq + 1
-    local ok, why = Store().writeSlotFile(slotPath(seq % 2), Groups.HEADER, seq, data, not verify)
+    local ok, why = LivingKnox.Store.writeSlotFile(slotPath(seq % 2), Groups.HEADER, seq, data, not verify)
     if not ok then return block("group registry " .. why) end
     st.seq, st.dirty, st.pending, st.age = seq, false, nil, 0
     Groups.stats.writes = Groups.stats.writes + 1
@@ -596,7 +592,7 @@ function Groups.verifyFile()
     local st = Groups.state
     if st.blocked or not st.data then return false, "group registry not ready" end
     if st.seq == 0 then return true end   -- rien écrit encore (aucun fichier attendu)
-    local check = Store().readSlotFile(slotPath(st.seq % 2), Groups.HEADER)
+    local check = LivingKnox.Store.readSlotFile(slotPath(st.seq % 2), Groups.HEADER)
     if not check or check.seq ~= st.seq then
         block("group registry write verification failed (" .. slotPath(st.seq % 2) .. ")")
         return false, "write verification failed"
@@ -710,7 +706,7 @@ end
 
 local function dayOf(day)
     if day == nil then return Groups.today() end
-    if not isInt(day, 0, Groups.COORD_MAX) then return nil end
+    if not LivingKnox.Num.isInt(day, 0, Groups.COORD_MAX) then return nil end
     return day
 end
 
@@ -733,15 +729,17 @@ function Groups.applyCreate(data, spec)
     if not isText(spec.name, 1, Groups.NAME_MAX) then return nil, "bad name" end
     local story = spec.story or ""
     if not isText(story, 0, Groups.STORY_MAX) then return nil, "bad story" end
-    if spec.storySeed ~= nil and not isInt(spec.storySeed, 0, Groups.COORD_MAX) then return nil, "bad story seed" end
+    if spec.storySeed ~= nil and not LivingKnox.Num.isInt(spec.storySeed, 0, Groups.COORD_MAX) then
+        return nil, "bad story seed"
+    end
     if spec.home ~= nil and not validHome(spec.home) then return nil, "bad home" end
     local day = spec.day
-    if not isInt(day, 0, Groups.COORD_MAX) then return nil, "bad day" end
+    if not LivingKnox.Num.isInt(day, 0, Groups.COORD_MAX) then return nil, "bad day" end
     local needs = {}
     for _, key in ipairs(Groups.NEEDS) do
         local v = Groups.DEFAULT_LEVEL
         if spec.needs ~= nil then
-            if type(spec.needs) ~= "table" or not isInt(spec.needs[key], 0, Groups.LEVEL_MAX) then
+            if type(spec.needs) ~= "table" or not LivingKnox.Num.isInt(spec.needs[key], 0, Groups.LEVEL_MAX) then
                 return nil, "bad need " .. key
             end
             v = spec.needs[key]
@@ -750,7 +748,7 @@ function Groups.applyCreate(data, spec)
     end
     local morale = spec.morale
     if morale == nil then morale = Groups.DEFAULT_LEVEL end
-    if not isInt(morale, 0, Groups.LEVEL_MAX) then return nil, "bad morale" end
+    if not LivingKnox.Num.isInt(morale, 0, Groups.LEVEL_MAX) then return nil, "bad morale" end
     local count = 0
     for _ in pairs(data.groups) do count = count + 1 end
     if count >= Groups.MAX_GROUPS then return nil, "too many groups" end
@@ -762,7 +760,7 @@ function Groups.applyCreate(data, spec)
     if spec.home then g.home = { x = spec.home.x, y = spec.home.y, z = spec.home.z } end
     data.groups[id] = g
     appendLog(g, "founded", "", day)
-    log().info("group %s created (%s)", id, spec.type)
+    LivingKnox.Log.info("group %s created (%s)", id, spec.type)
     -- LK12-T02 : fait "groupCreated" (LK_Core.publish) ; l'événement public part après la transaction (LK_API).
     LivingKnox.publish("groupCreated", { group = id, type = spec.type, day = day })
     return g
@@ -871,7 +869,7 @@ function Groups.checkPeeks()
             local where = live ~= e.live and "" or differs(live, e.snap, "")
             if where ~= nil then
                 found = found + 1
-                log().error("groups: group %s changed through Groups.peek without a recorded change (read-only view)"
+                LivingKnox.Log.error("groups: group %s changed through Groups.peek without a recorded change (read-only view)"
                     .. " at %s", tostring(gid), where == "" and "<group>" or where)
             else
                 kept[gid] = e
@@ -899,7 +897,7 @@ function Groups.remove(gid)
         if m.alive then alive = alive + 1 end
     end
     Groups.state.data.groups[gid] = nil
-    log().info("group %s removed", gid)
+    LivingKnox.Log.info("group %s removed", gid)
     -- LK12-T02 : fait "groupRemoved" (vivants au moment du retrait) ; LK_API en tire l'événement « groupe disparu ».
     LivingKnox.publish("groupRemoved", { group = gid, alive = alive, day = Groups.today() })
     return commit(true)
@@ -914,7 +912,7 @@ function Groups.applyMember(g, spec, day)
     if spec.npc ~= nil and not LivingKnox.Identity.isId(spec.npc) then return nil, "bad npc reference" end
     local extrasOk, extrasWhy = validMemberExtras(spec)
     if not extrasOk then return nil, extrasWhy end
-    if not isInt(day, 0, Groups.COORD_MAX) then return nil, "bad day" end
+    if not LivingKnox.Num.isInt(day, 0, Groups.COORD_MAX) then return nil, "bad day" end
     local count = 0
     for _ in pairs(g.members) do count = count + 1 end
     if count >= Groups.MAX_MEMBERS then return nil, "too many members" end

@@ -171,10 +171,6 @@ Obstacles.stats = Obstacles.stats or { passes = 0, opened = 0, unlocked = 0, clo
     windowsOpened = 0, windowToggles = 0, windowsRefused = 0,
     windowsClosed = 0, windowsBusy = 0, windowsGivenUp = 0, detoured = 0 }
 
-local function log() return LivingKnox.Log end
-local function Dir() return LivingKnox.Directives end
-local function Bodies() return LivingKnox.Bodies end
-
 local function now() return getTimestampMs() end
 
 local function dist(ax, ay, bx, by)
@@ -431,7 +427,7 @@ function Obstacles.giveKey(npcId, z)
     if want == nil then
         md[Obstacles.KEY_GIVEN] = nil
         count("keysRemoved")
-        log().info("npc %s: %d key(s) of a former home removed (no home)", npcId, removed)
+        LivingKnox.Log.info("npc %s: %d key(s) of a former home removed (no home)", npcId, removed)
         return nil, "removed"
     end
     local key = instanceItem(Obstacles.KEY_ITEM)
@@ -440,7 +436,7 @@ function Obstacles.giveKey(npcId, z)
     z:getInventory():AddItem(key)
     md[Obstacles.KEY_GIVEN] = want
     count("keysGiven")
-    log().info("npc %s: key %s of its home building %s given%s", npcId, tostring(want), tostring(bid),
+    LivingKnox.Log.info("npc %s: key %s of its home building %s given%s", npcId, tostring(want), tostring(bid),
         removed > 0 and (" (" .. removed .. " key(s) of a former home removed)") or "")
     return want, given ~= nil and "changed" or "given"
 end
@@ -451,7 +447,7 @@ function Obstacles.keyPass(t)
     local st = Obstacles.state
     if st.keysMs ~= nil and t - st.keysMs < Obstacles.KEYS_EVERY_MS then return end
     st.keysMs = t
-    local B = Bodies()
+    local B = LivingKnox.Bodies
     local ids = {}
     for id in pairs(B.bound) do ids[#ids + 1] = id end
     table.sort(ids)
@@ -467,7 +463,7 @@ function Obstacles.keyHolderAt(h, keyId)
     if keyId == nil or keyId == -1 then return nil end
     local G = LivingKnox.Groups
     if G == nil or not G.isReady() then return nil end
-    local B = Bodies()
+    local B = LivingKnox.Bodies
     local ids = {}
     for id in pairs(B.bound) do ids[#ids + 1] = id end
     table.sort(ids)
@@ -515,7 +511,7 @@ function Obstacles.decide(npcId, door, sqA, sqB, body, from, trapped)
     local foreign = home ~= nil and home ~= mine
     local z = body
     if foreign then
-        if trapped and from == nil and z == nil then z = Bodies().find(npcId) end
+        if trapped and from == nil and z == nil then z = LivingKnox.Bodies.find(npcId) end
         if trapped and from == nil and z ~= nil then from = z:getCurrentSquare() end
         if not (trapped and Obstacles.inHomeOf(from, home)) then
             return nil, "door of the home of " .. home .. " (not a member)"
@@ -525,7 +521,7 @@ function Obstacles.decide(npcId, door, sqA, sqB, body, from, trapped)
     local keyId, key = nil, false
     if locked or home ~= nil then   -- sinon la clé ne sert à rien : ni corps ni inventaire lus
         keyId = Obstacles.doorKeyId(door)
-        if z == nil then z = Bodies().find(npcId) end
+        if z == nil then z = LivingKnox.Bodies.find(npcId) end
         if z ~= nil then Obstacles.giveKey(npcId, z) end   -- clé du foyer (une fois par corps et par foyer)
         key = Obstacles.hasKey(z, keyId)
     end
@@ -741,7 +737,7 @@ function Obstacles.startWindowAct(id, z, w, e, kind, t)
     local ms = open and Obstacles.OPEN_GESTURE_MS or Obstacles.CLOSE_GESTURE_MS
     local ok, why = A.startAct(id, g, ms, Obstacles.faceAngle(e, z:getX(), z:getY()))
     if not ok then
-        log().warn("npc %s: %s gesture at the window %s refused: %s", id, g, e.key, tostring(why))
+        LivingKnox.Log.warn("npc %s: %s gesture at the window %s refused: %s", id, g, e.key, tostring(why))
         return false
     end
     t = t or now()
@@ -749,7 +745,7 @@ function Obstacles.startWindowAct(id, z, w, e, kind, t)
         toggleMs = t + (open and Obstacles.OPEN_TOGGLE_MS or Obstacles.CLOSE_TOGGLE_MS),
         from = sideOf(e, z:getX(), z:getY()), lx = z:getX(), ly = z:getY() }   -- lx, ly : closeReady (LK04-T18)
     count("windowGestures")
-    log().info("npc %s: %s gesture at the window %s", id, g, e.key)
+    LivingKnox.Log.info("npc %s: %s gesture at the window %s", id, g, e.key)
     return true
 end
 
@@ -841,7 +837,7 @@ local function stillFor(id, z, t)
         Obstacles.track[id] = { x = z:getX(), y = z:getY(), ms = t }
         return 0
     end
-    local blind = (isServer() and z:getOwner() ~= nil) and Dir().REPORT_MS or 0
+    local blind = (isServer() and z:getOwner() ~= nil) and LivingKnox.Directives.REPORT_MS or 0
     return math.max(0, t - tr.ms - blind)
 end
 
@@ -862,16 +858,16 @@ local function refuse(id, e, c, why, what)
     if Obstacles.onRefusal ~= nil and Obstacles.onRefusal(id, e, c, why, what) then
         count("detoured")
         Obstacles.track[id] = nil
-        log().info("npc %s: move #%d refused at the %s %s: %s; detour given", id, e.v, what, c.e.key, why)
+        LivingKnox.Log.info("npc %s: move #%d refused at the %s %s: %s; detour given", id, e.v, what, c.e.key, why)
         return
     end
-    log().warn("npc %s: move #%d refused at the %s %s: %s", id, e.v, what, c.e.key, why)
+    LivingKnox.Log.warn("npc %s: move #%d refused at the %s %s: %s", id, e.v, what, c.e.key, why)
     -- E18-T38 : sans détour, case visée derrière une fenêtre refusée écartée comme après un échec "stuck"
     -- (Movement.AVOID_MS) : le même trajet revenait sur la même fenêtre verrouillée à chaque consigne (campagne solo du
     -- 2026-11-13 : 37 refus de suite).
     local Mv = LivingKnox.Movement
     if what == "window" and Mv ~= nil and Mv.noteStuck ~= nil then Mv.noteStuck(id, e) end
-    Dir().abort(id, what .. " " .. c.e.key .. ": " .. why)
+    LivingKnox.Directives.abort(id, what .. " " .. c.e.key .. ": " .. why)
 end
 
 -- Fenêtre contre laquelle le corps z du PNJ id (consigne e) est arrêté depuis still ms : ouverture (notée pour être
@@ -881,7 +877,7 @@ function Obstacles.checkWindows(id, e, z, still, t)
     -- E18-T34 : corps mené vers la porte d'un détour (LK17-T01, Directives.detouring) : l'arrêt vient de la porte ou
     -- d'un pas du chemin, jamais d'une fenêtre à ouvrir (campagne MP du 2026-11-08,
     -- runs/20261108-012549-mp-a2dbaf99cf8b : fenêtre du foyer ouverte par un membre arrêté à sa porte).
-    if Dir().detouring(e) then return false end
+    if LivingKnox.Directives.detouring(e) then return false end
     t = t or now()
     local px, py = z:getX(), z:getY()
     local near = Obstacles.windowsNear(px, py, math.floor(z:getZ()))
@@ -907,7 +903,7 @@ function Obstacles.checkWindows(id, e, z, still, t)
                 count("windowsOpened")
                 Obstacles.openWins[c.e.key] = { win = c.win, e = c.e, id = id, ms = t, seenMs = t,
                     from = sideOf(c.e, px, py) }
-                log().info("npc %s: window %s opened (group %s)", id, c.e.key, tostring(Obstacles.groupOf(id)))
+                LivingKnox.Log.info("npc %s: window %s opened (group %s)", id, c.e.key, tostring(Obstacles.groupOf(id)))
             elseif still >= Obstacles.REFUSE_MS and not climbing(z) and not ownWay
                 and not Obstacles.onBlocked(id, e, z, c, why or "window did not open", "window", t) then
                 count("windowsRefused")
@@ -941,7 +937,7 @@ function Obstacles.climbedWindows(id, z, t)
     for key, rec in pairs(Obstacles.openWins) do
         local e = rec.e
         if rec.id ~= id and e.z == pz and dist(px, py, e.mx, e.my) <= Obstacles.ALIGN then
-            log().info("npc %s: climbs the window %s opened by npc %s, closes it behind", id, key, tostring(rec.id))
+            LivingKnox.Log.info("npc %s: climbs the window %s opened by npc %s, closes it behind", id, key, tostring(rec.id))
             rec.id, rec.seenMs, rec.from = id, t, sideOf(e, px, py)
         end
     end
@@ -961,10 +957,10 @@ end
 -- avant (en course, moins d'une demi-seconde sépare l'arrivée sur ce point du contact).
 function Obstacles.check(id, e, z, seen, t)
     local px, py, pz = z:getX(), z:getY(), math.floor(z:getZ())
-    local tx, ty = Dir().stepTarget(e, e.k)
+    local tx, ty = LivingKnox.Directives.stepTarget(e, e.k)
     local k = (type(e.k) == "number" and e.k >= 1) and e.k or 1
     local nx, ny
-    if type(e.w) == "table" and k <= #e.w then nx, ny = Dir().stepTarget(e, k + 1) end
+    if type(e.w) == "table" and k <= #e.w then nx, ny = LivingKnox.Directives.stepTarget(e, k + 1) end
     -- LK04-T17 (lk.traversal du 2026-10-12, « refused door next to a low fence ») : l'immobilité ne court pas pendant
     -- une escalade (corps figé par l'animation) ; sinon, à la fin de l'escalade, une porte refusée LONGEANT le trajet
     -- était « au contact » depuis plus de REFUSE_MS et la consigne échouait.
@@ -1008,7 +1004,7 @@ function Obstacles.check(id, e, z, seen, t)
                     local how = inside and " from inside" or (" with its key " .. tostring(keyId))
                     if inside and lockAfter then how = how .. " (to be relocked with its home key " .. tostring(keyId)
                         .. ")" end
-                    log().info("npc %s: door %s opened%s", id, c.e.key, wasLocked and (" and unlocked"
+                    LivingKnox.Log.info("npc %s: door %s opened%s", id, c.e.key, wasLocked and (" and unlocked"
                         .. (home and (" (member of " .. tostring(home) .. ")") or "") .. how) or "")
                 elseif contact and still >= Obstacles.REFUSE_MS and not climbing(z)
                     and not Obstacles.isLowGate(c.door) and (route or Obstacles.facing(z, c.e)) then
@@ -1116,11 +1112,11 @@ end
 -- (défaut : sa consigne "move" ouverte). Rend vrai, ou faux et une raison.
 function Obstacles.orderForce(npcId, v)
     if not LivingKnox.isAuthority() then return false, "not the authority (MP client)" end
-    local e = Dir().entries[npcId]
-    if v == nil and e ~= nil and e.op == Dir().OP_MOVE and not e.done then v = e.v end
+    local e = LivingKnox.Directives.entries[npcId]
+    if v == nil and e ~= nil and e.op == LivingKnox.Directives.OP_MOVE and not e.done then v = e.v end
     if type(v) ~= "number" then return false, "no open move for npc " .. tostring(npcId) end
     Obstacles.forceOrders[npcId] = { v = v }
-    log().info("npc %s: may force the home of a friendly group during move #%d (explicit order)", npcId, v)
+    LivingKnox.Log.info("npc %s: may force the home of a friendly group during move #%d (explicit order)", npcId, v)
     return true
 end
 
@@ -1214,14 +1210,14 @@ function Obstacles.onBlocked(id, e, z, c, why, what, t)
         local weapon, cause = Obstacles.canForce(id, e, c, what, why)
         if weapon == nil then
             count("forceRefused")
-            log().info("npc %s: %s %s not forced: %s", id, what, c.e.key, tostring(cause))
+            LivingKnox.Log.info("npc %s: %s %s not forced: %s", id, what, c.e.key, tostring(cause))
             return false
         end
         rec.weapon, rec.nextMs, rec.hits, rec.planks = weapon:getFullType(), t + Obstacles.IMPACT_MS, 0, 0
         Obstacles.forcing[id] = rec
         holdAct(id, z, rec, "force", t)
         count("forcings")
-        log().info("npc %s: forcing the %s %s (%s) with %s%s", id, what, c.e.key, tostring(why), rec.weapon,
+        LivingKnox.Log.info("npc %s: forcing the %s %s (%s) with %s%s", id, what, c.e.key, tostring(why), rec.weapon,
             ordered(id, e) and " (explicit order)" or "")
         return true
     elseif policy == "wait" then
@@ -1229,7 +1225,7 @@ function Obstacles.onBlocked(id, e, z, c, why, what, t)
         Obstacles.waiting[id] = rec
         holdAct(id, z, rec, "wait", t, rec.untilMs)
         count("waits")
-        log().info("npc %s: waiting %d ms at the %s %s (%s)", id, Obstacles.WAIT_MS, what, c.e.key, tostring(why))
+        LivingKnox.Log.info("npc %s: waiting %d ms at the %s %s (%s)", id, Obstacles.WAIT_MS, what, c.e.key, tostring(why))
         return true
     end
     return false
@@ -1243,7 +1239,7 @@ end
 -- Vrai si l'obstacle de rec ne bloque plus le PNJ id : porte retirée, ouverte et sans barricade, ou décision "open" ;
 -- fenêtre retirée, ou qui ne l'arrête plus, ou décision "open".
 local function passable(id, rec, z)
-    local de = Dir().entries[id]
+    local de = LivingKnox.Directives.entries[id]
     local trapped = de ~= nil and de.v == rec.v and de.lr == true   -- LK04-T20 : dernier recours de cette consigne
     local near = nearSquare(rec.e, z:getX(), z:getY(), rec.sqA, rec.sqB)
     if rec.what == "door" then
@@ -1286,13 +1282,13 @@ local function strikeOnce(id, rec, z, w, t)
             rec.planks = rec.planks + (n0 - n1)
             local st = Obstacles.stats
             st.planksBroken = (st.planksBroken or 0) + (n0 - n1)
-            log().info("npc %s: plank of the barricade on the %s %s broken (%d left)", id, rec.what, rec.key, n1)
+            LivingKnox.Log.info("npc %s: plank of the barricade on the %s %s broken (%d left)", id, rec.what, rec.key, n1)
             -- sync() de Damage ne redessine pas la barricade chez les clients : STATE comme IsoBarricade.Thump.
             if not destroyed and isServer() then b:sendObjectChange(IsoObjectChange.STATE) end
         end
         if destroyed then
             count("barricadesBroken")
-            log().info("npc %s: barricade on the %s %s broken", id, rec.what, rec.key)
+            LivingKnox.Log.info("npc %s: barricade on the %s %s broken", id, rec.what, rec.key)
         end
         return "hit"
     end
@@ -1304,7 +1300,7 @@ local function strikeOnce(id, rec, z, w, t)
         count("forceHits")
         if gone(d) or d:isDestroyed() then
             count("doorsBroken")
-            log().info("npc %s: door %s broken", id, rec.key)
+            LivingKnox.Log.info("npc %s: door %s broken", id, rec.key)
         end
         return "hit"
     end
@@ -1314,7 +1310,7 @@ local function strikeOnce(id, rec, z, w, t)
         Obstacles.setDoor(d, true)
         count("opened")
         Obstacles.opened[rec.key] = { door = d, e = rec.e, id = id, ms = t, seenMs = t, from = rec.from, lock = false }
-        log().info("npc %s: door %s of the home of %s opened by force", id, rec.key, home)
+        LivingKnox.Log.info("npc %s: door %s of the home of %s opened by force", id, rec.key, home)
         return "done"
     end
     return nil, tostring(rec.why)
@@ -1324,21 +1320,21 @@ end
 local function release(id, rec, list, g, outcome, refuseWhy)
     list[id] = nil
     endHold(id, g)
-    log().info("npc %s: %s at the %s %s ended after %d ms: %s", id, g == "force" and "forcing" or "waiting", rec.what,
+    LivingKnox.Log.info("npc %s: %s at the %s %s ended after %d ms: %s", id, g == "force" and "forcing" or "waiting", rec.what,
         rec.key, now() - rec.ms, outcome)
     if refuseWhy ~= nil then
-        local e = Dir().entries[id]
+        local e = LivingKnox.Directives.entries[id]
         if e ~= nil and not e.done and e.v == rec.v then refuse(id, e, rec, refuseWhy, rec.what) end
     end
 end
 
 -- Raison d'arrêter une attente ou un forçage sans refus (consigne changée, corps parti), ou nil.
 local function interrupted(id, rec, z)
-    local e = Dir().entries[id]
-    if e == nil or e.done or e.v ~= rec.v or e.op ~= Dir().OP_MOVE or e.suspended ~= nil then
+    local e = LivingKnox.Directives.entries[id]
+    if e == nil or e.done or e.v ~= rec.v or e.op ~= LivingKnox.Directives.OP_MOVE or e.suspended ~= nil then
         return "move no longer running"
     end
-    if z == nil or not Bodies().inWorld(z) then return "body gone" end
+    if z == nil or not LivingKnox.Bodies.inWorld(z) then return "body gone" end
     return nil
 end
 
@@ -1352,7 +1348,7 @@ function Obstacles.blockedPass(t)
         local g = forcing and "force" or "wait"
         for _, id in ipairs(ids) do
             local rec = list[id]
-            local z = Bodies().find(id)
+            local z = LivingKnox.Bodies.find(id)
             local stop = interrupted(id, rec, z)
             if stop ~= nil then
                 release(id, rec, list, g, stop)
@@ -1390,7 +1386,7 @@ function Obstacles.blockedPass(t)
     end
     local drop = {}
     for id, o in pairs(Obstacles.forceOrders) do
-        local e = Dir().entries[id]
+        local e = LivingKnox.Directives.entries[id]
         if e == nil or e.v ~= o.v or e.done then drop[#drop + 1] = id end
     end
     for _, id in ipairs(drop) do Obstacles.forceOrders[id] = nil end
@@ -1426,14 +1422,14 @@ end
 -- "move" en cours, ou ne l'a plus sur son trajet depuis CLOSE_AFTER_MS.
 local function passedOrStale(rec, z, t)
     local passed = sideOf(rec.e, z:getX(), z:getY()) ~= rec.from
-    local d = Dir().entries[rec.id]
-    local going = d ~= nil and d.op == Dir().OP_MOVE and not d.done
+    local d = LivingKnox.Directives.entries[rec.id]
+    local going = d ~= nil and d.op == LivingKnox.Directives.OP_MOVE and not d.done
     return passed or not going or t - rec.seenMs >= Obstacles.CLOSE_AFTER_MS
 end
 
 -- Vrai si la porte notée rec peut être refermée maintenant (voir l'en-tête).
 local function closeDue(rec, t)
-    local z = Bodies().find(rec.id)
+    local z = LivingKnox.Bodies.find(rec.id)
     if z == nil then return true end
     local away = dist(z:getX(), z:getY(), rec.e.mx, rec.e.my) >= Obstacles.CLOSE_DIST
     if not away then return false end
@@ -1449,14 +1445,14 @@ function Obstacles.closePass(seen, t)
             drop[#drop + 1] = key
         elseif not Obstacles.isOpen(door) then
             drop[#drop + 1] = key   -- refermée par quelqu'un d'autre : plus à nous
-        elseif select(2, Bodies().find(rec.id)) == "unknown" then
+        elseif select(2, LivingKnox.Bodies.find(rec.id)) == "unknown" then
             drop[#drop + 1] = key   -- PNJ retiré du registre (lk.traversal MP du 2026-11-16) : plus à nous
         elseif not seen[key] and closeDue(rec, t) then
             if occupied(rec) then
                 count("busy")
                 if t - rec.ms >= Obstacles.GIVE_UP_MS then
                     count("givenUp")
-                    log().warn("door %s left open: its squares stay occupied", key)
+                    LivingKnox.Log.warn("door %s left open: its squares stay occupied", key)
                     drop[#drop + 1] = key
                 end
             else
@@ -1468,14 +1464,14 @@ function Obstacles.closePass(seen, t)
         local rec = Obstacles.opened[key]
         -- LK04-T12 : reverrouillée seulement si le PNJ porte toujours la clé (corps disparu : clé gardée par le PNJ).
         local lock = rec.lock
-        local z = lock and Bodies().find(rec.id) or nil
+        local z = lock and LivingKnox.Bodies.find(rec.id) or nil
         if z ~= nil and not Obstacles.hasKey(z, rec.keyId) then
             lock = false
-            log().info("door %s: npc %s lost its key, left unlocked", key, rec.id)
+            LivingKnox.Log.info("door %s: npc %s lost its key, left unlocked", key, rec.id)
         end
         Obstacles.setDoor(rec.door, false, lock)
         count("closed")
-        log().info("door %s closed behind npc %s%s", key, rec.id, lock and " and locked" or "")
+        LivingKnox.Log.info("door %s closed behind npc %s%s", key, rec.id, lock and " and locked" or "")
         Obstacles.opened[key] = nil
     end
     for _, key in ipairs(drop) do Obstacles.opened[key] = nil end
@@ -1483,8 +1479,8 @@ end
 
 -- Consigne "move" ouverte et non suspendue du PNJ id (moving), ou close à l'arrivée (arrived).
 local function moveState(id)
-    local d = Dir().entries[id]
-    if d == nil or d.op ~= Dir().OP_MOVE then return nil end
+    local d = LivingKnox.Directives.entries[id]
+    if d == nil or d.op ~= LivingKnox.Directives.OP_MOVE then return nil end
     if not d.done then return d.suspended == nil and "moving" or nil end
     return d.s == "arrived" and "arrived" or nil
 end
@@ -1493,7 +1489,7 @@ end
 -- l'en-tête) : corps dans le monde, au niveau de la fenêtre, hors escalade, à ACT_REACH case au plus du milieu du
 -- bord, et passé de l'autre côté (ou consigne changée, ou CLOSE_AFTER_MS sans passage). Jamais de loin.
 local function windowCloseDue(rec, z, t)
-    if z == nil or not Bodies().inWorld(z) or climbing(z) or math.floor(z:getZ()) ~= rec.e.z then return false end
+    if z == nil or not LivingKnox.Bodies.inWorld(z) or climbing(z) or math.floor(z:getZ()) ~= rec.e.z then return false end
     if dist(z:getX(), z:getY(), rec.e.mx, rec.e.my) > Obstacles.ACT_REACH then return false end
     return passedOrStale(rec, z, t)
 end
@@ -1524,7 +1520,7 @@ local function noteClosed(key, e, id, z, d, gesture, t)
     Obstacles.closedBy[key] = { id = id, ms = t }
     Obstacles.lastClose = { key = key, id = id, d = d, gesture = gesture, ms = t,
         facing = z ~= nil and Obstacles.facing(z, e) or false }
-    log().info("window %s closed behind npc %s (body %.2f square(s) away%s)", key, id, d,
+    LivingKnox.Log.info("window %s closed behind npc %s (body %.2f square(s) away%s)", key, id, d,
         gesture and ", gesture" or "")
 end
 
@@ -1542,7 +1538,7 @@ function Obstacles.windowActPass(t)
         local r = Obstacles.winActs[key]
         local w = r.win
         local open = r.kind == "open"
-        local z = Bodies().find(r.id)
+        local z = LivingKnox.Bodies.find(r.id)
         local why = nil
         if r.done then
             if t >= r.endMs then Obstacles.winActs[key] = nil end
@@ -1555,7 +1551,7 @@ function Obstacles.windowActPass(t)
                 why = "window broken or barricaded"
             elseif (w:IsOpen() == true) == open then
                 why = open and "window already open" or "window already closed"
-            elseif z == nil or not Bodies().inWorld(z) then
+            elseif z == nil or not LivingKnox.Bodies.inWorld(z) then
                 why = "body gone"
             elseif open and moveState(r.id) ~= "moving" then
                 why = "move no longer running"
@@ -1565,7 +1561,7 @@ function Obstacles.windowActPass(t)
                         r.done = true
                         count("windowsOpened")
                         Obstacles.openWins[key] = { win = w, e = r.e, id = r.id, ms = t, seenMs = t, from = r.from }
-                        log().info("npc %s: window %s opened (group %s)", r.id, key, tostring(Obstacles.groupOf(r.id)))
+                        LivingKnox.Log.info("npc %s: window %s opened (group %s)", r.id, key, tostring(Obstacles.groupOf(r.id)))
                     else
                         why = "window did not open"
                     end
@@ -1586,7 +1582,7 @@ function Obstacles.windowActPass(t)
                         noteClosed(key, r.e, r.id, z, d, true, t)
                         Obstacles.openWins[key] = nil
                     else
-                        log().warn("window %s could not be closed behind npc %s", key, r.id)
+                        LivingKnox.Log.warn("window %s could not be closed behind npc %s", key, r.id)
                         Obstacles.openWins[key] = nil
                         why = "window did not close"
                     end
@@ -1597,7 +1593,7 @@ function Obstacles.windowActPass(t)
                 count("windowGesturesStopped")
                 local A = LivingKnox.Anim
                 if A ~= nil and A.endAct ~= nil then A.endAct(r.id, r.g) end
-                log().info("npc %s: %s gesture at the window %s stopped: %s", r.id, r.g, key, why)
+                LivingKnox.Log.info("npc %s: %s gesture at the window %s stopped: %s", r.id, r.g, key, why)
             end
         end
     end
@@ -1613,7 +1609,7 @@ function Obstacles.closeWindowsPass(seen, t)
         elseif not w:IsOpen() or w:isDestroyed() or w:isBarricaded() then
             drop[#drop + 1] = key   -- fermée, brisée ou barricadée par quelqu'un d'autre : plus à nous
         elseif Obstacles.winActs[key] == nil then   -- geste en cours devant elle : windowActPass (LK04-T13)
-            local z = Bodies().find(rec.id)
+            local z = LivingKnox.Bodies.find(rec.id)
             -- LK04-T18 : escalade de cette fenêtre en cours, fin guettée à chaque image (Obstacles.landed).
             rec.climbing = (z ~= nil and climbing(z) and math.floor(z:getZ()) == rec.e.z
                 and dist(z:getX(), z:getY(), rec.e.mx, rec.e.my) <= Obstacles.DETECT) or nil
@@ -1625,7 +1621,7 @@ function Obstacles.closeWindowsPass(seen, t)
                 if busy then count("windowsBusy") end
                 if t - rec.ms >= Obstacles.GIVE_UP_MS then
                     count("windowsGivenUp")
-                    log().warn("window %s left open: npc %s not next to it in time or its squares stay occupied",
+                    LivingKnox.Log.warn("window %s left open: npc %s not next to it in time or its squares stay occupied",
                         key, rec.id)
                     drop[#drop + 1] = key
                 end
@@ -1634,11 +1630,11 @@ function Obstacles.closeWindowsPass(seen, t)
     end
     for _, key in ipairs(shut) do   -- table modifiée hors de pairs (corps à ACT_REACH au plus : windowCloseDue)
         local rec = Obstacles.openWins[key]
-        local z = Bodies().find(rec.id)
+        local z = LivingKnox.Bodies.find(rec.id)
         if Obstacles.setWindow(rec.win, false, z) then
             noteClosed(key, rec.e, rec.id, z, z ~= nil and dist(z:getX(), z:getY(), rec.e.mx, rec.e.my) or -1, false, t)
         else
-            log().warn("window %s could not be closed behind npc %s", key, rec.id)
+            LivingKnox.Log.warn("window %s could not be closed behind npc %s", key, rec.id)
         end
         Obstacles.openWins[key] = nil
     end
@@ -1655,7 +1651,7 @@ end
 function Obstacles.landed()
     for _, rec in pairs(Obstacles.openWins) do
         if rec.climbing then
-            local z = Bodies().find(rec.id)
+            local z = LivingKnox.Bodies.find(rec.id)
             if z == nil or not climbing(z) then return true end
         end
     end
@@ -1709,7 +1705,7 @@ function Obstacles.secureHome(h)
         count("secured")
         -- E18-T31 : portes verrouillees par le foyer, comptees aussi dans stats.locked (setDoor).
         Obstacles.stats.securedDoors = (Obstacles.stats.securedDoors or 0) + n
-        log().info("group %s: %d exterior door(s) of its home locked", h.gid, n)
+        LivingKnox.Log.info("group %s: %d exterior door(s) of its home locked", h.gid, n)
     end
     return n
 end
@@ -1741,7 +1737,7 @@ function Obstacles.shutHome(h, a, seen, t)
                     a.doors[e.key] = { door = door, e = e }
                 else
                     count("shutRefused")
-                    log().info("group %s: exterior door %s of its home left open: %s", h.gid, e.key, why)
+                    LivingKnox.Log.info("group %s: exterior door %s of its home left open: %s", h.gid, e.key, why)
                 end
             end
         end)
@@ -1774,9 +1770,9 @@ function Obstacles.shutHome(h, a, seen, t)
         st.shut = (st.shut or 0) + shut
         st.shutUnlocked = (st.shutUnlocked or 0) + unlocked
         if unlocked == 0 then
-            log().info("group %s: %d open exterior door(s) of its home closed and locked%s", h.gid, shut, cause)
+            LivingKnox.Log.info("group %s: %d open exterior door(s) of its home closed and locked%s", h.gid, shut, cause)
         else
-            log().info("group %s: %d open exterior door(s) of its home closed, %d left unlocked: no member with "
+            LivingKnox.Log.info("group %s: %d open exterior door(s) of its home closed, %d left unlocked: no member with "
                 .. "the key at home%s", h.gid, shut, unlocked, cause)
         end
     end
@@ -1785,7 +1781,7 @@ function Obstacles.shutHome(h, a, seen, t)
     elseif t - a.ms >= Obstacles.SHUT_GIVE_UP_MS then
         a.done = true
         count("shutGivenUp")
-        log().warn("group %s: %d exterior door(s) of its home left open: squares occupied or on a path%s", h.gid, busy,
+        LivingKnox.Log.warn("group %s: %d exterior door(s) of its home left open: squares occupied or on a path%s", h.gid, busy,
             cause)
     else
         count("shutBusy")
@@ -1850,7 +1846,7 @@ function Obstacles.onAlert(gid, info, event)
     end
     if n > 0 then
         count("alertShuts")
-        log().info("group %s: %s: open exterior doors of its home to be closed", tostring(gid), label)
+        LivingKnox.Log.info("group %s: %s: open exterior doors of its home to be closed", tostring(gid), label)
     end
     return n
 end
@@ -1905,7 +1901,7 @@ end
 
 function Obstacles.pass()
     if not LivingKnox.isAuthority() or getCell() == nil then return end
-    local B, D = Bodies(), Dir()
+    local B, D = LivingKnox.Bodies, LivingKnox.Directives
     if B == nil or D == nil or not B.canAct(false) then return end
     local t = now()
     local seen = {}

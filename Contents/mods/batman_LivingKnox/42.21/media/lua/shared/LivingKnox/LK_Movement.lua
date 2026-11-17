@@ -52,7 +52,6 @@ Movement.excused = Movement.excused or {}   -- autorité : npcId -> { v, ms } pa
 Movement.stats = Movement.stats or { detected = 0, repaths = 0, unblocks = 0, unblockReached = 0, unblockTimeout = 0,
     noPoint = 0, stuck = 0, noted = 0, avoided = 0, taken = 0 }
 
-local function log() return LivingKnox.Log end
 local function now() return getTimestampMs() end
 
 local function count(name)
@@ -273,10 +272,6 @@ end
 
 -- ================================================================ autorité
 
-local function cheb(ax, ay, bx, by)
-    return math.max(math.abs(ax - bx), math.abs(ay - by))
-end
-
 -- Raison reçue d'un rapport : chaîne courte, sinon nil.
 function Movement.cleanWhy(why, max)
     if type(why) ~= "string" or why == "" then return nil end
@@ -305,7 +300,7 @@ function Movement.noteStuck(id, e)
     if type(e.x) ~= "number" or type(e.y) ~= "number" or type(e.z) ~= "number" then return false end
     if excusedFor(id, e.v) then
         count("excused")
-        log().info("npc %s: %s #%s stuck after a passage was granted to it, target not avoided", id, tostring(e.op),
+        LivingKnox.Log.info("npc %s: %s #%s stuck after a passage was granted to it, target not avoided", id, tostring(e.op),
             tostring(e.v))
         return false
     end
@@ -319,7 +314,7 @@ function Movement.noteStuck(id, e)
     while #keep > Movement.AVOID_KEEP do table.remove(keep, 1) end
     Movement.stuckAt[id] = keep
     count("noted")
-    log().info("npc %s: %s #%s stuck, target %d,%d,%d avoided by this npc for %d s", id, tostring(e.op),
+    LivingKnox.Log.info("npc %s: %s #%s stuck, target %d,%d,%d avoided by this npc for %d s", id, tostring(e.op),
         tostring(e.v), e.x, e.y, e.z, math.floor(Movement.AVOID_MS / 1000))
     return true
 end
@@ -332,7 +327,7 @@ function Movement.avoided(id, x, y, z)
     local t = now()
     for _, s in ipairs(list) do
         local age = t - s.ms
-        if age < Movement.AVOID_MS and s.z == z and cheb(s.x, s.y, x, y) <= Movement.AVOID_RADIUS then
+        if age < Movement.AVOID_MS and s.z == z and LivingKnox.Geo.cheb(s.x, s.y, x, y) <= Movement.AVOID_RADIUS then
             count("avoided")
             return string.format("target %d,%d,%d avoided: this npc got stuck going to %d,%d,%d %d s ago", x, y, z,
                 s.x, s.y, s.z, math.floor(age / 1000))

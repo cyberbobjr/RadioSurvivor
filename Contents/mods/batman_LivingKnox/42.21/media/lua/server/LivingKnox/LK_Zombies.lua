@@ -134,12 +134,8 @@ Zombies.stats = Zombies.stats or { passes = 0, contacts = 0, attacks = 0, avoide
 Zombies.stats.steps = Zombies.stats.steps or 0   -- LK06-T08
 
 local function cfg() return LivingKnox.Config.ZOMBIES end
-local function log() return LivingKnox.Log end
-local function Bodies() return LivingKnox.Bodies end
-local function Health() return LivingKnox.Health end
 
 local function now() return getTimestampMs() end
-local function finite(v) return type(v) == "number" and v == v and v > -1e9 and v < 1e9 end
 
 local function count(name, n)
     local st = Zombies.stats
@@ -151,7 +147,7 @@ end
 -- Numéro d'un zombie : identifiant réseau (serveur MP), sinon numéro tenu ici (solo : onlineId -1).
 function Zombies.numberOf(z)
     local o = z:getOnlineID()
-    if finite(o) and o ~= -1 then return o end
+    if LivingKnox.Num.finite(o) and o ~= -1 then return o end
     local s = Zombies.serials[z]
     if s == nil then
         local st = Zombies.state
@@ -165,7 +161,7 @@ end
 -- Clé stable d'un zombie dans la session : "z:<onlineId>" (MP), "z@<numéro>" (solo).
 function Zombies.keyOf(z)
     local o = z:getOnlineID()
-    if finite(o) and o ~= -1 then return "z:" .. tostring(o) end
+    if LivingKnox.Num.finite(o) and o ~= -1 then return "z:" .. tostring(o) end
     return "z@" .. tostring(Zombies.numberOf(z))
 end
 
@@ -236,7 +232,7 @@ end
 -- dégagée. Rend { kind = "zombie", u = clé, d, reason, zombie } ou nil. Lecture seule.
 function Zombies.targetFor(npcId)
     if not LivingKnox.isAuthority() then return nil end
-    local B = Bodies()
+    local B = LivingKnox.Bodies
     local body = B and B.find(npcId)
     if body == nil or body:isDead() then return nil end
     local cell = getCell()
@@ -270,7 +266,7 @@ end
 
 local function combat(key, default)
     local ok, v = pcall(function() return getCombatConfig():get(CombatConfigKey[key]) end)
-    if ok and finite(v) then return v end
+    if ok and LivingKnox.Num.finite(v) then return v end
     return default
 end
 
@@ -296,8 +292,8 @@ function Zombies.damageOf(id, o, w, hits, floor)
         v = (0.7 + 0.3 * roll / 99 + c.STRENGTH * 0.2) * c.STOMP_POWER
     else
         local lo, hi = w:getMinDamage(), w:getMaxDamage()
-        if not finite(lo) or lo < 0 then lo = 0 end
-        if not finite(hi) or hi < lo then hi = lo end
+        if not LivingKnox.Num.finite(lo) or lo < 0 then lo = 0 end
+        if not LivingKnox.Num.finite(hi) or hi < lo then hi = lo end
         v = lo + (hi - lo) * roll / 99
     end
     local level = math.max(0, math.min(10, c.WEAPON_LEVEL))
@@ -306,7 +302,7 @@ function Zombies.damageOf(id, o, w, hits, floor)
     if not melee then return v end
     if floor and not stomp then   -- IsoGameCharacter.java:5817-5821 (visée au sol, sans poussée)
         local crit = w:getCriticalDamageMultiplier()
-        v = v * math.max(c.FLOOR_MIN_MULT, finite(crit) and crit or 0)
+        v = v * math.max(c.FLOOR_MIN_MULT, LivingKnox.Num.finite(crit) and crit or 0)
     end
     if hits >= 4 then v = v * (hits - 2) * 1.5 end   -- IsoGameCharacter.java:5709-5714
     return v * combat("GLOBAL_MELEE_DAMAGE_REDUCTION_MULTIPLIER", 0.15)
@@ -343,10 +339,10 @@ function Zombies.hurt(id, o, z, w)
     local left = before - dmg
     count("hits")
     if left <= 0 then
-        local body = Bodies().find(id)
+        local body = LivingKnox.Bodies.find(id)
         Zombies.hitsOn[key] = nil
         count("kills")
-        log().info("npc %s killed zombie %s with %s (%.3f damage%s, health was %.3f)", id, key, w:getFullType(), dmg,
+        LivingKnox.Log.info("npc %s killed zombie %s with %s (%.3f damage%s, health was %.3f)", id, key, w:getFullType(), dmg,
             floor and " on the floor" or "", before)
         if isServer() then
             if body ~= nil then z:setAttackedBy(body) end
@@ -366,7 +362,7 @@ function Zombies.hurt(id, o, z, w)
             count("hurtMessages")
         end
     end
-    log().debug("npc %s hurt zombie %s with %s%s: %.3f, health %.3f", id, key, w:getFullType(),
+    LivingKnox.Log.debug("npc %s hurt zombie %s with %s%s: %.3f, health %.3f", id, key, w:getFullType(),
         floor and " on the floor" or "", dmg, left)
     return true, dmg, left, false
 end
@@ -398,11 +394,11 @@ function Zombies.outcome(id, zn, n, attackers)
 end
 
 local function fullOf(id, body)
-    local H = Health()
+    local H = LivingKnox.Health
     local st = H and H.get and H.get(id) or nil
-    if st ~= nil and finite(st.max) and st.max > 0 then return st.max end
+    if st ~= nil and LivingKnox.Num.finite(st.max) and st.max > 0 then return st.max end
     local h = body:getHealth()
-    if finite(h) and h > 0 then return h end
+    if LivingKnox.Num.finite(h) and h > 0 then return h end
     return 1
 end
 
@@ -413,14 +409,14 @@ function Zombies.attack(id, body, z, key, n, attackers)
     count("attacks")
     count(out)
     if out == "avoided" then
-        log().debug("npc %s avoided zombie %s (attack %d, %d attacker(s))", id, key, n, attackers)
+        LivingKnox.Log.debug("npc %s avoided zombie %s (attack %d, %d attacker(s))", id, key, n, attackers)
         return out
     end
-    local H = Health()
+    local H = LivingKnox.Health
     local amount = cfg().DAMAGE[out] * fullOf(id, body)
     local deaths = H.stats.deaths
     local hp = H.applyHit(id, body, amount, "zombie " .. out, z, nil)
-    log().info("npc %s: %s by zombie %s (attack %d, %d attacker(s), %.3f damage, health %s)", id, out, key, n,
+    LivingKnox.Log.info("npc %s: %s by zombie %s (attack %d, %d attacker(s), %.3f damage, health %s)", id, out, key, n,
         attackers, amount, hp ~= nil and string.format("%.3f", hp) or "?")
     if H.stats.deaths > deaths then count("deaths") end
     return out
@@ -450,7 +446,7 @@ function Zombies.hearingOf(z)
     if getWorldSoundManager == nil then return 1 end
     local W = getWorldSoundManager()
     local m = W ~= nil and W:getHearingMultiplier(z) or nil
-    if not (finite(m) and m > 0.05) then m = 1 end
+    if not (LivingKnox.Num.finite(m) and m > 0.05) then m = 1 end
     local lore = isServer() and SandboxVars ~= nil and SandboxVars.ZombieLore or nil
     local opt = lore ~= nil and lore.Hearing or nil
     if opt == 4 or opt == 5 or opt == 3 then
@@ -458,7 +454,7 @@ function Zombies.hearingOf(z)
         if z.getWornItemsHearingMultiplier ~= nil then f = f * z:getWornItemsHearingMultiplier() end
         if z.getWeatherHearingMultiplier ~= nil then f = f * z:getWeatherHearingMultiplier() end
         local worst = Zombies.POOR_HEARING * f
-        if finite(worst) and worst > 0.05 and worst < m then m = worst end
+        if LivingKnox.Num.finite(worst) and worst > 0.05 and worst < m then m = worst end
     end
     return m
 end
@@ -484,7 +480,7 @@ local function lure(id, body, z, t)
     local r = Zombies.lureRadius(z, body)
     addSound(nil, math.floor(body:getX()), math.floor(body:getY()), math.floor(body:getZ()), r, cfg().LURE_VOLUME)
     count("lures")
-    log().debug("npc %s seen by zombie %s: lure noise radius %d", id, Zombies.keyOf(z), r)
+    LivingKnox.Log.debug("npc %s seen by zombie %s: lure noise radius %d", id, Zombies.keyOf(z), r)
     return true
 end
 
@@ -517,8 +513,8 @@ end
 function Zombies.pass(t)
     t = t or now()
     count("passes")
-    local B = Bodies()
-    local H = Health()
+    local B = LivingKnox.Bodies
+    local H = LivingKnox.Health
     local cell = getCell()
     if B == nil or H == nil or cell == nil then return 0 end
     local bodies = {}

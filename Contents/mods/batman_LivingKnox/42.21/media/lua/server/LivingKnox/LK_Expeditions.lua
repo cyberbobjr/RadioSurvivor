@@ -144,21 +144,10 @@ Ex.stats = Ex.stats or { departed = 0, refused = 0, arrived = 0, searched = 0, t
 
 local M = 2147483647
 
-local function log() return LivingKnox.Log end
 local function cfg() return Ex.CFG end
-local function Groups() return LivingKnox.Groups end
-local function Stock() return LivingKnox.Stock end
-local function Homes() return LivingKnox.Homes end
-local function Decisions() return LivingKnox.Decisions end
 local function X() return LivingKnox.Routines.exec end
 
-local function isInt(v, lo, hi)
-    return type(v) == "number" and v == v and math.floor(v) == v and v >= lo and v <= hi
-end
-
-local function cheb(ax, ay, bx, by) return math.max(math.abs(ax - bx), math.abs(ay - by)) end
-
-local function cut(s) return string.sub(s, 1, Groups().TEXT_MAX or 200) end
+local function cut(s) return string.sub(s, 1, LivingKnox.Groups.TEXT_MAX or 200) end
 
 local function inList(list, v)
     for _, x in ipairs(list or {}) do
@@ -243,7 +232,7 @@ local function validStrList(list, max, pred)
     if type(list) ~= "table" then return false end
     local n = 0
     for k in pairs(list) do
-        if not isInt(k, 1, max) then return false end
+        if not LivingKnox.Num.isInt(k, 1, max) then return false end
         n = n + 1
     end
     if n > 0 and list[n] == nil then return false end
@@ -258,26 +247,29 @@ local function shortText(v) return type(v) == "string" and #v > 0 and #v <= 96 e
 -- Expédition en cours bien formée. Rend vrai, ou faux et une raison.
 function Ex.validCur(t)
     if type(t) ~= "table" then return false, "trip is not a table" end
-    if not isInt(t.n, 1, M) or not Ex.PHASES[t.phase] then return false, "bad trip number or phase" end
-    if not validStrList(t.team, Groups().MAX_MEMBERS, function(v) return Groups().memberNumber(v) ~= nil end) then
+    if not LivingKnox.Num.isInt(t.n, 1, M) or not Ex.PHASES[t.phase] then return false, "bad trip number or phase" end
+    if not validStrList(t.team, LivingKnox.Groups.MAX_MEMBERS,
+        function(v) return LivingKnox.Groups.memberNumber(v) ~= nil end) then
         return false, "bad team"
     end
     if not validStrList(t.want, #LivingKnox.Stock.CATEGORIES, function(w)
-        return type(w) == "table" and CATS[w.c] == true and isInt(w.m, 0, 1000)
+        return type(w) == "table" and CATS[w.c] == true and LivingKnox.Num.isInt(w.m, 0, 1000)
     end) then
         return false, "bad wants"
     end
     local tg = t.target
-    if type(tg) ~= "table" or not isInt(tg.x, 0, M) or not isInt(tg.y, 0, M) or not isInt(tg.z, -32, 31)
+    if type(tg) ~= "table" or not LivingKnox.Num.isInt(tg.x, 0, M) or not LivingKnox.Num.isInt(tg.y, 0, M)
+        or not LivingKnox.Num.isInt(tg.z, -32, 31)
         or not shortText(tg.b) then
         return false, "bad target"
     end
-    if not isInt(t.start, 0, M) or not isInt(t.due, 0, M) or not isInt(t.cap, 0, 1000) then
+    if not LivingKnox.Num.isInt(t.start, 0, M) or not LivingKnox.Num.isInt(t.due, 0, M)
+        or not LivingKnox.Num.isInt(t.cap, 0, 1000) then
         return false, "bad times or load"
     end
     if not validStrList(t.carry, 1000, function(e)
         return type(e) == "table" and type(e.t) == "string" and #e.t > 0 and #e.t <= 128 and CATS[e.c] == true
-            and (e.i == nil or isInt(e.i, -2147483648, 2147483647)) and (e.a == nil or e.a == true)
+            and (e.i == nil or LivingKnox.Num.isInt(e.i, -2147483648, 2147483647)) and (e.a == nil or e.a == true)
             and (e.f == nil or e.f == true)
     end) then
         return false, "bad load"
@@ -291,7 +283,7 @@ end
 
 -- Champs d'un genre à tirages (valid d'un genre) : tirages faits k et prévus r, zone ou rive visée (room).
 function Ex.drawnValid(t)
-    if not isInt(t.k, 0, 1000) or not isInt(t.r, 0, 1000) or not shortText(t.target.room) then
+    if not LivingKnox.Num.isInt(t.k, 0, 1000) or not LivingKnox.Num.isInt(t.r, 0, 1000) or not shortText(t.target.room) then
         return false, "bad foraging rounds"
     end
     return true
@@ -300,7 +292,9 @@ end
 -- Historique des expéditions bien formé. Rend vrai, ou faux et une raison.
 function Ex.validTrips(s)
     if type(s) ~= "table" or s.v ~= Ex.FORMAT then return false, "unknown format" end
-    if not isInt(s.n, 0, M) or (s.last ~= nil and not isInt(s.last, 0, M)) then return false, "bad counters" end
+    if not LivingKnox.Num.isInt(s.n, 0, M) or (s.last ~= nil and not LivingKnox.Num.isInt(s.last, 0, M)) then
+        return false, "bad counters"
+    end
     if not validStrList(s.seen, cfg().SEEN_MAX, shortText) then return false, "bad seen list" end
     if s.cur ~= nil then return Ex.validCur(s.cur) end
     return true
@@ -312,13 +306,13 @@ local function tripsOf(gid, g)
     if s == nil then return nil end
     local ok, why = Ex.validTrips(s)
     if ok then return s end
-    log().warn("expedition: group %s trip record dropped (%s)", gid, tostring(why))
+    LivingKnox.Log.warn("expedition: group %s trip record dropped (%s)", gid, tostring(why))
     g.trips = nil
     return nil
 end
 
 local function liveGroup(gid)
-    local G = Groups()
+    local G = LivingKnox.Groups
     local data = G.isReady() and G.state.data or nil
     return data and data.groups[gid] or nil
 end
@@ -524,8 +518,8 @@ end
 local function bodyAtHome(m, home)
     local z = LivingKnox.Bodies.find(m.npc)
     if z == nil then return false end
-    return math.floor(z:getZ()) == home.z and cheb(z:getX(), z:getY(), home.x + 0.5, home.y + 0.5)
-        <= Decisions().CFG.HOME_RADIUS
+    return math.floor(z:getZ()) == home.z and LivingKnox.Geo.cheb(z:getX(), z:getY(), home.x + 0.5, home.y + 0.5)
+        <= LivingKnox.Decisions.CFG.HOME_RADIUS
 end
 
 -- Besoins qui retiennent un membre au foyer (LK05-T15) : rend la raison, ou nil s'il peut partir. want = manques de
@@ -535,7 +529,7 @@ function Ex.needBlocker(needs, want)
     local sought = {}
     for _, w in ipairs(want or {}) do sought[w.c] = true end
     for _, key in ipairs({ "fear", "fatigue", "hunger", "thirst" }) do
-        local v, lim = needs and needs[key] or 0, Decisions().needHigh(key)   -- LK05-T16 : peur = AfraidFear
+        local v, lim = needs and needs[key] or 0, LivingKnox.Decisions.needHigh(key)   -- LK05-T16 : peur = AfraidFear
         if lim ~= nil and v >= lim then
             local cat = NEED_ANSWERED_BY[key]
             if cat == nil or not sought[cat] then return key .. " " .. v end
@@ -548,7 +542,7 @@ end
 -- besoin élevé que l'expédition ne comble pas (gid et want donnés : Ex.needBlocker). Rend la liste triée par numéro
 -- et le nombre de vivants présents au foyer.
 function Ex.teamOf(g, gid, want)
-    local G, c = Groups(), cfg()
+    local G, c = LivingKnox.Groups, cfg()
     local mids, present = {}, 0
     local away = {}
     if type(g.expedition) == "table" and type(g.expedition.team) == "table" then
@@ -558,8 +552,8 @@ function Ex.teamOf(g, gid, want)
         if m.alive and not away[mid] then
             present = present + 1
             if m.duty == "forager" and mid ~= g.leader and m.npc ~= nil and isEmbodied(m)
-                and Decisions().healthOf(m) >= c.TEAM_HEALTH and bodyAtHome(m, g.home)
-                and (gid == nil or Ex.needBlocker(Decisions().needsOf(gid, mid), want) == nil) then
+                and LivingKnox.Decisions.healthOf(m) >= c.TEAM_HEALTH and bodyAtHome(m, g.home)
+                and (gid == nil or Ex.needBlocker(LivingKnox.Decisions.needsOf(gid, mid), want) == nil) then
                 mids[#mids + 1] = mid
             end
         end
@@ -568,7 +562,7 @@ function Ex.teamOf(g, gid, want)
     local n = math.min(c.TEAM_MAX, #mids, present - c.MIN_HOME)
     local team = {}
     -- E10-T03 : gid donné, chaque partant est jugé (Decisions.judgeOrder) : un refus le laisse au foyer, le suivant part.
-    local D = Decisions()
+    local D = LivingKnox.Decisions
     local minute = gid ~= nil and D.judgeOrder ~= nil and D.currentMinute() or nil
     for _, mid in ipairs(mids) do
         if #team >= n then break end
@@ -597,7 +591,7 @@ end
 
 -- Manques du stock (Stock.needs) : { { c, m } } dans l'ordre du manque, ou nil et une raison.
 function Ex.wantOf(gid)
-    local a, why = Stock().needs(gid)
+    local a, why = LivingKnox.Stock.needs(gid)
     if a == nil then return nil, why end
     local want = {}
     for _, nd in ipairs(a.needs) do
@@ -620,14 +614,14 @@ function Ex.tryDepart(gid, minute)
     tripsOf(gid, g)
     local why = Ex.departBlocker(g, minute)
     if why ~= nil then return nil, why end
-    if not Decisions().materialized(g, LivingKnox.Store.isReady() and LivingKnox.Store.data() or nil) then
+    if not LivingKnox.Decisions.materialized(g, LivingKnox.Store.isReady() and LivingKnox.Store.data() or nil) then
         return nil, "not materialized"
     end
     local want, wwhy = Ex.wantOf(gid)
     if want == nil then return nil, wwhy end
     local team = Ex.teamOf(g, gid, want)
     if #team < cfg().TEAM_MIN then return nil, "no forager free to leave" end
-    local data = Groups().state.data
+    local data = LivingKnox.Groups.state.data
     -- LK16-T08 : genres par priorité ; le premier permis à cette heure, qui répond aux manques et trouve un lieu, part.
     local hod = hourOfDay(minute)
     local target, twhy, kind
@@ -656,7 +650,7 @@ function Ex.tryDepart(gid, minute)
     for _, w in ipairs(want) do missing = missing + w.m end
     local cap = math.min(c.CARRY_PER_MEMBER * #team, c.CARRY_MAX, missing)
     local n
-    local G = Groups()
+    local G = LivingKnox.Groups
     G.update(function(d)
         local live = d.groups[gid]
         if live == nil then return false, false end
@@ -676,7 +670,7 @@ function Ex.tryDepart(gid, minute)
         return true, true
     end)
     Ex.stats.departed = Ex.stats.departed + 1
-    log().info("expedition: group %s trip %d leaves for building %s %s at %d,%d,%d (%d squares, score %.1f): %s, "
+    LivingKnox.Log.info("expedition: group %s trip %d leaves for building %s %s at %d,%d,%d (%d squares, score %.1f): %s, "
         .. "wants %s, load %d", gid, n, target.b, target.label, target.x, target.y, target.z, target.d, target.score,
         table.concat(team, " "), wantText(want), cap)
     return n
@@ -687,7 +681,7 @@ end
 local function setPhase(gid, n, phase, minute, why)
     local c = cfg()
     local span = { search = c.SEARCH_MINUTES, back = c.BACK_MINUTES, deliver = 0 }
-    Groups().update(function(d)
+    LivingKnox.Groups.update(function(d)
         local g = d.groups[gid]
         local t = g and g.trips and g.trips.cur or nil
         if t == nil or t.n ~= n or t.phase == phase then return false, false end
@@ -695,7 +689,7 @@ local function setPhase(gid, n, phase, minute, why)
         t.due = minute + (span[phase] or 0)
         return true, true
     end)
-    log().info("expedition: group %s trip %d %s (%s)", gid, n, phase, tostring(why))
+    LivingKnox.Log.info("expedition: group %s trip %d %s (%s)", gid, n, phase, tostring(why))
 end
 
 local function memOf(id, gid, n, mid)
@@ -742,25 +736,22 @@ function Ex.siteContainers(gid, t)
     local tg = t.target
     local R = cfg().SEARCH_RADIUS
     local found = {}
-    for dy = -R, R do
-        for dx = -R, R do
-            local x, y = tg.x + dx, tg.y + dy
-            local sq = cell:getGridSquare(x, y, tg.z)
-            if sq ~= nil and X().buildingId(sq) == tg.b then
-                local objs = sq:getObjects()
-                local seen = {}
-                for i = 0, objs:size() - 1 do
-                    local o = objs:get(i)
-                    if o ~= nil and o.getContainerCount ~= nil and not instanceof(o, "IsoWorldInventoryObject") then
-                        for ci = 0, o:getContainerCount() - 1 do
-                            local ct = o:getContainerByIndex(ci)
-                            if ct ~= nil then
-                                local ctype = tostring(ct:getType())
-                                local k = (seen[ctype] or 0) + 1
-                                seen[ctype] = k
-                                found[#found + 1] = { key = x .. "," .. y .. "," .. tg.z .. "," .. ctype .. "," .. k,
-                                    x = x, y = y, z = tg.z, d = cheb(x, y, tg.x, tg.y) }
-                            end
+    for x, y in LivingKnox.Geo.squaresAround(tg.x, tg.y, R) do
+        local sq = cell:getGridSquare(x, y, tg.z)
+        if sq ~= nil and X().buildingId(sq) == tg.b then
+            local objs = sq:getObjects()
+            local seen = {}
+            for i = 0, objs:size() - 1 do
+                local o = objs:get(i)
+                if o ~= nil and o.getContainerCount ~= nil and not instanceof(o, "IsoWorldInventoryObject") then
+                    for ci = 0, o:getContainerCount() - 1 do
+                        local ct = o:getContainerByIndex(ci)
+                        if ct ~= nil then
+                            local ctype = tostring(ct:getType())
+                            local k = (seen[ctype] or 0) + 1
+                            seen[ctype] = k
+                            found[#found + 1] = { key = x .. "," .. y .. "," .. tg.z .. "," .. ctype .. "," .. k,
+                                x = x, y = y, z = tg.z, d = LivingKnox.Geo.cheb(x, y, tg.x, tg.y) }
                         end
                     end
                 end
@@ -779,7 +770,7 @@ function Ex.siteContainers(gid, t)
         out[#out + 1] = f
     end
     Ex.state.sites[key] = out
-    log().info("expedition: group %s trip %d: %d container(s) to search in building %s", gid, t.n, #out, tg.b)
+    LivingKnox.Log.info("expedition: group %s trip %d: %d container(s) to search in building %s", gid, t.n, #out, tg.b)
     return out
 end
 
@@ -876,9 +867,9 @@ function Ex.searchContainer(gid, n, f, id, mid)
         for j = 0, items:size() - 1 do
             if #picks >= room then break end
             local it = items:get(j)
-            local cat = it ~= nil and Stock().categoryOf(it) or nil
+            local cat = it ~= nil and LivingKnox.Stock.categoryOf(it) or nil
             if cat ~= nil and (wanted[cat] or 0) > 0
-                and ((cat ~= "food" and cat ~= "water") or Stock().consumable(it, cat)) then
+                and ((cat ~= "food" and cat ~= "water") or LivingKnox.Stock.consumable(it, cat)) then
                 wanted[cat] = wanted[cat] - 1
                 picks[#picks + 1] = { it = it, c = cat }
             end
@@ -893,7 +884,7 @@ function Ex.searchContainer(gid, n, f, id, mid)
             entries[#entries + 1] = { t = p.it:getFullType(), c = p.c, i = i }
         end
     end
-    local G = Groups()
+    local G = LivingKnox.Groups
     G.update(function(d)
         local g = d.groups[gid]
         local cur = g and g.trips and g.trips.cur or nil
@@ -912,7 +903,7 @@ function Ex.searchContainer(gid, n, f, id, mid)
     end)
     Ex.stats.searched = Ex.stats.searched + 1
     Ex.stats.taken = Ex.stats.taken + #entries
-    log().info("expedition: group %s trip %d: %s (%s) searched %s%s: %s", gid, n, tostring(mid), tostring(id), f.key,
+    LivingKnox.Log.info("expedition: group %s trip %d: %s (%s) searched %s%s: %s", gid, n, tostring(mid), tostring(id), f.key,
         ct == nil and " (gone)" or "", #taken > 0 and table.concat(taken, " ") or "nothing taken")
     return #entries
 end
@@ -923,7 +914,7 @@ end
 local function homeSpot(home, rank)
     local sq, bid = LivingKnox.Materialize.homeSquare(home)
     if sq == nil then return home.x, home.y, home.z end
-    local place = freeNear(home.x, home.y, home.z, bid, Decisions().CFG.HOME_PLACE_RADIUS, rank)
+    local place = freeNear(home.x, home.y, home.z, bid, LivingKnox.Decisions.CFG.HOME_PLACE_RADIUS, rank)
     if place == nil then return home.x, home.y, home.z end
     return place:getX(), place:getY(), place:getZ()
 end
@@ -937,8 +928,8 @@ end
 
 -- Conteneur écarté sans fouille (hors d'atteinte) : marqué fouillé, réservation rendue, rien n'est pris.
 local function skipContainer(gid, n, f, id, why)
-    log().info("expedition: group %s trip %d: npc %s skips %s (%s)", gid, n, tostring(id), f.key, why)
-    Groups().update(function(d)
+    LivingKnox.Log.info("expedition: group %s trip %d: npc %s skips %s (%s)", gid, n, tostring(id), f.key, why)
+    LivingKnox.Groups.update(function(d)
         local cur = d.groups[gid] and d.groups[gid].trips and d.groups[gid].trips.cur
         if cur == nil or cur.n ~= n or inList(cur.searched, f.key) then return false, false end
         cur.searched[#cur.searched + 1] = f.key
@@ -1036,7 +1027,7 @@ function Ex.drawNext(gid, n, mid)
     local c = kind.conditions()
     local entries, text = kind.draw(gid, t, k, c)
     local added = 0
-    Groups().update(function(d)
+    LivingKnox.Groups.update(function(d)
         local g = d.groups[gid]
         local cur = g and g.trips and g.trips.cur or nil
         if cur == nil or cur.n ~= n or cur.kind ~= t.kind or (cur.k or 0) >= k then return false, false end
@@ -1047,7 +1038,7 @@ function Ex.drawNext(gid, n, mid)
         return true, true
     end)
     Ex.stats.taken = Ex.stats.taken + added
-    log().info("expedition: group %s trip %d: %s %s (draw %d of %d, %s%s): %s", gid, n, tostring(mid), kind.verb, k,
+    LivingKnox.Log.info("expedition: group %s trip %d: %s %s (draw %d of %d, %s%s): %s", gid, n, tostring(mid), kind.verb, k,
         t.r or 0, tostring(t.target.room), kind.detail(c), text)
     return added
 end
@@ -1137,7 +1128,7 @@ function Ex.apply(id, st, ctx, fresh)
         resetSteps(m)
         e = X().entryOf(id)
         Ex.stats.arrived = Ex.stats.arrived + 1
-        log().info("expedition: npc %s (%s %s) %s building %s", id, ctx.gid, ctx.mid,
+        LivingKnox.Log.info("expedition: npc %s (%s %s) %s building %s", id, ctx.gid, ctx.mid,
             res == "failed" and "gave up reaching" or "reached", t.target.b)
         if t.phase == "out" then setPhase(ctx.gid, t.n, "search", ctx.minute, ctx.mid .. " arrived") end
         t = curOf(ctx.gid)
@@ -1170,10 +1161,10 @@ end
 -- Conteneur de dépôt du foyer : conteneur posé par LK_Homes (caisse, tente), sinon le premier (ordre des clés) ; ou
 -- nil et une raison.
 local function depotOf(gid, g)
-    if not Stock().validRef(g.stock, g.home) then return nil, "no stock reference" end
-    local style, def = Homes().ready(g.home)
+    if not LivingKnox.Stock.validRef(g.stock, g.home) then return nil, "no stock reference" end
+    local style, def = LivingKnox.Homes.ready(g.home)
     if style == nil then return nil, def end
-    local list, why = Stock().containers(gid, g.home, style, def ~= nil and def:getIDString() or nil)
+    local list, why = LivingKnox.Stock.containers(gid, g.home, style, def ~= nil and def:getIDString() or nil)
     if list == nil then return nil, why end
     for _, ct in ipairs(list) do
         if ct.owned then return ct end
@@ -1203,7 +1194,7 @@ function Ex.deliver(gid)
         local key = gid .. "#" .. t.n
         if Ex.state.checked[key] ~= why then
             Ex.state.checked[key] = why
-            log().info("expedition: group %s trip %d waits to unload: %s", gid, t.n, tostring(why))
+            LivingKnox.Log.info("expedition: group %s trip %d waits to unload: %s", gid, t.n, tostring(why))
         end
         return false
     end
@@ -1219,7 +1210,7 @@ function Ex.deliver(gid)
             if ok then
                 items, bad = list, nbad or 0
             else
-                log().error("expedition: group %s trip %d: %s not made: %s", gid, t.n, e.t, tostring(list))
+                LivingKnox.Log.error("expedition: group %s trip %d: %s not made: %s", gid, t.n, e.t, tostring(list))
             end
             created = created + #items
             poisoned = poisoned + bad
@@ -1236,14 +1227,14 @@ function Ex.deliver(gid)
         for _, item in ipairs(items) do
             depot.container:AddItem(item)
             if isServer() then sendAddItemToContainer(depot.container, item) end
-            local cat = Stock().categoryOf(item)
+            local cat = LivingKnox.Stock.categoryOf(item)
             if cat == nil and not e.f then cat = e.c end   -- objet d'une cueillette hors catégories (graines) : non suivi
             if cat ~= nil then refs[#refs + 1] = { i = item:getID(), t = item:getFullType(), c = cat, k = depot.key } end
             if not e.f or item:getFullType() == e.t then counts[e.c] = (counts[e.c] or 0) + 1 end
         end
     end
-    local G = Groups()
-    local minute = Decisions().currentMinute() or t.start
+    local G = LivingKnox.Groups
+    local minute = LivingKnox.Decisions.currentMinute() or t.start
     local parts = {}
     for _, c in ipairs(LivingKnox.Stock.CATEGORIES) do
         if counts[c] then parts[#parts + 1] = c .. " +" .. counts[c] end
@@ -1255,11 +1246,11 @@ function Ex.deliver(gid)
         local live = d.groups[gid]
         local s = live and live.trips or nil
         if s == nil or s.cur == nil or s.cur.n ~= t.n then return false, false end
-        if type(live.home) == "table" and Stock().validRef(live.stock, live.home) then
+        if type(live.home) == "table" and LivingKnox.Stock.validRef(live.stock, live.home) then
             local have = {}
             for _, e in ipairs(live.stock.items) do have[e.i] = true end
             for _, r in ipairs(refs) do
-                if not have[r.i] and #live.stock.items < Stock().MAX_ITEMS then
+                if not have[r.i] and #live.stock.items < LivingKnox.Stock.MAX_ITEMS then
                     live.stock.items[#live.stock.items + 1] = r
                 end
             end
@@ -1279,9 +1270,9 @@ function Ex.deliver(gid)
     Ex.stats.deposited = Ex.stats.deposited + #refs
     Ex.stats.lost = Ex.stats.lost + lost
     Ex.stats.created = Ex.stats.created + created
-    log().info("expedition: group %s %s (into %s%s)", gid, text, depot.key,
+    LivingKnox.Log.info("expedition: group %s %s (into %s%s)", gid, text, depot.key,
         created > 0 and (", " .. created .. " found offscreen") or "")
-    Stock().updateRation(gid)
+    LivingKnox.Stock.updateRation(gid)
     return true
 end
 
@@ -1294,11 +1285,11 @@ local function toAbstract(gid, g, t, team, hour, why)
     t.from = t.phase
     t.phase = "away"
     t.team = team
-    local G = Groups()
+    local G = LivingKnox.Groups
     G.appendLog(g, "trip", cut(string.format("trip %d offscreen (%s): %s, back in %d h", t.n, t.from,
         table.concat(team, " "), hours)), G.today())
     Ex.stats.abstract = Ex.stats.abstract + 1
-    log().info("expedition: group %s trip %d goes offscreen during %s (%s): %s, back at hour %d", gid, t.n, t.from,
+    LivingKnox.Log.info("expedition: group %s trip %d goes offscreen during %s (%s): %s, back at hour %d", gid, t.n, t.from,
         tostring(why), table.concat(team, " "), hour + hours)
     Ex.state.claims[gid .. "#" .. t.n] = nil
 end
@@ -1320,9 +1311,9 @@ function Ex.onReleased(gid, mid)
             if z ~= nil and B.playerNear(players, z:getX(), z:getY(), r) then near = true end
         end
     end
-    local hour = Decisions().currentHour() or 0
+    local hour = LivingKnox.Decisions.currentHour() or 0
     local result
-    Groups().update(function(d)
+    LivingKnox.Groups.update(function(d)
         local live = d.groups[gid]
         local cur = live and live.trips and live.trips.cur or nil
         if cur == nil or cur.n ~= t.n then return false, false end
@@ -1334,7 +1325,7 @@ function Ex.onReleased(gid, mid)
         if near then
             cur.team = team
             result = "left"
-            log().info("expedition: group %s trip %d: %s left the team (released, the others are still seen)", gid,
+            LivingKnox.Log.info("expedition: group %s trip %d: %s left the team (released, the others are still seen)", gid,
                 cur.n, mid)
         elseif #team > 0 then
             toAbstract(gid, live, cur, team, hour, mid .. " released")
@@ -1384,7 +1375,7 @@ end
 function Ex.resolveAbstract(g, gid, hour, erand, day)
     local e = g.expedition
     g.expedition = nil
-    local G = Groups()
+    local G = LivingKnox.Groups
     local s = g.trips
     local t = type(s) == "table" and s.cur or nil
     local back = 0
@@ -1404,7 +1395,7 @@ function Ex.resolveAbstract(g, gid, hour, erand, day)
     G.appendLog(g, "trip", cut(string.format("trip %d back offscreen: %d back, %d item(s) found", t.n, back, found)),
         day)
     Ex.stats.resolved = Ex.stats.resolved + 1
-    log().info("expedition: group %s trip %d back from offscreen at hour %d: %d back, %d item(s) found", gid, t.n,
+    LivingKnox.Log.info("expedition: group %s trip %d back from offscreen at hour %d: %d back, %d item(s) found", gid, t.n,
         hour, back, found)
     return { back = back, found = found }
 end
@@ -1426,7 +1417,7 @@ local function watch(gid, minute)
         if m ~= nil and m.alive then alive = alive + 1 end
     end
     if alive == 0 then
-        local G = Groups()
+        local G = LivingKnox.Groups
         G.update(function(d)
             local live = d.groups[gid]
             local s = live and live.trips or nil
@@ -1437,7 +1428,7 @@ local function watch(gid, minute)
             return true, true
         end)
         Ex.state.carried[gid .. "#" .. t.n] = nil
-        log().info("expedition: group %s trip %d over: no member of the team alive", gid, t.n)
+        LivingKnox.Log.info("expedition: group %s trip %d over: no member of the team alive", gid, t.n)
         return
     end
     if minute < t.due then return end
@@ -1456,9 +1447,9 @@ function Ex.minutePass()
     if not LivingKnox.isAuthority() or getCell() == nil then return 0 end
     local Config = LivingKnox.Config
     if Config.isEnabled ~= nil and not Config.isEnabled() then return 0 end
-    local G = Groups()
+    local G = LivingKnox.Groups
     if not G.isReady() then return 0 end
-    local minute = Decisions().currentMinute()
+    local minute = LivingKnox.Decisions.currentMinute()
     if minute == nil then return 0 end
     local n = 0
     for _, gid in ipairs(G.list()) do
@@ -1466,18 +1457,18 @@ function Ex.minutePass()
         if g ~= nil then
             tripsOf(gid, g)
             local ok, err = pcall(watch, gid, minute)
-            if not ok then log().error("expedition: group %s watch failed: %s", gid, tostring(err)) end
+            if not ok then LivingKnox.Log.error("expedition: group %s watch failed: %s", gid, tostring(err)) end
             local last = Ex.state.checked[gid]
             if g.trips == nil or g.trips.cur == nil then
                 if type(last) ~= "number" or minute - last >= cfg().CHECK_MINUTES or minute < last then
                     Ex.state.checked[gid] = minute
                     local okD, res, why = pcall(Ex.tryDepart, gid, minute)
                     if not okD then
-                        log().error("expedition: group %s departure failed: %s", gid, tostring(res))
+                        LivingKnox.Log.error("expedition: group %s departure failed: %s", gid, tostring(res))
                     elseif res ~= nil then
                         n = n + 1
                     elseif why ~= nil then
-                        log().debug("expedition: group %s stays home: %s", gid, tostring(why))
+                        LivingKnox.Log.debug("expedition: group %s stays home: %s", gid, tostring(why))
                     end
                 end
             end
@@ -1490,14 +1481,14 @@ end
 function Ex.get(gid)
     local t = curOf(gid)
     if t == nil then return nil end
-    return Groups().copy(t)
+    return LivingKnox.Groups.copy(t)
 end
 
 -- Mémoire d'un membre (copie), ou nil.
 function Ex.memberState(id)
     local m = Ex.state.npcs[id]
     if m == nil then return nil end
-    return Groups().copy(m)
+    return LivingKnox.Groups.copy(m)
 end
 
 -- Objets portés en mémoire par l'expédition n du groupe gid : nombre.
@@ -1512,7 +1503,7 @@ end
 function Ex.cancel(gid, why)
     local t = curOf(gid)
     if t == nil then return false end
-    Groups().update(function(d)
+    LivingKnox.Groups.update(function(d)
         local live = d.groups[gid]
         if live == nil or live.trips == nil then return false, false end
         live.trips.cur = nil
@@ -1520,7 +1511,7 @@ function Ex.cancel(gid, why)
         return true, true
     end)
     Ex.state.carried[gid .. "#" .. t.n] = nil
-    log().info("expedition: group %s trip %d cancelled (%s)", gid, t.n, tostring(why))
+    LivingKnox.Log.info("expedition: group %s trip %d cancelled (%s)", gid, t.n, tostring(why))
     return true
 end
 

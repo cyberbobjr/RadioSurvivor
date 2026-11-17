@@ -44,10 +44,6 @@ Garden.WATER_FIRST = { "TaintedWater" }
 Garden.WATER_DRINK = { "Water" }
 
 local function cfg() return Garden.CFG end
-local function Groups() return LivingKnox.Groups end
-local function Homes() return LivingKnox.Homes end
-local function Stock() return LivingKnox.Stock end
-local function Upkeep() return LivingKnox.Upkeep end
 
 -- ================================================================ système de cultures
 
@@ -98,7 +94,7 @@ end
 -- pas.
 function Garden.waterSources(gid)
     local list = { Garden.WATER_FIRST }
-    local a = Stock().needs(gid)
+    local a = LivingKnox.Stock.needs(gid)
     local short = false
     for _, nd in ipairs(a ~= nil and a.needs or {}) do
         if nd.c == "water" then short = true end
@@ -110,7 +106,7 @@ end
 -- Premier récipient d'eau du foyer contenant au moins least litres : (récipient, fluides), ou nil.
 function Garden.findWater(gid, least)
     for _, fluids in ipairs(Garden.waterSources(gid)) do
-        local f = Stock().findFluid(gid, fluids, least)
+        local f = LivingKnox.Stock.findFluid(gid, fluids, least)
         if f ~= nil then return f, fluids end
     end
     return nil
@@ -135,9 +131,9 @@ end
 -- Conteneur de dépôt du foyer (comme le dépôt d'une expédition : conteneur posé par LK_Homes, sinon le premier dans
 -- l'ordre des clés) : { key, container, ... }, ou nil et une raison.
 function Garden.depotOf(gid, home)
-    local style, def = Homes().ready(home)
+    local style, def = LivingKnox.Homes.ready(home)
     if style == nil then return nil, def end
-    local list, why = Stock().containers(gid, home, style, def ~= nil and def:getIDString() or nil)
+    local list, why = LivingKnox.Stock.containers(gid, home, style, def ~= nil and def:getIDString() or nil)
     if list == nil then return nil, why end
     for _, ct in ipairs(list) do
         if ct.owned then return ct end
@@ -158,16 +154,16 @@ end
 -- Produits classés (catégorie du stock) ajoutés à la référence du stock du groupe (comme le dépôt d'une expédition).
 local function track(gid, refs)
     if #refs == 0 then return end
-    Groups().update(function(data)
+    LivingKnox.Groups.update(function(data)
         local live = data.groups[gid]
-        if live == nil or type(live.home) ~= "table" or not Stock().validRef(live.stock, live.home) then
+        if live == nil or type(live.home) ~= "table" or not LivingKnox.Stock.validRef(live.stock, live.home) then
             return false, false
         end
         local have = {}
         for _, e in ipairs(live.stock.items) do have[e.i] = true end
         local added = false
         for _, r in ipairs(refs) do
-            if not have[r.i] and #live.stock.items < Stock().MAX_ITEMS then
+            if not have[r.i] and #live.stock.items < LivingKnox.Stock.MAX_ITEMS then
                 live.stock.items[#live.stock.items + 1] = r
                 added = true
             end
@@ -185,7 +181,7 @@ local function collect(list, depot, refs, types)
         if it ~= nil then
             count = count + 1
             types[#types + 1] = it:getFullType()
-            local cat = Stock().categoryOf(it)
+            local cat = LivingKnox.Stock.categoryOf(it)
             if cat ~= nil then refs[#refs + 1] = { i = it:getID(), t = it:getFullType(), c = cat, k = depot.key } end
         end
     end
@@ -232,7 +228,7 @@ end
 -- Rend la case, ou nil.
 local function freeSquareAtHome(B, x, y, z, home)
     return LivingKnox.StopPlace.nearest(x, y, z, B.FREE_RADIUS, function(sq)
-        return Upkeep().atHome(home, sq:getX(), sq:getY(), z) and B.freeSquare(sq)
+        return LivingKnox.Upkeep.atHome(home, sq:getX(), sq:getY(), z) and B.freeSquare(sq)
     end)
 end
 
@@ -305,7 +301,7 @@ end
 -- creuser puis la soigner (Garden.placeNear), le restent aussi ; { x, y }, ou nil.
 function Garden.digSpot(area)
     for _, e in ipairs(area.squares) do
-        if not e.inside and Upkeep().atHome(area.home, e.x, e.y, area.z) and Garden.canDig(e.sq)
+        if not e.inside and LivingKnox.Upkeep.atHome(area.home, e.x, e.y, area.z) and Garden.canDig(e.sq)
             and e.sq:isOutside() then
             return { x = e.x, y = e.y }
         end
@@ -317,7 +313,7 @@ end
 function Garden.digTool(gid)
     local tag = ItemTag ~= nil and ItemTag[Garden.DIG_PLOW] or nil
     if tag == nil then return nil end
-    return (Stock().findItem(gid, function(it) return not it:isBroken() and it:hasTag(tag) end))
+    return (LivingKnox.Stock.findItem(gid, function(it) return not it:isBroken() and it:hasTag(tag) end))
 end
 
 -- Creuse un sillon sur la case sq comme ISPlowAction:complete sans joueur (M/shared/Farming/TimedActions/
@@ -406,7 +402,7 @@ end
 
 -- Nombre de graines semables au mois month dans les conteneurs du foyer du groupe gid, ou nil et une raison.
 function Garden.seedCount(gid, month)
-    local containers, why = Stock().homeContainers(gid)
+    local containers, why = LivingKnox.Stock.homeContainers(gid)
     if containers == nil then return nil, why end
     local index = seedIndex(month)
     local n = 0
@@ -422,7 +418,7 @@ end
 -- Première graine semable au mois month du foyer : { key, i, t, ... }, ou nil.
 function Garden.findSeed(gid, month)
     local index = seedIndex(month)
-    return (Stock().findItem(gid, function(it) return sowableIn(it, index) ~= nil end))
+    return (LivingKnox.Stock.findItem(gid, function(it) return sowableIn(it, index) ~= nil end))
 end
 
 -- Prend UNE graine semable au mois month dans le foyer (LK_Stock.takeItem : retirée du conteneur, envoyée aux clients
@@ -430,7 +426,7 @@ end
 -- variété, ou nil et une raison.
 function Garden.takeSeed(gid, month, who, use)
     local index = seedIndex(month)
-    local taken, item = Stock().takeItem(gid, function(it) return sowableIn(it, index) ~= nil end, who, use)
+    local taken, item = LivingKnox.Stock.takeItem(gid, function(it) return sowableIn(it, index) ~= nil end, who, use)
     if taken == nil then return nil, item end
     return taken, sowableIn(item, index)
 end

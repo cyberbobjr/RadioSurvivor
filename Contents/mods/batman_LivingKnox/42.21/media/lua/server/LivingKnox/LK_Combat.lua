@@ -178,13 +178,8 @@ for _, k in ipairs({ "meleeSounds", "meleeMessages", "meleeSilent" }) do
 end
 
 local function cfg() return LivingKnox.Config.COMBAT end
-local function log() return LivingKnox.Log end
-local function Bodies() return LivingKnox.Bodies end
-local function D() return LivingKnox.Directives end
-local function Anim() return LivingKnox.Anim end
 
 local function now() return getTimestampMs() end
-local function finite(v) return type(v) == "number" and v == v and v > -1e9 and v < 1e9 end
 
 local function count(name)
     local st = Combat.stats
@@ -192,7 +187,7 @@ local function count(name)
 end
 
 local function nameOf(player)
-    local Dir = D()
+    local Dir = LivingKnox.Directives
     if Dir ~= nil and Dir.senderName ~= nil then return Dir.senderName(player) end
     return player and tostring(player:getUsername()) or "?"
 end
@@ -250,11 +245,11 @@ function Combat.weaponOf(id)
     local w = spec ~= nil and weaponItem(spec.t) or nil
     if w ~= nil and w:isRanged() then
         local Am = LivingKnox.Ammo
-        local B = Bodies()
+        local B = LivingKnox.Bodies
         local z = B and B.find(id)
         if Am ~= nil and z ~= nil and Am.available(z, w:getFullType()) > 0 then
             local range = w:getMaxRange()
-            if not finite(range) or range <= 0 then range = cfg().FIRE_RANGE end
+            if not LivingKnox.Num.finite(range) or range <= 0 then range = cfg().FIRE_RANGE end
             return { t = w:getFullType(), w = w, reach = math.min(range, cfg().FIRE_RANGE), bare = false,
                 ranged = true, h = spec.h == true }
         end
@@ -266,7 +261,7 @@ function Combat.weaponOf(id)
     end
     if w == nil then return nil end
     local range = w:getMaxRange()
-    if not finite(range) or range < cfg().MIN_REACH then range = cfg().MIN_REACH end
+    if not LivingKnox.Num.finite(range) or range < cfg().MIN_REACH then range = cfg().MIN_REACH end
     return { t = w:getFullType(), w = w, reach = range + cfg().REACH_BONUS, bare = bare }
 end
 
@@ -316,7 +311,7 @@ local function noteIssued(id, v, why)
         local last = Combat.warned[key]
         if last == nil or now() - last >= cfg().WARN_EVERY_MS then
             Combat.warned[key] = now()
-            log().warn("npc %s: combat directive refused: %s", id, tostring(why))
+            LivingKnox.Log.warn("npc %s: combat directive refused: %s", id, tostring(why))
         end
         return nil
     end
@@ -363,7 +358,7 @@ function Combat.engage(id, target, opts)
     elseif type(target) ~= "string" or target == "" then
         return nil, "bad target " .. tostring(target)
     end
-    local B = Bodies()
+    local B = LivingKnox.Bodies
     local z = B and B.find(id)
     if z == nil or z:isDead() then return nil, "npc " .. id .. " has no body in the loaded area" end
     if kind == Combat.KIND_PLAYER then
@@ -397,11 +392,11 @@ function Combat.engage(id, target, opts)
     Combat.orders[id] = o
     count("engaged")
     if ranged then
-        log().info("npc %s: ranged #%d against %s with %s (range %.2f, one shot every %d ms, %d round(s) in the "
+        LivingKnox.Log.info("npc %s: ranged #%d against %s with %s (range %.2f, one shot every %d ms, %d round(s) in the "
             .. "weapon): %s", id, o.c, label(o), o.t, o.reach, o.iv, LivingKnox.Ammo.loaded(z, o.t),
             tostring(opts.why or o.source))
     else
-        log().info("npc %s: melee #%d against %s with %s (reach %.2f, one strike every %d ms): %s", id, o.c, label(o),
+        LivingKnox.Log.info("npc %s: melee #%d against %s with %s (reach %.2f, one strike every %d ms): %s", id, o.c, label(o),
             weapon.bare and "bare hands" or weapon.t, o.reach, o.iv, tostring(opts.why or o.source))
     end
     local Ac = LivingKnox.Activity   -- LK13-T14 : journal d'activité (mémoire seulement)
@@ -419,20 +414,20 @@ function Combat.disengage(id, why)
     if o == nil then return false end
     Combat.orders[id] = nil
     count("ended")
-    local A = Anim()
+    local A = LivingKnox.Anim
     local g = A ~= nil and A.gestureOf(id) or nil
     if Combat.STRIKE_GESTURES[g] or (o.m == Combat.RANGED and (g == "aim" or g == "shoot" or g == "reload")) then
         A.setGesture(id, A.DEFAULT)
     end
-    local Dir = D()
+    local Dir = LivingKnox.Directives
     local e = Dir and Dir.get and Dir.get(id) or nil
     if e ~= nil and not e.done and e.v == o.moveV and e.op == Dir.OP_MOVE then noteIssued(id, Dir.stop(id)) end
     Combat.gone(id)
     if o.m == Combat.RANGED then
-        log().info("npc %s: ranged #%d against %s ended after %d shot(s), %d hit(s): %s", id, o.c, label(o), o.shots,
+        LivingKnox.Log.info("npc %s: ranged #%d against %s ended after %d shot(s), %d hit(s): %s", id, o.c, label(o), o.shots,
             o.hits, tostring(why))
     else
-        log().info("npc %s: melee #%d against %s ended after %d hit(s): %s", id, o.c, label(o), o.hits, tostring(why))
+        LivingKnox.Log.info("npc %s: melee #%d against %s ended after %d hit(s): %s", id, o.c, label(o), o.hits, tostring(why))
     end
     local Ac = LivingKnox.Activity   -- LK13-T14 : journal d'activité (mémoire seulement)
     if Ac ~= nil then
@@ -450,7 +445,7 @@ function Combat.apply(id, st, ctx, fresh)
     local target = tg.kind == Combat.KIND_ZOMBIE and tg.zombie or tg.u
     local c, why = Combat.engage(id, target, { source = "decisions", why = st and st.why })
     if c == nil then
-        log().debug("npc %s: melee refused: %s", id, tostring(why))
+        LivingKnox.Log.debug("npc %s: melee refused: %s", id, tostring(why))
         return
     end
     if fresh then Combat.step(id) end
@@ -490,7 +485,7 @@ end
 -- ---------------------------------------------------------------- passage de l'autorité
 
 local function openMove(id, o)
-    local Dir = D()
+    local Dir = LivingKnox.Directives
     local e = Dir.get(id)
     if e == nil or e.done or e.op ~= Dir.OP_MOVE or e.v ~= o.moveV then return nil end
     return e
@@ -498,7 +493,7 @@ end
 
 local function approach(id, o, p, t)
     local c = cfg()
-    local A = Anim()
+    local A = LivingKnox.Anim
     if o.phase == "strike" or o.phase == "aim" or o.phase == "shoot" then
         o.phase = "approach"
         o.faced = nil
@@ -512,13 +507,13 @@ local function approach(id, o, p, t)
     -- lk.defense du 2026-11-04 : défenseurs partis loin de leur poste avec le décalage).
     local sq = o.k ~= Combat.KIND_ZOMBIE and getCell():getGridSquare(tx, ty, tz) or nil
     if sq ~= nil and not sq:isFree(false) then
-        local alt = Bodies().safeSquare(tx, ty, tz, c.APPROACH_SHIFT, 0)
+        local alt = LivingKnox.Bodies.safeSquare(tx, ty, tz, c.APPROACH_SHIFT, 0)
         if alt ~= nil then
             local from = tx .. "," .. ty .. "," .. tz
             tx, ty = alt:getX(), alt:getY()
             if o.shiftFrom ~= from then
                 o.shiftFrom = from
-                log().info("npc %s: approach target %s shifted to %d,%d (player square not walkable)", id, from, tx,
+                LivingKnox.Log.info("npc %s: approach target %s shifted to %d,%d (player square not walkable)", id, from, tx,
                     ty)
             end
         end
@@ -532,7 +527,7 @@ local function approach(id, o, p, t)
     end
     if not need then return end
     o.moveMs = t
-    local v = noteIssued(id, D().moveTo(id, tx, ty, tz, "run"))
+    local v = noteIssued(id, LivingKnox.Directives.moveTo(id, tx, ty, tz, "run"))
     if v ~= nil then
         o.moveV, o.moveX, o.moveY, o.moveZ = v, tx, ty, tz
         count("moves")
@@ -556,12 +551,12 @@ function Combat.strikeGesture(o, p)
 end
 
 local function strike(id, o, z, p)
-    local A = Anim()
+    local A = LivingKnox.Anim
     local a = angleTo(p:getX() - z:getX(), p:getY() - z:getY())
     if o.phase ~= "strike" or (a ~= nil and (o.faced == nil or angleGap(a, o.faced) >= cfg().FACE_DELTA)) then
         if a ~= nil then
             o.faced = a
-            if noteIssued(id, D().face(id, a)) ~= nil then count("faces") end
+            if noteIssued(id, LivingKnox.Directives.face(id, a)) ~= nil then count("faces") end
         end
     end
     if o.phase ~= "strike" then
@@ -576,12 +571,12 @@ end
 -- l'attend sur place, tourné vers elle, en garde (phase "hold"), au lieu de contourner ; il frappe dès que la vitre
 -- est ouverte ou cassée.
 local function hold(id, o, z, p)
-    local A = Anim()
+    local A = LivingKnox.Anim
     local a = angleTo(p:getX() - z:getX(), p:getY() - z:getY())
     if o.phase ~= "hold" or (a ~= nil and (o.faced == nil or angleGap(a, o.faced) >= cfg().FACE_DELTA)) then
         if a ~= nil then
             o.faced = a
-            if noteIssued(id, D().face(id, a)) ~= nil then count("faces") end
+            if noteIssued(id, LivingKnox.Directives.face(id, a)) ~= nil then count("faces") end
         end
     end
     if o.phase ~= "hold" then
@@ -697,7 +692,7 @@ function Combat.smashWindowOnLine(id, z, p)
     w:smashWindow()
     count("windowsSmashed")
     local sq = w:getSquare()
-    log().info("npc %s shot through a closed window at %d,%d,%d: glass broken", id, sq:getX(), sq:getY(), sq:getZ())
+    LivingKnox.Log.info("npc %s shot through a closed window at %d,%d,%d: glass broken", id, sq:getX(), sq:getY(), sq:getZ())
     return w
 end
 
@@ -749,7 +744,7 @@ function Combat.roll(id, c, k)
 end
 
 local function setG(id, g)
-    local A = Anim()
+    local A = LivingKnox.Anim
     if A.gestureOf(id) ~= g then A.setGesture(id, g) end
 end
 
@@ -757,7 +752,7 @@ local function faceTarget(id, o, z, p, force)
     local a = angleTo(p:getX() - z:getX(), p:getY() - z:getY())
     if a ~= nil and (force or o.faced == nil or angleGap(a, o.faced) >= cfg().FACE_DELTA) then
         o.faced = a
-        if noteIssued(id, D().face(id, a)) ~= nil then count("faces") end
+        if noteIssued(id, LivingKnox.Directives.face(id, a)) ~= nil then count("faces") end
     end
 end
 
@@ -780,7 +775,7 @@ end
 -- Plus aucune munition : fin de l'ordre de tir, nouvel engagement contre la même cible (mêlée à mains nues).
 local function outOfAmmo(id, o)
     count("outOfAmmo")
-    log().info("npc %s: out of ammo for %s, melee instead", id, o.t)
+    LivingKnox.Log.info("npc %s: out of ammo for %s, melee instead", id, o.t)
     rearm(id, o, "out of ammo")
 end
 
@@ -807,7 +802,7 @@ local function rangedStep(id, o, z, p, d, t)
         o.reloadUntil = t + Combat.reloadMs(o, plan)
         faceTarget(id, o, z, p, true)   -- remplace une marche en cours : rechargement sur place
         setG(id, "reload")
-        log().info("npc %s: reloading %s (%s, %d ms)", id, o.t, plan, o.reloadUntil - t)
+        LivingKnox.Log.info("npc %s: reloading %s (%s, %d ms)", id, o.t, plan, o.reloadUntil - t)
         return
     end
     local clear = false
@@ -835,7 +830,7 @@ end
 function Combat.step(id)
     local o = Combat.orders[id]
     if o == nil then return nil end
-    local B = Bodies()
+    local B = LivingKnox.Bodies
     local z = B and B.find(id)
     if z == nil or z:isDead() then
         Combat.disengage(id, "no body")
@@ -876,7 +871,7 @@ function Combat.step(id)
         local w = E ~= nil and E.wantedOf ~= nil and E.wantedOf(id) or nil
         if w == nil or w.t ~= o.t then
             count("rearmed")
-            log().info("npc %s: weapon %s changed to %s, new order", id, o.t, tostring(w and w.t or "none"))
+            LivingKnox.Log.info("npc %s: weapon %s changed to %s, new order", id, o.t, tostring(w and w.t or "none"))
             rearm(id, o, "weapon changed")
             local cur = Combat.orders[id]
             return cur and cur.phase
@@ -916,7 +911,7 @@ local function note(name, id, reason, detail)
     if last ~= nil and now() - last < cfg().WARN_EVERY_MS then return end
     Combat.warned[key] = now()
     -- Rapport « à l'aveugle » (nf, LK05-T18 : cible absente chez l'expéditeur) : écart de position attendu, sans WARN.
-    local say = (Combat.SUSPECT[reason] and not Combat.blindReport) and log().warn or log().info
+    local say = (Combat.SUSPECT[reason] and not Combat.blindReport) and LivingKnox.Log.warn or LivingKnox.Log.info
     say("%s of npc %s reported by %s refused: %s%s%s", what(id), tostring(id), tostring(name), reason,
         detail and (" (" .. detail .. ")") or "", Combat.blindReport and ", target not seen by the sender" or "")
 end
@@ -934,7 +929,7 @@ local function ignore(id, reason, stat)
     count("ignored")
     if stat ~= nil then count(stat) end
     Combat.stats.why[reason] = (Combat.stats.why[reason] or 0) + 1
-    log().debug("%s of npc %s ignored: %s", what(id), tostring(id), reason)
+    LivingKnox.Log.debug("%s of npc %s ignored: %s", what(id), tostring(id), reason)
     return false, reason
 end
 
@@ -953,7 +948,7 @@ function Combat.applyToZombie(id, o, target)
     local Zm = LivingKnox.Zombies
     if Zm == nil or Zm.hurt == nil or target == nil then
         count("zombieUnhandled")
-        log().debug("npc %s: hit on a zombie not applied (LivingKnox.Zombies missing)", id)
+        LivingKnox.Log.debug("npc %s: hit on a zombie not applied (LivingKnox.Zombies missing)", id)
         return false
     end
     return (Zm.hurt(id, o, target, weaponItem(o.t)))
@@ -970,7 +965,7 @@ local function noiseMultiplier()
     local so = getSandboxOptions ~= nil and getSandboxOptions() or nil
     local opt = so ~= nil and so:getOptionByName("FirearmNoiseMultiplier") or nil
     local v = opt ~= nil and opt:getValue() or 1
-    if not finite(v) or v < 0 then return 1 end
+    if not LivingKnox.Num.finite(v) or v < 0 then return 1 end
     return v
 end
 
@@ -991,7 +986,7 @@ function Combat.shotEffects(id, o, z, w)
     local entry = { k = tostring(st.session) .. "-" .. st.shots, npc = id, o = z:getOnlineID(), x = x, y = y, z = zz,
         snd = w:getSwingSound() }
     if isServer() then
-        local targets = D().targets ~= nil and D().targets(z) or {}
+        local targets = LivingKnox.Directives.targets ~= nil and LivingKnox.Directives.targets(z) or {}
         local names = {}
         for n in pairs(targets) do names[#names + 1] = n end
         table.sort(names)
@@ -1010,7 +1005,7 @@ end
 -- proche (même relais que les coups de feu : Directives.targets, clé unique ; solo : appel direct de View.onMelee).
 -- Aucun bruit pour les zombies (mêlée vanilla : SoundRadius 0). Rend l'entrée, ou nil si l'arme n'a aucun impact.
 function Combat.meleeEffects(id, o, z, p)
-    local A = Anim()
+    local A = LivingKnox.Anim
     local g = A ~= nil and A.gestureOf(id) or nil
     if not Combat.STRIKE_GESTURES[g] then g = Combat.strikeGesture(o, p) end
     local hit = Combat.impactSound(weaponItem(o.t), g)
@@ -1025,7 +1020,7 @@ function Combat.meleeEffects(id, o, z, p)
         y = z:getY(), z = z:getZ(), sw = g == "stomp" and Combat.STOMP_SOUND or o.sw, hit = hit }
     count("meleeSounds")
     if isServer() then
-        local targets = D().targets ~= nil and D().targets(z) or {}
+        local targets = LivingKnox.Directives.targets ~= nil and LivingKnox.Directives.targets(z) or {}
         local names = {}
         for n in pairs(targets) do names[#names + 1] = n end
         table.sort(names)
@@ -1062,7 +1057,7 @@ function Combat.fire(name, id, o, z, p, d, t)
     else
         count("misses")
     end
-    log().info("npc %s shot at %s with %s (ranged #%d, shot %d, %.2f squares, chance %d, roll %d: %s, %d round(s) left, "
+    LivingKnox.Log.info("npc %s shot at %s with %s (ranged #%d, shot %d, %.2f squares, chance %d, roll %d: %s, %d round(s) left, "
         .. "reported by %s%s)", id, label(o), o.t, o.c, o.shots, d, chance, roll, hit and "hit" or "missed",
         Am.loaded(z, o.t), name, Combat.blindReport and ", target not seen there" or "")
     return hit, hit and "hit" or "missed"
@@ -1086,13 +1081,13 @@ function Combat.onHit(player, args)
     local o = Combat.orders[id]
     if o == nil then return ignore(id, "no combat order", "stale") end
     if args.c ~= o.c then return ignore(id, "older combat order", "stale") end
-    local B = Bodies()
+    local B = LivingKnox.Bodies
     local z = B and B.find(id)
     if z == nil or z:isDead() then return ignore(id, "no body") end
     local H = LivingKnox.Health
     if H ~= nil and H.decided ~= nil and H.decided[id] then return ignore(id, "npc dying") end
-    if isServer() and not D().isOwner(z, player) then
-        if D().isPreviousOwner(id, name) then return ignore(id, "previous owner") end
+    if isServer() and not LivingKnox.Directives.isOwner(z, player) then
+        if LivingKnox.Directives.isPreviousOwner(id, name) then return ignore(id, "previous owner") end
         return refuse(name, id, "not the owner")
     end
     local last = o.lastN[name]
@@ -1131,7 +1126,7 @@ function Combat.onHit(player, args)
     o.hits = o.hits + 1
     count("applied")
     Combat.meleeEffects(id, o, z, p)   -- LK06-T11 : impact entendu par les clients proches
-    log().info("npc %s hit %s with %s (melee #%d, hit %d, %.2f squares, reported by %s%s)", id, label(o),
+    LivingKnox.Log.info("npc %s hit %s with %s (melee #%d, hit %d, %.2f squares, reported by %s%s)", id, label(o),
         o.bare and "bare hands" or o.t, o.c, o.hits, d, name, Combat.blindReport and ", target not seen there" or "")
     return true
 end
@@ -1174,8 +1169,8 @@ end
 -- Passage d'envoi : ordres courants aux destinataires qui n'ont pas la révision courante. Rend le nombre de messages.
 function Combat.sendPass()
     if not isServer() then return 0 end
-    local B = Bodies()
-    local Dir = D()
+    local B = LivingKnox.Bodies
+    local Dir = LivingKnox.Directives
     if B == nil or Dir == nil or Dir.targets == nil then return 0 end
     local batch = {}
     for id, o in pairs(Combat.orders) do

@@ -36,8 +36,6 @@ Ammo.specs = Ammo.specs or {}   -- type d'arme -> description (ci-dessous) ou { 
 Ammo.stats = Ammo.stats or { reloads = 0, swapped = 0, loadedRounds = 0, consumed = 0, empty = 0, given = 0 }
 Ammo.stats.unloaded = Ammo.stats.unloaded or 0   -- LK07-T05 : cartouches de l'arme rendues en objets à la mort
 
-local function log() return LivingKnox.Log end
-
 local function count(name, n)
     Ammo.stats[name] = (Ammo.stats[name] or 0) + (n or 1)
 end
@@ -171,7 +169,7 @@ function Ammo.reload(id, z, gunType)
         setLoaded(z, gunType, bestN)
         count("reloads")
         count("swapped")
-        log().info("npc %s reloaded %s with a magazine: %d round(s) in, %d left in the magazine taken out", tostring(id),
+        LivingKnox.Log.info("npc %s reloaded %s with a magazine: %d round(s) in, %d left in the magazine taken out", tostring(id),
             gunType, bestN, n)
         return bestN, Ammo.PLAN_MAGAZINE
     end
@@ -192,7 +190,7 @@ function Ammo.reload(id, z, gunType)
         setLoaded(z, gunType, n + taken)
         count("reloads")
         count("loadedRounds", taken)
-        log().info("npc %s reloaded %s with %d loose round(s): %d in the weapon, %d loose round(s) left", tostring(id),
+        LivingKnox.Log.info("npc %s reloaded %s with %d loose round(s): %d in the weapon, %d loose round(s) left", tostring(id),
             gunType, taken, n + taken, loose - taken)
         return n + taken, Ammo.PLAN_ROUNDS
     end
@@ -249,7 +247,7 @@ function Ammo.give(id, gunType, rounds, mags)
     if z == nil or z:isDead() then return nil, "npc " .. tostring(id) .. " has no body in the loaded area" end
     local added, why = Ammo.addReserve(z, gunType, rounds, mags)
     if added == nil then return nil, why end
-    log().info("npc %s given %d loose round(s) and %d magazine(s) for %s", tostring(id),
+    LivingKnox.Log.info("npc %s given %d loose round(s) and %d magazine(s) for %s", tostring(id),
         math.max(0, math.floor(tonumber(rounds) or 0)), math.max(0, math.floor(tonumber(mags) or 0)), gunType)
     return added
 end

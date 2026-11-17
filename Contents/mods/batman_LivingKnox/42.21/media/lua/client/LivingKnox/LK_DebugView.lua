@@ -51,8 +51,6 @@ DebugView.state = DebugView.state or { n = 0, pending = nil, groups = {}, hour =
     data = nil, entries = {}, after = 0, member = nil, status = nil, window = nil, lastMs = nil }
 DebugView.stats = DebugView.stats or { sent = 0, received = 0, stale = 0, refused = 0, polls = 0 }
 
-local function log() return LivingKnox.Log end
-
 local function tr(key, ...)
     return getText("IGUI_LK_Debug_" .. key, ...)
 end
@@ -532,7 +530,7 @@ if ISCollapsableWindow ~= nil then
     -- Taille fixée à l'ouverture d'après l'écran (au plus W_MAX x H_MAX) : non redimensionnable (LK_Table.lua).
     function DebugView.open(gid)
         if not DebugView.canUse() then
-            log().warn("npc debug view: not allowed for this player")
+            LivingKnox.Log.warn("npc debug view: not allowed for this player")
             return nil
         end
         local st = DebugView.state

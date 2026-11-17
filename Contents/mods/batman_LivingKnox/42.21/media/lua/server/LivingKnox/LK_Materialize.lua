@@ -48,12 +48,6 @@ Materialize.stats = Materialize.stats or { passes = 0, created = 0, embodied = 0
 local M = 2147483647
 local SALT_LOOK, SALT_OUTFIT, SALT_WEAPON = 1, 2, 3
 
-local function log() return LivingKnox.Log end
-local function Identity() return LivingKnox.Identity end
-local function Store() return LivingKnox.Store end
-local function Bodies() return LivingKnox.Bodies end
-local function Groups() return LivingKnox.Groups end
-
 -- Réglages --------------------------------------------------------------------------------------------------------
 
 local function num(v, lo, hi, default)
@@ -71,10 +65,10 @@ function Materialize.settings()
     local release = num(LivingKnox.Config.BODIES and LivingKnox.Config.BODIES.RELEASE_RADIUS, 2, 100000, 120)
     local s = {
         placeRadius = math.floor(num(raw.PLACE_RADIUS, 0, 16, 8)),
-        maxPerGroup = math.floor(num(raw.MAX_PER_GROUP, 0, Groups().MAX_MEMBERS, 8)),
-        maxTotal = math.floor(num(raw.MAX_TOTAL, 0, Bodies().MAX_EMBODIED, 24)),
+        maxPerGroup = math.floor(num(raw.MAX_PER_GROUP, 0, LivingKnox.Groups.MAX_MEMBERS, 8)),
+        maxTotal = math.floor(num(raw.MAX_TOTAL, 0, LivingKnox.Bodies.MAX_EMBODIED, 24)),
         perPass = math.floor(num(raw.PER_PASS, 1, 8, 2)),
-        fullHealth = num(raw.FULL_HEALTH, 0.001, Identity().HP_MAX, 1.8),
+        fullHealth = num(raw.FULL_HEALTH, 0.001, LivingKnox.Identity.HP_MAX, 1.8),
     }
     s.radius = math.floor(num(raw.RADIUS, 1, math.max(1, release - s.placeRadius - 1), 80))
     return s
@@ -115,7 +109,7 @@ function Materialize.presentMembers(g)
     if type(g.expedition) == "table" and type(g.expedition.team) == "table" then
         for _, mid in ipairs(g.expedition.team) do away[mid] = true end
     end
-    local G = Groups()
+    local G = LivingKnox.Groups
     local out = {}
     for mid, m in pairs(g.members) do
         if m.alive and not away[mid] then out[#out + 1] = mid end
@@ -131,7 +125,7 @@ end
 -- État du PNJ d'un membre au registre des corps : "embodied", "virtual", "dead", ou "none" (aucun lien, ou PNJ absent
 -- du registre).
 function Materialize.npcState(m, registry)
-    local npc = m.npc and Identity().get(registry, m.npc)
+    local npc = m.npc and LivingKnox.Identity.get(registry, m.npc)
     if npc == nil then return "none", nil end
     return npc.state, npc
 end
@@ -142,8 +136,8 @@ local function embodiedMembers(data, registry)
     for gid, g in pairs(data.groups) do
         local n = 0
         for _, m in pairs(g.members) do
-            local npc = m.npc and Identity().get(registry, m.npc)
-            if npc ~= nil and npc.state == Identity().STATE_EMBODIED then n = n + 1 end
+            local npc = m.npc and LivingKnox.Identity.get(registry, m.npc)
+            if npc ~= nil and npc.state == LivingKnox.Identity.STATE_EMBODIED then n = n + 1 end
         end
         byGroup[gid] = n
         total = total + n
@@ -221,7 +215,7 @@ end
 -- (LK18-T03, LivingKnox.StopPlace). Rend la case, ou nil.
 function Materialize.placeFor(home, bid, radius)
     return LivingKnox.StopPlace.nearest(home.x, home.y, home.z, radius, function(sq)
-        return buildingId(sq) == bid and not sq:HasStairs() and Bodies().freeSquare(sq)
+        return buildingId(sq) == bid and not sq:HasStairs() and LivingKnox.Bodies.freeSquare(sq)
     end)
 end
 
@@ -231,7 +225,7 @@ local function warnOnce(gid, key, fmt, ...)
     w[gid] = w[gid] or {}
     if w[gid][key] then return end
     w[gid][key] = true
-    log().warn(fmt, ...)
+    LivingKnox.Log.warn(fmt, ...)
 end
 
 -- Mort et retrait (appelés par LK_Bodies) -----------------------------------------------------------------------------
@@ -240,7 +234,7 @@ end
 -- déjà mort ou retiré), sans fait memberDied (déjà publié par Bodies.onZombieDead), succession immédiate si c'était
 -- le chef, moral MORALE_DEATH. Une sauvegarde. Rend vrai si le membre vient d'être marqué mort.
 function Materialize.onBodyDied(npcId, gid, mid)
-    local G = Groups()
+    local G = LivingKnox.Groups
     local marked = G.update(function(data)
         local g = data.groups[gid]
         local m = g and g.members[mid]
@@ -260,7 +254,7 @@ function Materialize.onBodyDied(npcId, gid, mid)
     end)
     if marked == true then
         Materialize.stats.died = Materialize.stats.died + 1
-        log().info("group %s member %s (npc %s) marked dead: its body died", gid, mid, npcId)
+        LivingKnox.Log.info("group %s member %s (npc %s) marked dead: its body died", gid, mid, npcId)
         return true
     end
     return false
@@ -270,7 +264,7 @@ end
 -- lié = Materialize.woundOf(hp, npc.hpMax ou FULL_HEALTH) ; membre de nouveau présent au foyer pour la simulation
 -- horaire. Santé inconnue : blessure inchangée. Rend la blessure retenue, ou nil.
 function Materialize.onReleased(npcId, hp, npc)
-    local G = Groups()
+    local G = LivingKnox.Groups
     local gid, mid = G.findNpc(npcId)
     if gid == nil then return nil end
     local full = npc and npc.hpMax or Materialize.settings().fullHealth
@@ -286,7 +280,7 @@ function Materialize.onReleased(npcId, hp, npc)
     -- LK05-T05, LK16-T04 : événement "memberReleased" (LK_Expeditions : membre d'une expédition physique, équipe ou
     -- bascule hors écran).
     LivingKnox.publish("memberReleased", { group = gid, member = mid })
-    log().info("group %s member %s back to the offscreen simulation at home (npc %s): health %s of %s, wound %s",
+    LivingKnox.Log.info("group %s member %s back to the offscreen simulation at home (npc %s): health %s of %s, wound %s",
         gid, mid, npcId, hp and string.format("%.3f", hp) or "unknown", string.format("%.3f", full),
         wound and tostring(wound) or "unchanged")
     if kept == true then return wound end
@@ -307,8 +301,8 @@ end
 
 -- Corps pour le membre mid du groupe gid sur la case sq. Rend le PNJ et le zombie, ou nil et une raison.
 function Materialize.embodyMember(gid, g, mid, m, sq, s)
-    local B, I = Bodies(), Identity()
-    local registry = Store().data()
+    local B, I = LivingKnox.Bodies, LivingKnox.Identity
+    local registry = LivingKnox.Store.data()
     local state, npc = Materialize.npcState(m, registry)
     local x, y, zz = sq:getX(), sq:getY(), sq:getZ()
     local z, why, npcId
@@ -320,18 +314,18 @@ function Materialize.embodyMember(gid, g, mid, m, sq, s)
     elseif state == "none" then
         local id, body = B.spawn(Materialize.appearanceOf(gid, g, mid, m), x, y, zz)
         if id == nil then return nil, body end
-        local linked, err = Groups().setNpc(gid, mid, id)
+        local linked, err = LivingKnox.Groups.setNpc(gid, mid, id)
         if not linked then
             B.despawn(id, true)
             return nil, "npc link refused: " .. tostring(err)
         end
         npcId, z = id, body
-        npc = I.get(Store().data(), id)
+        npc = I.get(LivingKnox.Store.data(), id)
         local weapon = Materialize.weaponOf(gid, g, mid, m)
         if weapon ~= nil and LivingKnox.Equipment ~= nil then
             local armed, werr = LivingKnox.Equipment.setWeapon(id, weapon)
             if not armed then
-                log().warn("npc %s (group %s member %s): weapon %s refused: %s", id, gid, mid, weapon, tostring(werr))
+                LivingKnox.Log.warn("npc %s (group %s member %s): weapon %s refused: %s", id, gid, mid, weapon, tostring(werr))
             end
         end
         Materialize.stats.created = Materialize.stats.created + 1
@@ -342,7 +336,7 @@ function Materialize.embodyMember(gid, g, mid, m, sq, s)
     -- Santé de référence (LK07-T02) : celle que la simulation donne au membre (blessure abstraite), décidée ici.
     local H = LivingKnox.Health
     if H ~= nil and H.setBirth ~= nil then H.setBirth(npcId, hp or z:getHealth()) end
-    log().info("group %s member %s materialized as npc %s at %s,%s,%s (wound %s, health %s)", gid, mid, npcId,
+    LivingKnox.Log.info("group %s member %s materialized as npc %s at %s,%s,%s (wound %s, health %s)", gid, mid, npcId,
         tostring(x), tostring(y), tostring(zz), tostring(m.wound or 0),
         string.format("%.3f", hp or z:getHealth()))
     return npcId, z
@@ -354,7 +348,7 @@ end
 local function reconcile(gid, mid, m)
     if Materialize.onBodyDied(m.npc, gid, mid) then
         Materialize.stats.reconciled = Materialize.stats.reconciled + 1
-        log().warn("group %s member %s was alive but its npc %s is dead: marked dead, not materialized", gid, mid,
+        LivingKnox.Log.warn("group %s member %s was alive but its npc %s is dead: marked dead, not materialized", gid, mid,
             tostring(m.npc))
     end
 end
@@ -365,14 +359,14 @@ local function materializeGroup(gid, g, s, budget, counts)
     local home = g.home
     local sq, bid = Materialize.homeSquare(home)
     if sq == nil then return 0 end                                     -- foyer non chargé : attente
-    local registry = Store().data()
+    local registry = LivingKnox.Store.data()
     local created = 0
     for _, mid in ipairs(Materialize.presentMembers(g)) do
         local m = g.members[mid]
         local state = Materialize.npcState(m, registry)
-        if state == Identity().STATE_DEAD then
+        if state == LivingKnox.Identity.STATE_DEAD then
             reconcile(gid, mid, m)
-        elseif state ~= Identity().STATE_EMBODIED then
+        elseif state ~= LivingKnox.Identity.STATE_EMBODIED then
             if created >= budget then return created end
             if (counts.byGroup[gid] or 0) >= s.maxPerGroup then
                 warnOnce(gid, "group", "group %s: %s body(ies) already, MAX_PER_GROUP reached: other members stay "
@@ -408,12 +402,12 @@ end
 -- Passage (autorité, appelé par Bodies.tick après ses contrôles) : groupes dans l'ordre de leur numéro ; PER_PASS
 -- corps au plus. Rend le nombre de corps créés.
 function Materialize.pass()
-    local G = Groups()
+    local G = LivingKnox.Groups
     if G == nil or not G.ensure() then return 0 end
-    if not Bodies().canAct(true) then return 0 end
+    if not LivingKnox.Bodies.canAct(true) then return 0 end
     Materialize.stats.passes = Materialize.stats.passes + 1
     local s = Materialize.settings()
-    local players = Bodies().livingPlayers()
+    local players = LivingKnox.Bodies.livingPlayers()
     local data = G.state.data
     local st = Materialize.state
     local near, anyNear = {}, false
@@ -421,7 +415,7 @@ function Materialize.pass()
     for _, gid in ipairs(ids) do
         local g = data.groups[gid]
         if g ~= nil and g.home ~= nil
-            and Bodies().playerNear(players, g.home.x + 0.5, g.home.y + 0.5, s.radius) then
+            and LivingKnox.Bodies.playerNear(players, g.home.x + 0.5, g.home.y + 0.5, s.radius) then
             near[gid], anyNear = true, true
         end
     end
@@ -430,7 +424,7 @@ function Materialize.pass()
     end
     st.near = near
     if not anyNear then return 0 end                                 -- coût : groupes x joueurs seulement
-    local total, byGroup = embodiedMembers(data, Store().data())
+    local total, byGroup = embodiedMembers(data, LivingKnox.Store.data())
     local counts = { total = total, byGroup = byGroup }
     local created = 0
     for _, gid in ipairs(ids) do

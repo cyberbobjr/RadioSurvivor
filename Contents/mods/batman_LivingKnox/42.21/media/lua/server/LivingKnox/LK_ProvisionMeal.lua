@@ -47,9 +47,6 @@ Meal.state = Meal.state or { npcs = {} }
 Meal.stats = Meal.stats or { started = 0, disengaged = 0, hidden = 0, done = 0, interrupted = 0 }
 
 local function cfg() return Meal.CFG end
-local function log() return LivingKnox.Log end
-local function Decisions() return LivingKnox.Decisions end
-local function P() return LivingKnox.Provisions end
 
 -- ================================================================ règles (pur)
 
@@ -77,7 +74,7 @@ local function fightRule(ctx)
     local e = Meal.nearestEnemy(ctx)
     if e == nil and ctx.target == nil then return nil end   -- pas en combat : règles hunger, thirst
     if e ~= nil and e.d <= cfg().CONTACT then return nil end
-    local D = Decisions()
+    local D = LivingKnox.Decisions
     if D.surrenderTo(ctx) ~= nil or D.retreatOf(ctx) ~= nil or D.unfitOf(ctx) ~= nil then return nil end
     return Meal.ID, string.format("hunger %d, enemy at %.1f: disengage to eat", hunger, e and e.d or 0), "fight"
 end
@@ -89,7 +86,7 @@ end
 local function needRule(need, enough)
     return function(ctx)
         local v = (ctx.needs or {})[need] or 0
-        if v < Decisions().needHigh(need) or not away(ctx) or not enough(carried(ctx)) then return nil end
+        if v < LivingKnox.Decisions.needHigh(need) or not away(ctx) or not enough(carried(ctx)) then return nil end
         return Meal.ID, string.format("%s %d, away from home: %s", need, v,
             need == "thirst" and "canteen" or "provision"), need
     end
@@ -107,7 +104,7 @@ function Meal.disengageSpot(ctx)
     local cell = getCell()
     local e = Meal.nearestEnemy(ctx)
     if cell == nil or e == nil then return nil end
-    local D = Decisions()
+    local D = LivingKnox.Decisions
     local base = D.fleeAngle(ctx.x, ctx.y, ctx.threats, e) or D.angleTo(ctx.x - (e.x + 0.5), ctx.y - (e.y + 0.5)) or 0
     local S = LivingKnox.Senses
     local first
@@ -130,7 +127,7 @@ function Meal.disengageSpot(ctx)
 end
 
 local function issue(id, v, why)
-    return Decisions().noteIssued(id, v, why)
+    return LivingKnox.Decisions.noteIssued(id, v, why)
 end
 
 -- Arrêt puis geste assis ; rend vrai une fois assis.
@@ -160,14 +157,14 @@ local function finish(id, st, ctx, m)
     local z = LivingKnox.Bodies.find(id)
     local ok, why
     if st.key == "thirst" then
-        ok, why = P().drink(ctx.gid, ctx.mid, z)
+        ok, why = LivingKnox.Provisions.drink(ctx.gid, ctx.mid, z)
     else
-        ok, why = P().eat(ctx.gid, ctx.mid, z)
+        ok, why = LivingKnox.Provisions.eat(ctx.gid, ctx.mid, z)
     end
     if ok then
         Meal.stats.done = Meal.stats.done + 1
     else
-        log().debug("npc %s: provision %s not taken: %s", tostring(id), tostring(st.key), tostring(why))
+        LivingKnox.Log.debug("npc %s: provision %s not taken: %s", tostring(id), tostring(st.key), tostring(why))
     end
 end
 
@@ -180,7 +177,7 @@ function Meal.apply(id, st, ctx, fresh)
         m = { start = st.start, key = st.key, phase = st.key == "fight" and "away" or "stop" }
         mem[id] = m
         Meal.stats.started = Meal.stats.started + 1
-        log().debug("npc %s: provision %s (%s)", tostring(id), tostring(st.key), tostring(st.why))
+        LivingKnox.Log.debug("npc %s: provision %s (%s)", tostring(id), tostring(st.key), tostring(st.why))
     end
     if m.phase == "away" then
         local e = entryOf(id)
@@ -192,7 +189,7 @@ function Meal.apply(id, st, ctx, fresh)
                 m.moveV, m.spot = v, spot
                 Meal.stats.disengaged = Meal.stats.disengaged + 1
                 if spot.hidden then Meal.stats.hidden = Meal.stats.hidden + 1 end
-                log().info("npc %s (%s %s) disengages to %d,%d,%d (%s) to eat: %s", tostring(id), tostring(ctx.gid),
+                LivingKnox.Log.info("npc %s (%s %s) disengages to %d,%d,%d (%s) to eat: %s", tostring(id), tostring(ctx.gid),
                     tostring(ctx.mid), spot.x, spot.y, spot.z, spot.hidden and "out of sight" or "in sight",
                     tostring(st.why))
                 return
@@ -230,15 +227,15 @@ end
 
 -- Entrée de la cascade : provisions portées par le corps.
 function Meal.input(ctx, body)
-    local n, _, canteen = P().carried(body)
+    local n, _, canteen = LivingKnox.Provisions.carried(body)
     ctx.provisions = { food = n, canteen = canteen ~= nil }
 end
 
 -- Après la décision : au foyer et au calme, provisions manquantes remplacées sur le stock.
 function Meal.observe(ctx, st, body)
     if ctx.home == nil or not ctx.atHome or ctx.threat ~= nil or ctx.target ~= nil then return end
-    if (carried(ctx).food or 0) >= P().CFG.COUNT then return end
-    P().refill(ctx.gid, ctx.mid, ctx.id, body, ctx.minute)
+    if (carried(ctx).food or 0) >= LivingKnox.Provisions.CFG.COUNT then return end
+    LivingKnox.Provisions.refill(ctx.gid, ctx.mid, ctx.id, body, ctx.minute)
 end
 
 -- Mémoire (nouvelle partie, tests).

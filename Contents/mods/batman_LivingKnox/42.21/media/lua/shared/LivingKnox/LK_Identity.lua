@@ -43,8 +43,6 @@ Identity.STATE_EMBODIED = "embodied"
 Identity.STATE_DEAD = "dead"
 Identity.STATES = { virtual = true, embodied = true, dead = true }
 
-local function Appearance() return LivingKnox.Appearance end
-
 -- Tenues et préréglages : voir LK_Appearance.
 Identity.OUTFITS = LivingKnox.Appearance.OUTFITS
 Identity.DEFAULT_OUTFIT = LivingKnox.Appearance.DEFAULT_OUTFIT
@@ -127,7 +125,7 @@ end
 -- Profil d'apparence résolu et validé (copie), ou nil et une raison : voir Appearance.normalize. seed = numéro du
 -- PNJ (défaut 1) ; un profil déjà complet ne dépend pas de la graine.
 function Identity.normalizeProfile(profile, seed)
-    return Appearance().normalize(profile, seed)
+    return LivingKnox.Appearance.normalize(profile, seed)
 end
 
 -- Nouveau PNJ virtuel (génération 0) ajouté au registre. Rend le PNJ, ou nil et une raison.
@@ -226,7 +224,7 @@ function Identity.validate(data)
             return nil, "npc " .. id .. ": embodied without a generation", "invalid"
         end
         local p, bad = Identity.normalizeProfile(npc.profile, n)
-        if not p or not Appearance().same(p, npc.profile) then
+        if not p or not LivingKnox.Appearance.same(p, npc.profile) then
             return nil, "npc " .. id .. ": bad profile" .. (bad and (" (" .. bad .. ")") or " (incomplete)"), "invalid"
         end
         if not isPosition(npc.want) then return nil, "npc " .. id .. ": bad wanted position", "invalid" end
@@ -237,7 +235,7 @@ function Identity.validate(data)
             return nil, "npc " .. id .. ": bad weapon type", "invalid"
         end
         if npc.clothes ~= nil then
-            local clothesOk, clothesWhy = Appearance().validClothes(npc.clothes)
+            local clothesOk, clothesWhy = LivingKnox.Appearance.validClothes(npc.clothes)
             if not clothesOk then return nil, "npc " .. id .. ": " .. clothesWhy, "invalid" end
         end
         if npc.hp ~= nil and not Identity.validHealth(npc.hp) then

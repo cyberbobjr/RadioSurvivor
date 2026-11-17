@@ -68,15 +68,8 @@ Care.state = Care.state or { npcs = {}, tasks = {}, flagged = {}, aside = {}, fa
 Care.stats = Care.stats or { tasks = 0, selfCare = 0, items = 0, treated = 0, aborted = 0, shortages = 0,
     flagged = 0 }
 
-local function log() return LivingKnox.Log end
 local function cfg() return Care.CFG end
-local function Groups() return LivingKnox.Groups end
-local function Health() return LivingKnox.Health end
-local function Routines() return LivingKnox.Routines end
 local function exec() return LivingKnox.Routines.exec end
-
-local function finite(v) return type(v) == "number" and v == v and v > -1e9 and v < 1e9 end
-local function cheb(ax, ay, bx, by) return math.max(math.abs(ax - bx), math.abs(ay - by)) end
 
 -- ================================================================ objets de soin
 
@@ -87,7 +80,7 @@ end
 
 local function power(it)
     local p = it ~= nil and it:getBandagePower() or 0
-    if not finite(p) or p < 0 then return 0 end
+    if not LivingKnox.Num.finite(p) or p < 0 then return 0 end
     return p
 end
 
@@ -131,9 +124,9 @@ end
 
 -- Blessés à soigner du groupe g (registre) : { { mid, npc, bleed, health, number }, ... } triés (voir l'en-tête).
 function Care.patients(gid, g, minute)
-    local H = Health()
+    local H = LivingKnox.Health
     local out = {}
-    for _, mid in ipairs(Routines().present(g)) do
+    for _, mid in ipairs(LivingKnox.Routines.present(g)) do
         local m = g.members[mid]
         if m.npc ~= nil and bodyOf(m) ~= nil then
             local bleed = H.bleeding(m.npc)
@@ -145,7 +138,7 @@ function Care.patients(gid, g, minute)
             end
             if bleed > 0 or flagged then
                 out[#out + 1] = { mid = mid, npc = m.npc, bleed = bleed, health = health,
-                    number = Groups().memberNumber(mid) or 0 }
+                    number = LivingKnox.Groups.memberNumber(mid) or 0 }
             end
         end
     end
@@ -189,9 +182,9 @@ function Care.assign(gid, g, minute)
     end
     -- Médecins libres (présents, incarnés, ne saignent pas), par numéro.
     local medics = {}
-    for _, mid in ipairs(Routines().present(g)) do
+    for _, mid in ipairs(LivingKnox.Routines.present(g)) do
         local m = g.members[mid]
-        if m.npc ~= nil and isMedic(g, m) and Health().bleeding(m.npc) <= 0 and bodyOf(m) ~= nil then
+        if m.npc ~= nil and isMedic(g, m) and LivingKnox.Health.bleeding(m.npc) <= 0 and bodyOf(m) ~= nil then
             medics[#medics + 1] = { mid = mid, npc = m.npc }
         end
     end
@@ -211,7 +204,7 @@ function Care.assign(gid, g, minute)
                     minute = minute }
                 Care.stats.tasks = Care.stats.tasks + 1
                 if own then Care.stats.selfCare = Care.stats.selfCare + 1 end
-                log().info("group %s: %s %s (bleeding %.4f per hour, health %d%%)", gid, carer.mid,
+                LivingKnox.Log.info("group %s: %s %s (bleeding %.4f per hour, health %d%%)", gid, carer.mid,
                     own and "treats its own wound" or ("goes to treat " .. p.mid), p.bleed,
                     math.floor(p.health * 100 + 0.5))
             end
@@ -239,12 +232,12 @@ end
 function Care.finish(m)
     if m == nil or not m.pending then return false end
     m.pending = false
-    local H = Health()
+    local H = LivingKnox.Health
     local npc = LivingKnox.Store.isReady() and LivingKnox.Identity.get(LivingKnox.Store.data(), m.patient) or nil
     local full = npc and npc.hpMax
     local stopped = H.stopBleeding(m.patient, m.medic and "treated by " .. tostring(m.cmid) or "treated itself")
     local amount = 0
-    if finite(full) and full > 0 then
+    if LivingKnox.Num.finite(full) and full > 0 then
         amount = cfg().HEAL_PER_POWER * (m.power or 0) * full * (m.medic and cfg().MEDIC_FACTOR or 1)
     end
     local hp = amount > 0 and H.noteHeal(m.patient, amount) or nil
@@ -254,9 +247,9 @@ function Care.finish(m)
     local text = string.format("%s %s with %s (bleeding stopped: %s)", tostring(m.cmid),
         m.medic and ("treated " .. tostring(m.pmid)) or "treated its own wound", m.took and m.took.t or "?",
         stopped > 0 and string.format("%.4f", stopped) or "none")
-    local G = Groups()
+    local G = LivingKnox.Groups
     if G.addLog ~= nil then G.addLog(m.gid, Care.LOG_KIND, text) end
-    log().info("group %s %s, health %s", tostring(m.gid), text, hp and string.format("%.3f", hp) or "unchanged")
+    LivingKnox.Log.info("group %s %s, health %s", tostring(m.gid), text, hp and string.format("%.3f", hp) or "unchanged")
     local Ac = LivingKnox.Activity   -- LK13-T14 : journal d'activité (mémoire seulement)
     if Ac ~= nil then Ac.note(m.gid, m.cmid, "care", text) end
     return true
@@ -274,7 +267,7 @@ function Care.leave(id)
     Care.finish(m)
     if m.phase ~= "done" then
         Care.stats.aborted = Care.stats.aborted + 1
-        log().debug("npc %s: care of %s left in phase %s", id, tostring(m.patient), tostring(m.phase))
+        LivingKnox.Log.debug("npc %s: care of %s left in phase %s", id, tostring(m.patient), tostring(m.phase))
     end
     local A = LivingKnox.Anim
     if A ~= nil and Care.GESTURES[A.gestureOf(id)] then A.setGesture(id, A.DEFAULT) end
@@ -287,7 +280,7 @@ local function abort(id, m, ctx, why, minutes)
     m.phase = "done"
     Care.stats.aborted = Care.stats.aborted + 1
     if minutes ~= nil then Care.state.failed[id] = ctx.minute + minutes end
-    log().info("npc %s: care of %s given up: %s", id, tostring(m.patient), tostring(why))
+    LivingKnox.Log.info("npc %s: care of %s given up: %s", id, tostring(m.patient), tostring(why))
     Care.leave(id)
 end
 
@@ -346,7 +339,7 @@ local function toPatient(id, ctx, m, e)
     local body = B ~= nil and B.find ~= nil and (B.find(m.patient)) or nil
     if body == nil then return "gone" end
     local px, py, pz = math.floor(body:getX()), math.floor(body:getY()), math.floor(body:getZ())
-    if m.pplace ~= nil and (pz ~= m.pplace.z or cheb(px, py, m.pplace.ox, m.pplace.oy) > cfg().NEAR) then
+    if m.pplace ~= nil and (pz ~= m.pplace.z or LivingKnox.Geo.cheb(px, py, m.pplace.ox, m.pplace.oy) > cfg().NEAR) then
         m.pplace, m.moveV, m.faceV, m.fails = nil, nil, nil, 0   -- le blessé a bougé : nouvelle place
     end
     if m.pplace == nil then
@@ -365,7 +358,7 @@ function Care.apply(id, st, ctx, fresh)
         Care.leave(id)
         return false
     end
-    local data = Groups().state.data
+    local data = LivingKnox.Groups.state.data
     local g = data ~= nil and data.groups[ctx.gid] or nil
     local aside = Care.state.aside[ctx.gid]
     if g == nil or (aside ~= nil and ctx.minute < aside) then
@@ -382,11 +375,11 @@ function Care.apply(id, st, ctx, fresh)
     end
     local X = exec()
     if m == nil then
-        Routines().leave(id)   -- routine interrompue (repas pris appliqué, entretien libéré), debout
+        LivingKnox.Routines.leave(id)   -- routine interrompue (repas pris appliqué, entretien libéré), debout
         m = { patient = pid, pmid = task.pmid, cmid = task.cmid, gid = ctx.gid, mid = ctx.mid, medic = task.medic,
             phase = "find", tries = 0, fails = 0 }
         Care.state.npcs[id] = m
-        log().debug("npc %s: care of %s started (%s)", id, pid, task.medic and "medic" or "self")
+        LivingKnox.Log.debug("npc %s: care of %s started (%s)", id, pid, task.medic and "medic" or "self")
     end
     local e = X.entryOf(id)
     if m.lastV ~= nil and (e == nil or e.v ~= m.lastV) and (m.phase == "go" or m.phase == "face"
@@ -439,7 +432,7 @@ function Care.apply(id, st, ctx, fresh)
         local got, item = takeOne(m, ctx)
         if got == nil then
             m.tries = m.tries + 1
-            log().debug("npc %s: nothing taken at %s: %s", id, m.spot.key, tostring(item))
+            LivingKnox.Log.debug("npc %s: nothing taken at %s: %s", id, m.spot.key, tostring(item))
             if m.tries >= cfg().TAKE_TRIES then
                 abort(id, m, ctx, item, cfg().FAIL_MINUTES)
                 return false
@@ -506,7 +499,7 @@ end
 function Care.afterAttack(gid, mark)
     if not LivingKnox.isAuthority() or type(mark) ~= "table" or type(mark.wounded) ~= "table" then return 0 end
     local minute = mark.minute or LivingKnox.Decisions.currentMinute()
-    if not finite(minute) then return 0 end
+    if not LivingKnox.Num.finite(minute) then return 0 end
     local f = Care.state.flagged[gid] or {}
     Care.state.flagged[gid] = f
     local n = 0
@@ -518,7 +511,7 @@ function Care.afterAttack(gid, mark)
     end
     Care.state.assigned[gid] = nil
     Care.stats.flagged = Care.stats.flagged + n
-    if n > 0 then log().info("group %s: %d wounded member(s) to treat after the attack", gid, n) end
+    if n > 0 then LivingKnox.Log.info("group %s: %d wounded member(s) to treat after the attack", gid, n) end
     return n
 end
 

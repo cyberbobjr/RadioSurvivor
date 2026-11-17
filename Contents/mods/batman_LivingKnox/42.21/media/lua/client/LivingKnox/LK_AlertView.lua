@@ -29,10 +29,6 @@ View.order = View.order or {}
 View.stats = View.stats or { received = 0, played = 0, silent = 0, onBody = 0, free = 0, duplicate = 0, refused = 0 }
 View.last = View.last or nil
 
-local function log() return LivingKnox.Log end
-
-local function finite(v) return type(v) == "number" and v == v and v > -1e9 and v < 1e9 end
-
 local function count(name)
     View.stats[name] = (View.stats[name] or 0) + 1
 end
@@ -56,8 +52,9 @@ end
 
 -- Joue le cri e (table reçue). Rend vrai si une voix a été lancée.
 function View.receive(e)
-    if type(e) ~= "table" or type(e.id) ~= "string" or not View.VOICES[e.s] or not finite(e.x) or not finite(e.y)
-        or not finite(e.z) then
+    if type(e) ~= "table" or type(e.id) ~= "string" or not View.VOICES[e.s] or not LivingKnox.Num.finite(e.x)
+        or not LivingKnox.Num.finite(e.y)
+        or not LivingKnox.Num.finite(e.z) then
         count("refused")
         return false
     end
@@ -90,7 +87,7 @@ function View.receive(e)
         count("played")
         if handle == nil or handle == 0 then count("silent") end
     end
-    log().debug("alert cry %s by %s (%s) at %d,%d,%d", e.id, tostring(e.npc), e.s, e.x, e.y, e.z)
+    LivingKnox.Log.debug("alert cry %s by %s (%s) at %d,%d,%d", e.id, tostring(e.npc), e.s, e.x, e.y, e.z)
     return true
 end
 

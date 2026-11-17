@@ -16,8 +16,6 @@ require 'LivingKnox/LK_Core'
 local P = require 'CoreAI/CA_NPCProvider'
 local World = require 'CoreAI/CA_WorldFacts'
 local MissionStore = require 'CoreAI/CA_MissionStore'
-local function Observations() return LivingKnox.Observations end
-local function Factions() return LivingKnox.Agreements end
 
 local R = {}
 
@@ -38,7 +36,7 @@ end
 -- Citable facts the notebook knows (oldest first within each source): observations, then missions.
 function R.extra(npc, character)
     local out = {}
-    local Obs = Observations()
+    local Obs = LivingKnox.Observations
     for _, o in ipairs(Obs and Obs.list(npc.id) or {}) do
         if o.source == 'seen' and o.subject == character and R.OBS_SIGNS[o.fact] then
             out[#out + 1] = {key = 'obs:' .. o.key, fact = o.fact, sign = R.OBS_SIGNS[o.fact], day = o.day,
@@ -105,7 +103,7 @@ local function panelAgreements(npc, gid, team, personalTeam)
     local out = {}
     if type(team) ~= 'string' then return out end
     local teamScope = personalTeam and 'you' or 'current_members'
-    local A = Factions()
+    local A = LivingKnox.Agreements
     if not A then return nil end
     local a = gid and A.agreementOf(gid, team) or nil
     if a and (a.state == 'pending' or a.state == 'applicable' or a.state == 'broken') then
@@ -126,7 +124,7 @@ function R.panel(npc, character, team)
     local gid = groupOf(npc)
     out.agreements = panelAgreements(npc, gid, type(team) == 'table' and team.id or nil,
         type(team) == 'table' and team.kind == 'personal')
-    out.suspended = gid ~= nil and Factions() ~= nil and Factions().isIncidentAuthor(gid, character) or nil
+    out.suspended = gid ~= nil and LivingKnox.Agreements ~= nil and LivingKnox.Agreements.isIncidentAuthor(gid, character) or nil
     return out
 end
 

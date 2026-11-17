@@ -2,14 +2,14 @@
 
 <!-- tableau de bord : généré par tools/plan.py suivi, ne pas modifier à la main -->
 
-**Avancement.** à faire — 0 / 10 tâche(s) terminée(s).
+**Avancement.** en cours — 0 / 10 tâche(s) terminée(s).
 
 | | Tâche | Titre | État | Cible | Dépend de |
 |---|---|---|---|---|---|
-| ☐ | LK20-T01 | Une seule copie des petites fonctions pures (`Num`, `Geo`) | `à faire` | MP | — |
-| ☐ | LK20-T02 | Code mort supprimé | `à faire` | MP | — |
-| ☐ | LK20-T03 | Accesseurs d'une ligne remplacés par l'accès direct | `à faire` | MP | LK20-T01 |
-| ☐ | LK20-T04 | Une seule table de vérité par option sandbox | `à faire` | MP | — |
+| ☐ | LK20-T01 | Une seule copie des petites fonctions pures (`Num`, `Geo`) | `testé hors jeu` | MP | — |
+| ☐ | LK20-T02 | Code mort supprimé | `testé hors jeu` | MP | — |
+| ☐ | LK20-T03 | Accesseurs d'une ligne remplacés par l'accès direct | `testé hors jeu` | MP | LK20-T01 |
+| ☐ | LK20-T04 | Une seule table de vérité par option sandbox | `testé hors jeu` | MP | — |
 | ☐ | LK20-T05 | Une file d'attente partagée (`FrameQueue`) | `à faire` | MP | LK20-T03 |
 | ☐ | LK20-T06 | Un client de requêtes commun (`ClientRequest`) | `à faire` | MP | LK20-T03 |
 | ☐ | LK20-T07 | `LK_Fortify` découpé dans `Fortify/` | `à faire` | MP | LK20-T05 |
@@ -41,40 +41,48 @@ cinq moteurs géants découpés selon leurs sections.
 ## Phase 1 — Utilitaires, code mort, accesseurs, réglages
 
 - [ ] **LK20-T01** — Une seule copie des petites fonctions pures (`Num`, `Geo`)
-  - État : `à faire`
+  - État : `testé hors jeu`
   - Cible : `MP`
   - Dépend de : —
   - Fichiers : nouveaux `shared/LivingKnox/LK_Num.lua` et `LK_Geo.lua`, chargés par `LK_Core` ; tous les fichiers runtime qui recopient `cheb`, `finite`, `isInt`, `clamp`, `angleGap` ; bancs `tests/`
   - Faire : D01 de l'ADR. Comparer chaque copie avant de la remplacer. Seules les copies au corps identique disparaissent ; une variante différente reste locale et est signalée. `squaresAround(cx, cy, r)` sert d'itérateur aux boucles de balayage qui parcourent un carré plein.
   - Accepté si : plus aucune copie locale identique de ces fonctions ; bancs verts sans attendu changé ; luacheck 0 avertissement ; campagnes de fin de phase vertes sur les suites de Living Knox.
   - Tests : banc `tests/test_lk_num_geo.py` (rouge d'abord) ; `tests/run_all.py --keep-going`.
+  - Preuve : 2026-11-17, `python tests/run_all.py --keep-going` : `Summary: 209 passed, 0 failed, 0 skipped (594.8 s)`, `RESULT: PASS` (luacheck Contents et dev 0 avertissement, `plan-check` 0 erreur). Rouge d'abord : `tests/test_lk_num_geo.py` `FAILED (failures=1, errors=7)` (`attempt to index field 'Geo' (a nil value)`), puis `Ran 8 tests OK`. `LK_Num.lua` et `LK_Geo.lua` chargés à la fin de `LK_Core` ; copies identiques retirées : `cheb` 17, `finite` 15, `isInt` 13 (plus la copie de `LK_Config`, qui appelle maintenant `Num.isInt`), `clamp` 3, `angleGap` 3 ; 16 boucles de balayage passées à `squaresAround`. Variantes gardées : `angleGap` de `LK_Combat` (`math.floor`), `clamp` de `LK_Food` (NaN), `isInt` de `LK_Trade` (entier 32 bits), `LK_Raids` et `LK_Relations` (borne 1e12), les `dist` ; boucles en anneau, à pas ou à x extérieur laissées.
+  - Reste : campagnes de fin de phase (`solo-lk` et MP `--mods lk`).
 
 - [ ] **LK20-T02** — Code mort supprimé
-  - État : `à faire`
+  - État : `testé hors jeu`
   - Cible : `MP`
   - Dépend de : —
   - Fichiers : `LK_Homes.lua` (`furnishingOf`), `LK_Relations.lua` (`huntMemory`), `client/.../LK_NotebookPages.lua` (`relationTitle`), `shared/.../LK_NotebookProvider.lua` (`supplyDeliver`)
   - Faire : D03 de l'ADR. Vérifier de nouveau chaque fonction, sans aucun appelant dans `Contents`, `dev`, `tests` ni CoreAI. Puis la supprimer avec ses éventuels tests.
   - Accepté si : les fonctions sans appelant sont retirées ; bancs verts.
   - Tests : `tests/run_all.py --keep-going`.
+  - Preuve : 2026-11-17, `python tests/run_all.py --keep-going` : `Summary: 209 passed, 0 failed, 0 skipped (594.8 s)`, `RESULT: PASS` (luacheck Contents et dev 0 avertissement, `plan-check` 0 erreur). Retirées : `Homes.furnishingOf`, `Relations.huntMemory` (aucun appelant dans le dépôt, aucun test). Gardées, car appelées : `Notebook.relationTitle` (`CA_NotebookContacts.lua:116` de CoreAI) et `LK.supplyDeliver` (fournisseur, `CA_NPCProvider.lua:284`) ; l'audit les comptait à tort parmi le code mort.
+  - Reste : campagnes de fin de phase (`solo-lk` et MP `--mods lk`).
 
 - [ ] **LK20-T03** — Accesseurs d'une ligne remplacés par l'accès direct
-  - État : `à faire`
+  - État : `testé hors jeu`
   - Cible : `MP`
   - Dépend de : LK20-T01
   - Fichiers : fichiers runtime de Living Knox qui déclarent `local function X() return LivingKnox.Y end`
   - Faire : D02 de l'ADR. Remplacer `X()` par `LivingKnox.Y` au point d'appel. Pas de capture `local Y = LivingKnox.Y` au niveau du fichier. Exception : un module dont le `LivingKnox.Y` n'existe pas encore au chargement garde l'accès à l'exécution.
   - Accepté si : plus aucun accesseur pur ; bancs verts ; luacheck 0 avertissement.
   - Tests : `tests/run_all.py --keep-going`.
+  - Preuve : 2026-11-17, `python tests/run_all.py --keep-going` : `Summary: 209 passed, 0 failed, 0 skipped (594.8 s)`, `RESULT: PASS` (luacheck Contents et dev 0 avertissement, `plan-check` 0 erreur). 166 accesseurs retirés dans 71 fichiers, aucun gardé, aucune capture au chargement. Restent 12 accesseurs à deux niveaux (`cfg()` vers `Config.COMBAT`, `exec()` vers `Routines.exec`), hors du motif de D02.
+  - Reste : campagnes de fin de phase (`solo-lk` et MP `--mods lk`).
 
 - [ ] **LK20-T04** — Une seule table de vérité par option sandbox
-  - État : `à faire`
+  - État : `testé hors jeu`
   - Cible : `MP`
   - Dépend de : —
   - Fichiers : `shared/LivingKnox/LK_Config.lua`, `server/LivingKnox/LK_Initiatives.lua`, bancs de cohérence
   - Faire : D04 de l'ADR. `DEFAULTS` et `INT_BOUNDS` dérivent d'une table `{min, max, défaut}` par option, de même forme que `DANGER`. `LK_Initiatives` lit sa fréquence par `Config.readInt`. Les valeurs ne changent pas.
   - Accepté si : chaque défaut et chaque borne écrits une seule fois dans le Lua ; le banc de cohérence avec `sandbox-options.txt` passe.
   - Tests : `tests/run_all.py --keep-going`.
+  - Preuve : 2026-11-17, `python tests/run_all.py --keep-going` : `Summary: 209 passed, 0 failed, 0 skipped (594.8 s)`, `RESULT: PASS` (luacheck Contents et dev 0 avertissement, `plan-check` 0 erreur). `Config.INTS` (`{ min, max, défaut }`, 10 options entières et `InitiativeFrequency`) et `Config.BOOLS` ; `DEFAULTS` et `INT_BOUNDS` en dérivent ; valeurs comparées à `sandbox-options.txt`, inchangées. `LK_Initiatives` lit `Config.readInt("InitiativeFrequency")`. Deux bancs lisaient le texte de `LK_Config` (`test_lk_population`, `test_lk_revenge`) : seule la forme cherchée change. Écart limite : une valeur absente ou invalide reprend le défaut avec un avertissement au journal (le jeu fournit toujours un entier valide).
+  - Reste : campagnes de fin de phase (`solo-lk` et MP `--mods lk`).
 
 ## Phase 2 — Mécanique commune
 

@@ -11,8 +11,6 @@ require "LivingKnox/LK_Simulation"
 local Simulation = LivingKnox.Simulation
 local kit = Simulation.eventKit
 
-local function Groups() return LivingKnox.Groups end
-
 local function signed(v)
     if v >= 0 then return "+" .. tostring(v) end
     return tostring(v)
@@ -95,7 +93,7 @@ end
 -- cible, LOOT_MAX au plus, sans dépasser 100) ; moral. Journal des deux groupes : clash, died..., (leader), remains
 -- « <morts> at x,y,z » (foyer de la cible arrondi à PLACE_ROUND).
 local function clash(data, gid, g, tid, e, rnd, day)
-    local G, t = Groups(), data.groups[tid]
+    local G, t = LivingKnox.Groups, data.groups[tid]
     local homeA, homeD = kit.home(g, kit.living(g)), kit.home(t, kit.living(t))
     local sa, sd = strength(g, homeA), strength(t, homeD) * e.DEFENSE_BONUS
     local won = rnd() * (sa + sd) < sa

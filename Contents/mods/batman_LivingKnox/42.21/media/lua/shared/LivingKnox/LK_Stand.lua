@@ -55,8 +55,6 @@ Stand.snapshot = Stand.snapshot     -- ActionStateSnapshot de l'état « idle »
 Stand.watched = Stand.watched or {} -- client MP : { z, untilMs }
 Stand.stats = Stand.stats or { stood = 0, refused = 0, watched = 0, dropped = 0 }
 
-local function log() return LivingKnox.Log end
-
 -- Relève une fois le patron de l'état « idle » sur un zombie qui VIENT de naître (OnZombieCreate, zombie temporaire
 -- de la création). Rend vrai si un patron est disponible.
 function Stand.rememberFresh(z)
@@ -98,7 +96,7 @@ local function decide(z)
     if not z:isRemoteZombie() or Stand.STANDING_REAL[z:getRealState()] == true then
         local ok, why = Stand.now(z)
         if ok then return "stood" end
-        log().debug("stand: copy left to the vanilla get-up (%s)", tostring(why))
+        LivingKnox.Log.debug("stand: copy left to the vanilla get-up (%s)", tostring(why))
         return "standing"
     end
     return nil

@@ -6,38 +6,41 @@ local Config = LivingKnox.Config or {}
 LivingKnox.Config = Config
 
 Config.NAMESPACE = "LivingKnox"
-Config.DEFAULTS = {
+-- Options sandbox de la page LivingKnox lues par Config.read et Config.readInt (LK20-T04, ADR simplification D04) :
+-- chaque valeur est écrite une seule fois ici, = sandbox-options.txt (vérifié par tests/test_lk_population.py,
+-- tests/test_lk_revenge.py). Options entières : { min, max, défaut }, même forme que Config.DANGER.
+Config.INTS = {
+    -- Population (LK08-T05, docs/annexes/conception/groupes.md, section « Population »).
+    GroupCount = { 3, 5, 4 },
+    WeightSettlers = { 0, 100, 40 },
+    WeightRaiders = { 0, 100, 35 },
+    WeightNeutrals = { 0, 100, 25 },
+    GroupSizeMin = { 4, 8, 4 },
+    GroupSizeMax = { 4, 8, 8 },
+    ReliefDaysMin = { 2, 5, 2 },
+    ReliefDaysMax = { 2, 5, 5 },
+    -- Raids des pillards (LK11-T07, docs/annexes/conception/raids.md).
+    RaidDays = { 3, 90, 14 },
+    -- Vengeance (LK11-T10, docs/annexes/conception/vengeance.md).
+    RevengeDelayHours = { 12, 336, 72 },
+    -- Fréquence des initiatives de parole (E18-T27, option enum : index 1..4, LK_Initiatives).
+    InitiativeFrequency = { 1, 4, 3 },
+}
+-- Options booléennes : défaut.
+Config.BOOLS = {
     Enabled = true,
     Debug = false,
-    -- Population (LK08-T05, docs/annexes/conception/groupes.md, section « Population ») : = default de sandbox-options.txt.
-    GroupCount = 4,
-    WeightSettlers = 40,
-    WeightRaiders = 35,
-    WeightNeutrals = 25,
-    GroupSizeMin = 4,
-    GroupSizeMax = 8,
-    ReliefDaysMin = 2,
-    ReliefDaysMax = 5,
-    -- Raids des pillards (LK11-T07, docs/annexes/conception/raids.md) : = default de sandbox-options.txt.
-    RaidsEnabled = true,
-    RaidDays = 14,
-    -- Vengeance (LK11-T10, docs/annexes/conception/vengeance.md) : = default de sandbox-options.txt.
-    RevengeDelayHours = 72,
+    RaidsEnabled = true,   -- LK11-T07
 }
 
--- Bornes des options entières (= min / max de sandbox-options.txt ; vérifié par tests/test_lk_population.py).
-Config.INT_BOUNDS = {
-    GroupCount = { 3, 5 },
-    WeightSettlers = { 0, 100 },
-    WeightRaiders = { 0, 100 },
-    WeightNeutrals = { 0, 100 },
-    GroupSizeMin = { 4, 8 },
-    GroupSizeMax = { 4, 8 },
-    ReliefDaysMin = { 2, 5 },
-    ReliefDaysMax = { 2, 5 },
-    RaidDays = { 3, 90 },
-    RevengeDelayHours = { 12, 336 },
-}
+-- Dérivés de Config.INTS et Config.BOOLS : défaut de chaque option, bornes { min, max } des options entières.
+Config.DEFAULTS = {}
+Config.INT_BOUNDS = {}
+for name, spec in pairs(Config.INTS) do
+    Config.DEFAULTS[name] = spec[3]
+    Config.INT_BOUNDS[name] = { spec[1], spec[2] }
+end
+for name, default in pairs(Config.BOOLS) do Config.DEFAULTS[name] = default end
 
 -- Poids de tirage des types de groupes livrés : option sandbox de chaque type. Un type sans option (ajouté par un
 -- autre mod) n'est pas tiré par la population initiale.
@@ -70,10 +73,6 @@ local function warn(msg, ...)
     if Log then Log.warn(msg, ...) end
 end
 
-local function isInt(v, lo, hi)
-    return type(v) == "number" and v == v and math.floor(v) == v and v >= lo and v <= hi
-end
-
 -- Option entière de INT_BOUNDS : valeur absente, non entière ou hors bornes -> valeur par défaut et avertissement.
 function Config.readInt(name)
     local bounds, default = Config.INT_BOUNDS[name], Config.DEFAULTS[name]
@@ -82,7 +81,7 @@ function Config.readInt(name)
         warn("option %s.%s missing, default %s used", Config.NAMESPACE, name, tostring(default))
         return default
     end
-    if not isInt(value, bounds[1], bounds[2]) then
+    if not LivingKnox.Num.isInt(value, bounds[1], bounds[2]) then
         warn("option %s.%s = %s is not an integer from %d to %d, default %s used", Config.NAMESPACE, name,
             tostring(value), bounds[1], bounds[2], tostring(default))
         return default
@@ -157,7 +156,7 @@ function Config.danger(name, fallback)
     if spec == nil then return fallback end
     local value = Config.readRaw(name)
     if value == nil then return fallback end
-    if not isInt(value, spec[1], spec[2]) then
+    if not LivingKnox.Num.isInt(value, spec[1], spec[2]) then
         local key = name .. "=" .. tostring(value)
         if not Config.dangerWarned[key] then
             Config.dangerWarned[key] = true
@@ -458,7 +457,7 @@ function Config.raids()
     local days, b = Config.readRaw("RaidDays"), Config.INT_BOUNDS.RaidDays
     if days == nil then
         days = Config.DEFAULTS.RaidDays
-    elseif not isInt(days, b[1], b[2]) then
+    elseif not LivingKnox.Num.isInt(days, b[1], b[2]) then
         local key = "RaidDays=" .. tostring(days)
         if not Config.dangerWarned[key] then
             Config.dangerWarned[key] = true
