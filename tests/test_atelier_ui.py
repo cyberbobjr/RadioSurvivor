@@ -533,6 +533,14 @@ console.log(JSON.stringify({{ bad: keys({json.dumps(self.ACCEPT_SHEET)}), none: 
         self.assertEqual(got['got'], {k: k for k in entries})
         self.assertIn('outdated', got['statuses'])
 
+    def test_master_list_selects_the_next_entry_after_a_removal(self):
+        """User 2026-11-17: the master/detail tabs (Voices, Places) select the entry after the one removed, the one
+        before it when it was the last, nothing when the list is empty."""
+        script = (f"import {{ selectionAfter }} from '{module_url('masterdetail.js')}';\n"
+                  "console.log(JSON.stringify([selectionAfter(['a', 'b', 'c'], 'b'), selectionAfter(['a', 'b', 'c'], 'c'),"
+                  " selectionAfter(['a'], 'a'), selectionAfter([], 'x'), selectionAfter(['a', 'b'], 'x')]));\n")
+        self.assertEqual(run_node(script), ['c', 'b', None, None, None])
+
     def test_map_link_opens_the_build_42_map_on_the_square(self):
         """The link next to x/y/z opens zomboidmap.com (Build 42) centred on the square: the site reads
         #zoom/x/y/f<floor> from its address. Without a usable x and y it opens the whole map."""

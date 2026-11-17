@@ -90,8 +90,9 @@ ordinateur du réseau de la maison :
   démarrage), **Lieux** ([les lieux de toutes les voix](#longlet-lieux)), **Voix** (l'éditeur) et **Journal**
   ([le journal en direct](#le-journal-en-direct)) ;
   à droite, **Ouvrir une voix (fichier)** ([partager une voix](#partager-une-voix)) et, sur le réseau, **Se déconnecter**.
-- **À gauche** : **Tes voix** et le bouton **+ Nouvelle voix**. Sous 900 px de large, la liste devient une bande de
-  pastilles au-dessus de l'éditeur.
+- **À gauche**, dans l'onglet **Voix** seulement : **Tes voix** et le bouton **+ Nouvelle voix**. L'onglet **Lieux** a
+  sa propre liste, celle des lieux. Le **Tableau de bord** et le **Journal** n'ont pas de liste et prennent toute la
+  largeur. Sous 900 px de large, la liste devient une bande de pastilles au-dessus de l'éditeur : faites-la glisser.
 - **Au centre** : la voix ouverte. Sans voix ouverte, un écran d'accueil rappelle les trois gestes : choisir une voix,
   répondre aux questions étape par étape, enregistrer.
 
@@ -179,14 +180,19 @@ Un lieu sert à **toutes les voix** : vous le créez une fois ici, puis chaque v
 mod en livre déjà quelques-uns (ceux de ses voix). Rosie se sert de deux lieux : le **Château d'eau de Muldraugh** et la
 **Cabane près du château d'eau**, dont le casier sert de planque.
 
-- **+ Nouveau lieu** ouvre une petite fenêtre : un nom, ce que c'est, où il est, puis **Créer le lieu**. Aucun
-  identifiant à taper.
-- Chaque lieu est une carte : son icône (📍 un endroit précis, 🗺️ un quartier), son nom, et **Utilisé par : …** (les
-  voix qui s'en servent) ou « Aucune voix ne l'utilise encore. »
+- **À gauche**, la liste des lieux : l'icône (📍 un endroit précis, 🗺️ un quartier), le nom et, en petit, combien de
+  voix s'en servent (« Utilisé par 2 voix »). Cliquez un lieu : sa fiche s'ouvre à droite. Sous 900 px de large, la
+  liste devient une bande de pastilles au-dessus de la fiche.
+- **+ Nouveau lieu**, en haut de la liste, ouvre à droite une petite fenêtre : un nom, ce que c'est, où il est, puis
+  **Créer le lieu**. Aucun identifiant à taper. Le lieu créé est choisi tout de suite.
+- **À droite**, la fiche du lieu choisi : son nom, ce que c'est, où il est, et **Utilisé par : …** (les voix qui s'en
+  servent, un clic ouvre la voix) ou « Aucune voix ne l'utilise encore. »
+- **📡 Mes relevés en jeu**, en bas de la liste, ramène à l'accueil de l'onglet : à quoi sert un lieu et les lieux
+  [relevés en jeu](#relever-un-lieu-en-jeu).
 - **Rien à enregistrer à la main** : un lieu terminé s'enregistre tout seul (« Lieux enregistrés. Le jeu les lit dans
   30 secondes. »). Un lieu sans nom ou sans case attend : « Pas encore enregistré : termine le lieu « … ». »
-- **Supprimer ce lieu** (la croix de la carte) marche seulement si aucune voix ne s'en sert. Sinon l'atelier dit
-  lesquelles : retirez-le d'abord de ces voix.
+- **Supprimer ce lieu** (la croix de la fiche) marche seulement si aucune voix ne s'en sert. Sinon l'atelier dit
+  lesquelles : retirez-le d'abord de ces voix. Une fois supprimé, le lieu suivant de la liste s'affiche.
 - 500 lieux au plus.
 
 | Réglage | Ce que ça change |
@@ -227,8 +233,8 @@ en multijoueur).
 
 Plutôt que de chercher des coordonnées, marchez jusqu'à l'endroit dans le jeu, faites un clic droit sur la case et
 choisissez **« Atelier des voix : relever ce lieu »**. Le menu n'apparaît qu'en solo avec le mode debug du jeu, et sur
-un serveur seulement pour un admin ou un modérateur. Le lieu apparaît ensuite en bas de l'onglet Lieux, sous **Depuis
-mes relevés** (les plus récents d'abord), avec la date, qui l'a relevé, la pièce et le conteneur trouvé (une benne, une
+un serveur seulement pour un admin ou un modérateur. Le lieu apparaît ensuite dans l'onglet Lieux, sous **📡 Mes relevés en jeu** (en bas
+de la liste), rubrique **Depuis mes relevés** (les plus récents d'abord), avec la date, qui l'a relevé, la pièce et le conteneur trouvé (une benne, une
 boîte aux lettres), en noms clairs.
 
 ![Depuis mes relevés : le casier de la cabane déjà dans les lieux, une cuisine à ajouter](../../images/screenshots/atelier/atelier-fr-04b-places.png)

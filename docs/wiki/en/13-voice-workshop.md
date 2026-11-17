@@ -87,8 +87,9 @@ home network:
   ([the places of every voice](#the-places-tab)), **Voices** (the editor) and **Journal**
   ([the live journal](#the-live-journal)); on the
   right, **Open a voice (file)** ([sharing a voice](#sharing-a-voice)) and, on the network, **Log out**.
-- **On the left**: **Your voices** and the **+ New voice** button. Under 900 px wide, the list becomes a strip of chips
-  above the editor.
+- **On the left**, in the **Voices** tab only: **Your voices** and the **+ New voice** button. The **Places** tab has
+  its own list, the places. The **Dashboard** and the **Journal** have no list and use the whole width. Under 900 px
+  wide, the list becomes a strip of chips above the editor: swipe it.
 - **In the middle**: the open voice. With no voice open, a welcome screen recalls the three gestures: pick a voice,
   answer the questions step by step, save.
 
@@ -172,13 +173,19 @@ A place is shared by **every voice**: you make it once here, then each voice pic
 ships a few (those of its voices). Rosie uses two places: the **Muldraugh water tower** and the **Shed by the water
 tower**, whose locker is her dead drop.
 
-- **+ New place** opens a small window: a name, what it is, where it is, then **Make the place**. No id to type.
-- Each place is a card: its icon (📍 an exact spot, 🗺️ an area), its name, and **Used by: …** (the voices that use it)
-  or "No voice uses it yet."
+- **On the left**, the list of the places: the icon (📍 an exact spot, 🗺️ an area), the name and, in small letters, how
+  many voices use it ("Used by 2 voices"). Click a place: its card opens on the right. Under 900 px wide, the list
+  becomes a strip of chips above the card.
+- **+ New place**, at the top of the list, opens a small window on the right: a name, what it is, where it is, then
+  **Make the place**. No id to type. The new place is picked at once.
+- **On the right**, the card of the place picked: its name, what it is, where it is, and **Used by: …** (the voices that
+  use it, a click opens the voice) or "No voice uses it yet."
 - **Nothing to save by hand**: a finished place saves itself ("Places saved. The game reads them within 30 seconds.").
   A place with no name or no square waits: "Not saved yet: finish the place "…"."
+- **📡 My in-game records**, at the bottom of the list, goes back to the tab's home: what a place is for and the places
+  [recorded in game](#recording-a-place-in-game).
 - **Delete this place** (the cross on the card) only works when no voice uses it. Otherwise the workshop names them:
-  take it out of those voices first.
+  take it out of those voices first. Once deleted, the next place of the list shows.
 - 500 places at most.
 
 | Setting | What it changes |
@@ -216,8 +223,8 @@ click, "Voice workshop: record this place" (in solo with debug mode on, or by an
 
 Rather than looking for coordinates, walk to the spot in the game, right-click the square and choose **"Voice
 workshop: record this place"**. The menu only shows in singleplayer with the game's debug mode on, and on a server only
-for an admin or a moderator. The place then shows at the bottom of the Places tab, under **From my records** (newest
-first), with the date, who recorded it, the room and the container found (a dumpster, a mailbox), in plain names.
+for an admin or a moderator. The place then shows in the Places tab, under **📡 My in-game records** (at the bottom of
+the list), section **From my records** (newest first), with the date, who recorded it, the room and the container found (a dumpster, a mailbox), in plain names.
 
 !["From my records": the shed's locker already among the places, a kitchen to add](../../images/screenshots/atelier/atelier-en-04b-places.png)
 

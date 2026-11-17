@@ -63,6 +63,7 @@
 - A trader's stock no longer needs item weights: write `item=Base.Battery:4-12` (or pick the item by its name in the workshop) and the server reads the weight from the game's item (a full bottle counts its liquid); an item the game does not know makes the sheet refused, with its line in the server log.
 - A new radio voice can have its own frequency note and its own spontaneous call without touching the mod: the note's text and the call are written in the voice's sheet, in any language. The note is found in the loot as a handwritten note showing that voice's text and its frequency.
 - Every radio voice now remembers every caller permanently, up to 2,000 characters of notes per character, and remembers those who died: talk to a voice about a dead friend and it may recall them.
+- Tidier workshop: the voice list now shows only in the Voices tab, and the Places tab lists its places on the left with the place you pick on the right (and how many voices use each one); a click on a voice's name under "Used by" opens that voice. The Dashboard and the Journal use the whole width.
 
 ### Living Knox survivors
 

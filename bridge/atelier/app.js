@@ -14,6 +14,7 @@ import { createDashboard } from './dashboard.js';
 import { confirmBar } from './dialogs.js';
 import { clear, h, select } from './dom.js';
 import { loadI18n } from './i18n.js';
+import { masterDetail } from './masterdetail.js';
 import { createJournal } from './journal.js';
 import { createPlaceStore } from './placestore.js';
 import { createPlacesView } from './placestab.js';
@@ -474,8 +475,9 @@ function showWelcome() {
 }
 
 // Views next to each other, one tab each (app.views, in tab order): the dashboard of the voices (E24-T05), the voice
-// editor and the live journal (E22-T10). The voice list stays on the left; opening a voice comes back to the editor.
-// A view may start when shown (read again, poll) and stop when hidden.
+// editor and the live journal (E22-T10). The Voices and Places tabs list their things on the left (masterdetail.js),
+// the Dashboard and the Journal take the whole width; opening a voice comes back to the editor. A view may start when
+// shown (read again, poll) and stop when hidden.
 function showView(view) {
   for (const [name, shown] of Object.entries(app.views)) {
     const on = name === view;
@@ -491,16 +493,18 @@ function renderShell() {
   app.el.importButton = button('neutral', { id: 'import', title: t('import.button_help') }, t('import.button'));
   app.el.side = h('aside', { class: 'side' });
   app.el.main = h('main', { class: 'main', id: 'main' });
-  // A voice opened from the dashboard: the editor is shown first, where "leave without saving?" is asked if needed.
-  const openFromDashboard = (id) => { showView('voices'); return openVoice(id); };
-  const dashboard = createDashboard({ api: app.api, t, catalog: app.catalog, open: openFromDashboard,
+  // A voice opened from the dashboard or a place: the editor is shown first, where "leave without saving?" is asked if
+  // needed.
+  const openInEditor = (id) => { showView('voices'); return openVoice(id); };
+  const dashboard = createDashboard({ api: app.api, t, catalog: app.catalog, open: openInEditor,
     verdicts: () => app.verdicts });
   const journal = createJournal({ api: app.api, t, voiceIds: () => app.voices.map((v) => v.id) });
   const places = createPlacesView({ api: app.api, t, catalog: app.catalog, ai: app.ai, toast, store: app.places,
-    current: () => (app.current && !app.current.empty ? { id: app.current.id,
+    open: openInEditor, current: () => (app.current && !app.current.empty ? { id: app.current.id,
       name: sheet.value(app.current.model.head, 'name') || app.current.id, model: app.current.model } : null) });
-  app.views = { dashboard, places, voices: { el: app.el.main }, journal };
-  for (const view of [dashboard, places, journal]) view.el.classList.add('main');
+  const voices = masterDetail({ id: 'voices', label: t('tab.voices'), side: app.el.side, detail: app.el.main });
+  app.views = { dashboard, places, voices: { el: voices }, journal };
+  for (const view of [dashboard, journal]) view.el.classList.add('main');
   app.el.tabs = Object.keys(app.views).map((view) => h('button', { type: 'button', role: 'tab', class: 'tab', id: `tab-${view}`,
     'data-view': view, 'aria-selected': 'false', onClick: () => showView(view) }, t(`tab.${view}`)));
   app.el.toast = h('div', { class: 'toast', role: 'status', 'aria-live': 'polite',
@@ -514,7 +518,7 @@ function renderShell() {
       h('div', { class: 'tabs', role: 'tablist', 'aria-label': t('app.title') }, app.el.tabs),
       h('div', { class: 'btns' }, app.el.importButton,
         app.login && button('neutral', { id: 'logout', onClick: logout }, t('app.logout')))),
-    h('div', { class: 'layout' }, app.el.side, Object.values(app.views).map((view) => view.el)),
+    h('div', { class: 'layout' }, Object.values(app.views).map((view) => view.el)),
     app.el.toast, app.el.dropzone);
 }
 

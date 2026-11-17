@@ -11,7 +11,7 @@ note and a spontaneous call), is written into that temporary folder first, with 
 game console and a few bridge log lines.
 Then, per locale (fr-FR, en-US) at 1280x800, it opens the page and writes atelier-<lang>-NN-<subject>.png:
 00-dashboard (the dashboard of the voices shown first, E24-T05), 01-voice (list and step 1), 02-where (the radio cards, E24-T01), 03-personality (help popover), 04-missions, places (the Places tab, E25-T03),
-04b-places ("recorded in game", in the Places tab), 04c-place-map (a place card with its link to the community map),
+04b-places ("recorded in game", the home of the Places tab), 04c-place-map (a place card with its link to the community map),
 05-rewards, 06-trade (a shipped trader), 07-note, 08-try (test conversation), 09-journal, 10-refused (game banner),
 11-login (login page of the network mode, E22-T15), and for the reference page 13 (E22-T16): 12-new (new voice
 form, a voice type picked), 13-restore (a changed voice of the mod, "back to the original" asked), 14-import (import of a
@@ -340,7 +340,7 @@ def run_locale(browser, locale: str, lang: str, out: Path, provider: StubProvide
             page.mouse.move(0, 0)
             shoot(page, out, f'atelier-{lang}-00-dashboard.png')
 
-            page.locator('.voice', has_text='Rosie Calloway').first.click()
+            open_voice(page, 'Rosie Calloway')                                   # the voice list: Voices tab only
             expect(page.locator('.pill.on')).to_contain_text(t['step.who'])
             page.mouse.move(0, 0)
             shoot(page, out, f'atelier-{lang}-01-voice.png')
@@ -365,11 +365,13 @@ def run_locale(browser, locale: str, lang: str, out: Path, provider: StubProvide
             shoot(page, out, f'atelier-{lang}-04-missions.png')
 
             page.locator('#tab-places').click()                                  # the Places tab (E25-T03)
+            page.locator('#places .place-item[data-id="tower"]').click()         # master/detail: the list, the form
             tower = page.locator('.card.place[data-place="tower"]')
             expect(tower.locator('.used-by')).to_contain_text('Rosie Calloway')
             page.mouse.move(0, 0)
             page.evaluate('window.scrollTo(0, 0)')
             shoot(page, out, f'atelier-{lang}-places.png')
+            page.locator('#places-home').click()                                 # the tab's home: recorded in game
             expect(page.locator('li.survey')).to_have_count(2)                   # places recorded in game
             block = page.locator('.surveys-block')
             scroll_to(page, block)
@@ -377,6 +379,7 @@ def run_locale(browser, locale: str, lang: str, out: Path, provider: StubProvide
             shoot(page, out, f'atelier-{lang}-04b-places.png',
                   clip={'x': box['x'] - 16, 'y': max(0, box['y'] - 4), 'width': box['width'] + 32,
                         'height': box['height'] + 16})
+            page.locator('#places .place-item[data-id="tower"]').click()
             card = tower                                                         # 04c: a place, map link
             expect(card.locator('a.maplink')).to_be_visible()
             scroll_to(page, card)

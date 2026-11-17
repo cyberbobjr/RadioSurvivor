@@ -31,9 +31,11 @@ word on screen and %1 in the sheet. In English the AI is said unavailable: the b
 with the configuration tooltip.
 Map position pasted (user 2026-11-16), in both languages, in the Places tab: "7966, 11751, 1" pasted into the x field of
 a place fills x, y and the floor, the map link and the saved places file; the square typed before is pasted back.
-Places tab (E25-T03), in both languages: a place the voice uses says so and its deletion is refused naming the voice;
-an area made from two corners and a floor is saved, then deleted once confirmed; no horizontal scroll at 390 px
-(screenshot atelier-places-<lang>.png).
+Places tab (E25-T03), in both languages: master/detail (user 2026-11-17): the list of the places on the left, the
+form of the place picked only on the right; no left list on the Dashboard and the Journal, the voice list in the Voices
+tab only. A place the voice uses says so and its deletion is refused naming the voice; an area made from two corners
+and a floor is picked once made, saved, then deleted once confirmed; at 390 px the list sits above the form, no
+horizontal scroll (screenshots atelier-places-<lang>.png, atelier-places-390-<lang>.png).
 Chances, trade and note (E22-T12), in French: a reward set to "Often" is written with weight 4; the trade panel makes
 its meeting point with "New place…" (a shared spot, ticked), picks the arrival card and
 the visits as a named step, adds stock items from the item list (no item name typed: search, category, ticks, "Ajouter
@@ -156,6 +158,7 @@ def check_dashboard(page, t: dict, lang: str, shots: Path, failures: list[str]) 
         expect(page.locator('#tab-dashboard')).to_have_attribute('aria-selected', 'true')
         expect(page.locator('#dashboard')).to_be_visible()
         expect(page.locator('#main')).to_be_hidden()
+        expect(page.locator('aside.side:visible')).to_have_count(0)         # user 2026-11-17: no list, full width
         rows = page.locator('#dashboard tr.dash-row')
         expect(rows.first).to_be_visible()
         expect(page.locator('#dashboard .dash-tile')).to_have_count(6)
@@ -191,7 +194,10 @@ def check_dashboard(page, t: dict, lang: str, shots: Path, failures: list[str]) 
         rows.filter(has_text='Darlene Pruitt').locator('.dash-htext').click()
         expect(page.locator('#tab-voices')).to_have_attribute('aria-selected', 'true')
         expect(page.locator('#main .toolbar h2')).to_have_text('Darlene Pruitt')
-        print(f'{lang}: dashboard first, {total} voices, {traders} traders with the trade filter, empty filter cleared, '
+        voices = page.locator('#voices aside.side .voice')                  # the voice list: in the Voices tab
+        expect(voices.filter(has_text='Darlene Pruitt')).to_have_attribute('aria-current', 'true')
+        expect(page.locator('#places .place-item:visible')).to_have_count(0)
+        print(f'{lang}: dashboard first, no left list, {total} voices, {traders} traders with the trade filter, empty filter cleared, '
               f'page width at 800 px = {width}, a row opened Darlene')
     except AssertionError as err:
         failures.append(f'{lang}: dashboard: {err}')
@@ -326,6 +332,7 @@ def check_live(page, t: dict, lang: str, voice_id: str, name: str, sheet: str, c
               '"fix it" to the where step')
         page.screenshot(path=str(shots / f'atelier-verdict-{lang}.png'), full_page=True)
         page.locator('#tab-journal').click()
+        expect(page.locator('aside.side:visible')).to_have_count(0)         # user 2026-11-17: no list, full width
         rows = page.locator('.journal-list .jrow')
         expect(rows.filter(has_text='hello from the smoke test')).to_have_count(1, timeout=10000)
         expect(rows.filter(has_text=f'{voice_id}.txt refused')).to_have_count(1)
@@ -341,6 +348,8 @@ def check_live(page, t: dict, lang: str, voice_id: str, name: str, sheet: str, c
         return
     running.clear()
     page.locator('#tab-journal').click()
+    if page.locator('aside.side:visible').count():
+        failures.append(f'{lang}: a left list shows in the Journal tab')
     expect(page.locator('.journal-note').first).to_contain_text(t['journal.no_bridge'], timeout=10000)
     print(f'{lang}: bridge loop stopped: the journal says only game lines appear')
     running.set()
@@ -361,6 +370,7 @@ def check_paste(page, t: dict, lang: str, working: Path, failures: list[str]) ->
     the Places tab fills x, y and the floor, the map link and the saved places file; the square of before is pasted
     back."""
     page.locator('#tab-places').click()
+    page.locator(f'#places .place-item[data-id="old_mill_{lang}"]').click()
     card = page.locator(f'.card.place[data-place="old_mill_{lang}"]')
     status = page.locator('.places-status')
     x, y, floor = (card.get_by_label(axis, exact=True) for axis in ('x', 'y', t['places.floor']))
@@ -387,12 +397,24 @@ def check_paste(page, t: dict, lang: str, working: Path, failures: list[str]) ->
 
 
 def check_places(page, t: dict, lang: str, name: str, working: Path, shots: Path, failures: list[str]) -> None:
-    """E25-T03: the Places tab names the voices using a place and refuses its deletion; an area made from two corners
-    and a floor is saved, then deleted once confirmed; phone width without horizontal scroll."""
+    """E25-T03, user 2026-11-17: the Places tab is a master/detail: the list of the places on the left (no voice list),
+    the form of the place picked on the right only. It names the voices using a place and refuses its deletion; a new
+    area made from two corners and a floor is picked once made and saved, then deleted once confirmed (the next place is
+    picked); at 390 px the list sits above the form, without horizontal scroll."""
     page.set_viewport_size({'width': 1280, 'height': 900})
     page.locator('#tab-places').click()
+    items = page.locator('#places .place-item')
+    expect(items.first).to_be_visible()
+    expect(page.locator('#voices aside.side')).to_be_hidden()               # the voice list: Voices tab only
+    page.locator('#places-home').click()                                   # nothing picked: the tab's home
+    expect(page.locator('#places .card.place')).to_have_count(0)
+    item = page.locator(f'#places .place-item[data-id="old_mill_{lang}"]')
+    item.click()
+    expect(item).to_have_attribute('aria-current', 'true')
+    expect(page.locator('#places .card.place')).to_have_count(1)           # the form of the place picked only
     mill = page.locator(f'.card.place[data-place="old_mill_{lang}"]')
     expect(mill.locator('.used-by')).to_contain_text(name)
+    expect(item.locator('.md-sub')).not_to_have_text(t['places.used_none'])   # "used by N voices" under its name
     mill.get_by_role('button', name=t['places.remove']).click()
     refused = t['places.in_use'].split('{voices}')[0].replace('{name}', f'Old mill {lang}')
     expect(page.locator('.toast')).to_contain_text(refused)
@@ -411,8 +433,11 @@ def check_places(page, t: dict, lang: str, name: str, working: Path, shots: Path
     dialog.locator('input.place-floor').fill('0')
     dialog.locator('button.place-create').click()
     zone_id = 'quartier_du_moulin' if lang == 'fr' else 'mill_town'
+    zone_item = page.locator(f'#places .place-item[data-id="{zone_id}"]')
+    expect(zone_item).to_have_attribute('aria-current', 'true')            # the place made is picked
     zone = page.locator(f'.card.place[data-place="{zone_id}"]')
     expect(zone.locator('.used-by')).to_have_text(t['places.unused'])
+    expect(page.locator('#places .card.place')).to_have_count(1)
     text = working_places(working)
     if f'[place {zone_id}]' not in text or 'area=10500,9200,10800,9500,0' not in text:
         failures.append(f'{lang}: the area is not in the places file\n{text}')
@@ -425,15 +450,24 @@ def check_places(page, t: dict, lang: str, name: str, working: Path, shots: Path
     width = page.evaluate('document.documentElement.scrollWidth')
     if width > 390:
         failures.append(f'{lang}: horizontal scroll of the Places tab at 390 px ({width} px)')
+    side, form = page.locator('#places aside.side').bounding_box(), zone.bounding_box()
+    if not side or not form or side['y'] + side['height'] > form['y'] + 1:
+        failures.append(f'{lang}: at 390 px the list of the places is not above the form ({side}, {form})')
+    page.screenshot(path=str(shots / f'atelier-places-390-{lang}.png'), full_page=True)
     page.set_viewport_size({'width': 1280, 'height': 900})
+    ids = items.evaluate_all('(els) => els.map((el) => el.dataset.id)')
+    after = ids[ids.index(zone_id) + 1] if ids.index(zone_id) + 1 < len(ids) else ids[ids.index(zone_id) - 1]
     zone.get_by_role('button', name=t['places.remove']).click()
     page.locator('.notice.danger').get_by_role('button', name=t['places.remove']).click()
     expect(zone).to_have_count(0)
+    expect(zone_item).to_have_count(0)
+    expect(page.locator(f'#places .place-item[data-id="{after}"]')).to_have_attribute('aria-current', 'true')
     expect(page.locator('.places-status')).to_have_text(t['places.saved'])
     if f'[place {zone_id}]' in working_places(working):
         failures.append(f'{lang}: the deleted area is still in the places file')
-    print(f'{lang}: Places tab: "Old mill {lang}" used by {name}, deletion refused; area {zone_id} made from two corners, '
-          f'saved, deleted after confirm; width at 390 px = {width}')
+    print(f'{lang}: Places tab as master/detail: list on the left, one form; "Old mill {lang}" used by {name}, '
+          f'deletion refused; area {zone_id} made and picked, saved, deleted after confirm ({after} picked next); '
+          f'width at 390 px = {width}, list above the form')
     page.locator('#tab-voices').click()
 
 
@@ -765,7 +799,8 @@ def atelier_catalog() -> dict:
 
 
 def reload(page) -> None:
-    """Reloads the page, leaving an unsaved voice if one is open (the page asks before leaving it)."""
+    """Reloads the page, leaving an unsaved voice if one is open (the page asks before leaving it), then shows the Voices
+    tab (the dashboard comes first, without the voice list)."""
     def accept(dialog):
         dialog.accept()
     page.on('dialog', accept)
@@ -773,6 +808,7 @@ def reload(page) -> None:
         page.reload()
     finally:
         page.remove_listener('dialog', accept)
+    page.locator('#tab-voices').click()
 
 
 def check_status_and_confirm(page, t: dict, lang: str, working: Path, failures: list[str]) -> None:
@@ -905,26 +941,27 @@ def check_surveys(page, t: dict, lang: str, working: Path, survey_file: Path, sh
     """E22-T08, E25-T03: the places recorded in game listed in the Places tab, one made a shared place."""
     page.set_viewport_size({'width': 1280, 'height': 900})
     page.locator('#tab-places').click()
+    page.locator('#places-home').click()                                   # the tab's home: recorded in game
     items = page.locator('li.survey')
     expect(items).to_have_count(2)
     expect(items.first).to_contain_text('10612, 9307, 0')                  # newest first: the dumpster
     expect(items.nth(1)).to_contain_text('Kitchen')
-    places_before = page.locator('.card.place').count()
+    places_before = page.locator('#places .place-item').count()
     items.first.get_by_role('button', name=t['surveys.add']).click()
     ask = page.locator('.surveys-block .notice')
     label = ask.get_by_label(t['places.label'], exact=True)
     expect(label).to_have_value('Bin')
     label.fill("Benne de l'église")
     ask.get_by_role('button', name=t['places.add_ok']).click()
-    cards = page.locator('.card.place')
-    expect(cards).to_have_count(places_before + 1)
-    card = page.locator('.card.place[data-place="benne_de_l_eglise"]')      # its id made from its name
-    expect(card.get_by_label(t['places.label'], exact=True)).to_have_value("Benne de l'église")
-    for axis, value in zip(('x', 'y', t['places.floor']), ('10612', '9307', '0')):
-        expect(card.get_by_label(axis, exact=True)).to_have_value(value)
+    expect(page.locator('#places .place-item')).to_have_count(places_before + 1)
     expect(page.locator('li.survey').first).to_contain_text(t['surveys.known'])
     page.locator('li.survey').first.scroll_into_view_if_needed()
     page.screenshot(path=str(shots / f'atelier-surveys-{lang}.png'), full_page=True)
+    page.locator('#places .place-item[data-id="benne_de_l_eglise"]').click()   # its id made from its name
+    card = page.locator('.card.place[data-place="benne_de_l_eglise"]')
+    expect(card.get_by_label(t['places.label'], exact=True)).to_have_value("Benne de l'église")
+    for axis, value in zip(('x', 'y', t['places.floor']), ('10612', '9307', '0')):
+        expect(card.get_by_label(axis, exact=True)).to_have_value(value)
     text = working_places(working)
     placed = re.search(r"\[place [a-z0-9_]+\]\nlabel=Benne de l'église\nat=10612,9307,0\n", text)
     try:
