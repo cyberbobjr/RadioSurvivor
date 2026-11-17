@@ -120,6 +120,8 @@ LUA_FILES = [
     # LK20-T01 : petites fonctions pures communes, requises par LK_Core (sans le requérir).
     ('LivingKnox/LK_Num', LK_LUA / 'shared' / 'LivingKnox' / 'LK_Num.lua'),
     ('LivingKnox/LK_Geo', LK_LUA / 'shared' / 'LivingKnox' / 'LK_Geo.lua'),
+    # LK20-T05 : file d'attente étalée sur les images, requise par LK_Core comme les précédentes.
+    ('LivingKnox/LK_FrameQueue', LK_LUA / 'shared' / 'LivingKnox' / 'LK_FrameQueue.lua'),
     ('LivingKnox/LK_Core', LK_LUA / 'shared' / 'LivingKnox' / 'LK_Core.lua'),
     ('LivingKnox/LK_Config', LK_LUA / 'shared' / 'LivingKnox' / 'LK_Config.lua'),
     ('LivingKnox/LK_Log', LK_LUA / 'shared' / 'LivingKnox' / 'LK_Log.lua'),

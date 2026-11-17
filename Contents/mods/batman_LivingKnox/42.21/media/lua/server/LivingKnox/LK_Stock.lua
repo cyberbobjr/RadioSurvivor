@@ -1431,9 +1431,31 @@ end
 -- comme la file du pas horaire de LK_Simulation). Même relecture (Stock.check) et même ordre que Stock.scan("minute"),
 -- décalée de quelques images (100 ms chacune sur un serveur dédié). Écriture du registre des groupes retenue pendant
 -- la file (Groups.hold("stock")) puis faite dans une image à elle : une seule écriture, comme quand tous les groupes
--- étaient relus dans la même image. Rend le nombre de groupes rangés.
-Stock.queue = Stock.queue or { list = {}, head = 1, queued = {}, fresh = false, write = false }
+-- étaient relus dans la même image. Rend le nombre de groupes rangés. File : LivingKnox.FrameQueue (LK20-T05).
 Stock.QUEUE_HOLD_MARGIN = 3   -- images de retenue en plus du nombre de groupes en file
+
+-- Un groupe de la file, relu ; la file vide, une image pour l'écriture seule (LivingKnox.FrameQueue). LK13-T11 : un
+-- groupe dont le relevé de fortification de la minute est encore en file (trois images, LK_Fortify) attend la fin de
+-- ce relevé (file arrêtée, écriture retenue d'autant) : son stock est relu après lui, comme quand le relevé tenait
+-- dans une image, sans faire ses étapes restantes dans l'image de la relecture. all : relevé fini tout de suite
+-- (Stock.finishQueue).
+local function queueStep(q, all)
+    local gid = q.list[q.head]
+    local F = LivingKnox.Fortify
+    if F ~= nil and F.isQueued ~= nil and F.isQueued(gid) then
+        if not all then
+            q:hold()
+            return true, false
+        end
+        F.settleQueued(gid)
+    end
+    q.head = q.head + 1
+    q.queued[gid] = nil
+    return true, Stock.checkOne(gid)
+end
+
+Stock.queue = LivingKnox.FrameQueue.new({ hold = "stock", margin = Stock.QUEUE_HOLD_MARGIN, step = queueStep },
+    Stock.queue)
 
 function Stock.queueScan()
     local Config = LivingKnox.Config
@@ -1441,67 +1463,25 @@ function Stock.queueScan()
     local cell = getCell()
     if cell == nil then return 0 end
     local q, n = Stock.queue, 0
-    if q.head > #q.list then q.list, q.head, q.queued = {}, 1, {} end
     for _, gid in ipairs(candidates(cell)) do
-        if not q.queued[gid] then
-            q.queued[gid] = true
-            q.list[#q.list + 1] = gid
-            n = n + 1
-        end
+        if q:push(gid, gid) then n = n + 1 end
     end
-    if q.head <= #q.list then
-        q.fresh, q.write = true, true
-        LivingKnox.Groups.hold("stock", #q.list - q.head + 1 + Stock.QUEUE_HOLD_MARGIN)
-    end
+    q:start()
     return n
 end
 
 function Stock.onFrameStart()
-    Stock.queue.fresh = false
+    Stock.queue:frameStart()
 end
 
--- Un groupe de la file (OnTick) ; la file vide, une image pour l'écriture seule. Rend vrai si un groupe a été relu.
--- LK13-T11 : un groupe dont le relevé de fortification de la minute est encore en file (trois images, LK_Fortify)
--- attend la fin de ce relevé (file arrêtée, écriture retenue d'autant) : son stock est relu après lui, comme quand le
--- relevé tenait dans une image, sans faire ses étapes restantes dans l'image de la relecture. finish : relevé fini
--- tout de suite (Stock.finishQueue).
-function Stock.onFrame(finish)
-    local q = Stock.queue
-    if q.fresh then return false end
-    if q.head > #q.list then
-        if q.write then
-            q.write = false
-            q.list, q.head, q.queued = {}, 1, {}
-            local G = LivingKnox.Groups
-            G.release("stock")
-            if G.isDirty() and not G.isHeld() then G.flush() end   -- une autre retenue (pas horaire) écrira à sa fin
-        end
-        return false
-    end
-    local gid = q.list[q.head]
-    local F = LivingKnox.Fortify
-    if F ~= nil and F.isQueued ~= nil and F.isQueued(gid) then
-        if finish ~= true then
-            LivingKnox.Groups.hold("stock", #q.list - q.head + 1 + Stock.QUEUE_HOLD_MARGIN)
-            return false
-        end
-        F.settleQueued(gid)
-    end
-    q.head = q.head + 1
-    q.queued[gid] = nil
-    return Stock.checkOne(gid)
+-- Une image de la file (OnTick). Rend vrai si un groupe a été relu.
+function Stock.onFrame()
+    return Stock.queue:frame()
 end
 
 -- File vidée tout de suite (bancs). Rend le nombre de groupes relus.
 function Stock.finishQueue()
-    local q, n = Stock.queue, 0
-    q.fresh = false
-    while q.head <= #q.list do
-        if Stock.onFrame(true) then n = n + 1 end
-    end
-    q.write = false
-    LivingKnox.Groups.release("stock")
-    return n
+    return Stock.queue:finish()
 end
 
 -- Efface la référence d'un groupe (suites en jeu, administration). Les objets restent où ils sont.
@@ -1513,8 +1493,7 @@ end
 
 function Stock.reset()
     Stock.state = { checked = {}, lastScan = nil, lastTheft = {}, shortage = {} }
-    Stock.queue = { list = {}, head = 1, queued = {}, fresh = false, write = false }
-    if LivingKnox.Groups ~= nil and LivingKnox.Groups.release ~= nil then LivingKnox.Groups.release("stock") end
+    Stock.queue:clear()
 end
 
 -- Événements : LoadChunk et EveryOneMinute, inscrits après ceux de LK_Homes (ordre des fichiers) : le stock d'un

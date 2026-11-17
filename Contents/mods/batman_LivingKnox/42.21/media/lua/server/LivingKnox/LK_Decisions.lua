@@ -1164,9 +1164,24 @@ end
 -- LK13-T11 : notation étalée : les groupes (ordre trié, comme scorePass) sont notés un par image à partir de l'image
 -- suivante (Decisions.tick), chacun avec cette heure ; un groupe non matérialisé est passé sans coût dans la même
 -- image. Écriture du registre retenue jusqu'à la fin (Groups.hold("decisions")). Une heure nouvelle, OnSave et
--- Simulation.finishHour font d'abord les notations restantes (Decisions.finishHourQueue).
-Decisions.hourQueue = Decisions.hourQueue or { list = {}, head = 1, hour = nil, fresh = false }
+-- Simulation.finishHour font d'abord les notations restantes (Decisions.finishHourQueue). File : LivingKnox.FrameQueue
+-- (LK20-T05), écriture faite dans l'image de la dernière notation (hourStep).
 Decisions.HOUR_HOLD_MARGIN = 3
+
+-- Une notation de la file (au plus un groupe matérialisé noté ; all : toutes) ; la file finie, retenue levée et
+-- registre écrit (sauf all : la fin du vidage s'en charge sans écrire).
+local function hourStep(q, all)
+    while q.head <= #q.list do
+        local gid = q.list[q.head]
+        q.head = q.head + 1
+        if Decisions.scorePass(q.hour, gid) > 0 and not all then break end
+    end
+    if q.head > #q.list then q:close(not all) end
+    return true
+end
+
+Decisions.hourQueue = LivingKnox.FrameQueue.new({ hold = "decisions", margin = Decisions.HOUR_HOLD_MARGIN,
+    step = hourStep }, Decisions.hourQueue)
 
 function Decisions.onEveryHours(hour)
     if not LivingKnox.Config.isEnabled() then return end
@@ -1177,9 +1192,10 @@ function Decisions.onEveryHours(hour)
     local ids = {}
     for gid in pairs(G.state.data.groups) do ids[#ids + 1] = gid end
     table.sort(ids)
-    if #ids == 0 then return end
-    Decisions.hourQueue = { list = ids, head = 1, hour = hour, fresh = true }
-    G.hold("decisions", #ids + Decisions.HOUR_HOLD_MARGIN)
+    local q = Decisions.hourQueue
+    q.hour = hour
+    for _, gid in ipairs(ids) do q:push(gid) end
+    q:start()
 end
 
 -- Vrai si le groupe gid sera noté pour l'heure hour par la notation horaire encore en attente : passe différée de
@@ -1201,30 +1217,10 @@ function Decisions.hourScoringPending(gid, hour)
     return false
 end
 
--- Une notation de la file (au plus un groupe matérialisé noté). Rend vrai si la file a avancé.
-local function hourStep(all)
-    local q = Decisions.hourQueue
-    if q.head > #q.list then return false end
-    while q.head <= #q.list do
-        local gid = q.list[q.head]
-        q.head = q.head + 1
-        if Decisions.scorePass(q.hour, gid) > 0 and not all then break end
-    end
-    if q.head > #q.list then
-        Decisions.hourQueue = { list = {}, head = 1, hour = nil, fresh = false }
-        local G = LivingKnox.Groups
-        G.release("decisions")
-        if not all and G.isDirty() and not G.isHeld() then G.flush() end   -- une autre retenue écrira à sa fin
-    end
-    return true
-end
-
 -- Notations restantes tout de suite (heure nouvelle, OnSave, Simulation.finishHour, bancs).
 function Decisions.finishHourQueue()
     local q = Decisions.hourQueue
-    if q == nil or q.head > #q.list then return end
-    q.fresh = false
-    hourStep(true)
+    if q:pending() then q:finish() end
 end
 
 -- ================================================================ membres (autorité)
@@ -2048,15 +2044,15 @@ end
 
 -- LK13-T11 : file de notation de l'heure (une notation par image, à partir de l'image qui suit l'EveryHours).
 function Decisions.onFrameStart()
-    Decisions.hourQueue.fresh = false
+    Decisions.hourQueue:frameStart()
 end
 
 function Decisions.hourTick()
     if not LivingKnox.isAuthority() then return end
     local q = Decisions.hourQueue
-    if q.fresh or q.head > #q.list then return end
+    if q.fresh or not q:pending() then return end
     if not LivingKnox.Groups.isReady() then return end
-    hourStep(false)
+    q:frame()
 end
 
 LivingKnox.subscribe("OnTickEvenPaused", "Decisions.hourFrameStart", function() LivingKnox.Decisions.onFrameStart() end)
@@ -2076,8 +2072,7 @@ end
 function Decisions.reset()
     Decisions.state = { members = {}, issued = {}, threats = {}, scored = {}, roster = {}, rosterMs = nil,
         cursor = 0, lastPass = nil, gestures = {} }
-    Decisions.hourQueue = { list = {}, head = 1, hour = nil, fresh = false }   -- LK13-T11
-    if LivingKnox.Groups ~= nil and LivingKnox.Groups.release ~= nil then LivingKnox.Groups.release("decisions") end
+    Decisions.hourQueue:clear()   -- LK13-T11
     Decisions.evals.at = {}   -- E09-T05 : numéros oubliés, compteur gardé (jamais réutilisé)
 end
 

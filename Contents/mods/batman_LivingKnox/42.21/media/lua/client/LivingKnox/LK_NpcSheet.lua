@@ -19,8 +19,8 @@
 -- LK13-T16 : position affichée avec sa source (corps, dernière position connue, foyer du groupe : Sheet.posText) ;
 -- téléportation vers un PNJ hors écran menée par l'autorité à sa dernière position connue, sinon au foyer de son groupe ;
 -- téléportation au foyer d'un groupe (op "homeGoto", Sheet.teleportHome, bouton du panneau de debug).
--- Transport : celui de LK_AdminView (MP : "adminRequest" -> "adminReply" ; solo : LivingKnox.Admin.request appelé
--- directement, réponse rendue pendant l'appel, attente posée avant).
+-- Transport : LivingKnox.ClientRequest (LK20-T06), même route que LK_AdminView (MP : "adminRequest" -> "adminReply" ;
+-- solo : LivingKnox.Admin.request appelé directement, réponse rendue pendant l'appel, attente posée avant).
 if isServer() then return end
 
 require "LivingKnox/LK_Core"
@@ -28,6 +28,7 @@ require "LivingKnox/LK_Config"
 require "LivingKnox/LK_Log"
 require "LivingKnox/LK_Anim"
 require "LivingKnox/LK_Table"
+require "LivingKnox/LK_ClientRequest"
 local Access = require "CoreAI/CA_AdminAccess"
 
 local Sheet = LivingKnox.NpcSheet or {}
@@ -38,6 +39,7 @@ Sheet.MODULE = "LivingKnox"
 Sheet.CMD_REQUEST = "adminRequest"
 Sheet.CMD_REPLY = "adminReply"
 Sheet.CAPABILITY = Access.CAPABILITY
+Sheet.ROUTE = { module = Sheet.MODULE, request = Sheet.CMD_REQUEST, server = "Admin" }   -- LK20-T06
 Sheet.FIELDS = { "hunger", "thirst", "fatigue", "fear", "health", "bleed", "wound" }
 Sheet.OPS = { npc = true, npcSet = true, npcRole = true, npcName = true, npcGoto = true, homeGoto = true }
 Sheet.GOTO_OPS = { npcGoto = true, homeGoto = true }   -- téléportations (LK13-T15, foyer d'un groupe : LK13-T16)
@@ -106,17 +108,11 @@ function Sheet.send(op, fields)
     for k, v in pairs(fields or {}) do args[k] = v end
     st.pending[op] = st.n            -- posé AVANT l'envoi : en solo, la réponse arrive pendant l'appel
     count("sent")
-    if isClient() then
-        sendClientCommand(player, Sheet.MODULE, Sheet.CMD_REQUEST, args)
-    else
-        local A = LivingKnox.Admin
-        if A == nil or A.request == nil then
-            st.pending[op] = nil
-            st.status = tr("NotLoaded")
-            Sheet.redraw()
-            return nil
-        end
-        Sheet.receive(A.request(player, args))
+    if not LivingKnox.ClientRequest.send(Sheet.ROUTE, player, args, Sheet.receive) then
+        st.pending[op] = nil
+        st.status = tr("NotLoaded")
+        Sheet.redraw()
+        return nil
     end
     return args.n
 end
@@ -272,8 +268,8 @@ function Sheet.receive(reply)
     return true
 end
 
-function Sheet.onServerCommand(module, command, args)
-    if module ~= Sheet.MODULE or command ~= Sheet.CMD_REPLY then return end
+-- Réponse reçue par LivingKnox.ClientRequest (client MP, module et commande déjà vérifiés).
+function Sheet.onServerCommand(_, _, args)
     Sheet.receive(args)
 end
 
@@ -692,11 +688,9 @@ if Events ~= nil then
     LivingKnox.subscribe("OnFillWorldObjectContextMenu", "NpcSheet.fill", onFill)
 end
 
-if isClient() then   -- solo : réponses rendues directement par LivingKnox.Admin.request
-    local function onServerCommand(module, command, args)
-        LivingKnox.NpcSheet.onServerCommand(module, command, args)
-    end
-    LivingKnox.subscribe("OnServerCommand", "NpcSheet.onServerCommand", onServerCommand)
-end
+-- Réponses MP (solo : rendues pendant l'appel par LivingKnox.ClientRequest.send).
+LivingKnox.ClientRequest.listen(Sheet.MODULE, Sheet.CMD_REPLY, "NpcSheet", function(module, command, args)
+    LivingKnox.NpcSheet.onServerCommand(module, command, args)
+end)
 
 return Sheet

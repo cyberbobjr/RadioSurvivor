@@ -2664,8 +2664,7 @@ end
 --     LK_Stock) : un groupe est relevé avant que son stock soit relu.
 -- Suite (2026-10-15) : chaque relevé en trois images (runJob plus bas), une étape par image.
 -- Écriture du registre des groupes retenue pendant la file (Groups.hold("fortify")) puis faite dans une image à elle ;
--- file vidée avant la sauvegarde du monde (OnSave).
-Fortify.minuteJobs = Fortify.minuteJobs or { list = {}, head = 1, queued = {}, fresh = false, write = false }
+-- file vidée avant la sauvegarde du monde (OnSave). File : LivingKnox.FrameQueue (LK20-T05), créée après runJob.
 Fortify.QUEUE_HOLD_MARGIN = 3   -- images de retenue en plus de celles des relevés en file
 Fortify.JOB_FRAMES = 3          -- images d'un relevé en file (une étape chacune)
 Fortify.stats.queued = Fortify.stats.queued or 0
@@ -2728,56 +2727,41 @@ function Fortify.isQueued(gid)
 end
 
 local function enqueue(gid, t)
-    local q = Fortify.minuteJobs
-    if q.queued[gid] ~= nil then return false end
-    if q.head > #q.list then q.list, q.head = {}, 1 end
-    local e = { gid = gid, ms = t }
-    q.queued[gid] = e
-    q.list[#q.list + 1] = e
+    if not Fortify.minuteJobs:push({ gid = gid, ms = t }, gid) then return false end
     Fortify.stats.queued = Fortify.stats.queued + 1
     return true
 end
 
+-- Une étape d'un relevé de la file (LivingKnox.FrameQueue) ; un relevé déjà fait par settle est passé dans la même
+-- image. all : toutes les étapes du relevé (Fortify.finishQueue). Rend vrai, vrai si une étape a été faite.
+local function queueStep(q, all)
+    while q.head <= #q.list do
+        local e = q.list[q.head]
+        if runJob(e, all) then
+            if q.queued[e.gid] ~= e then q.head = q.head + 1 end   -- dernière étape faite
+            return true, true
+        end
+        q.head = q.head + 1
+    end
+    return false, false
+end
+
+Fortify.minuteJobs = LivingKnox.FrameQueue.new({ hold = "fortify", frames = Fortify.JOB_FRAMES,
+    margin = Fortify.QUEUE_HOLD_MARGIN, step = queueStep }, Fortify.minuteJobs)
+
 function Fortify.onFrameStart()
-    Fortify.minuteJobs.fresh = false
+    Fortify.minuteJobs:frameStart()
 end
 
 -- Une étape d'un relevé de la file (OnTick) ; la file vide, une image pour l'écriture seule. Rend vrai si une étape
 -- a été faite.
 function Fortify.onFrame()
-    local q = Fortify.minuteJobs
-    if q.fresh then return false end
-    while q.head <= #q.list do
-        local e = q.list[q.head]
-        if runJob(e, false) then
-            if q.queued[e.gid] ~= e then q.head = q.head + 1 end   -- dernière étape faite
-            return true
-        end
-        q.head = q.head + 1   -- relevé déjà fait par settle : suivant dans la même image
-    end
-    if q.write then
-        q.write = false
-        q.list, q.head = {}, 1
-        local G = LivingKnox.Groups
-        G.release("fortify")
-        if G.isDirty() and not G.isHeld() then G.flush() end   -- une autre retenue écrira à sa fin
-    end
-    return false
+    return Fortify.minuteJobs:frame()
 end
 
 -- File vidée tout de suite (bancs, OnSave). Rend le nombre de relevés faits.
 function Fortify.finishQueue()
-    local q, n = Fortify.minuteJobs, 0
-    q.fresh = false
-    while q.head <= #q.list do
-        local e = q.list[q.head]
-        q.head = q.head + 1
-        if runJob(e, true) then n = n + 1 end
-    end
-    q.list, q.head, q.write = {}, 1, false
-    local G = LivingKnox.Groups
-    if G ~= nil and G.release ~= nil then G.release("fortify") end
-    return n
+    return Fortify.minuteJobs:finish()
 end
 
 -- Examine les foyers chargés : travail hors écran posé dès que la zone est chargée ; relevé hors écran tenu à jour
@@ -2828,11 +2812,7 @@ function Fortify.scan(reason)
             if plan == nil or t - plan.ms >= cfg().PLAN_MS then enqueue(gid, t) end   -- LK13-T11
         end
     end
-    local q = Fortify.minuteJobs
-    if reason == "minute" and q.head <= #q.list then
-        q.fresh, q.write = true, true
-        G.hold("fortify", Fortify.JOB_FRAMES * (#q.list - q.head + 1) + Fortify.QUEUE_HOLD_MARGIN)
-    end
+    if reason == "minute" then Fortify.minuteJobs:start() end
     return n
 end
 
@@ -2854,8 +2834,7 @@ LivingKnox.subscribe("OnSave", "Fortify.minuteSave", function() Fortify.finishQu
 -- Oublie les plans en mémoire (suites en jeu, administration).
 function Fortify.reset()
     Fortify.state = { plans = {}, rest = {}, claims = {}, needs = {} }
-    Fortify.minuteJobs = { list = {}, head = 1, queued = {}, fresh = false, write = false }   -- LK13-T11
-    if LivingKnox.Groups ~= nil and LivingKnox.Groups.release ~= nil then LivingKnox.Groups.release("fortify") end
+    Fortify.minuteJobs:clear()   -- LK13-T11
 end
 
 -- Activité « chore » (ADR D04, ordre 10) : barricades du foyer pour un membre de poste « builder », avant l'entretien

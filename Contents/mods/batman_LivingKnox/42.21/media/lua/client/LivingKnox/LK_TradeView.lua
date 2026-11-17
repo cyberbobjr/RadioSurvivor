@@ -7,15 +7,16 @@
 -- (réplique du PNJ). La fenêtre n'affiche que ce que le serveur a répondu : à gauche les objets du joueur que le groupe
 -- prendrait (valeur pour lui), à droite les objets cédés (valeur V) ; un clic coche ou décoche. Totaux calculés avec le
 -- barème partagé (shared/CoreAI/CA_TradeValues.lua, coefficient k de l'offre) ; le serveur recalcule tout.
--- Transport : MP, sendClientCommand "tradeRequest" { op = "open" | "propose", n, npc, give, take } -> OnServerCommand
--- "tradeReply" ; solo, LivingKnox.Trade.request appelé directement (réponse rendue pendant l'appel : l'attente est
--- posée avant, base multiplayer.md). Aucun texte du joueur n'est lu.
+-- Transport : LivingKnox.ClientRequest (LK20-T06) ; MP, "tradeRequest" { op = "open" | "propose", n, npc, give, take }
+-- -> "tradeReply" ; solo, LivingKnox.Trade.request appelé directement (réponse rendue pendant l'appel : l'attente est
+-- posée avant, base multiplayer.md ; sans réponse, refus { op, n, ok = false, err }). Aucun texte du joueur n'est lu.
 if isServer() then return end
 
 require "LivingKnox/LK_Core"
 require "LivingKnox/LK_Config"
 require "LivingKnox/LK_Log"
 require "LivingKnox/LK_RelationsView"
+require "LivingKnox/LK_ClientRequest"
 local TV = require "CoreAI/CA_TradeValues"
 
 local View = LivingKnox.TradeView or {}
@@ -25,6 +26,7 @@ LivingKnox.TradeView = View
 View.MODULE = "LivingKnox"
 View.CMD_REQUEST = "tradeRequest"
 View.CMD_REPLY = "tradeReply"
+View.ROUTE = { module = View.MODULE, request = View.CMD_REQUEST, server = "Trade" }   -- LK20-T06
 
 View.state = View.state or { n = 0, pending = nil, npc = nil, offer = nil, give = {}, take = {}, status = nil,
     window = nil }
@@ -61,19 +63,11 @@ function View.send(op, fields)
     st.pending = st.n               -- posé AVANT l'envoi : en solo, la réponse arrive pendant l'appel
     st.status = tr("Waiting")
     View.stats.sent = View.stats.sent + 1
-    if LivingKnox.isAuthority() then
-        local T = LivingKnox.Trade
-        if T == nil or T.request == nil then
-            st.pending = nil
-            st.status = tr("Unavailable")
-            View.redraw()
-            return nil
-        end
-        local out, why = T.request(player, args)
-        if out == nil then out = { op = op, n = args.n, ok = false, err = tostring(why) } end
-        View.receive(out)
-    else
-        sendClientCommand(player, View.MODULE, View.CMD_REQUEST, args)
+    if not LivingKnox.ClientRequest.send(View.ROUTE, player, args, View.receive) then
+        st.pending = nil
+        st.status = tr("Unavailable")
+        View.redraw()
+        return nil
     end
     return args.n
 end
@@ -126,8 +120,8 @@ function View.receive(reply)
     return true
 end
 
-function View.onServerCommand(module, command, args)
-    if module ~= View.MODULE or command ~= View.CMD_REPLY then return end
+-- Réponse reçue par LivingKnox.ClientRequest (client MP, module et commande déjà vérifiés).
+function View.onServerCommand(_, _, args)
     View.receive(args)
 end
 
@@ -293,12 +287,11 @@ if Events ~= nil then
         return LivingKnox.TradeView.fill(playerNum, context, worldObjects, test)
     end
     LivingKnox.subscribe("OnFillWorldObjectContextMenu", "TradeView.fill", onFill)
-    if isClient() then   -- solo : réponses rendues directement par LivingKnox.Trade.request
-        local function onServerCommand(module, command, args)
-            LivingKnox.TradeView.onServerCommand(module, command, args)
-        end
-        LivingKnox.subscribe("OnServerCommand", "TradeView.onServerCommand", onServerCommand)
-    end
 end
+
+-- Réponses MP (solo : rendues pendant l'appel par LivingKnox.ClientRequest.send).
+LivingKnox.ClientRequest.listen(View.MODULE, View.CMD_REPLY, "TradeView", function(module, command, args)
+    LivingKnox.TradeView.onServerCommand(module, command, args)
+end)
 
 return View

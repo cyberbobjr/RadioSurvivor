@@ -15,12 +15,13 @@
 -- Mesure de charge (LK13-T02, op "load" de LK_Admin.lua) : boutons Démarrer / Rapport / Arrêter ; le rapport (coût par
 -- image et par module, réseau, écritures, taille de l'état, verdict des budgets) remplace le détail du groupe jusqu'au
 -- choix d'un groupe (View.loadSend, état View.state.load).
--- Transport : MP, sendClientCommand "adminRequest" -> OnServerCommand "adminReply" ; solo, LivingKnox.Admin.request
+-- Transport : LivingKnox.ClientRequest (LK20-T06) ; MP, "adminRequest" -> "adminReply" ; solo, LivingKnox.Admin.request
 -- appelé directement (réponse rendue pendant l'appel : l'attente est posée avant, base multiplayer.md).
 if isServer() then return end
 
 require "LivingKnox/LK_Core"
 require "LivingKnox/LK_Log"
+require "LivingKnox/LK_ClientRequest"
 local Access = require "CoreAI/CA_AdminAccess"
 
 local View = LivingKnox.AdminView or {}
@@ -31,6 +32,7 @@ View.MODULE = "LivingKnox"
 View.CMD_REQUEST = "adminRequest"
 View.CMD_REPLY = "adminReply"
 View.CAPABILITY = Access.CAPABILITY
+View.ROUTE = { module = View.MODULE, request = View.CMD_REQUEST, server = "Admin" }   -- LK20-T06
 -- Réponses lues par LK_NpcSheet.lua (npc, npcSet) et LK_DebugView.lua (activity, LK13-T14), même commande de réponse.
 View.SHEET_OPS = { npc = true, npcSet = true, activity = true }
 
@@ -66,17 +68,11 @@ function View.send(op, fields)
     for k, v in pairs(fields or {}) do args[k] = v end
     st.pending[op] = st.n            -- posé AVANT l'envoi : en solo, la réponse arrive pendant l'appel
     count("sent")
-    if isClient() then
-        sendClientCommand(player, View.MODULE, View.CMD_REQUEST, args)
-    else
-        local A = LivingKnox.Admin
-        if A == nil or A.request == nil then
-            st.pending[op] = nil
-            st.status = tr("NotLoaded")
-            View.redraw()
-            return nil
-        end
-        View.receive(A.request(player, args))
+    if not LivingKnox.ClientRequest.send(View.ROUTE, player, args, View.receive) then
+        st.pending[op] = nil
+        st.status = tr("NotLoaded")
+        View.redraw()
+        return nil
     end
     return args.n
 end
@@ -149,8 +145,8 @@ function View.receive(reply)
     return true
 end
 
-function View.onServerCommand(module, command, args)
-    if module ~= View.MODULE or command ~= View.CMD_REPLY then return end
+-- Réponse reçue par LivingKnox.ClientRequest (client MP, module et commande déjà vérifiés).
+function View.onServerCommand(_, _, args)
     View.receive(args)
 end
 
@@ -495,11 +491,9 @@ if ISAdminPanelUI ~= nil and isClient() then
     end
 end
 
-if isClient() then   -- solo : réponses rendues directement par LivingKnox.Admin.request
-    local function onServerCommand(module, command, args)
-        LivingKnox.AdminView.onServerCommand(module, command, args)
-    end
-    LivingKnox.subscribe("OnServerCommand", "AdminView.onServerCommand", onServerCommand)
-end
+-- Réponses MP (solo : rendues pendant l'appel par LivingKnox.ClientRequest.send).
+LivingKnox.ClientRequest.listen(View.MODULE, View.CMD_REPLY, "AdminView", function(module, command, args)
+    LivingKnox.AdminView.onServerCommand(module, command, args)
+end)
 
 return View

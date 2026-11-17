@@ -10,8 +10,8 @@
 | ☐ | LK20-T02 | Code mort supprimé | `testé hors jeu` | MP | — |
 | ☐ | LK20-T03 | Accesseurs d'une ligne remplacés par l'accès direct | `testé hors jeu` | MP | LK20-T01 |
 | ☐ | LK20-T04 | Une seule table de vérité par option sandbox | `testé hors jeu` | MP | — |
-| ☐ | LK20-T05 | Une file d'attente partagée (`FrameQueue`) | `à faire` | MP | LK20-T03 |
-| ☐ | LK20-T06 | Un client de requêtes commun (`ClientRequest`) | `à faire` | MP | LK20-T03 |
+| ☐ | LK20-T05 | Une file d'attente partagée (`FrameQueue`) | `testé hors jeu` | MP | LK20-T03 |
+| ☐ | LK20-T06 | Un client de requêtes commun (`ClientRequest`) | `testé hors jeu` | MP | LK20-T03 |
 | ☐ | LK20-T07 | `LK_Fortify` découpé dans `Fortify/` | `à faire` | MP | LK20-T05 |
 | ☐ | LK20-T08 | `LK_Stock` et `LK_Expeditions` découpés | `à faire` | MP | LK20-T05 |
 | ☐ | LK20-T09 | `LK_Decisions` et `LK_Obstacles` découpés | `à faire` | MP | LK20-T05 |
@@ -87,22 +87,26 @@ cinq moteurs géants découpés selon leurs sections.
 ## Phase 2 — Mécanique commune
 
 - [ ] **LK20-T05** — Une file d'attente partagée (`FrameQueue`)
-  - État : `à faire`
+  - État : `testé hors jeu`
   - Cible : `MP`
   - Dépend de : LK20-T03
   - Fichiers : nouveau `shared/LivingKnox/LK_FrameQueue.lua` ; `LK_Talk.lua`, `LK_API.lua`, `LK_Stock.lua`, `LK_Fortify.lua`, `LK_Decisions.lua`
   - Faire : D05 de l'ADR. La file gère enfilage, budget par image ou par heure, reprise et fin. Les cinq modules migrent un par un, sans changer budget, ordre ni seuils.
-  - Accepté si : une seule implémentation de file ; bancs verts sans attendu changé.
+  - Accepté si : une seule implémentation des files par image (stock, fortifications, décisions) ; bancs verts sans attendu changé.
   - Tests : banc `tests/test_lk_frame_queue.py` (rouge d'abord) ; `tests/run_all.py --keep-going` ; campagnes de fin de phase.
+  - Preuve : 2026-11-17, `python tests/run_all.py --keep-going` : `Summary: 209 passed, 0 failed, 0 skipped (574.2 s)`, `RESULT: PASS` (luacheck Contents et dev 0 avertissement) ; les trois bancs nouveaux de LK20 (`lk_num_geo`, `lk_frame_queue`, `lk_client_request`), absents de la liste de `run_all`, y sont ajoutés : `run_all.py --only` ces trois étapes `Summary: 3 passed, 0 failed`. Rouge d'abord : `tests/test_lk_frame_queue.py` 13 erreurs (`module 'LivingKnox/LK_FrameQueue' not found`), puis `Ran 13 tests OK`. `LK_FrameQueue.lua` (`new`, `push`, `start`, `frameStart`, `frame`, `finish`, `close`, `hold`) sert `LK_Stock`, `LK_Fortify` et `LK_Decisions` ; budgets, ordre, retenues du registre et événements inchangés. Non migrées, car ce ne sont pas des files par image : la liste persistée des demandes au pont de `LK_Talk` (une tête par locuteur, délais) et la boîte aux lettres bornée de `LK_API` (vidée en entier à chaque image) ; les y faire entrer aurait ajouté des options à usage unique.
+  - Reste : campagnes de fin de phase (`solo-lk` et MP `--mods lk`).
 
 - [ ] **LK20-T06** — Un client de requêtes commun (`ClientRequest`)
-  - État : `à faire`
+  - État : `testé hors jeu`
   - Cible : `MP`
   - Dépend de : LK20-T03
   - Fichiers : nouveau `client/LivingKnox/LK_ClientRequest.lua` ; `LK_AdminView.lua`, `LK_NpcSheet.lua`, `LK_TradeView.lua`
   - Faire : D06 de l'ADR. Envoi, réception par module et commande, relais solo dans un seul fichier. Les vues ne gardent que la présentation. Les commandes réseau gardent leurs noms.
   - Accepté si : plus de `sendClientCommand` ni d'abonnement `OnServerCommand` recopiés dans les trois vues ; bancs verts ; en jeu, `lk.admin`, `lk.npcsheet` et l'échange vertes en MP.
   - Tests : `tests/run_all.py --keep-going` ; campagnes de fin de phase.
+  - Preuve : 2026-11-17, `python tests/run_all.py --keep-going` : `Summary: 209 passed, 0 failed, 0 skipped (574.2 s)`, `RESULT: PASS` (luacheck Contents et dev 0 avertissement) ; les trois bancs nouveaux de LK20 (`lk_num_geo`, `lk_frame_queue`, `lk_client_request`), absents de la liste de `run_all`, y sont ajoutés : `run_all.py --only` ces trois étapes `Summary: 3 passed, 0 failed`. Rouge d'abord : `tests/test_lk_client_request.py` 8 erreurs (fichier absent), puis `Ran 9 tests OK`. `LK_ClientRequest.lua` (`send` avec relais solo, `listen`, `dispatch`, un seul abonnement `OnServerCommand`) sert `LK_AdminView`, `LK_NpcSheet` et `LK_TradeView` ; noms de module et de commande inchangés. Chaque gestionnaire est isolé par `pcall` dans `dispatch`, comme l'étaient les abonnés séparés. Restent hors tâche : `LK_DebugView` (même tuyauterie) et les envois directs de `LK_CombatClient`, `LK_DeathClient`, `LK_Executor`, `LK_NotebookPages`.
+  - Reste : campagnes de fin de phase (`solo-lk` et MP `--mods lk`).
 
 ## Phase 3 — Découpage des moteurs
 

@@ -147,5 +147,7 @@ end
 -- qui requiert LK_Core les trouve à l'exécution. Elles ne requièrent pas LK_Core.
 require "LivingKnox/LK_Num"
 require "LivingKnox/LK_Geo"
+-- LK20-T05 : file d'attente étalée sur les images (LivingKnox.FrameQueue), même règle de chargement.
+require "LivingKnox/LK_FrameQueue"
 
 return LK
