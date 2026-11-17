@@ -6,7 +6,7 @@
 | Statut | Accepté |
 | Décideur | utilisateur (« oui go », 2026-11-16, après l'étude des mods PZNS et Living World) |
 | Remplace | la règle du « dernier passant » des fenêtres de LK04-T07 et LK04-T18 (tout PNJ dont une fenêtre ouverte rapproche l'étape en devient le passant), et sa retouche LK17-T04 (`Obstacles.inFrontOf`) |
-| Plan associé | [LK19 — Fenêtres refermées par leur passant, tests sur le résultat](../../annexes/plans/LK19-fenetres-resultat.md) |
+| Plan associé | [LK19 — Fenêtres refermées par leur passant, tests sur le résultat](../../annexes/plans-termines/LK19-fenetres-resultat.md) |
 | Références | Campagnes `solo-lk` du 2026-11-16 : `runs/20261116-171910-c3a0093c3273` et `runs/20261116-200750-b90f4778c1ef` (`lk.traversal`, « open window » : 6 bascules au lieu de 5). Mod Living World 1.5.2 (Workshop 3837614147, `Doors.lua`, `closeBehind`), lu le 2026-11-16 pour les idées seulement : aucune licence, aucun code repris. |
 
 ## Contexte
