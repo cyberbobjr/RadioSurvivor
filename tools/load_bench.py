@@ -5,7 +5,7 @@
     python RadioSurvivor/tools/load_bench.py --minutes 1440 --dump-groups groups.hex     registre des groupes du banc
     python RadioSurvivor/tools/load_bench.py --kahlua --registry groups.hex    écriture de CE registre, Kahlua / lupa
 
-Banc tests/harness.py (Lua 5.1 lupa, une VM par machine) avec la pile complète des corps des bancs existants
+Banc tests/commun/harness.py (Lua 5.1 lupa, une VM par machine) avec la pile complète des corps des bancs existants
 (test_lk_materialize.MatBase : corps, consignes, rapports, santé, équipement ; doublures de santé, perception,
 combat, tir, zombies, butin et mort), puis TOUS les fichiers Lua de Living Knox (shared, server, client), chargés par
 require comme le jeu les exécute. Doublures ajoutées ici (BENCH) : cases sans eau, buisson, clôture basse ni
@@ -37,7 +37,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 TESTS = ROOT / 'tests'
-sys.path.insert(0, str(TESTS))
+for _folder in ('commun', 'coreai', 'livingknox'):   # offline test folders (E26: tests/<folder>/)
+    sys.path.insert(0, str(TESTS / _folder))
 
 from harness import Harness, LUA, LK_LUA  # noqa: E402
 from test_lk_materialize import MatBase  # noqa: E402
@@ -369,8 +370,8 @@ REGISTRY_BUILD = ('local C = require "CoreAI/CA_Codec" DATA = assert(C.decodeByt
 
 
 def kahlua_factor(rounds: int = 40, loop: str = FACTOR_LOOP, registry: Path | None = None):
-    """Temps d'une écriture de registre type dans la VM Kahlua réelle (projectzomboid.jar, banc tests/kahlua) et sous
-    lupa ; rend (ms Kahlua, ms lupa, rapport) ou None et la raison si les prérequis de tests/test_kahlua.py manquent.
+    """Temps d'une écriture de registre type dans la VM Kahlua réelle (projectzomboid.jar, banc tests/commun/kahlua) et sous
+    lupa ; rend (ms Kahlua, ms lupa, rapport) ou None et la raison si les prérequis de tests/coreai/test_kahlua.py manquent.
     Kahlua : différence de durée entre deux JVM (1 et 1 + rounds tours), JIT compris ; ordre de grandeur seulement.
     registry : fichier hex d'un registre (--dump-groups) mesuré à la place du registre type (LK13-T07)."""
     import os

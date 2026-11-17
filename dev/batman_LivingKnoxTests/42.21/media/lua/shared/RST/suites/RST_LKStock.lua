@@ -23,7 +23,7 @@ What is checked (nominal path):
     - theft: one kit item moved from a group container to the player's inventory (same object, same id, as a
       transfer) is reported missing at the next check and attributed to the player (result "reported" when the
       player has a notebook character, otherwise "no key", noted).
-Outside the game: tests/test_lk_stock.py (the suite also runs there against doubles).
+Outside the game: tests/livingknox/test_lk_stock.py (the suite also runs there against doubles).
 ]]
 
 require "RST/RST"

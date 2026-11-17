@@ -1270,7 +1270,7 @@ trappedRun = function(t, site)
     end, "npc still on the floor")
 end
 
--- Site helpers, checked by the bench (tests/test_lk_obstacles.py, LK04-T08).
+-- Site helpers, checked by the bench (tests/livingknox/test_lk_obstacles.py, LK04-T08).
 RST.LKTraversal = RST.LKTraversal or {}
 RST.LKTraversal.pickInteriorDoor = pickInteriorDoor
 RST.LKTraversal.refusedHere = refusedHere

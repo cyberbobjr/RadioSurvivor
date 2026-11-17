@@ -14,7 +14,7 @@
 ```powershell
 python RadioSurvivor/tools/load_bench.py --minutes 1440 --quiet --heavy 7    # deux essais avant, deux après
 python RadioSurvivor/tools/load_bench.py --minutes 60 --quiet --heavy 7
-python -m unittest RadioSurvivor/tests/test_lk_peaks.py                     # file, déterminisme, lecture en place
+python -m unittest RadioSurvivor/tests/livingknox/test_lk_peaks.py                     # file, déterminisme, lecture en place
 ```
 
 `--heavy 7` : images du serveur de 7 ms lupa ou plus (≈ 25 ms Kahlua, le budget proposé, au rapport 3 à 3,6).
@@ -75,15 +75,15 @@ lupa, contre 29 à 75). Restent :
 |---|---|---|
 | Banc de charge complet, **une journée** (1 441 minutes), sans la mesure, files vidées en fin de banc | arbre avant / arbre après | registre des groupes (journal, mémoire, plans, relevés compris), attitudes, registre des PNJ, consignes (`Directives` : état, détenteurs, derniers rapports, consignes émises) et état des décisions des membres **identiques à l'octet** ; même nombre de relevés (305) et d'écritures du registre (51) ; lignes `fortify:` du journal identiques et dans le même ordre ; journal console : mêmes lignes (même multiensemble, 17 623), entrelacées autrement (un relevé « plan » écrit une ou plusieurs images plus tard, entre les lignes de la relecture du stock) |
 | Banc de charge complet, 4 heures | arbre avant / arbre après | idem |
-| `tests/test_lk_peaks.py`, banc de charge complet, 3 heures | relevé dans l'image de la minute (file vidée aussitôt) / file | registre des groupes, attitudes, registre des PNJ, lignes `fortify:` et nombre de relevés identiques |
+| `tests/livingknox/test_lk_peaks.py`, banc de charge complet, 3 heures | relevé dans l'image de la minute (file vidée aussitôt) / file | registre des groupes, attitudes, registre des PNJ, lignes `fortify:` et nombre de relevés identiques |
 
 ## 5. Garanties vérifiées (bancs)
 
-`tests/test_lk_peaks.py` (10 tests) : rien dans l'image de la minute, relevé à l'image suivante avec l'heure de la
+`tests/livingknox/test_lk_peaks.py` (10 tests) : rien dans l'image de la minute, relevé à l'image suivante avec l'heure de la
 minute (`plan.ms`), horloge rendue ; un seul relevé pour deux minutes sans image, plan frais jamais mis en file ;
 lecture du plan (`levelOf`) et `invalidate` qui font d'abord le relevé en file (entrée sautée ensuite) ; une seule
 écriture du registre après la file, dans une image à elle ; `OnSave` qui vide la file ; relevé en erreur journalisé,
 file qui continue ; heure hors écran : relevé en file fait d'abord de jour, laissé en file la nuit ; `GroupTypes.peek`
 rend la table vivante (`get` une copie) ; banc de charge : un groupe par image après la minute (trois minutes à
 plusieurs groupes vues) et déterminisme (§ 4). Lecture du code des vues `peek` (aucune écriture par la vue) :
-`tests/test_lk_groups.py`, qui couvre tous les appels `.peek(` hors de `LK_Groups.lua`, donc `GroupTypes.peek`.
+`tests/livingknox/test_lk_groups.py`, qui couvre tous les appels `.peek(` hors de `LK_Groups.lua`, donc `GroupTypes.peek`.

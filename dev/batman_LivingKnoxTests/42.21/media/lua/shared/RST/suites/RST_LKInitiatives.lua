@@ -12,7 +12,7 @@ The last test needs the bridge program running (bridge/radio_bridge.py): the lin
 the speech channel of LK11-T04 and drawn as a bubble over the npc. Without the bridge it fails after 60 s.
 E08-T09: "a stopped bridge leaves the npc silent" marks the bridge as stopped (LK_Initiatives.bridge, no bridge
 program needed): the initiative opens silently, no request, no template line (Provider.bark never called), nothing
-said. Budget spent and option "Off" are covered by tests/test_initiatives.py.
+said. Budget spent and option "Off" are covered by tests/livingknox/test_initiatives.py.
 Every test removes its npc and its pending request with t:defer.
 ]]
 

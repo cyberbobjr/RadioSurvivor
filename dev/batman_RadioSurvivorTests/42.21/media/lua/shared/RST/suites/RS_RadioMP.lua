@@ -16,7 +16,7 @@ REAL radio command "talk" and read their own Radio tab (RST.Steps "rs.talk", "rs
 Tags "server" and "world": the authority (solo, or RST.server from an admin client), save rstest*. Solo runs the same
 code with the local player only (second-client parts noted). MP: autoclient.py --mp --clients 2 --server-suite
 rs.radio --server-tags world. Cleanup: walkie-talkies taken back (RST.Fixtures.giveItem), former main hand items held
-again, test sentences removed from the histories. Outside the game: tests/test_rs_mp_suites.py.
+again, test sentences removed from the histories. Outside the game: tests/ensemble/test_rs_mp_suites.py.
 ]]
 
 require "RST/RST"

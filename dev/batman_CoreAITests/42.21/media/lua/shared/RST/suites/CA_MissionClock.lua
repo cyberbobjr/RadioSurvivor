@@ -22,7 +22,7 @@ multiplier found at the start (never a paused game) and removes the listeners, o
 Tags "world" (the game speed and the world age move): solo only (MP client: getGameSpeed is always 1 and the pause
 belongs to the server; dedicated server: no SpeedControls), save named rstest*. Selected by the prefix "ca.missions"
 of the solo campaigns. The in-memory mission is never saved; CA_Missions.advance only reads the mission's giver
-kind ('npc', registered by RadioSurvivor or Living Knox). Outside the game: tests/test_rs_mission_clock_suite.py.
+kind ('npc', registered by RadioSurvivor or Living Knox). Outside the game: tests/radiosurvivor/test_rs_mission_clock_suite.py.
 ]]
 
 require "RST/RST"

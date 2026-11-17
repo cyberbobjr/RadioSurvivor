@@ -1,6 +1,6 @@
 # Relevé de vie d'un personnage (E15-T01)
 
-Matière première des « dernières pages » (étape E15) : ce que le serveur sait de la vie d'un personnage du carnet, relevé pendant sa vie puis figé à sa mort. Code : `media/lua/server/RadioSurvivor/RS_LifeLog.lua` ; banc : `tests/test_lifelog.py` ; suite en jeu : `rs.lifelog` (`dev/batman_RadioSurvivorTests/.../suites/RS_LifeLog.lua`).
+Matière première des « dernières pages » (étape E15) : ce que le serveur sait de la vie d'un personnage du carnet, relevé pendant sa vie puis figé à sa mort. Code : `media/lua/server/RadioSurvivor/RS_LifeLog.lua` ; banc : `tests/radiosurvivor/test_lifelog.py` ; suite en jeu : `rs.lifelog` (`dev/batman_RadioSurvivorTests/.../suites/RS_LifeLog.lua`).
 
 ## Règles
 

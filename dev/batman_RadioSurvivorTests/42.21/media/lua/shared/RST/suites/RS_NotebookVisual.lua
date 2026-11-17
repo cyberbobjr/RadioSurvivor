@@ -32,7 +32,7 @@ require "RST/RST"
 require "RST/RST_ModRadioSurvivor"
 
 local V = {}
-RST.NotebookVisual = V -- read by tests/test_notebook_visual.py
+RST.NotebookVisual = V -- read by tests/radiosurvivor/test_notebook_visual.py
 
 V.MOD_ID = "batman_RadioSurvivor"
 -- E18-T13: the notebook also shows keys of the core mod (mission titles, journal); its table is read first.

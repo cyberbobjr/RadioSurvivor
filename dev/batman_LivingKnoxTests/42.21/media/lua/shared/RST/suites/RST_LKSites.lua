@@ -9,7 +9,7 @@ seed must give a site.
 Tag "server": LK_Sites starts with "if isClient() then return end" (authority only). Read-only: no item, no
 ModData, no group home written, no world change. Solo: RST.server("lk.sites") (the requester is the target player);
 dedicated server: RST.server("lk.sites") from an admin client. Asynchronous run only (a 3 s watch of LoadChunk);
-outside the game: tests/test_lk_sites.py.
+outside the game: tests/livingknox/test_lk_sites.py.
 
 Probe of "no chunk loaded" (the engine has no Lua counter of loaded chunks), as in the rescue suites:
     - LoadChunk events counted during the picks (synchronous: must stay at 0) and for 3 s after them, with the

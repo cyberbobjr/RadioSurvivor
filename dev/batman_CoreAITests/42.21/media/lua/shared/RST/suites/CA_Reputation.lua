@@ -22,7 +22,7 @@ Persistence (autoclient.py --mp --clients 2 --phases restart --server-campaign m
                                  recorded (+5), the notebook state saved; snapshot RST_Persist reputation-persist.txt
     ca.reputation.after-restart  same score and revision after the restart, the fact found once, recording the same
                                  event id again is a duplicate (score unchanged); then baseline restored
-Outside the game: tests/test_reputation.py (doubles).
+Outside the game: tests/ensemble/test_reputation.py (doubles).
 ]]
 
 require "RST/RST"

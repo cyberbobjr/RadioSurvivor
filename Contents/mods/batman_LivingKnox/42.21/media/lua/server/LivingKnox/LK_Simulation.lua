@@ -993,7 +993,7 @@ end
 --     suivante, OnTickEvenPaused), puis une image pour l'écriture seule.
 -- L'écriture du registre des groupes est retenue de l'EveryHours à la fin de la file (Groups.hold, bornée à
 -- HOLD_FRAMES débuts d'image) : une seule écriture pour tout le pas, comme avant, dans une image à elle.
--- Mêmes passes, même ordre, même heure : même registre et même journal (banc tests/test_lk_spread.py, banc léger et
+-- Mêmes passes, même ordre, même heure : même registre et même journal (banc tests/livingknox/test_lk_spread.py, banc léger et
 -- banc de charge complet sur une journée). Une heure nouvelle alors que la file n'est pas vide (accéléré du temps en
 -- solo, banc qui déclenche EveryHours sans image) : les passes restantes de l'heure précédente partent aussitôt, dans
 -- l'ordre, avant celles de la nouvelle heure (seul Raids.survey, abonné avant, passe alors devant). Une erreur dans

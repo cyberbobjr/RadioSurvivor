@@ -64,7 +64,7 @@ GroupTypes.BEHAVIOURS = {
 GroupTypes.TRAITS = { smoker = true, drinker = true, tidy = true, nervous = true, keenHearing = true, strong = true }
 
 -- Armes vanilla admises dans le module Base : objets relevés dans media/scripts/generated/items/weapon.txt (42.21),
--- chacun avec un AttachmentType connu de LivingKnox.Equipment.LOCATIONS (contrôlé par tests/test_lk_group_types.py).
+-- chacun avec un AttachmentType connu de LivingKnox.Equipment.LOCATIONS (contrôlé par tests/livingknox/test_lk_group_types.py).
 -- Une arme d'un autre module (mod d'armes) n'est contrôlée que par sa forme ici, puis par Equipment.spec à l'usage.
 GroupTypes.VANILLA_WEAPONS = {
     ["Base.Shotgun"] = true, ["Base.HuntingRifle"] = true, ["Base.VarmintRifle"] = true,

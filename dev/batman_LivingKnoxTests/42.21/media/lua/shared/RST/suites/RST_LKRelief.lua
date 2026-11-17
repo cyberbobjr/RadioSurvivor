@@ -14,7 +14,7 @@ real groups of the save (a real group already wiped out may be marked gone or re
 Cleanup (t:defer): the test group and its relief group are removed from the registry.
 Not checked here: persistence of the mark and of the due hour across a restart (reload the save and read the
 console lines "group grp-<n> gone" / "relief: grp-<m> ... replaces grp-<n>"), dispersal of a lone survivor.
-Outside the game: tests/test_lk_relief.py.
+Outside the game: tests/livingknox/test_lk_relief.py.
 ]]
 
 require "RST/RST"

@@ -15,7 +15,7 @@ shared/LivingKnox/LK_NotebookProvider.lua: leave, composition). Played by autocl
 Tags "world", "server", "manual": authority only, test saves rstest* only, exact names only. No truce (lk.leave
 covers it with a notebook character). Snapshot: Zomboid/Lua/batman_CoreAITests/tests/leave-persist.txt of the
 server (RST_Persist).
-Outside the game: tests/test_persist_suites.py (listing).
+Outside the game: tests/ensemble/test_persist_suites.py (listing).
 ]]
 
 require "RST/RST"

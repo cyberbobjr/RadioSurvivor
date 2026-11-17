@@ -11,7 +11,7 @@ anything else). Solo campaign solo-lk and MP campaign mp.
                          name), the team mate keeps his reputation (score unchanged, asked to his client in MP)
 The test restores the reputation entry of the characters it touched and drops the outcomes it created
 (RST_ReputationHelpers.lua of batman_CoreAITests).
-Outside the game: tests/test_reputation.py, tests/test_lk_hostility.py (doubles).
+Outside the game: tests/ensemble/test_reputation.py, tests/livingknox/test_lk_hostility.py (doubles).
 ]]
 
 require "RST/RST"

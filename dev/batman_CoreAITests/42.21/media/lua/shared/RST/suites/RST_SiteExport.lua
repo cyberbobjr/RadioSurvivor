@@ -10,11 +10,11 @@ Every loaded square within RADIUS squares (Chebyshev) of the player, levels LEVE
 getWindowThumpableTo, getWindowFrameTo, isHoppableTo, HasStairs...), ROWS_PER_STEP columns of squares per tick
 (t:sleep chain), then ONE text file is written with RST.writeLines (getFileWriter, Zomboid/Lua of the machine running
 the Lua): FILE. Through autoclient the file is copied to the run folder (tools/autoclient/runs/<run>/). The export
-describes a game building: it stays local, never versioned (tests/site_world.py reads it).
+describes a game building: it stays local, never versioned (tests/livingknox/site_world.py reads it).
 
 Format: ASCII, one record per line, fields separated by one space; "-" = none; flags = comma list or "-". Edge E is
 "W" (west edge of the square x, y: between x - 1 and x) or "N" (north edge: between y - 1 and y), the edge keys of
-the bench doubles (tests/test_lk_obstacles.py).
+the bench doubles (tests/livingknox/test_lk_obstacles.py).
     H ox oy oz radius version...              origin (player square), radius, game version (rest of the line)
     G id keyId x1 y1 x2 y2                    building (BuildingDef getIDString, getKeyId, getX, getY, getX2, getY2)
     S x y z building roomId room flags        square; flags among blocked (not isFree(false)), solid, solidtrans,
@@ -32,7 +32,7 @@ the bench doubles (tests/test_lk_obstacles.py).
     B x y z bedType                           bed (sprite property bed, BedType or -)
     T x y z                                   stairs (HasStairs)
 Tunables (debug console before the run): RST.SiteExport.RADIUS, LEVELS, ROWS_PER_STEP.
-Outside the game: tests/test_site_replay.py (round trip of this exporter on the bench doubles).
+Outside the game: tests/livingknox/test_site_replay.py (round trip of this exporter on the bench doubles).
 ]]
 
 require "RST/RST"

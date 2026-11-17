@@ -4,13 +4,14 @@ bounds, places rounded to the town (never a coordinate), reading and purge for t
 memorial (E14-T03) and the real Java readers it polls (power grid, running water, weather).
 Tag "server": RS_Facts starts with "if isClient() then return end" (authority only). Read-only for the mod state:
 the logic runs on in-memory books (Facts.newBook); the live log is only read. Solo: RST.server("rs.facts");
-dedicated server: RST.server("rs.facts") from an admin client, or the autorun. Outside the game: tests/test_facts.py.
+dedicated server: RST.server("rs.facts") from an admin client, or the autorun. Outside the game:
+tests/radiosurvivor/test_facts.py.
 
 rs.bulletin - evening bulletin (E14-T02): radio API of the server, hour of the bulletin, then a forced bulletin
 (the hour of the option is not awaited): request to the bridge, bridge text or fallback after its delay, aired on the
 frequency of the chronicler, day marked as aired, facts read purged. Tags "world" and "server": it airs a real
 bulletin and purges the live fact log of a test save (rstest*). Solo: RST.server("rs.bulletin"), tuned on the
-frequency of the Night Owl to hear it. Outside the game: tests/test_bulletin.py.
+frequency of the Night Owl to hear it. Outside the game: tests/radiosurvivor/test_bulletin.py.
 ]]
 
 require "RST/RST"

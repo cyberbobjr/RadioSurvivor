@@ -962,7 +962,7 @@ if isServer() and Events ~= nil then   -- LK06-T11 : rapport des zombies au sol 
     end
     LivingKnox.subscribe("OnClientCommand", "Senses.onFloorReport", onClientCommand)
 end
-if not isServer() and Events ~= nil then   -- Events absent : VM de test sans moteur (tests/test_kahlua.py)
+if not isServer() and Events ~= nil then   -- Events absent : VM de test sans moteur (tests/coreai/test_kahlua.py)
     local function onWorldSound(x, y, z, radius, volume, source)
         LivingKnox.Senses.onWorldSound(x, y, z, radius, volume, source)
     end

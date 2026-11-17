@@ -18,7 +18,7 @@ building around the player) is tried SITE_DRAWS times (new seed each time); when
 minDensity (the spawn point of the test server lies in a quiet part of Muldraugh), the same draw is made once more
 with a test copy of the catalogue entry whose minDensity is 0 (noted: N then comes from the measured density). The
 suite spawns its own zombies in the circle, so the density only sets N. No building at all: FAIL.
-Outside the game: tests/test_mission_clear.py (metagrid density, zombie and player doubles).
+Outside the game: tests/radiosurvivor/test_mission_clear.py (metagrid density, zombie and player doubles).
 Solo only (SKIP elsewhere), first test of the suite: the player's own actions on a real clear mission of a Living Knox
 npc fiche in the real notebook state, counted by the real subscribers of the template: lethal bat hit (melee), lethal
 pistol hit (firearm), a zombie run over with the player at the wheel (engine path IsoGameCharacter.Hit(BaseVehicle..)),

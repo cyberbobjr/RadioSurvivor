@@ -12,7 +12,7 @@ the same step (no tick runs meanwhile, so no meter of the game counts the jump; 
 Tags "server" and "world" (the claim fills a real inventory): authority only (solo or dedicated server), save named
 rstest*, target player t.ctx.player. Selected by the prefix "ca.missions" of the solo campaigns and mp.
 Cleanup: claimed items removed, states of other mods put back (RST.Fixtures.keepModStates: CA_Missions.finish tells
-the fact log of RadioSurvivor), clock function restored. Outside the game: tests/test_rs_e14_e16_suites.py.
+the fact log of RadioSurvivor), clock function restored. Outside the game: tests/radiosurvivor/test_rs_e14_e16_suites.py.
 ]]
 
 require "RST/RST"

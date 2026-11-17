@@ -1,0 +1,678 @@
+"""Notes de fréquences (E05-T09) : RS_Notes.lua, RS_NotesServer.lua et RS_NotesReader.lua dans lupa, plus contrôles
+statiques des scripts d'objets, des traductions et des listes de butin vanilla.
+
+    python RadioSurvivor/tests/radiosurvivor/test_notes.py
+
+Vrai Lua du mod (Lua 5.1, `next` retiré comme dans Kahlua) avec les doublures de test_personas_server.py (fiches
+réellement livrées, tirage d'un monde neuf) et des doublures minimales de l'objet, des distributions, de
+ItemPickerJava et de ISReadABook. Couvre : fréquence écrite par l'autorité égale au tirage de la partie (cinq voix,
+whitaker sans note), voix silencieuse ou disparue (note sans fréquence), OnCreate rejoué sur un client MP (aucune
+fréquence, aucun fournisseur), aucune commande réseau dans les modules des notes, texte composé FR/EN (traductions
+réelles, %1 remplacé comme Translator), ouverture du document (clés remises, autres documents intacts), butin selon
+NoteRarity (facteurs, idempotence, mod désactivé), listes citées par des salles ou des véhicules de la 42.21.
+Ne prouve pas l'API Java réelle : suite en jeu rs.notes et protocole docs/annexes/tests/tests-en-jeu.md § 13.
+"""
+from __future__ import annotations
+
+import json
+import re
+import unittest
+from pathlib import Path
+import sys
+sys.path.append(str(Path(__file__).resolve().parents[2] / 'tools'))
+import pz_paths  # noqa: E402  (vanilla folders: PZ_STEAM_LIBRARY, PZ_MEDIA or Steam detection)
+
+import lupa.lua51 as lupa
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'commun'))  # tests/commun (E26)
+import bench_paths  # noqa: E402,F401  (tests/commun and tests/coreai on sys.path)
+from test_personas_server import LUA, MOD, Harness, lua_list, CORE_LUA
+from harness import LK_LUA  # noqa: E402  (E18-T07)
+
+ROOT = Path(__file__).resolve().parents[2]
+TRANSLATE = LUA / 'shared/Translate'
+SCRIPT = MOD / 'media/scripts/RadioSurvivor_notes.txt'
+NOTES_LUA = [LUA / 'shared/RadioSurvivor/RS_Notes.lua', LUA / 'server/RadioSurvivor/RS_NotesServer.lua',
+             LUA / 'client/RadioSurvivor/RS_NotesReader.lua']
+VANILLA = pz_paths.media_dir()
+VOICES = ['walt', 'darlene', 'cody', 'gus', 'nightowl']
+TYPES = {'walt': 'NoteWalt', 'darlene': 'NoteDarlene', 'cody': 'NoteCody', 'gus': 'NoteGus',
+         'nightowl': 'NoteNightOwl'}
+
+
+def note_sections() -> dict[str, str]:
+    """Voix -> lignes de la section [note] de sa fiche livrée (E20-T11)."""
+    out = {}
+    for path in sorted((MOD / 'personas').glob('*.txt')):
+        m = re.search(r'(?ms)^\[note\]\n(.*?)^\[', path.read_text(encoding='utf-8'))
+        if m:
+            out[path.stem] = m.group(1)
+    return out
+
+
+def declared_voices() -> list[str]:
+    return sorted(note_sections())
+
+
+def translations(lang: str) -> dict[str, str]:
+    out: dict[str, str] = {}
+    for path in (TRANSLATE / lang).glob('*.json'):
+        out.update(json.loads(path.read_text(encoding='utf-8')))
+    return out
+
+
+# Objet, distributions, ItemPickerJava, Events ; getText : table LANG (traductions réelles) avec %1..%9 remplacés
+# comme Translator (clé inconnue rendue telle quelle).
+NOTE_STUBS = r"""
+function newItem(itemType)
+    local item = { type = itemType, md = nil }
+    function item:getType() return self.type end
+    function item:getModData() if not self.md then self.md = {} end return self.md end
+    function item:hasModData() return self.md ~= nil end
+    return item
+end
+PARSED = 0
+ItemPickerJava = { Parse = function() PARSED = PARSED + 1 end }
+Events = setmetatable({}, { __index = function(t, k)
+    local e = { list = {} }
+    e.Add = function(f) table.insert(e.list, f) end
+    rawset(t, k, e) return e end })
+LANG = {}
+getText = function(key, ...)
+    local s = LANG[key]
+    if s == nil then return key end
+    local args = { ... }
+    return (string.gsub(s, "%%(%d)", function(n) return tostring(args[tonumber(n)]) end))
+end
+function resetLoot(lists, vehicles)
+    ProceduralDistributions = { list = {} }
+    for _, name in ipairs(lists) do ProceduralDistributions.list[name] = { rolls = 4, items = { "Base.Pencil", 2 } } end
+    VehicleDistributions = {}
+    for _, name in ipairs(vehicles) do VehicleDistributions[name] = { rolls = 1, items = {} } end
+end
+resetLoot({}, {})
+package.preload["Items/ProceduralDistributions"] = function() return true end
+package.preload["Vehicles/VehicleDistributions"] = function() return true end
+"""
+
+
+class NotesHarness(Harness):
+    """Fiches réellement livrées, monde neuf (tirage), modules des notes chargés sur l'autorité (solo)."""
+
+    bundled = None
+    # Fiches de l'admin ajoutées au dossier des fiches avant le chargement du monde (nom -> texte).
+    admin_sheets: dict[str, str] = {}
+
+    def setUp(self):
+        super().setUp()
+        for name, text in self.admin_sheets.items():
+            self.write(name, text)
+        self.rt.execute(NOTE_STUBS)
+        self.load_world(True)
+        self.Notes = self.rt.eval('require("RadioSurvivor/RS_Notes")')
+        self.NS = self.rt.eval('require("RadioSurvivor/RS_NotesServer")')
+
+    def set_lang(self, lang: str):
+        table = self.rt.table_from(translations(lang))
+        self.g.LANG = table
+
+    def create(self, voice: str):
+        item = self.g.newItem(TYPES[voice])
+        self.g.RadioSurvivorNotes.onCreate(item)
+        return item
+
+    def entries(self) -> list:
+        return lua_list(self.NS.entries())
+
+    def reset_loot(self):
+        lists = [e.list for e in self.entries() if not e.vehicle]
+        vehicles = [e.list for e in self.entries() if e.vehicle]
+        self.g.resetLoot(self.rt.table_from(lists), self.rt.table_from(vehicles))
+
+    def items_of(self, entry) -> list:
+        if entry.vehicle:
+            return lua_list(self.g.VehicleDistributions[entry.list]['items'])
+        return lua_list(self.g.ProceduralDistributions.list[entry.list]['items'])
+
+
+class AuthorityTests(NotesHarness):
+
+    def test_note_carries_the_drawn_frequency_of_its_voice(self):
+        for voice in VOICES:
+            with self.subTest(voice):
+                served = self.served(voice)
+                self.assertGreater(len(served), 0)
+                md = self.create(voice).md
+                self.assertEqual(md['printMedia']['id'], f'RadioSurvivor_{TYPES[voice]}')
+                self.assertEqual(md['printMedia']['info'], f'Print_Media_RadioSurvivor_{TYPES[voice]}_info')
+                self.assertEqual(md['printMedia']['text'], f'Print_Text_RadioSurvivor_{TYPES[voice]}_info')
+                self.assertEqual(md['printMedia']['title'], f'Print_Media_RadioSurvivor_{TYPES[voice]}_title')
+                self.assertEqual(md['RadioSurvivorNote']['voice'], voice)
+                self.assertEqual(md['RadioSurvivorNote']['khz'], served[0])
+
+    def test_two_worlds_two_frequencies(self):
+        first = self.create('walt').md['RadioSurvivorNote']['khz']
+        self.g.SEED, self.g.WORLD = 777, 'rstest_b'
+        self.new_manager()
+        self.load_world(True)
+        second = self.create('walt').md['RadioSurvivorNote']['khz']
+        self.assertEqual(second, self.served('walt')[0])
+        self.assertNotEqual(first, second)
+
+    def test_whitaker_has_no_note(self):
+        # E20-T11 : chaque voix livrée déclare sa note dans sa fiche ([note]), sauf whitaker.
+        self.assertIsNone(self.Notes.forVoice('whitaker'))
+        self.assertEqual(sorted(e.voice for e in self.entries() if e.voice == 'whitaker'), [])
+        self.assertEqual({e.voice for e in self.entries()}, set(declared_voices()))
+        self.assertTrue(set(VOICES) <= set(declared_voices()))
+
+    def test_silent_or_gone_voice_gives_a_note_without_frequency(self):
+        for state in ('silent', 'gone'):
+            with self.subTest(state):
+                text = (self.dir / 'cody.txt').read_text(encoding='utf-8')
+                self.write('cody.txt', re.sub(r'(?m)^state=.*$', f'state={state}', text))
+                self.P.reload()
+                note = self.create('cody').md['RadioSurvivorNote']
+                self.assertEqual(note['voice'], 'cody')
+                self.assertIsNone(note['khz'])
+                self.assertEqual(self.Notes.frequencyLabel(note), '???.?')
+
+    def test_unknown_item_type_left_alone(self):
+        item = self.g.newItem('SheetPaper2')
+        self.g.RadioSurvivorNotes.onCreate(item)
+        self.assertIsNone(item.md)
+
+
+def client_runtime():
+    """Machine Lua d'un client MP : isClient vrai, fichiers server sans effet, doublures des notes."""
+    rt = lupa.LuaRuntime(unpack_returned_tuples=True)
+    rt.globals().next = None
+    rt.execute('SIDE = "client" isClient = function() return true end isServer = function() return false end '
+               'print = function() end')
+    rt.execute(NOTE_STUBS)
+    paths = ';'.join((LUA / side).as_posix() + '/?.lua' for side in ('shared', 'server', 'client'))
+    paths = (CORE_LUA / 'shared').as_posix() + '/?.lua;' + (CORE_LUA / 'server').as_posix() + '/?.lua;' + (CORE_LUA / 'client').as_posix() + '/?.lua;' + (LK_LUA / 'shared').as_posix() + '/?.lua;' + (LK_LUA / 'server').as_posix() + '/?.lua;' + (LK_LUA / 'client').as_posix() + '/?.lua;' + paths  # mod commun (E18)
+    rt.execute(f'package.path = [[{paths};]] .. package.path')
+    return rt
+
+
+class ClientTests(unittest.TestCase):
+    """Client MP : fichiers server non chargés (isClient), OnCreate rejoué sans fournisseur ni fréquence."""
+
+    def setUp(self):
+        self.rt = client_runtime()
+        self.g = self.rt.globals()
+
+    def test_client_writes_no_frequency(self):
+        notes = self.rt.eval('require("RadioSurvivor/RS_Notes")')
+        self.rt.execute('require("RadioSurvivor/RS_NotesServer")')  # rend tout de suite sur un client
+        self.assertIsNone(notes.frequencyProvider)
+        self.assertIsNone(notes.declarationsProvider)
+        self.assertEqual(len(lua_list(self.g.Events.OnInitGlobalModData.list)), 0)
+        # E20-T11 : sans les fiches (serveur seulement), le client ne connaît aucune note et ne pose rien ; la ModData
+        # de l'autorité arrive avec l'objet.
+        item = self.g.newItem('NoteWalt')
+        self.g.RadioSurvivorNotes.onCreate(item)
+        self.assertIsNone(item.md)
+
+    def test_no_network_command_in_the_note_modules(self):
+        for path in NOTES_LUA:
+            code = re.sub(r'--[^\n]*', '', path.read_text(encoding='utf-8'))
+            with self.subTest(path.name):
+                # E06-T07: the reader only tells the server which note opened (item id, never a frequency).
+                code = code.replace('sendClientCommand(action.character, Const.MODULE, Const.CMD.NOTE_READ, '
+                                    '{ itemId = action.item:getID() })', '')
+                self.assertIsNone(re.search(r'send(Server|Client)Command|ModData\.(add|transmit|request)', code))
+
+
+class ComposeTests(NotesHarness):
+
+    def test_text_composed_in_english_and_french(self):
+        for lang in ('EN', 'FR'):
+            self.set_lang(lang)
+            tr = translations(lang)
+            for voice in VOICES:
+                with self.subTest(lang=lang, voice=voice):
+                    md = self.create(voice).md
+                    label = self.Const.frequencyLabel(self.served(voice)[0])
+                    info, text = self.Notes.compose(md)
+                    self.assertIn(label + ' MHz', info)
+                    self.assertIn(label + ' MHz', text)
+                    self.assertNotIn('%1', info + text)
+                    key = f'Print_Media_RadioSurvivor_{TYPES[voice]}_info'
+                    self.assertEqual(info, tr[key].replace('%1', label))
+        # Les deux langues diffèrent bien (pas de repli silencieux sur l'anglais).
+        self.assertNotEqual(translations('EN')['Print_Text_RadioSurvivor_NoteGus_info'],
+                            translations('FR')['Print_Text_RadioSurvivor_NoteGus_info'])
+
+    def test_smudged_frequency(self):
+        self.set_lang('EN')
+        md = self.create('walt').md
+        md['RadioSurvivorNote']['khz'] = None
+        info, text = self.Notes.compose(md)
+        self.assertIn('???.? MHz', info)
+        self.assertIn('???.? MHz', text)
+
+    def test_other_document_not_composed(self):
+        md = self.rt.eval('{ printMedia = { id = "KnoxKnews_July1", info = "Print_Media_KnoxKnews_July1_info" } }')
+        self.assertIsNone(self.Notes.compose(md))
+
+
+READER_STUBS = r"""
+DISPLAYED, LOADED = {}, 0
+ISReadABook = {}
+function ISReadABook:displayPrintMedia()
+    local val = self.item:getModData().printMedia
+    DISPLAYED[#DISPLAYED + 1] = { info = getText(val.info), text = getText(val.text), title = getText(val.title) }
+end
+function ISReadABook:startLoadingPrintMediaTextures() LOADED = LOADED + 1 return "texture" end
+package.preload["TimedActions/ISReadABook"] = function() return true end
+"""
+
+
+class ReaderTests(NotesHarness):
+
+    def setUp(self):
+        super().setUp()
+        self.rt.execute(READER_STUBS)
+        paths = (LUA / 'client').as_posix() + '/?.lua'
+        self.rt.execute(f'package.path = [[{paths};]] .. package.path')
+        self.rt.execute('require("RadioSurvivor/RS_NotesReader")')
+
+    def read(self, item):
+        action = self.rt.eval('function(item) return setmetatable({ item = item }, { __index = ISReadABook }) end')(item)
+        self.assertIsNone(action.startLoadingPrintMediaTextures(action))
+        action.displayPrintMedia(action)
+        return self.g.DISPLAYED[len(self.g.DISPLAYED)]
+
+    def test_document_opened_with_the_frequency_then_keys_restored(self):
+        for lang in ('FR', 'EN'):
+            self.set_lang(lang)
+            item = self.create('nightowl')
+            shown = self.read(item)
+            label = self.Const.frequencyLabel(self.served('nightowl')[0])
+            self.assertIn(label, shown['info'])
+            self.assertIn(label, shown['text'])
+            self.assertEqual(shown['title'], translations(lang)['Print_Media_RadioSurvivor_NoteNightOwl_title'])
+            self.assertEqual(item.md['printMedia']['info'], 'Print_Media_RadioSurvivor_NoteNightOwl_info')
+            self.assertEqual(item.md['printMedia']['text'], 'Print_Text_RadioSurvivor_NoteNightOwl_info')
+        self.assertEqual(self.g.LOADED, 0)
+
+    def test_other_document_untouched(self):
+        item = self.g.newItem('Flier')
+        item.getModData(item)['printMedia'] = self.rt.eval('{ id = "Flier1", info = "Print_Media_Flier1_info", '
+                                                           'text = "Print_Text_Flier1_info", title = "t" }')
+        action = self.rt.eval('function(item) return setmetatable({ item = item }, { __index = ISReadABook }) end')(item)
+        self.assertEqual(action.startLoadingPrintMediaTextures(action), 'texture')
+        action.displayPrintMedia(action)
+        self.assertEqual(self.g.DISPLAYED[1]['info'], 'Print_Media_Flier1_info')
+
+    def test_reload_does_not_stack_wrappers(self):
+        self.rt.execute('package.loaded["RadioSurvivor/RS_NotesReader"] = nil require("RadioSurvivor/RS_NotesReader")')
+        self.set_lang('EN')
+        self.read(self.create('gus'))
+        self.assertEqual(len(self.g.DISPLAYED), 1)
+
+
+class LootTests(NotesHarness):
+
+    def option(self, value=None, enabled=True):
+        self.rt.execute(f'SandboxVars.RadioSurvivor.NoteRarity = {value if value is not None else "nil"}')
+        self.g.ENABLED = enabled
+
+    def test_rarity_factors(self):
+        for value, factor in ((None, 1), (1, 0), (2, 0.4), (3, 1), (4, 2.5), (9, 1)):
+            with self.subTest(value=value):
+                self.option(value)
+                self.reset_loot()
+                parsed = self.g.PARSED
+                added = self.NS.addToLoot()
+                entries = self.entries()
+                if factor == 0:
+                    self.assertEqual(added, 0)
+                    self.assertEqual(self.g.PARSED, parsed)
+                else:
+                    self.assertEqual(added, len(entries))
+                    self.assertEqual(self.g.PARSED, parsed + 1)
+                for entry in entries:
+                    items = self.items_of(entry)
+                    full = entry.fullType
+                    if factor == 0:
+                        self.assertNotIn(full, items)
+                    else:
+                        # Objet partagé (E20-T11) : une seule ligne, somme des poids des voix dans cette liste.
+                        same = [e.weight for e in entries if e.list == entry.list and e.fullType == full
+                                and bool(e.vehicle) == bool(entry.vehicle)]
+                        i = items.index(full)
+                        self.assertAlmostEqual(items[i + 1], sum(same) * factor)
+
+    def test_idempotent_and_registered_on_init_global_mod_data(self):
+        self.option(3)
+        self.reset_loot()
+        handlers = lua_list(self.g.Events.OnInitGlobalModData.list)
+        self.assertEqual(len(handlers), 1)
+        handlers[0]()
+        self.assertEqual(self.NS.addToLoot(), 0)
+        for entry in self.entries():
+            self.assertEqual(self.items_of(entry).count(entry.fullType), 1)
+
+    def test_disabled_mod_adds_nothing(self):
+        self.option(4, enabled=False)
+        self.reset_loot()
+        self.assertEqual(self.NS.addToLoot(), 0)
+
+    def test_missing_list_logged(self):
+        self.option(3)
+        self.reset_loot()
+        self.rt.execute('ProceduralDistributions.list.PoliceDesk = nil')
+        missing = len([e for e in self.entries() if e.list == 'PoliceDesk' and not e.vehicle])
+        self.assertGreater(missing, 1)
+        self.assertEqual(self.NS.addToLoot(), len(self.entries()) - missing)
+        self.assertEqual(len(self.logs_with('loot list PoliceDesk not found')), 1)   # one warning per list
+
+    # E24-T03 : socle commun (RS_NotesBase) appliqué à toute note déclarée, listes à thème de la fiche en plus.
+    def base(self):
+        return self.rt.eval('require("RadioSurvivor/RS_NotesBase")')
+
+    def weights(self, voice: str) -> dict:
+        return {(e.list, bool(e.vehicle)): e.weight for e in self.entries() if e.voice == voice}
+
+    def test_base_applied_to_every_declared_note(self):
+        base = self.base()
+        expected = [(e.list, e.weight, False) for e in lua_list(base.loot)] + \
+                   [(e.list, e.weight, True) for e in lua_list(base.glovebox)]
+        self.assertGreaterEqual(len(lua_list(base.loot)), 8)
+        self.assertGreaterEqual(len(lua_list(base.glovebox)), 1)
+        for voice in declared_voices():
+            mine = self.weights(voice)
+            for name, weight, vehicle in expected:
+                with self.subTest(voice=voice, list=name):
+                    self.assertGreaterEqual(mine[(name, vehicle)], weight)
+
+    def test_themed_lists_added_or_raise_the_base(self):
+        walt, gus = self.weights('walt'), self.weights('gus')
+        self.assertEqual(walt[('ElectronicStoreHAMRadio', False)], 15)   # themed list, not in the base
+        self.assertEqual(walt[('OfficeDesk', False)], 4)                 # themed line raises the base weight
+        self.assertEqual(gus[('FishermanGloveBox', True)], 10)
+        keys = [(e.voice, e.list, bool(e.vehicle)) for e in self.entries()]
+        self.assertEqual(len(keys), len(set(keys)))                      # one entry per voice and list
+
+
+class CorpseNotesTests(NotesHarness):
+    def corpse(self, radio=True, two_way=True, roll=0):
+        self.rt.execute("""
+CORPSE_ITEMS, CORPSE_MD, ROLLS = {}, {}, 0
+CORPSE_LIST = { size = function() return #CORPSE_ITEMS end,
+    get = function(_, i) return CORPSE_ITEMS[i + 1] end }
+CORPSE_INV = { getItems = function() return CORPSE_LIST end,
+    AddItem = function(_, t)
+        local it = newItem(string.match(t, '%.(.+)'))
+        function it:getFullType() return t end
+        RadioSurvivorNotes.onCreate(it)
+        table.insert(CORPSE_ITEMS, it)
+        return it
+    end }
+CORPSE_INV.getParent = function() return CORPSE end
+CORPSE = { getInventory = function() return CORPSE_INV end,
+    getModData = function() return CORPSE_MD end }
+instanceof = function(it, cls) return (it.radio == true and cls == 'Radio') or (it == CORPSE and cls == 'IsoDeadBody') end
+ZombRand = function(n) ROLLS = ROLLS + 1 if n == 10000 then return TEST_ROLL else return 0 end end
+""")
+        self.g.TEST_ROLL = roll
+        if radio:
+            self.rt.execute('table.insert(CORPSE_ITEMS, { radio = true, '
+                            'getDeviceData = function() return { getIsTwoWay = function() return '
+                            + str(two_way).lower() + ' end } end, '
+                            'getFullType = function() return "Base.WalkieTalkie1" end })')
+
+    def test_note_has_world_frequency_and_is_not_duplicated(self):
+        self.corpse()
+        self.NS.onFillContainer("Zombie", "Generic", self.g.CORPSE_INV)
+        self.assertEqual(len(self.g.CORPSE_ITEMS), 2)
+        note = self.g.CORPSE_ITEMS[2]
+        md = note.getModData(note).RadioSurvivorNote
+        first = lua_list(self.Notes.voices())[0]      # premier candidat (tirage 0) : toute voix, plus de corpse=
+        self.assertEqual(note.getFullType(note), first.fullType)
+        self.assertEqual(md.khz, self.NS.frequencyOf(md.voice))
+        rolls = self.g.ROLLS
+        self.NS.onFillContainer("Zombie", "Generic", self.g.CORPSE_INV)
+        self.assertEqual(len(self.g.CORPSE_ITEMS), 2)
+        self.rt.execute('table.remove(CORPSE_ITEMS, 2)')
+        self.NS.onFillContainer("Zombie", "Generic", self.g.CORPSE_INV)
+        self.assertEqual(len(self.g.CORPSE_ITEMS), 2)
+        self.assertEqual(self.g.ROLLS, rolls + 1)     # note rendue (OnCreate seul), aucun nouveau tirage
+
+    # E24-T03 : tout zombie peut porter une note (chance faible), un zombie au talkie émetteur garde sa chance haute.
+    def test_rarity_threshold_and_failed_roll_not_repeated(self):
+        base = self.rt.eval('require("RadioSurvivor/RS_NotesBase")')
+        self.assertEqual((base.corpseChance, base.walkieCorpseChance), (2, 35))
+        thresholds = {True: ((1, 0), (2, 1400), (3, 3500), (4, 8750)),     # talkie émetteur
+                      False: ((1, 0), (2, 80), (3, 200), (4, 500))}       # sans talkie, ou récepteur seul
+        for radio, two_way, walkie in ((True, True, True), (False, False, False), (True, False, False)):
+            for rarity, threshold in thresholds[walkie]:
+                self.g.SandboxVars.RadioSurvivor.NoteRarity = rarity
+                for roll in (max(0, threshold - 1), threshold):
+                    with self.subTest(radio=radio, two_way=two_way, rarity=rarity, roll=roll):
+                        self.corpse(radio, two_way, roll=roll)
+                        self.NS.onFillContainer("Zombie", "Generic", self.g.CORPSE_INV)
+                        self.assertEqual(len(self.g.CORPSE_ITEMS), int(radio) + int(roll < threshold))
+                        count = self.g.ROLLS
+                        self.NS.onFillContainer("Zombie", "Generic", self.g.CORPSE_INV)
+                        self.assertEqual(self.g.ROLLS, count)
+
+    def test_other_container_or_parent_ignored(self):
+        self.corpse(False, False)
+        self.NS.onFillContainer("Kitchen", "counter", self.g.CORPSE_INV)
+        self.assertEqual((len(self.g.CORPSE_ITEMS), self.g.ROLLS), (0, 0))
+
+    def test_disabled_and_no_active_frequency(self):
+        self.corpse()
+        self.g.ENABLED = False
+        self.NS.onFillContainer("Zombie", "Generic", self.g.CORPSE_INV)
+        self.assertEqual(self.g.ROLLS, 0)
+        self.g.ENABLED = True
+        self.rt.execute('require("RadioSurvivor/RS_NotesServer").frequencyOf = function() return nil end')
+        self.NS.onFillContainer("Zombie", "Generic", self.g.CORPSE_INV)
+        self.assertEqual(len(self.g.CORPSE_ITEMS), 1)
+
+
+# E22-T07 : voix créée avec l'atelier, note écrite dans sa fiche (text=, %1 = fréquence), sans objet ni traduction propres.
+WRITTEN_SHEET = ('format=1\nid=mae\nname=Mae\nradio=tactical\n[note]\ntext=Need a hand? Call Mae\n'
+                 'text=on %1 MHz, after dark.\nloot=OfficeDesk:2\nglovebox=GloveBox:1\n'
+                 '[prompt]\nYou are Mae.\n')
+WRITTEN_TEXT = 'Need a hand? Call Mae\non %1 MHz, after dark.'
+
+
+def assert_vanilla_layout(test: unittest.TestCase, info: str) -> None:
+    """Mise en page lisible par PrintMedia.lua:68-84 : découpe sur <, >, puis , et : (paramètres clé:valeur)."""
+    test.assertTrue(info.startswith('<type:parent, width:'))
+    for chunk in info.split('<')[1:]:
+        params, _, content = chunk.partition('>')
+        test.assertNotIn('>', content)
+        for param in params.split(','):
+            test.assertEqual(len(param.split(':')), 2, param)
+
+
+class WrittenNoteTests(NotesHarness):
+    admin_sheets = {'mae.txt': WRITTEN_SHEET}
+
+    def created(self):
+        item = self.g.newItem('NoteVoice')
+        self.g.RadioSurvivorNotes.onCreate(item)
+        return item
+
+    def label(self) -> str:
+        return self.Const.frequencyLabel(self.served('mae')[0])
+
+    def test_generic_note_carries_the_text_and_frequency_of_the_sheet(self):
+        md = self.created().md
+        khz = self.served('mae')[0]
+        self.assertTrue(10000 <= khz <= 24800 or 300200 <= khz <= 500000, khz)   # zone of the radio tactical
+        note = md['RadioSurvivorNote']
+        self.assertEqual((note['voice'], int(note['khz']), note['text']), ('mae', khz, WRITTEN_TEXT))
+        self.assertEqual(md['printMedia']['id'], 'RadioSurvivor_NoteVoice')
+        self.assertEqual(md['printMedia']['title'], 'Print_Media_RadioSurvivor_NoteVoice_title')
+
+    def test_loot_uses_the_generic_item_with_the_base(self):
+        mine = {(e.list, bool(e.vehicle)): (e.fullType, e.weight) for e in self.entries() if e.voice == 'mae'}
+        base = self.rt.eval('require("RadioSurvivor/RS_NotesBase")')
+        self.assertEqual(len(mine), len(lua_list(base.loot)) + len(lua_list(base.glovebox)))   # sheet lists in the base
+        self.assertEqual(mine[('OfficeDesk', False)], ('RadioSurvivor.NoteVoice', 2))
+        self.assertEqual(mine[('GloveBox', True)], ('RadioSurvivor.NoteVoice', 1))
+        self.assertEqual({full for full, _ in mine.values()}, {'RadioSurvivor.NoteVoice'})
+        self.assertEqual(self.Notes.forVoice('mae').fullType, 'RadioSurvivor.NoteVoice')
+
+    def test_shipped_notes_unchanged(self):
+        md = self.create('gus').md
+        self.assertEqual(md['printMedia']['info'], 'Print_Media_RadioSurvivor_NoteGus_info')
+        self.assertIsNone(md['RadioSurvivorNote']['text'])
+
+    def test_composed_on_the_authority(self):
+        info, text = self.Notes.compose(self.created().md)
+        label = self.label()
+        self.assertEqual(text, WRITTEN_TEXT.replace('%1', label))
+        self.assertIn('>Need a hand? Call Mae<', info)
+        self.assertTrue(info.endswith(f'>on {label} MHz, after dark.'))
+        assert_vanilla_layout(self, info)
+
+    def test_client_shows_the_text_with_the_frequency(self):
+        # Client MP : ni fiche ni fournisseur ; la ModData écrite par l'autorité arrive avec l'objet (copie ci-dessous),
+        # le client compose le document à l'ouverture.
+        server_md = self.created().md
+        rt = client_runtime()
+        rt.execute(READER_STUBS)
+        rt.execute('require("RadioSurvivor/RS_NotesReader")')
+        g = rt.globals()
+        g.LANG = rt.table_from({'Print_Media_RadioSurvivor_NoteVoice_title': 'Handwritten Note'})
+        item = g.newItem('NoteVoice')
+        g.RadioSurvivorNotes.onCreate(item)  # rejoué chez le client : ne pose rien
+        self.assertIsNone(item.md)
+        md = item.getModData(item)
+        md['printMedia'] = rt.table_from(dict(server_md['printMedia']))
+        md['RadioSurvivorNote'] = rt.table_from(dict(server_md['RadioSurvivorNote']))
+        action = rt.eval('function(item) return setmetatable({ item = item }, { __index = ISReadABook }) end')(item)
+        self.assertIsNone(action.startLoadingPrintMediaTextures(action))
+        action.displayPrintMedia(action)
+        shown = g.DISPLAYED[1]
+        label = self.label()
+        self.assertEqual(shown['text'], WRITTEN_TEXT.replace('%1', label))
+        self.assertIn(f'>on {label} MHz, after dark.', shown['info'])
+        self.assertEqual(shown['title'], 'Handwritten Note')
+        self.assertEqual(md['printMedia']['info'], 'Print_Media_RadioSurvivor_NoteVoice_info')  # clés remises
+
+    def test_smudged_without_frequency(self):
+        md = self.created().md
+        md['RadioSurvivorNote']['khz'] = None
+        _, text = self.Notes.compose(md)
+        self.assertIn('on ???.? MHz', text)
+
+
+class StaticTests(unittest.TestCase):
+
+    def entries(self) -> list[tuple[str, str, bool]]:
+        # E20-T11 : listes déclarées dans la section [note] des fiches livrées.
+        out = []
+        for voice, body in note_sections().items():
+            for key, name in re.findall(r'(?m)^(loot|glovebox)=(\w+):', body):
+                out.append((voice, name, key == 'glovebox'))
+        # E24-T03 : socle commun de toutes les notes.
+        base = lupa.LuaRuntime().execute((LUA / 'server/RadioSurvivor/RS_NotesBase.lua').read_text(encoding='utf-8'))
+        for key in ('loot', 'glovebox'):
+            for e in base[key].values():
+                out.append(('base', e.list, key == 'glovebox'))
+        return out
+
+    def test_item_scripts(self):
+        text = SCRIPT.read_text(encoding='utf-8')
+        self.assertTrue(text.lstrip().startswith('module RadioSurvivor'))
+        items = re.findall(r'item (\w+)\s*\{([^}]*)\}', text)
+        self.assertEqual([name for name, _ in items], [TYPES[v] for v in VOICES] + ['NoteTrade', 'NoteVoice'])
+        for name, body in items:
+            with self.subTest(name):
+                self.assertIn('OnCreate = RadioSurvivorNotes.onCreate,', body)
+                self.assertIn('ItemType = base:literature,', body)
+                self.assertIn('base:fastread', body)
+                self.assertNotRegex(body, r'CanBeWrite|PageToWrite')
+
+    def test_vanilla_icons_and_models(self):
+        packs = sorted((VANILLA / 'texturepacks').glob('UI*.pack'))
+        models = VANILLA / 'scripts/generated/models_items.txt'
+        if not packs or not models.is_file():
+            self.skipTest('vanilla media folder missing')
+        blob = b''.join(p.read_bytes() for p in packs)
+        model_text = models.read_text(encoding='utf-8', errors='replace')
+        text = SCRIPT.read_text(encoding='utf-8')
+        for icon in re.findall(r'Icon = (\w+),', text):
+            self.assertRegex(blob, re.compile(rb'Item_' + icon.encode() + rb'(?![A-Za-z0-9_])'), icon)
+        for model in set(re.findall(r'StaticModel = (\w+),', text)):
+            self.assertRegex(model_text, rf'(?m)^\s*model {model}\s*$', model)
+
+    def test_translations_complete_and_consistent(self):
+        en, fr = translations('EN'), translations('FR')
+        for voice in VOICES:
+            t = TYPES[voice]
+            keys = [f'RadioSurvivor.{t}', f'Print_Media_RadioSurvivor_{t}_title',
+                    f'Print_Media_RadioSurvivor_{t}_info', f'Print_Text_RadioSurvivor_{t}_info']
+            for key in keys:
+                with self.subTest(key):
+                    self.assertIn(key, en)
+                    self.assertIn(key, fr)
+                    self.assertEqual(re.findall(r'%\d', en[key]), re.findall(r'%\d', fr[key]))
+                    self.assertNotRegex(en[key] + fr[key], r'%[^1]')
+            for lang, tr in (('EN', en), ('FR', fr)):
+                with self.subTest(lang=lang, voice=voice):
+                    self.assertEqual(tr[f'Print_Media_RadioSurvivor_{t}_info'].count('%1'), 1)
+                    self.assertGreaterEqual(tr[f'Print_Text_RadioSurvivor_{t}_info'].count('%1'), 1)
+        for n in range(1, 5):
+            self.assertIn(f'Sandbox_RadioSurvivor_NoteRarity_option{n}', en)
+            self.assertIn(f'Sandbox_RadioSurvivor_NoteRarity_option{n}', fr)
+
+    def test_layouts_parse_like_the_vanilla_reader(self):
+        # PrintMedia.lua:68-84 : découpe sur <, >, puis , et : ; tout paramètre doit être clé:valeur.
+        for lang in ('EN', 'FR'):
+            tr = translations(lang)
+            for voice in VOICES:
+                info = tr[f'Print_Media_RadioSurvivor_{TYPES[voice]}_info']
+                with self.subTest(lang=lang, voice=voice):
+                    self.assertTrue(info.startswith('<type:parent, width:'))
+                    for chunk in info.split('<')[1:]:
+                        params, _, content = chunk.partition('>')
+                        self.assertNotIn('>', content)
+                        for param in params.split(','):
+                            parts = param.split(':')
+                            self.assertEqual(len(parts), 2, param)
+                        self.assertNotRegex(params, r'texture:')  # rectangles seulement (rien à précharger)
+
+    def test_no_voice_secret_and_no_clinic_invitation(self):
+        # Aucun mot des histoires cachées des voix, aucune invitation de Darlene à la clinique.
+        for lang in ('EN', 'FR'):
+            tr = translations(lang)
+            blob = ' '.join(v for k, v in tr.items() if 'RadioSurvivor_Note' in k).lower()
+            with self.subTest(lang):
+                for word in ('clinic', 'clinique', 'west point', 'insulin', 'whitaker', 'carl', 'civilians', 'civils',
+                             'television', 'télévision'):
+                    self.assertNotIn(word, blob)
+
+    def test_loot_lists_cited_by_rooms_or_vehicles(self):
+        dist = VANILLA / 'lua/server/Items/Distributions.lua'
+        proc = VANILLA / 'lua/server/Items/ProceduralDistributions.lua'
+        veh = VANILLA / 'lua/server/Vehicles/VehicleDistributions.lua'
+        if not (dist.is_file() and proc.is_file() and veh.is_file()):
+            self.skipTest('vanilla media folder missing')
+        dist_text = re.sub(r'--[^\n]*', '', dist.read_text(encoding='utf-8', errors='replace'))
+        proc_text = proc.read_text(encoding='utf-8', errors='replace')
+        veh_text = veh.read_text(encoding='utf-8', errors='replace')
+        entries = self.entries()
+        self.assertGreaterEqual(len(entries), 24)
+        for voice, name, vehicle in entries:
+            with self.subTest(name):
+                if vehicle:
+                    self.assertIsNotNone(re.search(rf'(?m)^VehicleDistributions\.{name} = \{{', veh_text), name)
+                    self.assertIsNotNone(re.search(rf'GloveBox = VehicleDistributions\.{name};', veh_text), name)
+                else:
+                    self.assertIsNotNone(re.search(rf'(?m)^\t{name} = \{{', proc_text), name)
+                    self.assertIsNotNone(re.search(rf'name\s*=\s*"{name}"', dist_text), name)
+
+
+if __name__ == '__main__':
+    unittest.main(verbosity=1)

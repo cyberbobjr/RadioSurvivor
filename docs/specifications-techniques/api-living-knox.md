@@ -3,7 +3,7 @@
 - Tâches : LK12-T01 ; LK10-T03 (histoires enrichies, ajout compatible dans la version 1, 2026-10-12) ; LK11-T03 (attitude par joueur, ajout compatible dans la version 1) ; LK12-T03 (offres de ressources et livraisons, ajout compatible dans la version 1) ; LK12-T02 (événements publics, ajout compatible dans la version 1, 2026-10-12) ; servira E17-T03 (fournisseur du carnet)
 - Build : 42.21.0 — Date : 2026-10-10 (événements : 2026-10-12) — Statut : testé hors jeu (banc lupa et VM Kahlua)
 
-Code : `Contents/mods/batman_LivingKnox/42.21/media/lua/server/LivingKnox/LK_API.lua` (`LivingKnox.API`). Tests : `tests/test_lk_api.py`, `tests/test_kahlua.py` (`test_api_in_kahlua`, `test_attitude_in_kahlua`, `test_events_in_kahlua`).
+Code : `Contents/mods/batman_LivingKnox/42.21/media/lua/server/LivingKnox/LK_API.lua` (`LivingKnox.API`). Tests : `tests/livingknox/test_lk_api.py`, `tests/coreai/test_kahlua.py` (`test_api_in_kahlua`, `test_attitude_in_kahlua`, `test_events_in_kahlua`).
 
 ## Portée
 
@@ -476,7 +476,7 @@ projection qui ne rajoute rien de privé.
 
 ## Fonctions de test (E01-T10)
 
-Code : `server/LivingKnox/LK_APITest.lua` (même table `LivingKnox.API`, chargé après `LK_API.lua`). Tests : `tests/test_lk_apitest.py`. Consommateur : la fixture `RST.Fixtures.spawnNpc` du mod de développement (suite en jeu `rst.fixtures.npc`).
+Code : `server/LivingKnox/LK_APITest.lua` (même table `LivingKnox.API`, chargé après `LK_API.lua`). Tests : `tests/livingknox/test_lk_apitest.py`. Consommateur : la fixture `RST.Fixtures.spawnNpc` du mod de développement (suite en jeu `rst.fixtures.npc`).
 
 Ces fonctions **écrivent** (registre des PNJ et corps, par `LivingKnox.Bodies.spawn` et `despawn`) et ne servent qu'aux tests en jeu. Elles refusent d'agir hors de l'autorité, hors du **mode debug** de la machine qui les exécute (E01-T18 : `isDebugEnabled()` = `Core.debug` ; client ou solo lancé avec `-debug`, serveur dédié lancé avec la propriété Java `-Ddebug`, car `GameServer` ignore un argument `-debug` ; le serveur de test de `tools/autoclient` la reçoit) et hors d'une **partie de test** : nom de partie (`getWorld():getWorld()`) commençant par `API.TEST_SAVE_PREFIX` = `"rstest"`, sans tenir compte de la casse (même règle que la garde `world` du moteur de tests). Sur un serveur dédié, ce nom est celui du serveur (`-servername`). Chaque refus de `testSpawnNpc` ou `testRemoveNpc` est écrit dans la console : `[LivingKnox] test API <fonction> refused: <raison>` (raison hors debug : `debug mode off (isDebugEnabled() is false on this machine)`).
 

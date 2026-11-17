@@ -11,7 +11,7 @@ group near the player (RST.LKGroup, RST_LKGroupFixture.lua, removed at the end) 
 the notebook character of the player when missing (RST.RSHelpers.character: "hello" asked directly) and uses the
 caller key of RadioSurvivor_Server (account name on a server, "solo" in solo).
 The last test needs the bridge program running (bridge/radio_bridge.py); without it it fails after 60 s (no answer:
-static and NoAnswer, covered by tests/test_group_radio.py). Every test removes its request with t:defer.
+static and NoAnswer, covered by tests/ensemble/test_group_radio.py). Every test removes its request with t:defer.
 E17-T12: the first test cuts a long reply (accents, ellipsis, decimal) into radio lines in the real Kahlua VM (each line
 shown alone by the receiver, one after the other): cut at a sentence end, then a comma, never inside a word; the last
 test measures the lines really aired for the bridge reply (no line cut mid-sentence when a sentence end was possible).

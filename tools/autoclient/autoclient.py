@@ -220,7 +220,7 @@ def log(message: str) -> None:
     print(time.strftime('%H:%M:%S') + ' ' + message, flush=True)
 
 
-# ---------------------------------------------------------------- pure helpers (tests/test_autoclient.py)
+# ---------------------------------------------------------------- pure helpers (tests/coreai/test_autoclient.py)
 
 # E18-T14: mods left out of each setup of the Workshop item (--mods); the core mod, its requirement Signal Smoke and
 # the core test mod are always in the run. Belt Walkie-Talkie (and its TooltipLib) is needed by RadioSurvivor only.

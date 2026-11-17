@@ -5,7 +5,7 @@ Brouillon du 2026-10-13. Code : `server/LivingKnox/LK_Decisions.lua` (bloc « E1
 `server/LivingKnox/LK_Expeditions.lua` (`teamOf`), `server/LivingKnox/LK_Talk.lua` (`Talk.memberReactions`,
 `memberReply`), `shared/LivingKnox/LK_NotebookProvider.lua` (`loyalty`, `dissent`), `shared/CoreAI/CA_NPCProvider.lua`
 (opérations facultatives `loyalty`, `dissent`), `bridge/npc_protocol.py` (genre `npc_member`). Contrat :
-[protocole-carnet-v2.md](../../specifications-techniques/protocole-carnet-v2.md), « Réaction des membres (E10-T03) ». Banc : `tests/test_lk_contest.py` ;
+[protocole-carnet-v2.md](../../specifications-techniques/protocole-carnet-v2.md), « Réaction des membres (E10-T03) ». Banc : `tests/livingknox/test_lk_contest.py` ;
 suite en jeu `lk.contest`.
 
 ## Deux chemins (décision Q2 du 2026-10-10, option A « mixte »)

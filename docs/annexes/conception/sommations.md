@@ -3,7 +3,7 @@
 - Tâches : LK11-T02 (création, 2026-10-12) ; s'appuie sur LK06-T01 (action `warn` de `Hostility.chooseTarget`, [cibles.md](cibles.md)), LK11-T03 ([attitude.md](attitude.md)), LK11-T04 et LK11-T09 (parole, [parole.md](parole.md)), LK06-T02 et T03 (engagement, tir, [combat.md](combat.md)), LK05-T09 ([defense.md](defense.md))
 - Build : 42.21.0 — Date : 2026-10-12 — Statut : brouillon
 
-Code : `media/lua/server/LivingKnox/LK_Encounters.lua` (`LivingKnox.Encounters`, autorité seulement), branché dans `LK_Decisions.lua` (contexte `ctx.warn`, comportement `warn` de la règle `threat` ; application et oubli inscrits par `LK_Encounters.lua`, extension propriétaire `warn`, LK16-T06), activité `watch` dans `LK_Needs.lua`, répliques `IGUI_LK_Warn_*` dans `Translate/EN|FR/IG_UI.json`. Réglages : `Encounters.CFG`. Tests : `tests/test_lk_encounters.py`, suite en jeu `lk.warn` (`dev/.../suites/RST_LKWarn.lua`).
+Code : `media/lua/server/LivingKnox/LK_Encounters.lua` (`LivingKnox.Encounters`, autorité seulement), branché dans `LK_Decisions.lua` (contexte `ctx.warn`, comportement `warn` de la règle `threat` ; application et oubli inscrits par `LK_Encounters.lua`, extension propriétaire `warn`, LK16-T06), activité `watch` dans `LK_Needs.lua`, répliques `IGUI_LK_Warn_*` dans `Translate/EN|FR/IG_UI.json`. Réglages : `Encounters.CFG`. Tests : `tests/livingknox/test_lk_encounters.py`, suite en jeu `lk.warn` (`dev/.../suites/RST_LKWarn.lua`).
 
 ## Problème
 
@@ -73,7 +73,7 @@ Le plan ne dit pas qui peut tirer un coup de semonce ni comment finit l'escalade
 
 ## Tests
 
-- Banc lupa (`tests/test_lk_encounters.py`) : séquence (tolérance méfiant et hostile, sommation non entendue qui bloque, distance de sécurité, étape finale), recul d'une étape, fin hors zone, reprise à l'étape atteinte, oubli après `RESUME_MS` ; coup de semonce permis (type, arme chargée, deux sommations, un seul) ; zones ; répliques déterministes et traduites (EN, FR) ; place de `warn` dans la cascade ; pile complète en solo (groupe neutre armé : deux sommations, arme braquée, aucun tir, repli, reprise, provocation qui engage ; type qui tire le premier : un coup de semonce après deux sommations, cartouche retirée, aucun dégât ; sommations non entendues : aucune escalade ni tir ; attitude remontée : fin sans réplique) ; serveur dédié + deux clients (mêmes gestes, mêmes consignes et mêmes répliques chez A, averti, et B, témoin ; rien côté client).
+- Banc lupa (`tests/livingknox/test_lk_encounters.py`) : séquence (tolérance méfiant et hostile, sommation non entendue qui bloque, distance de sécurité, étape finale), recul d'une étape, fin hors zone, reprise à l'étape atteinte, oubli après `RESUME_MS` ; coup de semonce permis (type, arme chargée, deux sommations, un seul) ; zones ; répliques déterministes et traduites (EN, FR) ; place de `warn` dans la cascade ; pile complète en solo (groupe neutre armé : deux sommations, arme braquée, aucun tir, repli, reprise, provocation qui engage ; type qui tire le premier : un coup de semonce après deux sommations, cartouche retirée, aucun dégât ; sommations non entendues : aucune escalade ni tir ; attitude remontée : fin sans réplique) ; serveur dédié + deux clients (mêmes gestes, mêmes consignes et mêmes répliques chez A, averti, et B, témoin ; rien côté client).
 - En jeu : suite `lk.warn` (tag `world`) : `RST.run({ suite = "lk.warn", tags = "world" })`.
 
 ## Points ouverts

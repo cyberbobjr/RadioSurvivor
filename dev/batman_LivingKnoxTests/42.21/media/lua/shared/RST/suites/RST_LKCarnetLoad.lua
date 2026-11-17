@@ -17,7 +17,7 @@ prune, tick, clockRunning; CA_NotebookStore.save):
 Tags "server" and "world": the authority (solo, or RST.server from an admin client), save rstest*, Living Knox on
 (test API: debug mode). MP: autoclient.py --mp --clients 2 --server-suite lk.carnet.load --server-tags world.
 Cleanup: test npcs removed, contact and selection of the test fiche removed, wrappers restored.
-Outside the game: tests/test_rs_mp_suites.py.
+Outside the game: tests/ensemble/test_rs_mp_suites.py.
 ]]
 
 require "RST/RST"

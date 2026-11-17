@@ -1,7 +1,7 @@
 --[[
 ca.contacts - contacts of the core mod (E18-T26): what the authority sends to the Contacts tab of the notebook
 (CA_Contacts.rows: rows of every source registered by an active mod, history of the core mod). Tag "server" (dedicated
-server or solo authority). Outside the game: tests/test_core_notebook.py, tests/test_lk_contacts.py.
+server or solo authority). Outside the game: tests/coreai/test_core_notebook.py, tests/test_lk_contacts.py.
 
 Works on a copy: a probe source is registered for the test only and made inert after it; the history line written
 for the test is removed.

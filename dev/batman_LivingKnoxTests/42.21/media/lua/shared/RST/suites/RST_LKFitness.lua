@@ -7,7 +7,7 @@ getSandboxOptions():getOptionByName; a member just under the wounded threshold, 
 (no fight); then each option is changed in memory (option:setValue, as an admin would in game) and the very next call
 uses the new value, without any event. Cleanup (t:defer): both options set back to their value before the test.
 Tag "server": the authority only. Solo: RST.run({ suite = "lk.fitness" }). Prints "[LKF] measure ..." lines.
-Outside the game: tests/test_lk_fitness.py (decisions of the cascade, expeditions, invalid values).
+Outside the game: tests/livingknox/test_lk_fitness.py (decisions of the cascade, expeditions, invalid values).
 ]]
 
 require "RST/RST"

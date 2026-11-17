@@ -1,5 +1,5 @@
 # Byte-exact fixtures of the benches (RSV2 files, requests files): never converted to CRLF on checkout.
-tests/fixtures/** -text
+tests/commun/fixtures/** -text
 
 # Launchers of the bridge run by sh: LF on every checkout.
 bridge/*.sh text eol=lf

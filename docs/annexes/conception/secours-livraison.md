@@ -2,7 +2,7 @@
 
 Code : `media/lua/server/RadioSurvivor/RS_RescueVisit.lua` (lectures de cases et d'inventaires, séparées de
 `RS_Rescue.lua` dont le choix du bâtiment ne doit rien lire ni charger) ; points d'appel ajoutés à `RS_Rescue.lua` :
-`noteApproach`, `startForTeam(team, { site = ... })`. Banc : `tests/test_rescue_visit.py` ; suite en jeu :
+`noteApproach`, `startForTeam(team, { site = ... })`. Banc : `tests/radiosurvivor/test_rescue_visit.py` ; suite en jeu :
 `rs.rescue.visit`. Décisions acquises : celles d'E12 et d'E12-T02 ([secours.md](secours.md)).
 
 ## Choix pris pour E12-T03 (à confirmer)

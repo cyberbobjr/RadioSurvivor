@@ -81,8 +81,17 @@ autoritaire, adaptateurs d'exécution, fournisseur de PNJ. Vue détaillée :
   banc plutôt que d'être réécrit. **Un défaut vu en jeu se reproduit d'abord au banc** : il reçoit une ligne dans
   [`annexes/tests/ecarts-banc-jeu.md`](annexes/tests/ecarts-banc-jeu.md) avec sa catégorie, puis un test rouge au banc
   quand la catégorie le permet, puis la correction.
-- Avant de déclarer une tâche testée : `tests/test_protocol.py`, `tests/test_carnet.py`, luacheck (sans nouvel
-  avertissement) et `python tools/plan.py check`. La suite complète se lance **pour le mod sur lequel on travaille** (ADR `adr-coreai-separation` D06) : `python tests/run_all.py --mod radiosurvivor` pour RadioSurvivor, `--mod livingknox` pour Living Knox ; chacune garde les tests du mod commun. Sans `--mod`, tout le dépôt, seulement si le travail touche les deux.
+- **Tests hors jeu rangés par mod** (ADR `adr-coreai-separation` D09, plan E26) : `tests/coreai/`, `tests/radiosurvivor/`,
+  `tests/livingknox/`, `tests/ensemble/` (les deux mods ensemble) ; `tests/commun/` garde ce que plusieurs dossiers
+  importent (doublures, banc `harness.py`, machine `bench_game.py`, `fixtures/`, banc Kahlua `kahlua/`), sans test à
+  lancer. Un test de RadioSurvivor n'importe jamais de `tests/livingknox/`, ni l'inverse ; chaque test commence par
+  `import bench_paths` (dossiers partagés sur le chemin) et se lance par `python tests/<dossier>/test_<nom>.py`
+  depuis n'importe quel dossier.
+- Avant de déclarer une tâche testée : la suite **du mod sur lequel on travaille** (ADR `adr-coreai-separation` D06,
+  D09), qui comprend luacheck (sans nouvel avertissement) et `tools/plan.py check` : `python tests/run_all.py --mod
+  radiosurvivor` (`tests/coreai` + `tests/radiosurvivor`) ou `--mod livingknox` (`tests/coreai` + `tests/livingknox`).
+  Sans `--mod`, tout le dépôt, `tests/ensemble` compris, seulement si le travail touche les deux. Les étapes sont lues
+  dans les dossiers : un nouveau `test_<nom>.py` n'est inscrit nulle part.
 - Tests en jeu ([méthode](annexes/tests/tests-en-jeu.md)) : `python tools/autoclient/autoclient.py --campaign
   solo-lk|solo-rs|solo --bridge on --llm fake --wait-idle 3600` (`solo-lk` : Living Knox seul, sans RadioSurvivor ;
   `solo-rs` : RadioSurvivor seul ; `solo` : les deux) et la campagne `mp` (serveur dédié et deux clients). Rapports

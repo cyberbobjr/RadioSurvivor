@@ -150,11 +150,11 @@ d'urgence, une fiche de l'admin écrasée, une fréquence visible chez un client
 
 ## 5. Déjà constaté hors jeu (2026-10-09)
 
-- **Bancs.** `tests/test_rs_suites.py` exécute les deux suites avec le vrai moteur RST, sur le serveur simulé de
-  `tests/test_personas_server.py` : six fiches livrées, routage réel de `RadioSurvivor_Server.lua`. Il couvre le
+- **Bancs.** `tests/radiosurvivor/test_rs_suites.py` exécute les deux suites avec le vrai moteur RST, sur le serveur simulé de
+  `tests/radiosurvivor/test_personas_server.py` : six fiches livrées, routage réel de `RadioSurvivor_Server.lua`. Il couvre le
   serveur, le solo avec attente du délai et la reprise d'une sauvegarde de fiche laissée par un passage
   interrompu. Il vérifie aussi que chaque suite détecte un défaut injecté : voix mal routée, talkie ordinaire
-  accepté, nom de chaîne publié, relecture inopérante. `tests/test_kahlua.py` vérifie que les deux suites se
+  accepté, nom de chaîne publié, relecture inopérante. `tests/coreai/test_kahlua.py` vérifie que les deux suites se
   déclarent sans erreur dans la VM Kahlua réelle (5 et 3 tests).
 - **Serveur dédié de test** (`run_dedicated_smoke.ps1 -Filters "rst,rs"`). Résultat : 53 tests, 50 PASS, 3 SKIP
   connus, aucune erreur Lua de nos mods. `rs.voices` passe 5/5 avec l'API Java réelle (chaînes du

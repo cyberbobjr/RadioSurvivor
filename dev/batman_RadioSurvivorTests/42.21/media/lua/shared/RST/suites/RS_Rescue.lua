@@ -5,7 +5,7 @@ carry no coordinate, and no chunk loaded by the choice.
 Tag "server": RS_Rescue starts with "if isClient() then return end" (authority only). Read-only: no item, no
 ModData, no world change. Solo: RST.server("rs.rescue.pick") (the requester is the target player); dedicated
 server: RST.server("rs.rescue.pick") from an admin client, or the autorun (no player: player checks are notes).
-Asynchronous run only (a 3 s watch of LoadChunk); outside the game: tests/test_rescue.py.
+Asynchronous run only (a 3 s watch of LoadChunk); outside the game: tests/radiosurvivor/test_rescue.py.
 
 Probe of "no chunk loaded" (the engine has no Lua counter of loaded chunks):
     - LoadChunk events counted during the picks (synchronous: must stay at 0) and for 3 s after them, with the
@@ -361,7 +361,7 @@ shelf) within 8 tiles on your floor. The background poll of RS_RescueVisit is pa
 of beans (Base.TinnedBeans: one in the player's inventory then in the furniture, one directly in the furniture); what
 is left is removed at the end. A green smoke of the required mod Signal Smoke is lit for 30 game minutes next to the
 building, then stopped (Signal Smoke unusable: FAIL). Solo: RST.server("rs.rescue.visit"). Outside the game:
-tests/test_rescue_visit.py.
+tests/radiosurvivor/test_rescue_visit.py.
 ]]
 
 local function visitModule(t)
@@ -517,7 +517,7 @@ The player is noted as the helper of a delivery, then the survivors leave (RS_Re
 cache and note prepared, new place of the voice, memory on the player. Then the scene is placed (site loaded: the
 player stands in it): ONE duffel bag on the floor of the building, holding a locked note; a second poll places
 nothing. The bag is removed at the end. Solo: RST.server("rs.rescue.saved"). Outside the game:
-tests/test_rescue_scene.py.
+tests/radiosurvivor/test_rescue_scene.py.
 ]]
 
 local SAVED_VOICE = "rst-rescue-voice"
@@ -676,7 +676,7 @@ authority (setAttackedBy + die): its corpse holds the notebook. Zombies and corp
 player is next to fresh zombies for a moment). Solo: RST.server("rs.rescue.missed"). Multiplayer (E12-T07, E01-T16):
 the other clients hold a copy of the requester's zombie before it is killed (lk.present), then every client sees the
 same corpse, notebook included, around the death square (world.keys, RST_PeerChecks.lua).
-Outside the game: tests/test_rescue_lost.py.
+Outside the game: tests/radiosurvivor/test_rescue_lost.py.
 ]]
 
 local function lostModule(t)

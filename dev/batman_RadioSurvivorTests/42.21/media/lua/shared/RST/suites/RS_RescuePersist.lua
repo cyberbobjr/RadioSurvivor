@@ -23,7 +23,7 @@ INSIDE a building of the map, with a few free squares around the room centre; th
 RS_RescueVisit and RS_RescueLost are paused during each step. The players are next to awake zombies between the steps
 (the launcher puts them in god mode).
 Snapshot: Zomboid/Lua/batman_CoreAITests/tests/rescue-persist.txt of the server (RST_Persist).
-Outside the game: tests/test_persist_suites.py (listing; the placement itself: tests/test_rescue_lost.py).
+Outside the game: tests/ensemble/test_persist_suites.py (listing; the placement itself: tests/radiosurvivor/test_rescue_lost.py).
 ]]
 
 require "RST/RST"

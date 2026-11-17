@@ -3,7 +3,7 @@
 - Tâches : LK06-T01 (création) ; servira LK06-T02 (mêlée), LK06-T03 (tir), LK11-T02 (sommations), E09-T05 (trêves), E09-T06 (incidents), E10-T04 (trêves gardées par un PNJ parti)
 - Build : 42.21.0 — Date : 2026-10-12 — Statut : brouillon
 
-Code : fin de `media/lua/server/LivingKnox/LK_Hostility.lua` (`Hostility.targetRule`, `chooseTarget`, `candidatesOf`, `provoked`, `firstStrike`, `isCovered`, `isIncidentAuthor`, réglages `Hostility.TARGET`). Tests : `tests/test_lk_hostility.py` (`TargetTests`, `SoloTargetTests`).
+Code : fin de `media/lua/server/LivingKnox/LK_Hostility.lua` (`Hostility.targetRule`, `chooseTarget`, `candidatesOf`, `provoked`, `firstStrike`, `isCovered`, `isIncidentAuthor`, réglages `Hostility.TARGET`). Tests : `tests/livingknox/test_lk_hostility.py` (`TargetTests`, `SoloTargetTests`).
 
 ## Problème
 
@@ -74,7 +74,7 @@ La décision n'est calculée que par l'autorité (serveur dédié ou hébergé, 
 
 ## Tests
 
-- Banc lupa (`tests/test_lk_hostility.py`, `TargetTests`, serveur dédié + deux clients ; `SoloTargetTests`, solo) : table de vérité complète de la règle (aucune attaque sans incident ni provocation hors type qui tire le premier), colons et neutres à chaque niveau et après vols répétés (avertissement seulement), fenêtre de provocation, agression attribuable, réparation par actes positifs, pillards qui attaquent, crochet `covered` (absent, vrai, non booléen, erreur), crochet `incident` (perte de protection, erreur), ordre et indépendance de l'ordre d'entrée, doublons, lecture seule, refus, candidats tirés de la perception (vus, vivants, connus, périmée).
+- Banc lupa (`tests/livingknox/test_lk_hostility.py`, `TargetTests`, serveur dédié + deux clients ; `SoloTargetTests`, solo) : table de vérité complète de la règle (aucune attaque sans incident ni provocation hors type qui tire le premier), colons et neutres à chaque niveau et après vols répétés (avertissement seulement), fenêtre de provocation, agression attribuable, réparation par actes positifs, pillards qui attaquent, crochet `covered` (absent, vrai, non booléen, erreur), crochet `incident` (perte de protection, erreur), ordre et indépendance de l'ordre d'entrée, doublons, lecture seule, refus, candidats tirés de la perception (vus, vivants, connus, périmée).
 - En jeu : aucun (pas encore de combat branché).
 
 ## Points ouverts

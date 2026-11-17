@@ -104,7 +104,7 @@ chaque requête), `Health.setByAdmin` (`LK_Health.lua`), fenêtre `client/Living
 - **Limites** : le journal du groupe garde 32 entrées : une série de réglages peut chasser des entrées anciennes ; la
   fiche ne montre pas le chemin calculé ni la liste complète des menaces (outil LK13-T14).
 
-Tests : `tests/test_lk_npcsheet.py` (MP : refus sans donnée ni écriture d'un client sans la capacité, fiche complète
+Tests : `tests/livingknox/test_lk_npcsheet.py` (MP : refus sans donnée ni écriture d'un client sans la capacité, fiche complète
 par le réseau, bornes, journal, faim lue par la décision suivante, relecture toutes les 2 s et rien fenêtre fermée ;
 solo : refus sans mode debug, appel direct, option du clic droit ; suite RST sur les doublures) ; suite en jeu
 `lk.npcsheet` ; protocole `docs/annexes/tests/tests-en-jeu.md` § 15, « Fiche d'un PNJ par clic droit ».
@@ -151,7 +151,7 @@ Code : journal d'activité `server/LivingKnox/LK_Activity.lua` (autorité), opé
   aucune ligne pour les actions des routines elles-mêmes (corvée en cours, sommeil) au-delà du changement de
   comportement.
 
-Tests : `tests/test_lk_debugview.py` (MP : refus sans donnée d'un client sans la capacité, liste et activité par le
+Tests : `tests/livingknox/test_lk_debugview.py` (MP : refus sans donnée d'un client sans la capacité, liste et activité par le
 réseau, faim réglée par `npcSet` notée comme changement de comportement, envoi incrémental, 200 lignes au plus des deux
 côtés, aucune écriture de registre, relecture toutes les 2 s et rien panneau fermé, fiche d'un membre ; solo : refus
 sans mode debug, bouton du panneau debug, écouteur de l'alerte ; suite RST sur les doublures) ; suite en jeu
@@ -209,10 +209,10 @@ opérations `npcRole`, `npcName`, `npcGoto` de `LK_Admin.lua`. Traductions `IGUI
   faite : entrée « admin » au journal du groupe (« role m-2 (lk-40) worker -> fighter set by admin <compte> »,
   « name ... », « teleport of admin <compte> to ... ») et ligne INFO de la console.
 
-Tests : `tests/test_lk_npcsheet.py` (refus de chaque action pour un client sans la capacité, sans écriture ; rôle dans
+Tests : `tests/livingknox/test_lk_npcsheet.py` (refus de chaque action pour un client sans la capacité, sans écriture ; rôle dans
 la liste du type, hors liste et inchangé refusés ; bornes du nom côté client et autorité ; téléportation par
 `/teleportto` près du corps, dernière position connue, refus sans position ; solo : déplacement par l'autorité, refus
-sans mode debug ; nom repris par le fournisseur du carnet ; sections et préremplissage), `tests/test_lk_debugview.py`
+sans mode debug ; nom repris par le fournisseur du carnet ; sections et préremplissage), `tests/livingknox/test_lk_debugview.py`
 (cellules, mise en page, coupure et tri du tableau, bouton de téléportation du panneau) ; suites `lk.npcsheet` (actions)
 et `lk.debugview` (noms et cellules).
 
@@ -239,10 +239,10 @@ Constat de l'utilisateur en jeu (2026-10-13) : le panneau ne montrait pas où se
 - Limite : un membre sans PNJ (jamais matérialisé, `npc` absent) a une position (foyer) mais « Se téléporter » reste
   grisé (l'opération vise un PNJ) : utiliser « Aller au foyer du groupe ».
 
-Tests : `tests/test_lk_debugview.py` (`PositionTests` : chaque membre vivant a des coordonnées et une source, membre
+Tests : `tests/livingknox/test_lk_debugview.py` (`PositionTests` : chaque membre vivant a des coordonnées et une source, membre
 jamais incarné mené au foyer par `/teleportto`, `homeGoto` et refus sans donnée ni écriture pour un client sans la
 capacité, groupe ou foyer inconnu ; `PositionSoloTests` : déplacement par l'autorité, refus sans mode debug),
-`tests/test_lk_npcsheet.py` (dernière position, puis foyer, puis refus sans foyer) ; suite `lk.debugview` (4e test :
+`tests/livingknox/test_lk_npcsheet.py` (dernière position, puis foyer, puis refus sans foyer) ; suite `lk.debugview` (4e test :
 groupe lointain jamais incarné, sources « home », `homeGoto` avec un joueur de substitution).
 
 ## Alternatives écartées
@@ -260,13 +260,13 @@ groupe lointain jamais incarné, sources « home », `homeGoto` avec un joueur d
 
 ## Tests
 
-- Banc lupa direct (`tests/test_lk_admin.py`, carte de test de `test_lk_relief.py`) : refus de chaque opération à un
+- Banc lupa direct (`tests/livingknox/test_lk_admin.py`, carte de test de `test_lk_relief.py`) : refus de chaque opération à un
   non-admin sans donnée ni écriture, journal borné, client MP et capacité absente refusés, routage de la commande au
   seul demandeur, liste et détail, relève forcée (une seule, groupe sans site, moteur désactivé, groupe vivant),
   foyer (contrôles, une sauvegarde, entrée `admin`) ; suite `lk.admin` par le vrai moteur RST.
 - Banc `harness.py` : MP (client A admin : liste et détail par le réseau ; client B sans la capacité : quatre refus
   sans donnée, rien de modifié ; réponse périmée ignorée), solo (appel direct, aucune commande réseau).
-- VM Kahlua (`tests/test_kahlua.py`) : compilation de tous les fichiers du mod.
+- VM Kahlua (`tests/coreai/test_kahlua.py`) : compilation de tous les fichiers du mod.
 - En jeu : suite `lk.admin` (tag `world`) ; fenêtre et refus d'un vrai client non admin : `docs/annexes/tests/tests-en-jeu.md` § 15.
 
 ## Statut

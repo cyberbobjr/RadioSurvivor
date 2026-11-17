@@ -147,7 +147,7 @@ Les lignes « retirables » sont des estimations. Les risques renvoient au forma
 
 ### F05 — Trois sources pour les mêmes valeurs par défaut et bornes
 
-- **Preuve** : `LK_Config.lua:12-35` (`DEFAULTS` et `INT_BOUNDS`) répète `sandbox-options.txt`. Les commentaires disent « = default de sandbox-options.txt » et renvoient à des tests (`tests/test_lk_population.py`). `DANGER` (`LK_Config.lua:~45`) utilise déjà `{min, max, défaut}`. `LK_Initiatives.lua:61-68` lit `SandboxVars` directement.
+- **Preuve** : `LK_Config.lua:12-35` (`DEFAULTS` et `INT_BOUNDS`) répète `sandbox-options.txt`. Les commentaires disent « = default de sandbox-options.txt » et renvoient à des tests (`tests/livingknox/test_lk_population.py`). `DANGER` (`LK_Config.lua:~45`) utilise déjà `{min, max, défaut}`. `LK_Initiatives.lua:61-68` lit `SandboxVars` directement.
 - **Conséquence** : modifier une option oblige à toucher trois endroits. Le test de cohérence protège, mais il faut le maintenir.
 - **Correction** : *Une seule table de vérité* `{min, max, défaut}` par option (même forme que `DANGER`). `DEFAULTS` et `INT_BOUNDS` en sont dérivés. Faire passer `LK_Initiatives` par `Config.readInt`.
 - **Gain** : ≈ 25 lignes, un risque de désynchronisation en moins. **Effort** : faible. **Risque** : faible (les valeurs ne changent pas).

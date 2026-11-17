@@ -3,7 +3,7 @@
 - Tâches : LK10-T02 (journal daté et borné des faits marquants) ; servira LK10-T04 (traces lisibles en jeu), LK10-T03 et E17-T03 (contexte du LLM par RadioSurvivor)
 - Build : 42.21.0 — Date : 2026-10-12 — Statut : brouillon (testé hors jeu)
 
-Code : `media/lua/server/LivingKnox/LK_Journal.lua` (`LivingKnox.Journal`, autorité seulement) ; accroche dans `LK_Groups.appendLog` (`Groups.onLog`) et heure simulée posée par `LK_Simulation.advance` (`Groups.hourContext`). Lecture : `LivingKnox.API.journal` ([api-living-knox.md](../../specifications-techniques/api-living-knox.md)), détail admin (`LK_Admin`, champ `journal` ; fenêtre `LK_AdminView`, section « Récit du groupe »). Banc : `tests/test_lk_journal.py` ; chargement vérifié dans la VM Kahlua (`tests/test_kahlua.py`, liste des modules). Chargement : le jeu exécute tout `media/lua/server` ; `LK_API` et `LK_Admin` le requièrent (pas `LK_Server`, pour ne pas ajouter d'abonné aux bancs qui ne chargent que lui).
+Code : `media/lua/server/LivingKnox/LK_Journal.lua` (`LivingKnox.Journal`, autorité seulement) ; accroche dans `LK_Groups.appendLog` (`Groups.onLog`) et heure simulée posée par `LK_Simulation.advance` (`Groups.hourContext`). Lecture : `LivingKnox.API.journal` ([api-living-knox.md](../../specifications-techniques/api-living-knox.md)), détail admin (`LK_Admin`, champ `journal` ; fenêtre `LK_AdminView`, section « Récit du groupe »). Banc : `tests/livingknox/test_lk_journal.py` ; chargement vérifié dans la VM Kahlua (`tests/coreai/test_kahlua.py`, liste des modules). Chargement : le jeu exécute tout `media/lua/server` ; `LK_API` et `LK_Admin` le requièrent (pas `LK_Server`, pour ne pas ajouter d'abonné aux bancs qui ne chargent que lui).
 
 ## Problème
 

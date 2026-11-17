@@ -5,8 +5,8 @@
 -- sections [place <id>], un point at= ou une zone area=) ; une fiche nomme ceux dont elle se sert (marks= de la tete,
 -- target=, drops= et points= de [mission], landing= de [trade], cache_place= de [rewards]).
 -- bridge/persona_store.py lit la tete (marks= compris), le fichier des lieux et le prompt avec les memes regles et les
--- memes messages (« line N: raison », en anglais) et passe les sections sans les lire ; tests/test_personas.py compare
--- les deux lecteurs, tests/test_persona_sections.py couvre ce que seul le serveur valide.
+-- memes messages (« line N: raison », en anglais) et saute les sections ; tests/radiosurvivor/test_personas.py compare
+-- les deux lecteurs, tests/radiosurvivor/test_persona_sections.py couvre ce que seul le serveur valide.
 -- Regles injectees (RS_Personas.rules, racine de composition) : template(nom) -> gabarit de mission donne par une
 -- voix (CA_Missions.voiceTemplate, schema `params` declare par le gabarit), rewards (natures de recompense de
 -- RS_Rewards.KINDS), skills (RS_Rewards.SKILLS), categories (catalogue partage personas/_categories.txt), arrivals

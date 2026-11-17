@@ -19,7 +19,7 @@ Document du mod que le passeur de l'Ohio apporte à chaque passage : « journaux
 - Gabarits fixes FR/EN dans `Print_Text.json` (`Print_Text_RadioSurvivor_OutsideNews_*`) : 10 unes, 12 brèves. Ils
   ne parlent que du dehors (clôture, réfugiés, couvre-feu, rationnement, Congrès, télévision, marchés…) : aucune
   fréquence, aucune voix du mod, aucun lieu de rendez-vous, aucun secret de fiche, aucune promesse de secours
-  (contrôlé par `tests/test_outside_news.py`). Les textes évitent les faits qui se contrediraient d'une édition à
+  (contrôlé par `tests/radiosurvivor/test_outside_news.py`). Les textes évitent les faits qui se contrediraient d'une édition à
   l'autre (aucun état qui « finit »).
 - Choix reproductible d'après le seul numéro d'édition `n` (`RS_OutsideNews.select`) : une `((n - 1) × 7 mod 10) + 1`
   (deux éditions qui se suivent n'ont jamais la même une ; dix éditions de suite, dix unes différentes), trois brèves

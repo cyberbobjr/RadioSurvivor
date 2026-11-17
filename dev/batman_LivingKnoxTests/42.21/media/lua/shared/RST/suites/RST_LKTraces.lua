@@ -21,7 +21,7 @@ What is checked (nominal path):
       LK_Bodies, whose listener "Traces.chief" is checked to be registered); a second call, a call for a member who is
       not the leader and a call after a memory reset put nothing.
 The first page of each document is printed as a note (read it in game too: right click, "Read").
-Outside the game: tests/test_lk_traces.py (the suite also runs there against doubles).
+Outside the game: tests/livingknox/test_lk_traces.py (the suite also runs there against doubles).
 ]]
 
 require "RST/RST"

@@ -41,6 +41,6 @@ les fenêtres. Chaque cas limite demandait aussi de simuler une carte entière a
 ## Conséquences
 
 - Un nouvel objet de bord (une sorte de porte d'un mod, par exemple) se lit à un seul endroit.
-- Les règles se testent sans carte (`tests/test_lk_edges.py`) ; les bancs existants restent la preuve que le
+- Les règles se testent sans carte (`tests/livingknox/test_lk_edges.py`) ; les bancs existants restent la preuve que le
   comportement n'a pas changé.
 - La preuve en jeu est celle des campagnes `solo-lk` et MP suivantes.

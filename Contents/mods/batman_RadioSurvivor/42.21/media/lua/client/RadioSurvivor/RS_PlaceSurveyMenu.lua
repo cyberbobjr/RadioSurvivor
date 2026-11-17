@@ -16,7 +16,7 @@ local Access = require "CoreAI/CA_AdminAccess"
 local Menu = RS_PlaceSurveyMenu or {}
 RS_PlaceSurveyMenu = Menu
 
--- Copies of the constants of RS_PlaceSurvey.lua (compared by tests/test_rs_place_survey.py).
+-- Copies of the constants of RS_PlaceSurvey.lua (compared by tests/radiosurvivor/test_rs_place_survey.py).
 Menu.MODULE = "RadioSurvivorSurvey"
 Menu.CMD_REQUEST = "surveyPlace"
 Menu.CMD_REPLY = "surveyReply"

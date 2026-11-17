@@ -129,4 +129,4 @@ lançait les tests de Living Knox pendant un travail sur RadioSurvivor.
   RadioSurvivor lance ses tests et ceux du mod commun, jamais ceux de Living Knox, et inversement
   (`tests/run_all.py --mod radiosurvivor|livingknox`). Les tests qui vérifient les deux mods ensemble ont leur propre
   dossier et ne tournent que pour un travail qui touche les deux. Le rangement attend que la session Living Knox ait
-  commité, pour ne rien écraser. Plan : [E26](../../annexes/plans/E26-tests-par-mod.md).
+  commité, pour ne rien écraser. Plan : [E26](../../annexes/plans-termines/E26-tests-par-mod.md).

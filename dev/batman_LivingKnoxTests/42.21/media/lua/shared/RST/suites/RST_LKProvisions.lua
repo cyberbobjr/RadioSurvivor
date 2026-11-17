@@ -10,7 +10,7 @@ Tags "world" and "server": the authority only, on a save named rstest*, with a t
 INSIDE a house that has at least one container near the player (the test group gets its home on the player's square,
 no furnishing: LivingKnox.Homes.skip). Solo: RST.run({ suite = "lk.provisions", tags = "world" }). Asynchronous run
 only (about 2 to 4 minutes). The fight case (disengage, eat sitting, fight again) is proven by the bench only
-(tests/test_lk_provisions.py): this suite removes the zombies.
+(tests/livingknox/test_lk_provisions.py): this suite removes the zombies.
 
 What is done:
     - the target player is made untouchable (setGodMod) and vanilla zombies are removed around the home at every poll;

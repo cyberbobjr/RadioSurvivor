@@ -17,7 +17,7 @@ Ce dossier rassemble les **fiches de conception** du moteur de PNJ Living Knox (
 | Java vanilla 42.21 décompilé | `<decompiled>\42.21.0\java` | Contraintes du moteur : propriété des zombies, paquets réseau, dégâts, chemins |
 | Lua vanilla 42.21 | `<PZ>\media\lua` | API exposée, actions chronométrées, événements |
 | Base de connaissances | [.claude/pz-knowledge](../../../../.claude/pz-knowledge/README.md) | Faits déjà établis ; à chercher **avant** toute investigation |
-| Nos bancs hors jeu | `tests/harness.py` (serveur et deux clients simulés sous lupa), `tests/test_kahlua.py` (VM Kahlua réelle du jeu) | Logique, protocole réseau, comportement de la VM |
+| Nos bancs hors jeu | `tests/commun/harness.py` (serveur et deux clients simulés sous lupa), `tests/coreai/test_kahlua.py` (VM Kahlua réelle du jeu) | Logique, protocole réseau, comportement de la VM |
 | Nos tests en jeu | moteur RST (`dev/batman_CoreAITests`, suites dans `dev/batman_LivingKnoxTests` et `dev/batman_RadioSurvivorTests`, étape E01), serveur dédié de test `tests/run_dedicated_smoke.ps1` | Mesures réelles en solo et en MP |
 | Nos mesures | fichiers de résultat RST, journaux `console.txt` datés | Calibrage des valeurs, preuve d'un comportement |
 
@@ -135,8 +135,8 @@ Un sous-système nouveau prend sa fiche dans la tâche d'investigation ou de con
 
 ## Tests
 
-- Banc lupa (`tests/harness.py`) : <tests>.
-- VM Kahlua (`tests/test_kahlua.py`) : <tests ou « sans objet »>.
+- Banc lupa (`tests/commun/harness.py`) : <tests>.
+- VM Kahlua (`tests/coreai/test_kahlua.py`) : <tests ou « sans objet »>.
 - En jeu (RST, serveur dédié, deux clients) : <suites, fichiers de résultat>.
 
 ## Points ouverts

@@ -15,7 +15,7 @@ centred on it, projected to the participant only while the mission is active, ne
 client map module is loaded with the authority (solo), the area is drawn on the world map (Circle symbol at its
 centre) and removed once the mission succeeded; the real notebook missions are passed along so that their own areas
 are kept. On a dedicated server that part is only noted.
-Outside the game: tests/test_carnet.py (VoiceMissionTests, metagrid double).
+Outside the game: tests/coreai/test_carnet.py (VoiceMissionTests, metagrid double).
 ]]
 
 require "RST/RST"
@@ -320,8 +320,8 @@ nothing): no notebook state, no history line, no ModData of the notebook. The te
 (drops= of deliver and retrieve, the player's square) and no marks=: reputation only, no map mark. A dead
 drop in "box" mode leaves an opaque key in the ModData of a nearby container: removed at the end. Cleanup: zombies and
 corpses of the test removed, Signal Smoke listener removed and test signals stopped, god mode restored.
-Outside the game: tests/test_rs_e11_voice_npc_suites.py (voice simulation of tests/test_carnet.py, clear and Signal
-Smoke doubles).
+Outside the game: tests/radiosurvivor/test_rs_e11_voice_npc_suites.py (voice simulation of
+tests/coreai/test_carnet.py, clear and Signal Smoke doubles).
 ]]
 
 require "RST/RST_Steps"

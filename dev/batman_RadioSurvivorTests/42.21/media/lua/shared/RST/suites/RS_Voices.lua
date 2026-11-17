@@ -13,7 +13,7 @@ rs.voices (tag "server", read only: no file, channel or game state is changed)
       other mods) and at least Personas.MIN_GAP_KHZ apart between voices;
     - no channel name of a voice is listed (the list reaches every client at login, E05-T08);
     - a silent voice keeps its channel (its frequency stays reserved); that it never answers is checked by
-      rs.voices.world, that it never calls by the bench (tests/test_personas_server.py) and the protocol.
+      rs.voices.world, that it never calls by the bench (tests/radiosurvivor/test_personas_server.py) and the protocol.
     It runs in the automatic run of the test dedicated server (tests/run_dedicated_smoke.ps1 -Filters rst,rs).
 
 rs.voices.world (tags "world" and "server": save named rstest* only)

@@ -6,7 +6,7 @@ Tags "server" (authority only: solo, or RST.server from an admin client of a ded
 player is moved: test saves "rstest*" only). Asynchronous run (RST.start / RST.server): the move waits in steps.
 The mission lives in an in-memory state built by the test (requester fiche, character, store whose save does
 nothing): no notebook state, no ModData, no reward item. The requester body is a stand-in at the player's position.
-Outside the game: tests/test_carnet.py (ScoutMissionTests, metagrid double).
+Outside the game: tests/coreai/test_carnet.py (ScoutMissionTests, metagrid double).
 ]]
 
 require "RST/RST"

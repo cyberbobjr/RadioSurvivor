@@ -135,7 +135,7 @@ function Stand.clientPass()
 end
 
 -- ================================================================ abonnements
-if Events ~= nil then   -- Events absent : VM de test sans moteur (tests/test_kahlua.py)
+if Events ~= nil then   -- Events absent : VM de test sans moteur (tests/coreai/test_kahlua.py)
     local function onZombieCreate(z)
         if LivingKnox.Stand.snapshot == nil then LivingKnox.Stand.rememberFresh(z) end
     end

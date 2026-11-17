@@ -3,7 +3,7 @@
 Code : `media/lua/server/RadioSurvivor/RS_RescueLost.lua` (dernières pages, survivants en tenue, pose unique)
 et `RS_Rescue.lua` (survivants et tenues décrites au départ : `Rescue.SURVIVORS`, `Rescue.OUTFITS`,
 `Rescue.drawSurvivors`, `Rescue.looks`). Traductions `IGUI_RS_RescueLast_*` (EN, FR). Banc :
-`tests/test_rescue_lost.py` ; suite en jeu : `rs.rescue.missed`. Décisions acquises : celles d'E12, d'E12-T02
+`tests/radiosurvivor/test_rescue_lost.py` ; suite en jeu : `rs.rescue.missed`. Décisions acquises : celles d'E12, d'E12-T02
 ([secours.md](secours.md)), d'E12-T04 ([secours-issue.md](secours-issue.md)) et d'E15-T03/T04
 ([dernieres-pages.md](dernieres-pages.md)) ; note de travail §05 (« Trop tard : cadavres ou zombies portant les
 vêtements qu'ils avaient décrits (le jeu sait reconnaître une tenue), et leurs dernières pages »).

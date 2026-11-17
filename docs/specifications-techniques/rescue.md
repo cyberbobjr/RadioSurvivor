@@ -156,14 +156,14 @@ Rescue.pendingScenes(); Rescue.scenePlaced(id)                              -- s
 
 ## Tests
 
-- Hors jeu : `python RadioSurvivor/tests/test_rescue.py` (aussi l'étape `rescue` de `tests/run_all.py`).
+- Hors jeu : `python RadioSurvivor/tests/radiosurvivor/test_rescue.py` (aussi l'étape `rescue` de `tests/run_all.py`).
   Doublures de la métagrille, des refuges, des joueurs et des cases ; toute lecture de case pendant un choix est
   comptée et doit rester à zéro ; la suite en jeu y est jouée par le vrai moteur RST.
-- Hors jeu : `python RadioSurvivor/tests/test_rescue_visit.py` (étape `rescue_visit`) : dépôt réel, approche,
+- Hors jeu : `python RadioSurvivor/tests/radiosurvivor/test_rescue_visit.py` (étape `rescue_visit`) : dépôt réel, approche,
   fumée et repli sur la description.
-- Hors jeu : `python RadioSurvivor/tests/test_rescue_scene.py` (étape `rescue_scene`) : issue « à temps », cache,
+- Hors jeu : `python RadioSurvivor/tests/radiosurvivor/test_rescue_scene.py` (étape `rescue_scene`) : issue « à temps », cache,
   note, nouvel endroit, mémoire, pose unique.
-- Hors jeu : `python RadioSurvivor/tests/test_rescue_lost.py` (étape `rescue_lost`) : survivants et tenues, issue
+- Hors jeu : `python RadioSurvivor/tests/radiosurvivor/test_rescue_lost.py` (étape `rescue_lost`) : survivants et tenues, issue
   « trop tard », dernières pages, pose unique et adoption.
 - En jeu : suite `rs.rescue.missed` (E12-T05, magasin de travail, debout dans un bâtiment),
   `RST.server("rs.rescue.missed")` : un cadavre par survivant dans la tenue décrite, cahier verrouillé dans le

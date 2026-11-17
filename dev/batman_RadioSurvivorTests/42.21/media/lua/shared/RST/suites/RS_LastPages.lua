@@ -13,7 +13,7 @@ display name read at the death, and the placement pass of the module on a frozen
 Tags "world" and "server": authority only (solo or server), save named rstest*, target player t.ctx.player. Every
 object made by the suite is removed at the end. Solo: RST.run({ suite = "rs.lastpages", tags = "world" });
 dedicated server, from an admin client: RST.server({ suite = "rs.lastpages", tags = "world" }). Outside the game:
-tests/test_last_pages.py. A real death (request to the bridge, fallback journal) follows the manual protocol of
+tests/radiosurvivor/test_last_pages.py. A real death (request to the bridge, fallback journal) follows the manual protocol of
 docs/annexes/conception/dernieres-pages.md.
 ]]
 

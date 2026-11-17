@@ -19,7 +19,7 @@ secours (E12) ; sa note sera à créer avec E12.
 | Night Owl | `NoteNightOwl` « Prospectus du Night Owl » | prospectus photocopié : bandeau sombre, gros titre, fréquence en rouge (`Flier`, modèle `Flier1`) | « Le comté de Knox est toujours à l'antenne » ; nouvelles confirmées, noms qui nous parviennent, un peu de musique ; toute radio peut écouter, appeler avec un talkie | 19 h-22 h |
 
 - Textes FR et EN, ton de chaque voix, 1993, comté de Knox. Aucun mot de ce que les voix taisent, aucune invitation de
-  Darlene à la clinique (ni la clinique ni West Point ne sont nommées). Vérifié par `tests/test_notes.py`.
+  Darlene à la clinique (ni la clinique ni West Point ne sont nommées). Vérifié par `tests/radiosurvivor/test_notes.py`.
 - Fichiers : script `media/scripts/RadioSurvivor_notes.txt` ; traductions `Translate/{EN,FR}/ItemName.json`,
   `Print_Media.json` (titre et mise en page, `%1` = fréquence), `Print_Text.json` (transcription, bouton du bas).
 - Lecture : clic droit → **« Inspecter »** (libellé vanilla des documents `printMedia`, comme les prospectus ; grisé
@@ -51,7 +51,7 @@ Choix : **écrite par l'autorité dans la ModData de l'objet à sa création** (
    que le joueur ouvre, objet au sol près de lui, son inventaire). Sur le client, `OnCreate` est rejoué à la réception
    **sans fournisseur** (les fichiers `server` rendent tout de suite sur un client) : il ne pose que les clés et une
    note sans fréquence, puis la ModData du serveur remplace la sienne (`InventoryItem.load`, base
-   `loot-distributions.md`). Aucune commande réseau ne porte de fréquence (`tests/test_notes.py` vérifie qu'aucun
+   `loot-distributions.md`). Aucune commande réseau ne porte de fréquence (`tests/radiosurvivor/test_notes.py` vérifie qu'aucun
    module des notes n'appelle `sendServerCommand`, `sendClientCommand` ou une ModData globale ; seule exception,
    E06-T07 : à l'ouverture d'une note lisible, le lecteur envoie `note_read { itemId }`, sans fréquence ; le serveur
    vérifie l'objet dans l'inventaire et sa ModData, puis inscrit la voix et ses heures dans le carnet).
@@ -118,7 +118,7 @@ le facteur de rareté, les réglages de butin du sandbox (catégorie littératur
 | Night Owl | `VehicleDistributions.GloveBox` (1) | 1,5 | boîte à gants des voitures ordinaires (liste vide en vanilla : seule la note y est tirée) |
 
 Écartées : `DoctorTools`, `FishermanTools` (citées par aucune salle), `ArmyHangar*` (base `loot-distributions.md`).
-Contrôle automatique : `tests/test_notes.py` vérifie que chaque liste existe et qu'elle est citée par
+Contrôle automatique : `tests/radiosurvivor/test_notes.py` vérifie que chaque liste existe et qu'elle est citée par
 `Distributions.lua` (ou par un véhicule pour une boîte à gants).
 
 ### Socle commun de toute note (E24-T03)
@@ -184,7 +184,7 @@ plusieurs notes ; le magasin de pêche (Gus) est plus rare : ⚠ à régler en j
 
 ## Tests
 
-- `tests/test_notes.py` (banc lupa, dans `tests/run_all.py`) : fréquence écrite égale au tirage de la partie pour les
+- `tests/radiosurvivor/test_notes.py` (banc lupa, dans `tests/run_all.py`) : fréquence écrite égale au tirage de la partie pour les
   cinq voix, deux mondes neufs, Whitaker sans note, voix `silent`/`gone` (note sans fréquence), OnCreate rejoué sur un
   client MP (aucune fréquence, aucun fournisseur), aucune commande réseau, texte FR/EN composé avec les vraies
   traductions, ouverture du document (clés remises, autres documents intacts, pas d'enveloppe empilée), butin selon

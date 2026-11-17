@@ -23,7 +23,7 @@ protocole en jeu : [charge-protocole.md](../tests/validation/charge-protocole.md
 | Fait | Preuve | Statut |
 |---|---|---|
 | Seule horloge exposée à Lua : `getTimestampMs()` (pas de 1 ms) ; une moyenne sur beaucoup d'appels est l'estimation, un maximum est une borne à la milliseconde près | base `kahlua-lua.md` ; `RST_LKProbe.lua` (LK02-T08) | confirmé statiquement |
-| Un abonné ajouté pendant le déclenchement de son événement est appelé aussitôt ; un abonné retiré depuis l'abonné courant ne décale rien | base `kahlua-lua.md` ; `Event.java:52-62` (boucle reproduite par `tests/harness.py`) | confirmé statiquement |
+| Un abonné ajouté pendant le déclenchement de son événement est appelé aussitôt ; un abonné retiré depuis l'abonné courant ne décale rien | base `kahlua-lua.md` ; `Event.java:52-62` (boucle reproduite par `tests/commun/harness.py`) | confirmé statiquement |
 | `OnTickEvenPaused` précède `OnTick` dans une même image ; `OnTick` ne part pas sur un serveur vide en pause | base `kahlua-lua.md`, `logs-and-tools.md` | confirmé statiquement |
 | Serveur dédié à 10 images par seconde (100 ms par image) | base `multiplayer.md` (`GameServer.FPS`) | confirmé statiquement |
 | Envelopper une globale Java surchargée (`sendServerCommand` avec ou sans joueur) : transmettre `...` tel quel | base `kahlua-lua.md` | confirmé statiquement |
@@ -46,7 +46,7 @@ protocole en jeu : [charge-protocole.md](../tests/validation/charge-protocole.md
   retirés puis rajoutés en fin de liste **dans cet ordre réel**, pas dans l'ordre alphabétique des clés. Les remises
   en fin de liste du premier `OnTickEvenPaused` (`Groups.flush`, `Store.flush`) passent par `LivingKnox.requeue`, qui
   déplace aussi l'enveloppe de mesure : même place avec ou sans mesure. Banc `tools/load_bench.py` (`run_compare`,
-  `tests/test_lk_load.py`, `BenchOrderTests`) : mêmes registres (PNJ, groupes, attitudes) et même nombre
+  `tests/livingknox/test_lk_load.py`, `BenchOrderTests`) : mêmes registres (PNJ, groupes, attitudes) et même nombre
   d'écritures par en-tête avec et sans mesure, mesure démarrée après la mise en route ou avant la première image.
   Limite : un abonné inscrit hors de `LivingKnox.subscribe` (autre mod, vanilla, code RadioSurvivor qui appelle
   `Events.X.Add` directement) peut se retrouver avant les abonnés du moteur déplacés.
@@ -91,7 +91,7 @@ tous dans la même image, qui portait aussi les abonnés de la minute (`GameTime
   arrêter la suivante.
 - **Une seule écriture** du registre des groupes pour tout le pas (écriture retenue `Groups.hold("hour")`,
   [groupes.md](groupes.md)), dans une image à elle (après la relecture du stock de la même minute, qui retient aussi).
-- **Même résultat** : mêmes passes, même ordre, même heure. Banc `tests/test_lk_spread.py` : registre et journal
+- **Même résultat** : mêmes passes, même ordre, même heure. Banc `tests/livingknox/test_lk_spread.py` : registre et journal
   identiques à l'octet entre l'ancien chemin (tout dans l'image de l'heure) et le nouveau, sur 30 heures du banc léger
   et 3 heures du banc de charge complet ; une journée complète du banc de charge mesurée à l'identique (validation
   `etalement-2026-10-12.md`).
@@ -110,7 +110,7 @@ au banc de charge en enveloppant chaque fonction des modules `LivingKnox.*` (tem
 - **`Decisions.tick`** : la moitié du passage de 4 membres était la **copie profonde des types de groupe**
   (`GroupTypes.get`, une trentaine d'appels par passage : `Hostility.startFor` pour chaque joueur et chaque groupe,
   `Decisions.allowedOf`, `Hostility.firstStrike`, `Decisions.groupInput`). Lecture en place `GroupTypes.peek`
-  (lecture seule, même règle que `Groups.peek`, contrôlée par la lecture du code de `tests/test_lk_groups.py`) dans
+  (lecture seule, même règle que `Groups.peek`, contrôlée par la lecture du code de `tests/livingknox/test_lk_groups.py`) dans
   ces quatre appelants : pointe 9,5 → 3,8 ms lupa, moyenne 0,15 → 0,06 ms par image, mêmes décisions.
   **Passage étalé (2026-10-15, décision : déterminisme du nouveau code seulement)** : `PASS_MS` (1000) et
   `MEMBERS_PER_PASS` (4) gardés, mais les membres choisis par un passage sont évalués `MEMBERS_PER_FRAME` (1) par
@@ -118,7 +118,7 @@ au banc de charge en enveloppant chaque fonction des modules `LivingKnox.*` (tem
   plus sur un serveur dédié) : même fréquence par membre (un passage de `MEMBERS_PER_PASS = 1` toutes les 250 ms,
   proposé d'abord, évaluait quatre fois plus souvent les membres d'un petit groupe), coût d'une image borné à un
   membre. L'ordre des écritures en place des membres (peur, repas) change : décisions non identiques à l'octet à
-  l'ancien code, identiques d'un passage du banc à l'autre (`tests/test_lk_peaks.py`, `DecisionSpreadTests`).
+  l'ancien code, identiques d'un passage du banc à l'autre (`tests/livingknox/test_lk_peaks.py`, `DecisionSpreadTests`).
 - **Notation de l'heure étalée** (2026-10-15) : la passe différée `Decisions.onEveryHours` (image qui suit l'heure)
   ne note plus tous les groupes : elle les met en file (`Decisions.hourQueue`, ordre trié) et un groupe matérialisé
   est noté par image à partir de l'image suivante, avec l'heure de la passe ; écriture retenue

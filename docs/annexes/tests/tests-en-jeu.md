@@ -279,7 +279,7 @@ muet ou jeu tué ; `3` un jeu ou un serveur tourne déjà. Le cache est supprim�
 Limites : liste de mods minimale (les autres mods de la partie d'origine ne sont pas chargés, leurs objets disparaissent
 de la copie) ; sans Steam, aucun mod Workshop abonné n'est trouvé (`-nosteam`, voir la base) ; avec `--bridge on|auto`, les
 suites du pont appellent le vrai modèle (coût, durée variable) ; un clic envoyé juste avant l'entrée en jeu peut tomber au
-centre de l'écran de jeu ; Windows seulement. Banc hors jeu : `python RadioSurvivor/tests/test_autoclient.py`.
+centre de l'écran de jeu ; Windows seulement. Banc hors jeu : `python RadioSurvivor/tests/coreai/test_autoclient.py`.
 
 ## 6 ter. Multijoueur automatique : serveur dédié de test et clients pilotés (E01-T15)
 
@@ -340,7 +340,7 @@ Déroulement :
 Codes de sortie : ceux du § 6 bis ; `2` aussi si le serveur ne démarre pas ou s'arrête, si un client sort sans résultat,
 si le client 2 n'a pas atteint son état ou n'a pas écrit le résultat de ses étapes au « quit » ; `1` si une étape du
 client 2 a échoué. Banc hors jeu (pilote et orchestration simulés) :
-`python RadioSurvivor/tests/test_autoclient.py`.
+`python RadioSurvivor/tests/coreai/test_autoclient.py`.
 
 Déplacements du joueur par le serveur (`RST.Fixtures.movePlayer`) : l'attente se termine quand le joueur est arrivé
 **et** que les cases à `F.LOAD_RADIUS` (12) autour de la cible sont chargées sur le serveur (sinon la suite suivante
@@ -456,7 +456,7 @@ machine ; suites dans des fichiers à part, étiquetées `world` et `server`) :
 (`F.movePlayer`) pendant une consigne de 30 cases et mesure chaque changement de propriétaire, la reprise par le
 nouvel exécutant (`Directives.stats.resumeLast` ≤ 1 s) et l'écart entre deux rapports d'exécution qui montrent un
 progrès autour du changement (≤ 2 s, un rapport par seconde) ; SKIP en solo et avec un seul client. Banc des cinq
-suites sur doublures (serveur + deux clients, solo, défauts injectés) : `python RadioSurvivor/tests/test_lk_peer_suites.py`.
+suites sur doublures (serveur + deux clients, solo, défauts injectés) : `python RadioSurvivor/tests/livingknox/test_lk_peer_suites.py`.
 
 Étapes radio, carnet et factions à deux clients (E21-T11 : radio dans `shared/RST/RST_PeerChecksRadio.lua` de
 `batman_RadioSurvivorTests`, carnet et factions dans `shared/RST/RST_PeerChecksCarnet.lua` de `batman_CoreAITests` ;
@@ -486,7 +486,7 @@ le serveur — `Faction:addPlayer`, sans la boîte d'invitation — ; même iden
 renommage). Exemple : `python RadioSurvivor/tools/autoclient/autoclient.py --mp --clients 2 --server-suite
 rs.worldradio,rs.radio,lk.carnet.load,lk.observations,ca.factions.mandate --server-tags world --bridge auto --timeout
 3600 --wait-idle 3600`. Banc des cinq suites sur doublures (serveur + deux clients, solo, défauts injectés) :
-`python RadioSurvivor/tests/test_rs_mp_suites.py`.
+`python RadioSurvivor/tests/ensemble/test_rs_mp_suites.py`.
 
 Suites du carnet en MP (`lk.npctalk`, `lk.relation`, `lk.conversations`, `lk.initiatives`) : étiquetées `world` et
 `server`, dans la campagne `mp` (pont lancé sur le dossier d'échange du serveur : `--bridge auto` le voit dans la
@@ -535,12 +535,12 @@ cadavres : `lk.zombies` (LK06-T04, cases 3 × 3 autour de chaque mort), `rs.resc
 attendue chez les autres clients par `lk.present` avant sa mort, puis cadavre et cahier), `ca.mission.retrieve`
 (E11-T05 : clients déplacés ensemble par `F.movePlayers`, corps avec la carte, puis sans elle) ; `map.known` chez
 chaque autre client avant et après la révélation, état inchangé (`rs.actions.reveal`, E07-T05). Banc des nouvelles
-étapes : `python RadioSurvivor/tests/test_rst_steps.py` (classe `HStepTests`).
+étapes : `python RadioSurvivor/tests/coreai/test_rst_steps.py` (classe `HStepTests`).
 
 ### Campagnes solo et MP (E01-T19)
 
 Listes nommées de `client/RST/RST_Campaign.lua` (`RST.campaigns()` les affiche ; banc de leur contenu :
-`tests/test_autoclient.py`, classe `CampaignContentTests`). Une entrée choisit la suite de ce nom et les suites
+`tests/coreai/test_autoclient.py`, classe `CampaignContentTests`). Une entrée choisit la suite de ce nom et les suites
 `<entrée>.*`, jamais `<entrée>s` : `ca.missions` joue `ca.missions.clock`, `.unclaimed`, `.scout`, `.solo` mais **pas**
 les gabarits `ca.mission.*` (singulier : `clear`, `retrieve`, `recover`, `signal`, `zones`), choisis par l'entrée
 `ca.mission` ; `rs.missions` joue `rs.missions.radio` et `.voicetemplates` (E21-T11 : moteur et gabarits des missions
@@ -666,9 +666,9 @@ Quand le test travaille sur un état en mémoire (magasin de travail des secours
 lieu de l'état privé (stock du carnet `CA_NotebookStore`, état des voix `RS_State`), dont la persistance elle-même est prouvée par `ca.identity` ; le vrai
 redémarrage prouve le monde (sacs, zombies réanimés, murs) et le registre des groupes Living Knox. `lk.rejoin` garde
 son état dans le Lua du serveur (action `reconnect2` seulement : un redémarrage le perd).
-Bancs : `tests/test_persist_suites.py` (listage, instantanés, plan de `mp-persist`, `ca.mission.recover.*` et
+Bancs : `tests/ensemble/test_persist_suites.py` (listage, instantanés, plan de `mp-persist`, `ca.mission.recover.*` et
 `rs.rescue.missed.*` joués sur les doublures de `test_mission_recover.py` et `test_rescue_lost.py`, défauts injectés :
-second sac, cahier perdu) ; `tests/test_autoclient.py` (`Reconnect2Tests` : plan, orchestration, « reload » du pilote).
+second sac, cahier perdu) ; `tests/coreai/test_autoclient.py` (`Reconnect2Tests` : plan, orchestration, « reload » du pilote).
 
 Contrôle « à automatiser (E01-T17) » sans suite : déconnexion pendant un troc (LK11-T08). `Trade.apply` déplace tout
 dans le même appel Lua, à la réception de la proposition : une déconnexion ne tombe jamais « au milieu » ; l'essai utile
@@ -681,21 +681,21 @@ Depuis `%USERPROFILE%\Zomboid\Workshop` (`lupa` requis pour les bancs Lua 5.1) :
 
 | Commande | Ce qu'elle vérifie |
 |---|---|
-| `python RadioSurvivor/tests/test_rst.py` | Le vrai `RST.lua` et les lanceurs dans `lupa` (`next` retiré, horloge simulée), plus l'installateur. |
-| `python RadioSurvivor/tests/test_rs_suites.py` | Les suites `rs.env`, `rs.codec`, `ca.missions` sur les vrais modules du mod, API Java simulée. |
-| `python RadioSurvivor/tests/test_kahlua.py` | Le moteur et des suites dans la **VM Kahlua** de `projectzomboid.jar`, ticks pilotés depuis Java. |
-| `python RadioSurvivor/tests/test_protocol.py` | Le Lua du mod et le pont `--offline` (solo, serveur + deux clients). |
-| `python RadioSurvivor/tests/test_personas_server.py` | Les fiches de voix côté serveur (`RS_Personas.lua`, `RadioSurvivor_Server.lua`) : installation, migration, relecture à chaud, conflits ; la suite `rs.personas` sur le vrai moteur RST. |
-| `python RadioSurvivor/tests/test_radio_module.py` | Le module « Émettre » de la fenêtre radio (`RS_RadioTalk`, `RS_RadioModule`) sur une interface vanilla simulée : visibilité selon l'état de la radio, refus des radios posées et autoradios, envoi commun avec le menu, deux dernières lignes par fréquence, focus clavier, manette. |
-| `python RadioSurvivor/tests/test_notes.py` | Les notes de fréquences (`RS_Notes`, `RS_NotesServer`, `RS_NotesReader`) : fréquence écrite par l'autorité, client MP sans fréquence, texte FR/EN, butin selon `NoteRarity`, scripts, traductions et listes vanilla citées. |
-| `python RadioSurvivor/tests/test_carnet.py` | Le carnet avec le pont, dossiers d'échange temporaires ; les suites `ca.identity*` sur le serveur simulé (reconnexion, redémarrage, mort, et la détection de leurs régressions). |
-| `python RadioSurvivor/tests/test_rescue.py` | Le choix du bâtiment de secours (`RS_Rescue`, E12-T01) sur une métagrille simulée : bâtiment habitable, loin des bases, aucune lecture de case pendant le choix, essais bornés, graine, indices sans chiffres ; la suite `rs.rescue.pick` sur le vrai moteur RST ([rescue.md](../../specifications-techniques/rescue.md)). |
-| `python RadioSurvivor/tests/test_lk_sites.py` | Le choix du site d'un foyer de groupe (`LK_Sites`, LK08-T03) sur une métagrille simulée : bâtiment admis pour colons et neutres, clairière en forêt connue pour les pillards ou repli sur un bâtiment isolé, loin des bases et des autres foyers, bâtiment exploré écarté, aucune lecture de case, essais bornés, graine ; la suite `lk.sites` sur le vrai moteur RST ([conception/sites.md](../conception/sites.md)). |
-| `python RadioSurvivor/tests/test_lk_materialize.py` | La matérialisation des groupes à l'approche d'un joueur (`LK_Materialize`, LK09-T03) : membres présents au foyer seulement, santé tirée de la blessure abstraite, allers-retours sans doublon ni perte, aucun mort revenu, hystérésis avec le retrait, bornes, place dans le bâtiment ou le camp ; la suite `lk.materialize` sur les doublures ([conception/corps-registre.md](../conception/corps-registre.md), « Matérialisation »). |
+| `python RadioSurvivor/tests/coreai/test_rst.py` | Le vrai `RST.lua` et les lanceurs dans `lupa` (`next` retiré, horloge simulée), plus l'installateur. |
+| `python RadioSurvivor/tests/radiosurvivor/test_rs_suites.py` | Les suites `rs.env`, `rs.codec`, `ca.missions` sur les vrais modules du mod, API Java simulée. |
+| `python RadioSurvivor/tests/coreai/test_kahlua.py` | Le moteur et des suites dans la **VM Kahlua** de `projectzomboid.jar`, ticks pilotés depuis Java. |
+| `python RadioSurvivor/tests/radiosurvivor/test_protocol.py` | Le Lua du mod et le pont `--offline` (solo, serveur + deux clients). |
+| `python RadioSurvivor/tests/radiosurvivor/test_personas_server.py` | Les fiches de voix côté serveur (`RS_Personas.lua`, `RadioSurvivor_Server.lua`) : installation, migration, relecture à chaud, conflits ; la suite `rs.personas` sur le vrai moteur RST. |
+| `python RadioSurvivor/tests/radiosurvivor/test_radio_module.py` | Le module « Émettre » de la fenêtre radio (`RS_RadioTalk`, `RS_RadioModule`) sur une interface vanilla simulée : visibilité selon l'état de la radio, refus des radios posées et autoradios, envoi commun avec le menu, deux dernières lignes par fréquence, focus clavier, manette. |
+| `python RadioSurvivor/tests/radiosurvivor/test_notes.py` | Les notes de fréquences (`RS_Notes`, `RS_NotesServer`, `RS_NotesReader`) : fréquence écrite par l'autorité, client MP sans fréquence, texte FR/EN, butin selon `NoteRarity`, scripts, traductions et listes vanilla citées. |
+| `python RadioSurvivor/tests/coreai/test_carnet.py` | Le carnet avec le pont, dossiers d'échange temporaires ; les suites `ca.identity*` sur le serveur simulé (reconnexion, redémarrage, mort, et la détection de leurs régressions). |
+| `python RadioSurvivor/tests/radiosurvivor/test_rescue.py` | Le choix du bâtiment de secours (`RS_Rescue`, E12-T01) sur une métagrille simulée : bâtiment habitable, loin des bases, aucune lecture de case pendant le choix, essais bornés, graine, indices sans chiffres ; la suite `rs.rescue.pick` sur le vrai moteur RST ([rescue.md](../../specifications-techniques/rescue.md)). |
+| `python RadioSurvivor/tests/livingknox/test_lk_sites.py` | Le choix du site d'un foyer de groupe (`LK_Sites`, LK08-T03) sur une métagrille simulée : bâtiment admis pour colons et neutres, clairière en forêt connue pour les pillards ou repli sur un bâtiment isolé, loin des bases et des autres foyers, bâtiment exploré écarté, aucune lecture de case, essais bornés, graine ; la suite `lk.sites` sur le vrai moteur RST ([conception/sites.md](../conception/sites.md)). |
+| `python RadioSurvivor/tests/livingknox/test_lk_materialize.py` | La matérialisation des groupes à l'approche d'un joueur (`LK_Materialize`, LK09-T03) : membres présents au foyer seulement, santé tirée de la blessure abstraite, allers-retours sans doublon ni perte, aucun mort revenu, hystérésis avec le retrait, bornes, place dans le bâtiment ou le camp ; la suite `lk.materialize` sur les doublures ([conception/corps-registre.md](../conception/corps-registre.md), « Matérialisation »). |
 | `python RadioSurvivor/tools/check_case.py` | La casse de tous les chemins des deux mods contre le dossier `media` vanilla (serveur Linux, § 10). |
 
-`test_kahlua.py` compile `tests/kahlua/KRun.java` avec ECJ (le JRE du jeu n'a pas de `javac`) : fournir
-`RS_ECJ_JAR` ou `tests/kahlua/ecj.jar`, jamais versionné (Maven Central
+`test_kahlua.py` compile `tests/commun/kahlua/KRun.java` avec ECJ (le JRE du jeu n'a pas de `javac`) : fournir
+`RS_ECJ_JAR` ou `tests/commun/kahlua/ecj.jar`, jamais versionné (Maven Central
 `org/eclipse/jdt/ecj/3.40.0/ecj-3.40.0.jar`). Le jeu est cherché dans `RS_PZ_DIR` ou `PZ_DIR`, sinon
 dans la bibliothèque Steam `PZ_STEAM_LIBRARY`, sinon dans les bibliothèques déclarées par Steam (`tools/pz_paths.py`,
 règle reprise par les bancs, les outils, `autoclient.py` et `run_dedicated_smoke.ps1`). Sans ces prérequis, les tests
@@ -1132,8 +1132,8 @@ fermeture, un texte qui déborde de la fenêtre, une erreur Lua de `RadioSurvivo
 
 Le serveur retrouve la radio désignée (case et index pour une radio posée, véhicule et pièce pour une autoradio) et
 contrôle la portée du micro (distance entière < 5 cases, même étage), la place dans le véhicule, l'allumage et le
-canal qu'il connaît. Hors jeu : `tests/test_personas_server.py` (`WorldRadioServerTests`), `tests/test_radio_module.py`,
-`tests/test_protocol.py` (`scenario_world_radios_mp`).
+canal qu'il connaît. Hors jeu : `tests/radiosurvivor/test_personas_server.py` (`WorldRadioServerTests`), `tests/radiosurvivor/test_radio_module.py`,
+`tests/radiosurvivor/test_protocol.py` (`scenario_world_radios_mp`).
 
 **Solo, court** (pont `--offline`, partie `rstest-voix`, fréquence de Walt X) :
 
@@ -1166,10 +1166,10 @@ portée, une erreur Lua de `RadioSurvivor_Server.lua`.
 ### Onglet Radio du carnet (E06-T04, solo, court)
 
 Historique par fréquence tenu par l'autorité dans l'état privé du carnet (`docs/specifications-techniques/protocole-carnet-v2.md`, « Historique
-radio du carnet »). Hors jeu : `tests/test_radio_history.py` (bornes, types, persistance, harnais MP : aucun
+radio du carnet »). Hors jeu : `tests/radiosurvivor/test_radio_history.py` (bornes, types, persistance, harnais MP : aucun
 historique d'un autre joueur, aucune fréquence non réglée ; `SoloScenarioTests` : partie solo sans fournisseur de
-PNJ, carnet jamais ouvert puis ouvert, rechargement), `tests/test_kahlua.py` (`KR-HISTORY`),
-`tests/test_belt_radio.py` (talkie à la ceinture avec la vraie bibliothèque Belt Walkie-Talkie : réception,
+PNJ, carnet jamais ouvert puis ouvert, rechargement), `tests/coreai/test_kahlua.py` (`KR-HISTORY`),
+`tests/radiosurvivor/test_belt_radio.py` (talkie à la ceinture avec la vraie bibliothèque Belt Walkie-Talkie : réception,
 couleur des voix, radio rangée sourde, émission refusée côté client et serveur).
 
 Correctif du 2026-10-09 (essai `rstest-solo` : onglet vide, aucun voyant) : le premier `hello` d'un nouveau
@@ -1239,9 +1239,9 @@ Refonte visuelle du carnet selon la maquette A (`docs/annexes/maquettes/carnet-p
 anneaux, marque-pages colorés à droite, onglet Radio en deux colonnes avec la ligne « Dire : ». Textures du mod
 `media/textures/CoreAI/CA_Notebook_*.png` (mod commun), produites par `python RadioSurvivor/tools/gen_notebook_textures.py`
 (`--preview FICHIER.png` : aperçu composé hors jeu, polices Windows et non celles du jeu). Hors jeu :
-`tests/test_radio_history.py` (`IntegrationTests` : sélection, point par fréquence, saisie par `Talk.send`, grisé,
-focus, dessin avec et sans texture, aucun texte hors de sa page à la taille minimale), `tests/test_carnet.py`
-(tampons, marque-pages), `tests/test_radio_module.py` (contraintes Kahlua, clés EN/FR). Le rendu réel (polices,
+`tests/radiosurvivor/test_radio_history.py` (`IntegrationTests` : sélection, point par fréquence, saisie par `Talk.send`, grisé,
+focus, dessin avec et sans texture, aucun texte hors de sa page à la taille minimale), `tests/coreai/test_carnet.py`
+(tampons, marque-pages), `tests/radiosurvivor/test_radio_module.py` (contraintes Kahlua, clés EN/FR). Le rendu réel (polices,
 couleurs, textures chargées) n'est vérifiable qu'en jeu.
 
 **Solo, court, nominal d'abord** (pont `--offline`, talkie émetteur en main sur la fréquence X de Walt) :
@@ -1277,9 +1277,9 @@ sélection, erreur Lua de `CA_Notebook` ou d'un onglet (`CA_Notebook*`, `RS_Note
 ### Repère sur la carte (E07-T04, solo, court)
 
 Action `mark_map` (`docs/specifications-techniques/protocole-carnet-v2.md`, « Repère sur la carte ») : la voix marque un lieu `place=` de sa
-fiche sur la carte de l'appelant. Hors jeu : `tests/test_protocol.py` (`scenario_map_bridge`, `scenario_map_client`,
-`scenario_map_server`, `scenario_map_mp`), `tests/test_radio_history.py` (`MapMarkTests` : ligne « Repère reçu »
-de l'historique radio, E07-T08), `tests/test_personas.py` et `tests/test_kahlua.py` (lignes `place=`).
+fiche sur la carte de l'appelant. Hors jeu : `tests/radiosurvivor/test_protocol.py` (`scenario_map_bridge`, `scenario_map_client`,
+`scenario_map_server`, `scenario_map_mp`), `tests/radiosurvivor/test_radio_history.py` (`MapMarkTests` : ligne « Repère reçu »
+de l'historique radio, E07-T08), `tests/radiosurvivor/test_personas.py` et `tests/coreai/test_kahlua.py` (lignes `place=`).
 
 **Automatique** (solo, partie `rstest*`, console Lua) :
 
@@ -1310,9 +1310,9 @@ le seul appelant, persistance après reconnexion du client) : séance MP finale.
 
 Action `reveal_area` (`docs/specifications-techniques/protocole-carnet-v2.md`, « Quartier révélé ») : le quartier autour d'un lieu `place=` de la
 fiche devient connu sur la carte de l'appelant (carré de 5 blocs de 32 cases, 160 cases de côté au plus). Hors jeu :
-`tests/test_protocol.py` (`scenario_reveal_bridge`, `scenario_reveal_rect`, `scenario_reveal_client`,
-`scenario_reveal_server`, `scenario_reveal_mp`), `tests/test_radio_history.py` (`RevealTests`, ligne « Quartier
-révélé »), `tests/test_kahlua.py` (`KR-REVEAL`).
+`tests/radiosurvivor/test_protocol.py` (`scenario_reveal_bridge`, `scenario_reveal_rect`, `scenario_reveal_client`,
+`scenario_reveal_server`, `scenario_reveal_mp`), `tests/radiosurvivor/test_radio_history.py` (`RevealTests`, ligne « Quartier
+révélé »), `tests/coreai/test_kahlua.py` (`KR-REVEAL`).
 
 **Automatique** (solo, partie `rstest*` **neuve de préférence** : la suite cherche à ~1 200 cases du joueur une zone
 dont les 25 blocs sont encore inconnus ; console Lua) :
@@ -1342,9 +1342,9 @@ l'appelant) : séance MP finale.
 ### Mission donnée par une voix (E11-T08, solo, court)
 
 Action `start_mission` (`docs/specifications-techniques/protocole-carnet-v2.md`, « Mission donnée par une voix ») : une voix confie une mission
-« reconnaître », le compte rendu se fait à la radio sur sa fréquence. Hors jeu : `tests/test_carnet.py`
-(`VoiceMissionTests`, sans moteur de PNJ), `tests/test_protocol.py` (`scenario_voice_mission_bridge`),
-`tests/test_radio_history.py` (ligne « Mission reçue »).
+« reconnaître », le compte rendu se fait à la radio sur sa fréquence. Hors jeu : `tests/coreai/test_carnet.py`
+(`VoiceMissionTests`, sans moteur de PNJ), `tests/radiosurvivor/test_protocol.py` (`scenario_voice_mission_bridge`),
+`tests/radiosurvivor/test_radio_history.py` (ligne « Mission reçue »).
 
 **Automatique** (solo, partie `rstest*` en ville, console Lua) : `RST.run({ suite = "rs.missions.radio", tags = {
 "world" } })` : 1 PASS (exécuteur enregistré, mission créée autour du joueur sur une fiche de test, deuxième mission
@@ -1396,7 +1396,7 @@ séance MP finale.
 
 Gabarit `retrieve_id` (`docs/annexes/conception/carnet-implementation-04221.md`, « Gabarit retrouver ») : un corps porteur d'une carte
 d'identité est posé dans un bâtiment tiré, la carte se rapporte au PNJ demandeur, vérifiée par identifiant d'objet.
-Hors jeu : `tests/test_mission_retrieve.py` (doublures de métagrille, de cases et de cadavres).
+Hors jeu : `tests/radiosurvivor/test_mission_retrieve.py` (doublures de métagrille, de cases et de cadavres).
 
 **Automatique** (solo, partie `rstest*` en ville, console Lua) : `RST.run({ suite = "ca.mission.retrieve", tags = {
 "world" } })` : 1 PASS (bâtiment tiré autour du joueur, mission en mémoire acceptée, joueur déplacé au point du lieu,
@@ -1417,7 +1417,7 @@ absente du corps, autre carte acceptée, erreur Lua de `CA_MissionRetrieve`.
 
 Gabarit `clear` (`docs/annexes/conception/carnet-implementation-04221.md`, « Gabarit nettoyer ») : tuer N zombies dans un cercle tracé
 autour d'un bâtiment tiré, décompte par le serveur avec l'attribution d'E04-T06. Hors jeu :
-`tests/test_mission_clear.py` (densité, zombies et joueurs en doublures).
+`tests/radiosurvivor/test_mission_clear.py` (densité, zombies et joueurs en doublures).
 
 **Automatique** (solo, partie `rstest*` en ville, console Lua) : `RST.run({ suite = "ca.mission.clear", tags = {
 "world" } })` : 1 PASS (bâtiment tiré autour du joueur, N dans 6..25, mission en mémoire acceptée et cible ramenée à
@@ -1443,7 +1443,7 @@ signaler : décompte qui saute de deux, zombie hors cercle compté, mort par le 
 
 Gabarit `recover` et caches (`docs/annexes/conception/carnet-implementation-04221.md`, « Caches et gabarit récupérer ») : sac marqué posé
 une fois dans un bâtiment tiré, à porter au dépôt du groupe du demandeur, reconnu par son identifiant. Hors jeu :
-`tests/test_mission_recover.py` (cases, sol, conteneurs et foyer en doublures).
+`tests/radiosurvivor/test_mission_recover.py` (cases, sol, conteneurs et foyer en doublures).
 
 **Automatique** (solo, partie `rstest*` en ville, console Lua) : `RST.run({ suite = "ca.mission.recover", tags = {
 "world" } })` : 1 PASS (bâtiment tiré autour du joueur, mission en mémoire, joueur déplacé au bâtiment : sac posé une
@@ -1466,7 +1466,7 @@ Lua de `CA_Caches` ou `CA_MissionRecover`.
 
 Gabarit `signal` (`docs/annexes/conception/carnet-implementation-04221.md`, « Gabarit signaler ») : allumer un signal de la couleur
 demandée dans un cercle, pendant une fenêtre horaire. Signal Smoke (`batman_SignalSmoke`) est un mod requis. Hors jeu :
-`tests/test_mission_signal.py` (doublure du module ; module cassé : erreur au journal, aucune offre).
+`tests/radiosurvivor/test_mission_signal.py` (doublure du module ; module cassé : erreur au journal, aucune offre).
 
 **Automatique** (solo, partie `rstest*` en ville, console Lua) : `RST.run({ suite =
 "ca.mission.signal", tags = { "world" } })` : 1 PASS (bâtiment tiré autour du joueur, couleur connue de Signal Smoke,
@@ -1506,8 +1506,8 @@ après le passage en anglais, une ligne qui sort de la page ou chevauche la suiv
 ## 14. Carnet avec un PNJ Living Knox (E17-T03)
 
 Fournisseur `shared/LivingKnox/LK_NotebookProvider.lua` de Living Knox, interface `CA_NPCProvider` du mod commun ([carnet-implementation-04221.md](../conception/carnet-implementation-04221.md),
-« Fournisseur Living Knox »). Hors jeu : `tests/test_carnet.py` (`LivingKnoxCarnetTests` : vrai moteur, vrai pont
-hors ligne), `tests/test_observations.py`, `tests/test_protocol.py` (`scenario_supply_offer`).
+« Fournisseur Living Knox »). Hors jeu : `tests/coreai/test_carnet.py` (`LivingKnoxCarnetTests` : vrai moteur, vrai pont
+hors ligne), `tests/livingknox/test_observations.py`, `tests/radiosurvivor/test_protocol.py` (`scenario_supply_offer`).
 
 Les membres de la population initiale (LK08-T05) n'ont pas encore de corps tant que LK09-T03 (matérialisation) n'est
 pas fait : l'essai relie à la main un PNJ créé par `LKB.spawn` à un membre vivant d'un groupe.
@@ -1561,7 +1561,7 @@ membre sans mandat dit la même phrase sans effet ; deux négociateurs concluent
 
 ## 15. Outils d'administration Living Knox (LK13-T01)
 
-Fiche [conception/administration.md](../conception/administration.md). Hors jeu : `tests/test_lk_admin.py`.
+Fiche [conception/administration.md](../conception/administration.md). Hors jeu : `tests/livingknox/test_lk_admin.py`.
 
 **Automatique** (solo, partie `rstest*`, mod de développement, `-debug`) :
 `RST.run({ suite = "lk.admin", tags = "world" })` → 3 PASS (refus sans joueur autorisé, liste / détail / foyer
@@ -1590,7 +1590,7 @@ bouton absent du panneau d'un admin, une erreur Lua de `LK_Admin` ou `LK_AdminVi
 
 ### Fiche d'un PNJ par clic droit (LK13-T13)
 
-Hors jeu : `tests/test_lk_npcsheet.py`.
+Hors jeu : `tests/livingknox/test_lk_npcsheet.py`.
 
 **Automatique** (solo, partie `rstest*`, `-debug`) : `RST.run({ suite = "lk.npcsheet", tags = "world" })` → 3 PASS
 (refus sans joueur autorisé ; groupe de test matérialisé sur la case du joueur : fiche lue, faim réglée à 150 gardée à
@@ -1617,7 +1617,7 @@ requêtes qui continuent fenêtre fermée (console serveur), erreur Lua de `LK_N
 
 ### Panneau de debug des PNJ (LK13-T14)
 
-Hors jeu : `tests/test_lk_debugview.py`.
+Hors jeu : `tests/livingknox/test_lk_debugview.py`.
 
 **Automatique** (solo, partie `rstest*`, `-debug`) : `RST.run({ suite = "lk.debugview", tags = "world" })` → 3 PASS
 (refus sans joueur autorisé ; groupe de test matérialisé sur la case du joueur : groupe et membres dans la réponse
@@ -1648,7 +1648,7 @@ client admin.
 
 ### Tableaux et actions d'administration (LK13-T15)
 
-Hors jeu : `tests/test_lk_npcsheet.py`, `tests/test_lk_debugview.py`.
+Hors jeu : `tests/livingknox/test_lk_npcsheet.py`, `tests/livingknox/test_lk_debugview.py`.
 
 **Automatique** (solo, partie `rstest*`, `-debug`) : `RST.run({ suite = "lk.npcsheet", tags = "world" })` → 4 PASS
 (dont rôle, nom et téléportation faits par l'autorité et notés au journal du groupe) ;
@@ -1679,7 +1679,7 @@ sans droit, téléportation loin du PNJ, nom non repris par le carnet, erreur Lu
 
 ### Coordonnées des PNJ et téléportation hors écran (LK13-T16)
 
-Hors jeu : `tests/test_lk_debugview.py` (`PositionTests`, `PositionSoloTests`), `tests/test_lk_npcsheet.py`.
+Hors jeu : `tests/livingknox/test_lk_debugview.py` (`PositionTests`, `PositionSoloTests`), `tests/livingknox/test_lk_npcsheet.py`.
 
 **Automatique** (solo, partie `rstest*`, `-debug`) : `RST.run({ suite = "lk.debugview", tags = "world" })` → 4 PASS
 (le 4e crée un groupe à 200 cases, vérifie la source « home » de ses membres et la destination de `homeGoto` avec un
@@ -1704,7 +1704,7 @@ joueur de substitution : le personnage ne bouge pas).
 
 ### Panneau de debug des fréquences (E05-T14)
 
-Hors jeu : `tests/test_rs_freqdebug.py`. Fiche : `docs/specifications-techniques/persona-format.md`, section « Panneau de debug des fréquences ».
+Hors jeu : `tests/ensemble/test_rs_freqdebug.py`. Fiche : `docs/specifications-techniques/persona-format.md`, section « Panneau de debug des fréquences ».
 
 **Automatique** (solo `-debug`, toute partie) : `RST.run({ suite = "rs.freqdebug" })` → 3 PASS. Serveur dédié :
 `RST.server({ suite = "rs.freqdebug" })` depuis un client admin.

@@ -1,7 +1,7 @@
 # Équipes et mandats de négociation (E09-T03)
 
 Module serveur `media/lua/server/RadioSurvivor/RS_Factions.lua` (garde `isClient()`), indépendant du moteur de PNJ.
-Données dans l'état privé `RS_State` (`S.data.factions`), jamais en ModData globale. Banc : `tests/test_factions.py`.
+Données dans l'état privé `RS_State` (`S.data.factions`), jamais en ModData globale. Banc : `tests/livingknox/test_factions.py`.
 
 ## Identifiant d'équipe
 

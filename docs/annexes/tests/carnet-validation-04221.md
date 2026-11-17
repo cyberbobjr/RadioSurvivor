@@ -71,7 +71,7 @@ taille et rejouer la commande (le nom des captures porte `fs<n>`). La langue ne 
 sont mesurés à partir des fichiers, les captures sont dans la langue du jeu (rejouer après changement de langue pour
 l'autre). Le dialogue suit la souris : sa position varie d'un essai à l'autre.
 
-**Corrigé pendant la tâche** (banc `tests/test_notebook_visual.py`, polices réelles du jeu) : taille minimale du carnet
+**Corrigé pendant la tâche** (banc `tests/radiosurvivor/test_notebook_visual.py`, polices réelles du jeu) : taille minimale du carnet
 qui grandit avec la police (à 660×480 avec une police plus grande, « Parler » et « Effacer la cible » sortaient de la
 fenêtre en Contacts) ; colonne de gauche assez large pour son en-tête, le pied « Interlocuteur » et la deuxième ligne de
 chaque rangée (FR : « Interlocuteur → aucun interlocuteur » coupé à 660 px ; « personne » désormais) ; état d'une mission
@@ -97,7 +97,7 @@ blanc lisible, boutons Oui/Non.
   pendant la passe puis retiré ; chaque rangée dessinée (cochée et non cochée) reste à gauche de la barre de
   défilement et un nom trop long finit par « ... » ; la fenêtre de livraison a son centre sur le carnet, ne recouvre
   pas la barre latérale, et reste dans l'écran pour un carnet poussé au-delà de chacun des quatre coins (test 2, aux
-  deux résolutions). Banc `tests/test_notebook_visual.py` : 17 tests, dont 6 en échec sur l'ancien code.
+  deux résolutions). Banc `tests/radiosurvivor/test_notebook_visual.py` : 17 tests, dont 6 en échec sur l'ancien code.
 - **Non fait** : passage en jeu de `RST.run({ suite = "rs.notebook.visual" })` après la correction (captures
   `rs_notebook_delivery_*` à regarder).
 
@@ -124,9 +124,9 @@ blanc lisible, boutons Oui/Non.
 - Sources Java décompilées 42.21.0, Lua installé, variante Bandits 42.20 et API locale
   CharacterReputation inspectés en lecture seule. Aucune source Steam/jeu modifiée.
 - Syntaxe de tous les Lua du mod, syntaxe Python, JSON FR/EN et correspondance du codec UTF-8.
-- `python RadioSurvivor/tests/test_protocol.py` : les 3 scénarios historiques Walt (solo,
+- `python RadioSurvivor/tests/radiosurvivor/test_protocol.py` : les 3 scénarios historiques Walt (solo,
   serveur + deux clients, bridge absent), vrais Lua et sous-processus Python `--offline`.
-- `python RadioSurvivor/tests/test_carnet.py` : 13 tests. Lua du carnet exécuté dans des VM séparées,
+- `python RadioSurvivor/tests/coreai/test_carnet.py` : 13 tests. Lua du carnet exécuté dans des VM séparées,
   commandes authentifiées relayées par le banc de simulation, bridge offline réel. Le chemin
   `ISChat:onCommandEntered` utilisé est celui du fichier vanilla installé, pas une réécriture.
 

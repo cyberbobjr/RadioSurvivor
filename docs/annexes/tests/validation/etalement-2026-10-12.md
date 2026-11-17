@@ -14,7 +14,7 @@
 ```powershell
 python RadioSurvivor/tools/load_bench.py --minutes 1440 --quiet --heavy 7    # deux essais avant, deux après
 python RadioSurvivor/tools/load_bench.py --minutes 60 --quiet --heavy 7
-python -m unittest RadioSurvivor/tests/test_lk_spread.py                    # déterminisme et mécanisme
+python -m unittest RadioSurvivor/tests/livingknox/test_lk_spread.py                    # déterminisme et mécanisme
 ```
 
 `--heavy 7` : images du serveur de 7 ms lupa ou plus (≈ 25 ms Kahlua, le budget proposé, au rapport 3 à 3,6), module
@@ -63,8 +63,8 @@ viennent plus ni du pas horaire ni du relevé du stock :
 
 | Banc | Comparaison | Résultat |
 |---|---|---|
-| `tests/test_lk_spread.py`, banc léger (2 groupes, 30 heures) | ancien chemin (tout dans l'image de l'heure) / nouveau | registre des groupes et attitudes identiques à l'octet, mêmes lignes `simulation:` et `objective` |
-| `tests/test_lk_spread.py`, banc de charge complet (5 groupes, 4 joueurs, 3 heures) | ancien chemin / nouveau | registre et attitudes identiques à l'octet |
+| `tests/livingknox/test_lk_spread.py`, banc léger (2 groupes, 30 heures) | ancien chemin (tout dans l'image de l'heure) / nouveau | registre des groupes et attitudes identiques à l'octet, mêmes lignes `simulation:` et `objective` |
+| `tests/livingknox/test_lk_spread.py`, banc de charge complet (5 groupes, 4 joueurs, 3 heures) | ancien chemin / nouveau | registre et attitudes identiques à l'octet |
 | Banc de charge complet, **une journée**, sans la mesure | arbre avant / arbre après | registre des groupes identique à l'octet (journal, mémoire et plans compris) |
 
 ## 4. Choix vérifié : simulation et besoins restent dans l'image de l'heure
@@ -101,7 +101,7 @@ corps) ; `animState` reste sous 1 Ko par message. À revoir si la mesure en jeu 
 
 ## 7. Garanties vérifiées (bancs)
 
-- `tests/test_lk_spread.py` (13 tests) : notation et attitudes hors de l'image de l'heure, une passe par image, heure
+- `tests/livingknox/test_lk_spread.py` (13 tests) : notation et attitudes hors de l'image de l'heure, une passe par image, heure
   lue à l'`EveryHours` ; ordre du jeu (`EveryHours` avant `OnTick` dans la même image) ; heure nouvelle avec une file
   non vide (heure précédente finie d'abord) ; passe en erreur journalisée sans arrêter la suivante ; `OnSave` qui vide
   la file et écrit ; une seule écriture pour le pas horaire et pour la relecture du stock ; retenue bornée ;

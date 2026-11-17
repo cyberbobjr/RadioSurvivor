@@ -38,7 +38,7 @@ Une copie de groupe coûte 0,05 ms lupa au banc (5 groupes, plans `fort` compact
 
 ## 3. Contrôle de non-écriture
 
-- Lecture du code (`tests/test_lk_groups.py`, `test_no_caller_writes_through_a_view`) : aucun appelant n'écrit dans une
+- Lecture du code (`tests/livingknox/test_lk_groups.py`, `test_no_caller_writes_through_a_view`) : aucun appelant n'écrit dans une
   vue ni ne la rend.
 - Contrôle à l'exécution `Groups.PEEK_CHECK = true` sur le banc de charge : 180 minutes de jeu, 5 346 lectures, **0**
   écriture par une vue (après déclaration de la peur montée en place par `LK_Needs.perceive`, `Groups.touched`) ;

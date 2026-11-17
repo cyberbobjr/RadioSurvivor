@@ -2,7 +2,7 @@
 
 - Tâches : LK18-T01 (registre des priorités, arbitrage), LK18-T02 (signalement du blocage, action « s'écarter »), LK18-T03 (places d'arrêt)
 - ADR : [Les PNJ se cèdent le passage](../../architecture/decisions/adr-ceder-le-passage.md) (D01 à D06)
-- Code : `Contents/mods/batman_LivingKnox/42.21/media/lua/shared/LivingKnox/LK_Passage.lua` (registre), `.../shared/LivingKnox/LK_PassageArbiter.lua` (arbitrage pur), `.../server/LivingKnox/LK_StopPlace.lua` (règle des places d'arrêt), `.../client/LivingKnox/LK_PassageSignal.lua` (signalement par l'exécutant), `.../server/LivingKnox/LK_PassageAuthority.lua` (contrôles, arbitrage, ordre), `.../server/LivingKnox/Decisions/LK_Decide_StepAside.lua` (action « s'écarter ») ; bancs `tests/test_lk_passage.py`, `tests/test_lk_stop_place.py`, `tests/test_lk_step_aside.py` ; suite en jeu `lk.passage`
+- Code : `Contents/mods/batman_LivingKnox/42.21/media/lua/shared/LivingKnox/LK_Passage.lua` (registre), `.../shared/LivingKnox/LK_PassageArbiter.lua` (arbitrage pur), `.../server/LivingKnox/LK_StopPlace.lua` (règle des places d'arrêt), `.../client/LivingKnox/LK_PassageSignal.lua` (signalement par l'exécutant), `.../server/LivingKnox/LK_PassageAuthority.lua` (contrôles, arbitrage, ordre), `.../server/LivingKnox/Decisions/LK_Decide_StepAside.lua` (action « s'écarter ») ; bancs `tests/livingknox/test_lk_passage.py`, `tests/livingknox/test_lk_stop_place.py`, `tests/livingknox/test_lk_step_aside.py` ; suite en jeu `lk.passage`
 - Build : 42.22 (Java décompilé **J/** = `E:\pz-source-42.22\java\zombie\`) — Date : 2026-11-15 — Statut : testé hors jeu seulement (LK18-T02 : suite `lk.passage` à passer en solo et en MP)
 
 ## Problème

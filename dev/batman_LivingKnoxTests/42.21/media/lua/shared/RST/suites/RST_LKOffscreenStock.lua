@@ -21,7 +21,7 @@ What is checked (nominal path):
     - the next check (arrival) applies them: no item missing or lost, as many items removed and created as pending,
       created items in the group containers, reference ids = real ids, nothing pending, totals unchanged;
     - no duplicate: a second check and a check after LivingKnox.Stock.reset() (memory lost) create nothing.
-Outside the game: tests/test_lk_stock.py (the suite also runs there against doubles).
+Outside the game: tests/livingknox/test_lk_stock.py (the suite also runs there against doubles).
 ]]
 
 require "RST/RST"

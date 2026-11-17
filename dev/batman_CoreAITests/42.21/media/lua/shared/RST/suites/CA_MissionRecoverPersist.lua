@@ -15,7 +15,7 @@ CA_Caches.lua). Played by autoclient.py --mp --phases restart --server-campaign 
                                       one bag. Then the bag is removed and the snapshot consumed.
 Tags "server", "world", "manual": authority only, test saves rstest* only, exact names only.
 Snapshot: Zomboid/Lua/batman_CoreAITests/tests/recover-persist.txt of the server (RST_Persist).
-Outside the game: tests/test_persist_suites.py (doubles of tests/test_mission_recover.py).
+Outside the game: tests/ensemble/test_persist_suites.py (doubles of tests/radiosurvivor/test_mission_recover.py).
 ]]
 
 require "RST/RST"

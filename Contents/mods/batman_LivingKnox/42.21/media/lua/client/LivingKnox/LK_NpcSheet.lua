@@ -34,7 +34,7 @@ local Access = require "CoreAI/CA_AdminAccess"
 local Sheet = LivingKnox.NpcSheet or {}
 LivingKnox.NpcSheet = Sheet
 
--- Copies des constantes de LK_Admin.lua (comparées par tests/test_lk_npcsheet.py).
+-- Copies des constantes de LK_Admin.lua (comparées par tests/livingknox/test_lk_npcsheet.py).
 Sheet.MODULE = "LivingKnox"
 Sheet.CMD_REQUEST = "adminRequest"
 Sheet.CMD_REPLY = "adminReply"

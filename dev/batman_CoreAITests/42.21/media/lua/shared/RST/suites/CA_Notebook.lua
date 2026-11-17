@@ -5,7 +5,7 @@ Reputation always (core mod), plus the tabs each test mod registers for its mod 
 order of the bookmark; RST_ModLivingKnox.lua, RST_ModRadioSurvivor.lua). Every page is laid out without a Lua
 error. The notebook is left open on its Missions page for the final screenshot of the run.
 Tags "client" and "world" (solo or MP client; nothing is changed in the world). Needs the core mod only, so it runs in
-the three set-ups (autoclient.py --mods rs | lk | both). Outside the game: tests/test_core_notebook.py.
+the three set-ups (autoclient.py --mods rs | lk | both). Outside the game: tests/coreai/test_core_notebook.py.
 ]]
 
 require "RST/RST"

@@ -3,7 +3,7 @@
 - Tâches : LK11-T03 (création) ; servira LK11-T02 (sommations selon l'attitude), LK11-T05 (vengeance), LK11-T06 (demandes d'aide), LK11-T08 (troc), E09-T04 (relations du carnet), E04 (réputation)
 - Build : 42.21.0 — Date : 2026-10-10 — Statut : brouillon
 
-Code : `media/lua/server/LivingKnox/LK_Hostility.lua` (`LivingKnox.Hostility`, registre, persistance), réglages `Config.ATTITUDE` dans `media/lua/shared/LivingKnox/LK_Config.lua`, hostilité de départ par type dans `media/lua/shared/LivingKnox/Data/LK_Type_*.lua` (champ `hostility`), relecture à `OnInitGlobalModData` et déclin à `EveryHours` dans `LK_Server.lua`, projection par joueur dans `LK_API.lua` ([api-living-knox.md](../../specifications-techniques/api-living-knox.md)). Tests : `tests/test_lk_hostility.py`, `tests/test_lk_api.py` (`AttitudeTests`), `tests/test_kahlua.py` (`test_attitude_in_kahlua`).
+Code : `media/lua/server/LivingKnox/LK_Hostility.lua` (`LivingKnox.Hostility`, registre, persistance), réglages `Config.ATTITUDE` dans `media/lua/shared/LivingKnox/LK_Config.lua`, hostilité de départ par type dans `media/lua/shared/LivingKnox/Data/LK_Type_*.lua` (champ `hostility`), relecture à `OnInitGlobalModData` et déclin à `EveryHours` dans `LK_Server.lua`, projection par joueur dans `LK_API.lua` ([api-living-knox.md](../../specifications-techniques/api-living-knox.md)). Tests : `tests/livingknox/test_lk_hostility.py`, `tests/livingknox/test_lk_api.py` (`AttitudeTests`), `tests/coreai/test_kahlua.py` (`test_attitude_in_kahlua`).
 
 ## Problème
 
@@ -124,9 +124,9 @@ Valeurs chiffrées propres au mod, points de départ à recalibrer en jeu.
 
 ## Tests
 
-- Banc lupa (`tests/test_lk_hostility.py`) : niveaux de départ par type, seuils, **deux joueurs aux attitudes différentes avec le même groupe**, agresseur seul visé, témoins requis, tendance sur trois faits, bornes de valeur et d'effet, refus, 64 joueurs par groupe (meurtre gardé), déclin (rattrapage borné, cible, plafond après meurtre, déclin horaire, groupes disparus), persistance à deux emplacements, monde neuf, schéma inconnu bloquant, paires invalides écartées, absence du module chez un client MP, clé de joueur par l'identité du carnet, solo.
-- `tests/test_lk_api.py` (`AttitudeTests`) : `API.attitude`, vues par joueur, projection publique limitée au niveau et à la tendance.
-- VM Kahlua (`tests/test_kahlua.py`, `test_attitude_in_kahlua`) : mêmes valeurs que sous lupa, aller-retour RSV2 validé.
+- Banc lupa (`tests/livingknox/test_lk_hostility.py`) : niveaux de départ par type, seuils, **deux joueurs aux attitudes différentes avec le même groupe**, agresseur seul visé, témoins requis, tendance sur trois faits, bornes de valeur et d'effet, refus, 64 joueurs par groupe (meurtre gardé), déclin (rattrapage borné, cible, plafond après meurtre, déclin horaire, groupes disparus), persistance à deux emplacements, monde neuf, schéma inconnu bloquant, paires invalides écartées, absence du module chez un client MP, clé de joueur par l'identité du carnet, solo.
+- `tests/livingknox/test_lk_api.py` (`AttitudeTests`) : `API.attitude`, vues par joueur, projection publique limitée au niveau et à la tendance.
+- VM Kahlua (`tests/coreai/test_kahlua.py`, `test_attitude_in_kahlua`) : mêmes valeurs que sous lupa, aller-retour RSV2 validé.
 - En jeu : aucun (pas encore de point d'entrée branché sur le jeu).
 
 Choix de cible fondé sur cette attitude (LK06-T01) : [cibles.md](cibles.md).

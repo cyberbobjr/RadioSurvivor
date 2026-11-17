@@ -6,7 +6,7 @@
 -- éteint quand il la sélectionne.
 -- Réglage d'un clic : la radio équipée (main ou dos, getEquipedRadio) passe sur la fréquence par l'action vanilla
 -- ISRadioAction « SetChannel » (celle du module de canal de la fenêtre radio), qui synchronise l'état en MP.
--- Logique sans interface : banc tests/test_radio_history.py.
+-- Logique sans interface : banc tests/radiosurvivor/test_radio_history.py.
 local Const = require "RadioSurvivor/RadioSurvivor_Const"
 
 local History = {}

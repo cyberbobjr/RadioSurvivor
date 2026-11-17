@@ -14,7 +14,7 @@ python RadioSurvivor/tools/load_bench.py --minutes 1440 --json charge1440.json  
 python RadioSurvivor/tools/load_bench.py --kahlua                               # rapport de vitesse Kahlua / lupa
 ```
 
-- **Banc** : `tests/harness.py`, une VM Lua 5.1 (lupa) par machine : serveur dédié et quatre clients `A`, `B`, `C`,
+- **Banc** : `tests/commun/harness.py`, une VM Lua 5.1 (lupa) par machine : serveur dédié et quatre clients `A`, `B`, `C`,
   `D`. Pile complète des corps des bancs existants (`test_lk_materialize.MatBase` et doublures de santé, perception,
   combat, tir, zombies, butin, mort), puis **tous** les fichiers Lua de Living Knox chargés par `require` (58 abonnés
   du moteur sur le serveur, 29 sur un client). Doublures ajoutées par le banc : cases sans eau ni buisson, aucune

@@ -8,7 +8,7 @@ batman_LivingKnoxTests).
 
     smuggler margin      RS_Trade.marginRange of a fresh book: good 0.10, neutral 0.25, bad 0.40 (Q13)
 The test restores the reputation entry of the character it touched (RST_ReputationHelpers.lua of batman_CoreAITests).
-Outside the game: tests/test_rs_trade.py (doubles).
+Outside the game: tests/radiosurvivor/test_rs_trade.py (doubles).
 ]]
 
 require "RST/RST"

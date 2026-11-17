@@ -12,7 +12,7 @@ nothing): no notebook state, no ModData of the notebook, no reward item. The req
 player's position, and the home of its group (the depot) is that position: CA_NPCProvider.presence is wrapped for the
 stand-in id during the test only. Cleanup: the player goes back, the bags left on the floor or in the inventory are
 removed, the wrapped function is restored.
-Outside the game: tests/test_mission_recover.py (metagrid, cell and floor doubles).
+Outside the game: tests/radiosurvivor/test_mission_recover.py (metagrid, cell and floor doubles).
 ]]
 
 require "RST/RST"

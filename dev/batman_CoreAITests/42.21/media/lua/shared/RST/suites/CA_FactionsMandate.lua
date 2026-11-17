@@ -14,7 +14,7 @@ CA_Teams.lua; E21-T11: moved from batman_RadioSurvivorTests) with real clients o
 Tags "server" and "world": the authority (solo, or RST.server from an admin client), save rstest*. MP with two clients:
 autoclient.py --mp --clients 2 --server-suite ca.factions.mandate --server-tags world.
 Cleanup: the agreement is removed (LK_Agreements.cancelAgreement), the faction disbanded by its owner (sendFactionDisband;
-removed from Faction.getFactions() by the server if still there). Outside the game: tests/test_rs_mp_suites.py.
+removed from Faction.getFactions() by the server if still there). Outside the game: tests/ensemble/test_rs_mp_suites.py.
 ]]
 
 require "RST/RST"

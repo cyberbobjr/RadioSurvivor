@@ -39,7 +39,7 @@ RST_PeerChecksSignal: the real network path in MP, the same code in one Lua stat
                  (signal: rewardType x rewardCount), which is also the lot of a requester of no resolvable group.
 Cleanup (t:defer): signals of the test stopped, mission, outcome and reputation entry of the character, contact and
 known missions put back, the items of the claim removed (and synced), notebook snapshots sent again; the npc and the
-player position are undone by the fixtures. Outside the game: tests/test_rs_signal_client_suite.py.
+player position are undone by the fixtures. Outside the game: tests/ensemble/test_rs_signal_client_suite.py.
 ]]
 
 require "RST/RST"

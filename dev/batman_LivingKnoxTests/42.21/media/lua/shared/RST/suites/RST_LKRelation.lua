@@ -23,8 +23,8 @@ offered fact with change_relation up: the REAL notebook reply path applies it (A
 two changes, revision 2, both facts used. A binding of the older revision is refused, a change without any offered
 fact is refused; B cites the gift directly on the server (Relations.offer / apply): B one level above, A at the
 group level: two npcs of one group differ.
-Outside the game: tests/test_relations.py, scenario_relation_change of tests/test_protocol.py,
-tests/test_e09_suites.py.
+Outside the game: tests/livingknox/test_relations.py, scenario_relation_change of tests/radiosurvivor/test_protocol.py,
+tests/ensemble/test_e09_suites.py.
 ]]
 
 require "RST/RST"

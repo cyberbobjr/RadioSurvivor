@@ -150,7 +150,7 @@ end
 News.readNews = readNews
 
 -- Mise en page (unités de la page 600 x 800). Les blocs de texte ont leur bas autorisé (bottom) : vérifié hors jeu
--- avec les métriques des polices SDF (tests/test_outside_news.py).
+-- avec les métriques des polices SDF (tests/radiosurvivor/test_outside_news.py).
 News.PAGE = { width = 600, height = 800 }
 News.LAYOUT = {
     masthead = { font = "SdfOldBold", x = 300, y = 26, scale = 1.1, pivotX = 0.5, bottom = 88 },

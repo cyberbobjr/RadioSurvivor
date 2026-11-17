@@ -71,7 +71,7 @@ Personas.PLACES = "_places.txt"
 -- commits 09d7474 et 24832ea (fréquences fixes ; Walt identique dans les deux), 486b21e (plages, E05-T07), puis
 -- E05-T10, E05-T05, E20-T03, E20-T07, E20-T10, E20-T11 ([note] des fiches), E22-T12 (stock sans poids), E22-T14 (sans
 -- knows, ignores ni secret), E23-T06, E24-T01 (radio=<niveau> a la place des plages), E25-T01 (lieux communs). Toute
--- nouvelle version livrée d'une fiche ajoute ici son empreinte (banc tests/test_personas_server.py) ; une fiche
+-- nouvelle version livrée d'une fiche ajoute ici son empreinte (banc tests/radiosurvivor/test_personas_server.py) ; une fiche
 -- livrée après E05-T11 (marchands des villes, E20-T11 ; lieux communs _places.txt, E25-T01) n'a jamais été installée
 -- sans le fichier d'empreintes : aucune entrée.
 Personas.KNOWN_DELIVERED = {

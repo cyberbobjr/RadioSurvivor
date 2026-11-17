@@ -33,8 +33,8 @@ only; god mode back on the requester at the air (its client re-sending it) is na
 Zombies stay cleared by the fixtures.
 Cleanup (t:defer): stats of every touched player restored and synced, god mode given back, hourly cap counters and
 counters of RS_Comfort restored, the test line removed from the radio histories. Solo runs the same code with the
-local player (no other client: noted). Outside the game: tests/test_rs_comfort_suite.py (doubles), tests/test_comfort.py
-(module and wiring).
+local player (no other client: noted). Outside the game: tests/radiosurvivor/test_rs_comfort_suite.py (doubles),
+tests/radiosurvivor/test_comfort.py (module and wiring).
 ]]
 
 require "RST/RST"

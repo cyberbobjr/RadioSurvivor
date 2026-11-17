@@ -19,7 +19,7 @@ mécanisme du banc. Sinon elle dit « non reproductible » et pourquoi.
 | D | Temps et ordre des événements | horloge fidèle et balayage des phases (`E19-T05`) |
 | E | Monde réel (murs, ouvertures verrouillées, cases déchargées, zombies de la partie) | site réel rejoué (`E19-T08`) |
 | F | Réseau (propriétaire du corps, ordre et zone d'envoi) | réseau en désordre, zone d'envoi (`E19-T06`) |
-| G | Particularité de la VM Kahlua | banc Kahlua réel (`tests/test_kahlua.py`) |
+| G | Particularité de la VM Kahlua | banc Kahlua réel (`tests/coreai/test_kahlua.py`) |
 | H | Rendu, animation, son, interface | non reproductible : validé en jeu |
 | I | Défaut du test en jeu lui-même | suite jouée au banc sous balayage (`E19-T05`) |
 
@@ -67,7 +67,7 @@ cités par ces sources n'ont pas été relus un par un. Les plus récents d'abor
 | 2026-11-07 | `lk.traversal` | trajet par les portes de la maison coupé | E | à couvrir (`E19-T08`) |
 | 2026-11-07 | `E18-T17` | identifiant d'objet tiré au hasard qui déborde du `short` vers les négatifs | B | à couvrir (`E19-T03`) |
 | 2026-11-05 | `rs.mission.retrieve` | cadavre jamais reçu par un client téléporté (zone d'envoi) | F | `test_mission_retrieve.py` `test_in_game_suite_under_the_send_zone` (`E19-T06` : zone d'envoi `harness.SendZone` d'après `UdpConnection.isRelevantTo`, 88 cases autour de la position signalée par le client, mise à jour par son paquet de position suivant) : la suite d'avant `a469d1f` échoue (« client alice: corpse of the spot not received »), l'actuelle passe |
-| 2026-11-05 | `rs.npctalk` | commande et réponse livrées sans ordre | F | `test_rs_net_disorder.py` `test_request_seen_under_network_disorder` (`E19-T06` : vrai `R.talk` et vraies étapes RST sous `tests/net_disorder.py`) : le `R.talk` d'avant `a469d1f` échoue sur `random-1` (« no npc_talk request »), l'actuel passe sur les cinq ordres |
+| 2026-11-05 | `rs.npctalk` | commande et réponse livrées sans ordre | F | `test_rs_net_disorder.py` `test_request_seen_under_network_disorder` (`E19-T06` : vrai `R.talk` et vraies étapes RST sous `tests/commun/net_disorder.py`) : le `R.talk` d'avant `a469d1f` échoue sur `random-1` (« no npc_talk request »), l'actuel passe sur les cinq ordres |
 | 2026-11-05 | `lk.windowkill` | le zombie reste dehors, une seule frappe (IA vanilla) | C | non reproductible (IA vanilla) |
 | 2026-11-05 | `lk.barricade` | les joueurs de test, solides, bouchent un couloir d'une case | I | à couvrir (`E19-T08`) |
 | 2026-11-04 | `lk.guard` | zombie recyclé resté `useless` : corps inoffensif | B | à couvrir (`E19-T03`) |

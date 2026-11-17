@@ -82,10 +82,10 @@ maquettes de l'ADR.
     catalogue sans autre changement.
   - Tests : `tests/run_all.py`.
   - Preuve : 2026-11-15 : `tools/gen_atelier_catalog.py` charge le lecteur réel par lupa (chargeur des bancs
-    `tests/test_personas.LuaPersona`) et chaque `CoreAI/CA_Mission*.lua`, écrit `bridge/atelier/catalog.json`
+    `tests/radiosurvivor/test_personas.LuaPersona`) et chaque `CoreAI/CA_Mission*.lua`, écrit `bridge/atelier/catalog.json`
     (missionTypes, setups, paramKinds, rewardKinds, skills, categories, header, sections, sheet, voices) ;
     `Persona.grammar(rules)` expose les tables des lecteurs de `RS_Persona.lua` (constantes sorties, sans changement de
-    comportement), `Params.kinds()` dans `RS_PersonaParams.lua`. `python tests/test_atelier_catalog.py` : `Ran 3 tests`
+    comportement), `Params.kinds()` dans `RS_PersonaParams.lua`. `python tests/radiosurvivor/test_atelier_catalog.py` : `Ran 3 tests`
     `OK` (catalogue à jour, rendu stable, faux gabarit repris sans changer le générateur) ; `test_persona_sections` 12,
     `test_personas` 20, `test_personas_server` 107, `test_mission_route` 15, `test_mission_item` 14, `test_kahlua` 40 :
     `OK` ; luacheck des deux fichiers : 0 avertissement. Suite complète non lancée (autre session en cours).
@@ -108,7 +108,7 @@ maquettes de l'ADR.
     `personas_folder`, fiches livrées par `BUNDLED_PERSONAS` ; le pont tourne aussi, et sans configuration de l'IA
     l'atelier reste ouvert seul), lanceurs
     `bridge/atelier.bat`, `atelier.sh`, `atelier.command` (LF imposé par `.gitattributes`). Réponses
-    `{ok, code, message}` traduisibles. `python tests/test_atelier_server.py` : `Ran 21 tests` `OK` (15 passages de suite) ;
+    `{ok, code, message}` traduisibles. `python tests/radiosurvivor/test_atelier_server.py` : `Ran 21 tests` `OK` (15 passages de suite) ;
     `test_bridge_guards` 11 `OK` ; `test_protocol` sans échec ; lancement réel sur un dossier temporaire : 16 voix listées.
 - [x] **E22-T03** — Interface : voix, assistant en cinq étapes, aperçu
   - État : `testé hors jeu`
@@ -124,7 +124,7 @@ maquettes de l'ADR.
   - Preuve : 2026-11-15 : `bridge/atelier/` en modules ES sans framework ni CDN : `sheet.js` (lecture et écriture de la
     syntaxe, commentaires et clés inconnues gardés), `values.js`, `voice.js`, `catalog.js`, `checks.js` (contrôles légers
     tirés du catalogue, registre par genre de paramètre, jamais bloquants), `i18n.js` et `i18n/{fr,en}.json`, une étape
-    par fichier dans `steps/`, `app.js`. `python tests/test_atelier_ui.py` : `Ran 7 tests` `OK` (16 fiches livrées
+    par fichier dans `steps/`, `app.js`. `python tests/radiosurvivor/test_atelier_ui.py` : `Ran 7 tests` `OK` (16 fiches livrées
     relues et réécrites à l'identique ; voix construite de zéro acceptée par le vrai `RS_Persona.readFile` et par
     `persona_store` ; clés de traduction complètes dans les deux langues). Navigateur (Playwright, `tools/atelier_smoke.py`,
     code 0) : voix créée par les cinq étapes en français puis en anglais, enregistrée, acceptée par le lecteur du jeu,
@@ -142,7 +142,7 @@ maquettes de l'ADR.
   - Preuve : 2026-11-15 (hors jeu) : `bridge/game_console.py` (`ConsoleTail` suit `console.txt`, fichier absent ou
     réécrit toléré ; verdict par fiche tiré d'une table d'événements), route `GET /api/verdicts`, option `--game-log` ;
     `atelier/verdict.js` (bandeau en mots simples et message brut, bouton vers l'étape fautive par `sheet.js locate`),
-    pastille rouge dans la liste. `python tests/test_atelier_log.py` : `Ran 19 tests` `OK` ; navigateur
+    pastille rouge dans la liste. `python tests/radiosurvivor/test_atelier_log.py` : `Ran 19 tests` `OK` ; navigateur
     (`tools/atelier_smoke.py`, code 0) : refus ligne 6 affiché, saut à l'étape « Où et quand ».
   - Reste : validation en jeu solo (jeu pris par une autre session le 2026-11-15).
 - [x] **E22-T05** — Exporter et importer une voix
@@ -234,7 +234,7 @@ maquettes de l'ADR.
   - Preuve : 2026-11-15 : `bridge/atelier/help.js` (bouton « ? » au survol, au clavier et au clic, bulle gardée dans
     l'écran ; parties à quoi ça sert, dans le jeu, choix, exemple, bon à savoir), branché dans les étapes et les
     formulaires ; 126 sujets `help.*` en français et en anglais tirés du wiki et du format des fiches ; avis déplacés en
-    bas à droite. `python tests/test_atelier_help.py` : `Ran 5 tests` `OK` (chaque élément du catalogue a son aide dans
+    bas à droite. `python tests/radiosurvivor/test_atelier_help.py` : `Ran 5 tests` `OK` (chaque élément du catalogue a son aide dans
     les deux langues) ; autres bancs de l'atelier `OK` ; navigateur : bulle de « Livrer des affaires » et de « Confier
     des missions » visibles dans l'écran, `summary: OK (2 locales, 0 failure(s))`.
 - [ ] **E22-T12** — Stock du marchand sans poids à saisir
@@ -315,7 +315,7 @@ maquettes de l'ADR.
   - Dépend de : E22-T14
   - Fichiers : `bridge/atelier_auth.py` (nouveau), `bridge/atelier_server.py`, `bridge/radio_bridge.py`,
     `bridge/.env.example`, atelier (`login.html`, `login.js`, `api.js`, `app.js`, `theme.css`, traductions),
-    `tests/test_atelier_auth.py` (nouveau), `tests/test_atelier_server.py`, `tests/run_all.py`,
+    `tests/radiosurvivor/test_atelier_auth.py` (nouveau), `tests/radiosurvivor/test_atelier_server.py`, `tests/run_all.py`,
     `tools/atelier_smoke.py`, `tools/atelier_doc_shots.py`, wiki 13 (fr, en) et captures `atelier-*-11-login.png`,
     README, ADR, CHANGELOG.
   - Faire : décision de l'utilisateur du 2026-11-16 ([ADR D11](../../architecture/decisions/adr-atelier-voix.md)).
@@ -359,7 +359,7 @@ maquettes de l'ADR.
   - Dépend de : E22-T09
   - Fichiers : wiki 13 réécrit (`docs/wiki/fr/13-atelier-des-voix.md`, `docs/wiki/en/13-voice-workshop.md`), nouvelle
     page 14 (`docs/wiki/fr/14-exemples-de-voix.md`, `docs/wiki/en/14-voice-examples.md`), menus, accueils, renvoi des
-    pages 10 ; `tests/test_wiki_voice_examples.py` (nouveau), `tests/run_all.py` ; `tools/atelier_doc_shots.py` et
+    pages 10 ; `tests/radiosurvivor/test_wiki_voice_examples.py` (nouveau), `tests/run_all.py` ; `tools/atelier_doc_shots.py` et
     captures `docs/images/screenshots/atelier/` (12 à 17, `exemples/` 21 à 25).
   - Faire : demande de l'utilisateur du 2026-11-16 : une page du wiki dédiée à l'atelier, chaque écran, onglet, case et
     choix documenté pour un adolescent, et des exemples concrets de nouvelles voix. Page 13 : sommaire, ouverture (local,
@@ -387,7 +387,7 @@ maquettes de l'ADR.
   - Dépend de : E22-T16
   - Fichiers : `tools/gen_atelier_catalog.py` et `bridge/atelier/catalog.json` (liste `sellable`),
     `bridge/atelier/catalog.js`, `checks.js`, `tradekeys.js`, `itempicker.js`, `itembrowser.js`, `voicelist.js`,
-    `app.js`, `theme.css`, `i18n/fr.json`, `i18n/en.json` ; `tests/test_atelier_catalog.py`, `tests/test_atelier_ui.py` ;
+    `app.js`, `theme.css`, `i18n/fr.json`, `i18n/en.json` ; `tests/radiosurvivor/test_atelier_catalog.py`, `tests/radiosurvivor/test_atelier_ui.py` ;
     `tools/atelier_smoke.py`, `tools/atelier_doc_shots.py` et captures ; wiki 10, 13 et 14 (fr, en) ; CHANGELOG.
   - Faire : demande de l'utilisateur du 2026-11-16. (1) Le catalogue liste les objets vendables (`sellable` :
     `CA_TradeValues.sellValue` > 0 dans lupa, comme `RS_Trade`, après chargement des fichiers qui appellent

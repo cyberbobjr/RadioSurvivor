@@ -1,7 +1,7 @@
 # Passage de la semaine : réservation et rendez-vous du passeur
 
 - Tâche : E13-T03 (réservation hebdomadaire et rendez-vous) ; s'appuie sur E13-T02 ([passeur-offre.md](passeur-offre.md) : livre, offre figée), E13-T01 (décisions du 2026-10-08 : toujours le même ponton ; table validée [passeur-table.md](../../specifications-techniques/passeur-table.md) : cordon 1 / 1,25 / 1,5), E09-T03 (identifiant d'équipe `RS_Factions.idOf`), E11-T07 (Signal Smoke, mod requis depuis le 2026-10-15)
-- Code : `media/lua/server/RadioSurvivor/RS_Trade.lua` (réservation, rendez-vous, cordon, état) ; `media/lua/server/RadioSurvivor/RS_TradeRun.lua` (règles de la nuit, signal, annonces, repère) ; traductions `IGUI_RS_TradeRun_*` (EN, FR) ; pont `bridge/radio_bridge.py` (`trade_run`, `trade_run_lines`) ; fiche `personas/gus.txt` ; banc `tests/test_rs_trade_run.py` ; suite en jeu `rs.trade_run`
+- Code : `media/lua/server/RadioSurvivor/RS_Trade.lua` (réservation, rendez-vous, cordon, état) ; `media/lua/server/RadioSurvivor/RS_TradeRun.lua` (règles de la nuit, signal, annonces, repère) ; traductions `IGUI_RS_TradeRun_*` (EN, FR) ; pont `bridge/radio_bridge.py` (`trade_run`, `trade_run_lines`) ; fiche `personas/gus.txt` ; banc `tests/radiosurvivor/test_rs_trade_run.py` ; suite en jeu `rs.trade_run`
 - Build : 42.21.0 (Java décompilé **J/** = `<decompiled>\42.21.0\java\zombie\`) — Date : 2026-10-13 — Statut : brouillon, testé hors jeu seulement
 
 ## Problème
@@ -80,8 +80,8 @@ Un passage par semaine de jeu pour tout le serveur, réservé à la radio par un
 
 ## Tests
 
-- Banc `tests/test_rs_trade_run.py` (22 tests) : fenêtre de nuit (01:00, ≥ 6 h, dans la semaine) sur 1 600 heures ; cordon tiré reproductible et réparti ; une réservation par passage (refus `booked`, autre membre de la même équipe, passage suivant libre) ; `run_over` après annulation ou en fin de semaine ; échange fait = passage fini ; contexte par équipe relu par le pont et prompt (lieu seulement pour l'équipe, aucune coordonnée) ; livre mal formé ignoré ; orage, patrouille (selon le cordon), hélicoptère (cordon monté une fois, annulation près de la nuit), retard annoncés une fois sur la fréquence, retard ancien muet, voix hors antenne ; lampe d'un membre au ponton pendant la fenêtre seulement ; fusée rouge Signal Smoke ; traductions EN/FR et repli ; code ASCII ; suite en jeu compilée ; fiche de Gus.
-- Banc `tests/test_rs_trade.py` (E13-T02) inchangé dans ses attentes (cordon du passage 1 fixé à 1 dans son `setUp`).
+- Banc `tests/radiosurvivor/test_rs_trade_run.py` (22 tests) : fenêtre de nuit (01:00, ≥ 6 h, dans la semaine) sur 1 600 heures ; cordon tiré reproductible et réparti ; une réservation par passage (refus `booked`, autre membre de la même équipe, passage suivant libre) ; `run_over` après annulation ou en fin de semaine ; échange fait = passage fini ; contexte par équipe relu par le pont et prompt (lieu seulement pour l'équipe, aucune coordonnée) ; livre mal formé ignoré ; orage, patrouille (selon le cordon), hélicoptère (cordon monté une fois, annulation près de la nuit), retard annoncés une fois sur la fréquence, retard ancien muet, voix hors antenne ; lampe d'un membre au ponton pendant la fenêtre seulement ; fusée rouge Signal Smoke ; traductions EN/FR et repli ; code ASCII ; suite en jeu compilée ; fiche de Gus.
+- Banc `tests/radiosurvivor/test_rs_trade.py` (E13-T02) inchangé dans ses attentes (cordon du passage 1 fixé à 1 dans son `setUp`).
 - En jeu : suite `rs.trade_run` (autorité, partie `rstest*`) : `RST.run({ suite = "rs.trade_run", tags = "world" })`.
 
 ## Limites et restes

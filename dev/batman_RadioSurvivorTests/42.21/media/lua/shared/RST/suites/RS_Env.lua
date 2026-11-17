@@ -2,7 +2,7 @@
 rs.env — environment of batman_RadioSurvivor: game version 42.22, mod active, Java globals, exposed classes and
 methods the mod really uses (inventory of Contents/mods/batman_RadioSurvivor/42.21/media/lua, RS_Bandits.lua left out:
 the Bandits! adapter is being removed, E17-T01). Tag "shared": runs in solo and on a client (RST.run("rs.env")) and
-on the server (RST.server("rs.env"), dedicated server autorun); outside the game: tests/test_rs_suites.py.
+on the server (RST.server("rs.env"), dedicated server autorun); outside the game: tests/radiosurvivor/test_rs_suites.py.
 
 Sides: a dependency belongs to the side of the files that use it.
     any     shared files, or used by both client and server files: checked everywhere.

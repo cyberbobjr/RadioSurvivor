@@ -25,7 +25,7 @@ What is checked (nominal path):
 Second test (LK11-T10): the delay between the oath and the departure comes from the sandbox option
 LivingKnox.RevengeDelayHours (integer 12..336, default 72), changed in memory as an admin would (option:setValue,
 restored afterwards); an oath already sworn keeps its departure hour when the option changes. Offscreen only (no body).
-Outside the game: tests/test_lk_revenge.py (the suite also runs there against doubles).
+Outside the game: tests/livingknox/test_lk_revenge.py (the suite also runs there against doubles).
 ]]
 
 require "RST/RST"

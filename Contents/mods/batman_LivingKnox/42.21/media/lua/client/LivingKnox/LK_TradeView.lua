@@ -22,7 +22,7 @@ local TV = require "CoreAI/CA_TradeValues"
 local View = LivingKnox.TradeView or {}
 LivingKnox.TradeView = View
 
--- Copies des constantes de LK_Trade.lua (comparées par tests/test_lk_trade.py).
+-- Copies des constantes de LK_Trade.lua (comparées par tests/livingknox/test_lk_trade.py).
 View.MODULE = "LivingKnox"
 View.CMD_REQUEST = "tradeRequest"
 View.CMD_REPLY = "tradeReply"

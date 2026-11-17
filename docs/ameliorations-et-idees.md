@@ -109,7 +109,7 @@ Priorité : **haute** (bug, sécurité ou perte de données possible), **moyenne
 - **Correction** : passer ces champs par `npc.safe_text` avec une borne de 48 à 64 octets, les présenter comme des données non fiables, ou les déplacer dans le message utilisateur. Ajouter un test d'injection.
 - **Priorité** haute · **Effort** S · confirmé statiquement. Reste à vérifier en jeu : une radio d'inventaire renommée par le joueur porte-t-elle son nom personnalisé ?
 - **Statut : corrigé (commit 4215bd3), à vérifier en jeu**
-- **Avancement : ✅ corrigé, non publié (commit 4215bd3), testé hors jeu (`tests/test_bridge_guards.py`), à vérifier en jeu** — tâche E16-T06.
+- **Avancement : ✅ corrigé, non publié (commit 4215bd3), testé hors jeu (`tests/radiosurvivor/test_bridge_guards.py`), à vérifier en jeu** — tâche E16-T06.
 
 #### C02 — Usurpation du tag `[Caller N]` dans l'historique partagé d'une voix
 - **Problème** : le message enregistré est `f"{tag} {text}"`. Un texte qui contient « [Caller 2] … » ou un faux rappel de format reste dans les 40 derniers messages relus pour tous les appelants de la voix. Le tag n'est retiré que de la sortie.
@@ -118,7 +118,7 @@ Priorité : **haute** (bug, sécurité ou perte de données possible), **moyenne
 - **Correction** : neutraliser `[` et `]` (ou les seuls motifs `[Caller`) dans le texte joueur, ou encapsuler chaque tour entre délimiteurs déclarés non fiables. Ajouter un test.
 - **Priorité** haute · **Effort** S · confirmé statiquement.
 - **Statut : corrigé (commit 4215bd3), à vérifier en jeu**
-- **Avancement : ✅ corrigé, non publié (commit 4215bd3), testé hors jeu (`tests/test_bridge_guards.py`), à vérifier en jeu** — tâche E16-T06.
+- **Avancement : ✅ corrigé, non publié (commit 4215bd3), testé hors jeu (`tests/radiosurvivor/test_bridge_guards.py`), à vérifier en jeu** — tâche E16-T06.
 
 #### C03 — Tentative de repli sans `max_tokens`
 - **Problème** : le corps `minimal` n'a aucun plafond de jetons. Après une réponse vide due à un raisonnement trop long (`finish_reason=length`, cas réel du 2026-10-13), la tentative suivante part sans limite.
@@ -127,7 +127,7 @@ Priorité : **haute** (bug, sécurité ou perte de données possible), **moyenne
 - **Correction** : garder `max_tokens` (ou `max_completion_tokens`) dans le repli, ne pas relancer après `finish_reason=length`, poser un plafond de jetons par appel.
 - **Priorité** haute · **Effort** S · confirmé statiquement.
 - **Statut : corrigé (commit 4215bd3), à vérifier en jeu**
-- **Avancement : ✅ corrigé, non publié (commits 4215bd3, 69e550c), testé hors jeu (`tests/test_bridge_guards.py`), à vérifier en jeu** — tâches E16-T06 et E16-T07 (plafond réglable).
+- **Avancement : ✅ corrigé, non publié (commits 4215bd3, 69e550c), testé hors jeu (`tests/radiosurvivor/test_bridge_guards.py`), à vérifier en jeu** — tâches E16-T06 et E16-T07 (plafond réglable).
 - **Suite (2026-10-21, confirmée par l'utilisateur)** : plafond réglable dans la configuration du pont (`LLM_MAX_TOKENS`, `LLM_MAX_PROMPT_CHARS`, mêmes défauts, valeur invalide remplacée par le défaut) ; tâche `E16-T07`.
 
 #### C04 — Un échec d'écriture de `responses.txt` arrête le pont ; exceptions des workers perdues
@@ -185,7 +185,7 @@ Priorité : **haute** (bug, sécurité ou perte de données possible), **moyenne
 - **Correction** : plafond en caractères ou en jetons estimés avant l'appel, refus journalisé `prompt_too_large`.
 - **Priorité** moyenne · **Effort** S · confirmé statiquement.
 - **Statut : corrigé (commit 4215bd3), à vérifier en jeu**
-- **Avancement : ✅ corrigé, non publié (commits 4215bd3, 69e550c), testé hors jeu (`tests/test_bridge_guards.py`), à vérifier en jeu** — tâches E16-T06 et E16-T07 (plafond réglable).
+- **Avancement : ✅ corrigé, non publié (commits 4215bd3, 69e550c), testé hors jeu (`tests/radiosurvivor/test_bridge_guards.py`), à vérifier en jeu** — tâches E16-T06 et E16-T07 (plafond réglable).
 - **Suite (2026-10-21, confirmée par l'utilisateur)** : plafond réglable dans la configuration du pont (`LLM_MAX_TOKENS`, `LLM_MAX_PROMPT_CHARS`, mêmes défauts, valeur invalide remplacée par le défaut) ; tâche `E16-T07`.
 
 #### C11 — Journaux : texte des joueurs, corps d'erreur du fournisseur, secrets en `--debug`
@@ -240,7 +240,7 @@ Priorité : **haute** (bug, sécurité ou perte de données possible), **moyenne
 - **Preuve** : recherche dans `tests/` (`test_protocol.py`, `test_fake_llm.py`, `test_bulletin.py`).
 - **Correction** : un test ciblé par point, plus un banc d'injection rejoué en `--offline` avec un faux LLM qui « obéit » (vérifie que les bornes tiennent).
 - **Priorité** moyenne · **Effort** S à M · confirmé par recherche.
-- **Avancement : 🟡 en partie, non publié (commit 4215bd3)** — seule l'usurpation `[Caller N]` est couverte (`CallerTagTests` de `tests/test_bridge_guards.py`, avec C02) ; restent `PermissionError`, JSON de PNJ corrompu, `TokenUsageLog`, `request_age`, `single_instance`, réessai 429 et `ES_CL` (`leaks_secret` retiré avec les secrets des fiches, E22-T14).
+- **Avancement : 🟡 en partie, non publié (commit 4215bd3)** — seule l'usurpation `[Caller N]` est couverte (`CallerTagTests` de `tests/radiosurvivor/test_bridge_guards.py`, avec C02) ; restent `PermissionError`, JSON de PNJ corrompu, `TokenUsageLog`, `request_age`, `single_instance`, réessai 429 et `ES_CL` (`leaks_secret` retiré avec les secrets des fiches, E22-T14).
 
 #### C16 — Petits défauts du pont
 - **Problème** :
@@ -255,7 +255,7 @@ Chemins relatifs à `Contents/mods/batman_RadioSurvivor/42.21/media/lua/`.
 
 #### C17 — Personnages morts jamais purgés de l'état
 - **Statut : corrigé (commit 3760771), à vérifier en jeu** — `server/RadioSurvivor/RS_StatePurge.lua` : mort datée (`retiredDay`), contacts, missions connues et historique radio vidés après 7 jours de jeu, fiche supprimée après 30 jours si aucune mission, dernières pages (journal gelé) ni réputation ne la citent ; 50 fiches par passe, une passe par jour de jeu à la sauvegarde (commit 99dc0bc).
-- **Avancement : ✅ corrigé, non publié (commits 3760771, 99dc0bc), testé hors jeu (`tests/test_rs_state.py`), à vérifier sur un serveur dédié** — tâche E16-T08.
+- **Avancement : ✅ corrigé, non publié (commits 3760771, 99dc0bc), testé hors jeu (`tests/radiosurvivor/test_rs_state.py`), à vérifier sur un serveur dédié** — tâche E16-T08.
 - **Problème** : à la mort, seuls `retired = true` et `record.radio = nil` sont posés. `S.data.characters[id]` et ses `contacts` (jusqu'à 40 lignes d'historique par PNJ) ne sont jamais supprimés : aucun `characters[...] = nil` dans le code. `prune` garde en plus toute fiche PNJ citée par un contact, même d'un mort.
 - **Preuve** : `server/RS_Carnet_Server.lua:1300-1314`, `:1110` ; `server/RadioSurvivor/RS_Reputation.lua:371-380` (la réputation, elle, a son `prune`).
 - **Risque** : persistance. Sur un serveur durable, chaque mort ajoute des données pour toujours, jusqu'au seuil de C18.
@@ -264,7 +264,7 @@ Chemins relatifs à `Contents/mods/batman_RadioSurvivor/42.21/media/lua/`.
 
 #### C18 — L'encodeur accepte un état que le décodeur refuse ; aucune migration de schéma
 - **Statut : corrigé (commit 3760771), à vérifier en jeu** — `encodeBytes` contrôle les mêmes limites que le décodeur (nœuds, profondeur, entrées, nombres finis) ; au-delà, purge forcée des morts puis refus sans écrire (aucun fichier illisible) ; alerte console à 70 % ; `RS_State.upgrade`/`MIGRATIONS` (aucune migration encore, schéma 2) ; un emplacement d'un schéma plus récent bloque au lieu de relire l'ancien. Alerte aux admins connectés non faite (texte joueur à traduire).
-- **Avancement : ✅ corrigé, non publié (commit 3760771), testé hors jeu (`tests/test_rs_state.py`), à vérifier sur un serveur dédié** — tâche E16-T08 ; reste l'alerte aux admins connectés.
+- **Avancement : ✅ corrigé, non publié (commit 3760771), testé hors jeu (`tests/radiosurvivor/test_rs_state.py`), à vérifier sur un serveur dédié** — tâche E16-T08 ; reste l'alerte aux admins connectés.
 - **Problème** :
   - `encodeBytes` ne contrôle que la taille (4 Mio) ;
   - `decodeBytes` refuse au-delà de 200 000 nœuds, d'une profondeur de 12 ou de 10 000 entrées par table ;
@@ -278,7 +278,7 @@ Chemins relatifs à `Contents/mods/batman_RadioSurvivor/42.21/media/lua/`.
 
 #### C19 — Une erreur d'écriture passagère coupe le carnet jusqu'au redémarrage
 - **Statut : corrigé (commit 3760771), à vérifier en jeu** — écriture ratée : plus de blocage, `S.dirty` gardé, nouvel essai à la sauvegarde suivante sur le même emplacement (l'autre garde le dernier bon fichier), journal au 1er échec puis tous les 20. Blocage réservé à l'état corrompu. Prévenir les admins connectés : non fait.
-- **Avancement : ✅ corrigé, non publié (commit 3760771), testé hors jeu (`tests/test_rs_state.py`), à vérifier sur un serveur dédié** — tâche E16-T08 ; reste à prévenir les admins connectés.
+- **Avancement : ✅ corrigé, non publié (commit 3760771), testé hors jeu (`tests/radiosurvivor/test_rs_state.py`), à vérifier sur un serveur dédié** — tâche E16-T08 ; reste à prévenir les admins connectés.
 - **Problème** : un `getFileWriter` nul, une relecture ratée ou un encodage refusé posent `S.blocked = true` pour toute la session, avec un simple `print`. Seul `S.init` remet l'indicateur à faux. Toutes les commandes répondent ensuite `Storage`.
 - **Preuve** : `server/RadioSurvivor/RS_State.lua:45`, `:52-55`, `:60`, `:63-67`.
 - **Risque** : persistance. Toutes les modifications de la session sont perdues sans que l'admin le sache.
@@ -287,7 +287,7 @@ Chemins relatifs à `Contents/mods/batman_RadioSurvivor/42.21/media/lua/`.
 
 #### C20 — Sauvegarde synchrone complète, lente et très fréquente
 - **Statut : corrigé en partie (commit 3760771), à vérifier en jeu** — hex par table de remplacement, `unhexBytes` et somme de contrôle par blocs dans `CA_Codec` (mêmes octets, testé) ; relecture de contrôle à la première écriture et après un échec. Reste : écriture regroupée en fin d'image (`markChanged`), qui touche les 38 appels de `RS_Carnet_Server.lua`.
-- **Avancement : 🟡 en partie, non publié (commit 3760771), testé hors jeu (`tests/test_rs_state.py`)** — tâche E16-T08 ; reste l'écriture regroupée en fin d'image (`markChanged`) ; gain à mesurer en jeu.
+- **Avancement : 🟡 en partie, non publié (commit 3760771), testé hors jeu (`tests/radiosurvivor/test_rs_state.py`)** — tâche E16-T08 ; reste l'écriture regroupée en fin d'image (`markChanged`) ; gain à mesurer en jeu.
 - **Problème** : chaque `S.save` fait :
   - un encodage complet ;
   - une conversion hexadécimale par `gsub` avec un appel de fonction Lua par octet ;
@@ -313,7 +313,7 @@ Chemins relatifs à `Contents/mods/batman_RadioSurvivor/42.21/media/lua/`.
 - **Correction** : seau à jetons par compte à l'entrée de `Server.command` et de `onClientCommand` (même répartiteur que C31) ; snapshot en cache s'il n'a pas changé ; refus journalisés une fois par fenêtre.
 - **Priorité** haute · **Effort** S · confirmé statiquement.
 - **Statut : corrigé (commit 2d8cae5), à vérifier en jeu** — Seaux par compte (`CA_RateLimit`, serveur MP seulement) : `hello` 4 puis 1/2 s, `snapshot` 6 puis 1/s, `rep_admin` 3 puis 1/5 s, autres commandes du carnet 20 puis 4/s ; `history` 3 puis 1/5 s, autres commandes radio 30 puis 6/s ; commande refusée sans réponse, refus journalisés une fois par minute. Snapshot en cache non fait.
-- **Avancement : ✅ corrigé, non publié (commit 2d8cae5), testé hors jeu (`tests/test_server_guards.py`), à vérifier en MP** — tâche E16-T09 ; snapshot en cache non fait.
+- **Avancement : ✅ corrigé, non publié (commit 2d8cae5), testé hors jeu (`tests/coreai/test_server_guards.py`), à vérifier en MP** — tâche E16-T09 ; snapshot en cache non fait.
 
 #### C22 — Nettoyage de texte quadratique appliqué avant la troncature
 - **Problème** : `Const.oneLine` utilise `^%s*(.-)%s*$`, dont le retour arrière est en O(n²) sur une longue suite d'espaces suivie d'un caractère. `onTalk` et `Log.heard` l'appliquent au texte brut du client, avant de le couper à `MAX_INPUT_CHARS`.
@@ -322,7 +322,7 @@ Chemins relatifs à `Contents/mods/batman_RadioSurvivor/42.21/media/lua/`.
 - **Correction** : refuser un `args.text` plus long que quatre fois la borne, tronquer avant tout `gsub`, rogner par `find("%S")` et `find("%S%s*$")`.
 - **Priorité** haute · **Effort** S · coût confirmé statiquement, effet à mesurer en jeu.
 - **Statut : corrigé (commit 2d8cae5), à vérifier en jeu** — `Const.oneLine` linéaire (deux `find`) ; `onTalk` ignore un texte de plus de 4 × `MAX_INPUT_CHARS` ; `Log.cleanText` coupe à 4 × `MAX_TEXT` avant tout motif.
-- **Avancement : ✅ corrigé, non publié (commit 2d8cae5), testé hors jeu (`tests/test_server_guards.py`), à vérifier en MP** — tâche E16-T09.
+- **Avancement : ✅ corrigé, non publié (commit 2d8cae5), testé hors jeu (`tests/coreai/test_server_guards.py`), à vérifier en MP** — tâche E16-T09.
 
 #### C23 — La radio ignore les contrôles de chat de la parole de proximité
 - **Problème** : `chatAllowed` (mort, sommeil, `isAllChatMuted`, `ChatStreams`, `detectBadWords`) ne s'applique qu'à la parole de proximité. Un joueur muet ou endormi, ou un texte filtré, atteint le LLM par la radio d'une voix ou d'un groupe. `GroupRadio.talk` ignore aussi `ChatMessageSlowModeTime`.
@@ -363,7 +363,7 @@ Chemins relatifs à `Contents/mods/batman_RadioSurvivor/42.21/media/lua/`.
 - **Correction** : ne pas décompter si le jeu est en pause (vitesse 0 en solo, serveur sans joueur), ou passer aux minutes de jeu. ~~Décision à poser~~ à l'utilisateur.
 - **Décision (2026-10-21, confirmée par l'utilisateur)** : les délais des missions suivent le temps de jeu (arrêt en pause, accélération en x2/x3), comme les délais vanilla.
 - **Statut** : décidé, tâche `E11-T20` (temps restant et délai entre deux offres comptés en temps de jeu à vitesse normale, `CA_GameClock`) ; codé et testé hors jeu, à vérifier en jeu.
-- **Avancement : ✅ corrigé, non publié (commits 24d6cab, a2a81b3), testé hors jeu (`tests/test_carnet.py`, `tests/test_kahlua.py`), à vérifier en jeu** — tâches E11-T20 (délais) et E16-T10 (lot non réclamé).
+- **Avancement : ✅ corrigé, non publié (commits 24d6cab, a2a81b3), testé hors jeu (`tests/coreai/test_carnet.py`, `tests/coreai/test_kahlua.py`), à vérifier en jeu** — tâches E11-T20 (délais) et E16-T10 (lot non réclamé).
 - **Suite (2026-10-21, confirmée par l'utilisateur)** : la conservation d'un lot réussi non réclamé (`UNCLAIMED_RETENTION_MS`, 7 jours réels) devient 7 jours **de jeu** (`UNCLAIMED_RETENTION_HOURS`, âge du monde), avec conversion des lots déjà enregistrés ; tâche `E16-T10`.
 - **Priorité** moyenne · **Effort** S · à vérifier en jeu.
 
@@ -392,7 +392,7 @@ Chemins relatifs à `Contents/mods/batman_RadioSurvivor/42.21/media/lua/`.
 - **Correction** : cache par image (`id → résultat`, invalidé au changement d'image ou à `bodyBound`/`despawn`), ou test `contains` limité au premier `find` de l'image pour chaque PNJ. Mesurer avant et après avec `LK_Load` (LK13-T02).
 - **Priorité** moyenne · **Effort** S · confirmé statiquement, coût à mesurer en jeu.
 - **Statut : corrigé (commit 2d8cae5), à vérifier en jeu** — Cache par PNJ du test `contains`, valable pour un même `getWorld():getFrameNo()` et un même `getTimestampMs()`, vidé par `removeBody` ; gain à mesurer avec `LK_Load`.
-- **Avancement : ✅ corrigé, non publié (commit 2d8cae5), testé hors jeu (`FindCacheTests` de `tests/test_lk_bodies.py`)** — tâche E16-T09 ; gain à mesurer avec `LK_Load`.
+- **Avancement : ✅ corrigé, non publié (commit 2d8cae5), testé hors jeu (`FindCacheTests` de `tests/livingknox/test_lk_bodies.py`)** — tâche E16-T09 ; gain à mesurer avec `LK_Load`.
 
 #### C31 — Commandes réseau : environ 30 abonnés qui filtrent chacun le module, sans limite de débit
 - **Problème** :
@@ -404,7 +404,7 @@ Chemins relatifs à `Contents/mods/batman_RadioSurvivor/42.21/media/lua/`.
 - **Correction** : un répartiteur unique `module → command → handler` par machine (un seul abonnement), avec un compteur par compte et par commande (par exemple `hello` au plus une fois par seconde). Les gestionnaires existants restent inchangés.
 - **Priorité** moyenne · **Effort** M · confirmé statiquement (l'effet d'une répétition abusive reste à mesurer).
 - **Statut : corrigé (commit 2d8cae5), à vérifier en jeu** — `guardHello` limité par compte et par module (`ZombieGuard.helloAllowed` : 3 puis 1/2 s) ; répartiteur unique non fait (les abonnés restent séparés).
-- **Avancement : 🟡 en partie, non publié (commit 2d8cae5), testé hors jeu (`tests/test_server_guards.py`)** — tâche E16-T09 : `guardHello` limité par compte ; répartiteur unique non fait.
+- **Avancement : 🟡 en partie, non publié (commit 2d8cae5), testé hors jeu (`tests/coreai/test_server_guards.py`)** — tâche E16-T09 : `guardHello` limité par compte ; répartiteur unique non fait.
 
 #### C32 — Joueurs déconnectés gardés dans `Relay.players` et `Relay.sent`
 - **Problème** : `Relay.players[name]` garde le dernier `IsoPlayer` connu et `Relay.sent[name]` n'est jamais purgé. Aucun abonné de déconnexion dans le moteur. `publish` envoie à `Relay.players[name]` tant que le compte figure dans `Relay.near`.

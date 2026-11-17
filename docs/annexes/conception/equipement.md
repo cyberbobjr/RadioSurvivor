@@ -94,7 +94,7 @@ seulement qu'un PNJ vivant ne perd ni son arme ni ses munitions.
 ancien type sur un corps sauvegardé avant LK07-T08 serait adopté une fois ; un remplacement à un autre emplacement
 que celui de l'arme voulue n'est pas vu. Décision à confirmer : conversion des munitions une pour une.
 
-**Tests** : banc `tests/test_lk_weapon_swap.py` (doublure du remplacement : même emplacement, autre arme, autres
+**Tests** : banc `tests/livingknox/test_lk_weapon_swap.py` (doublure du remplacement : même emplacement, autre arme, autres
 munitions ; MP et solo : adoption, emplacement, munitions, envoi aux clients, tir avec l'arme remplaçante, ordre
 renouvelé en plein combat, revolver sans chargeur, arme inutilisable, objet marqué jamais adopté, geste à deux mains,
 cadavre) ; suite en jeu `lk.weaponswap` (`RST_LKWeaponSwap.lua`) : `RST.run({ suite = "lk.weaponswap", tags = "world" })`.
@@ -111,7 +111,7 @@ cadavre) ; suite en jeu `lk.weaponswap` (`RST_LKWeaponSwap.lua`) : `RST.run({ su
 
 ## Tests
 
-- Banc lupa (`tests/test_lk_equipment.py`, 19 tests) : doublures `setPrimaryHandItem`/`setSecondaryHandItem` (événements, `Weapon` d'après `WeaponType`, exception sur le serveur), abonné de pêche vanilla simulé (échec prouvé sans garde), `sendAttachedItem` et réception (client absent à l'envoi), `getAnimationDebug` d'après `tools/anim_table.json` ; solo, serveur et deux clients, client arrivé après, copie recréée, retour de chunk, changement et retrait d'arme, refus, relecture du registre, commande `LKB.weapon`, suite `lk.equipment` exécutée sur les doublures ; abonnés d'autres mods (LK02-T13) : doublures de comportement du cadre `SWMG` et de `ISRadioWindow` (aucune erreur, arme seule modifiée, solo et deux clients, jamais sur le serveur) et abonné hypothétique qui suppose un joueur (une erreur par pose, affichage intact).
+- Banc lupa (`tests/livingknox/test_lk_equipment.py`, 19 tests) : doublures `setPrimaryHandItem`/`setSecondaryHandItem` (événements, `Weapon` d'après `WeaponType`, exception sur le serveur), abonné de pêche vanilla simulé (échec prouvé sans garde), `sendAttachedItem` et réception (client absent à l'envoi), `getAnimationDebug` d'après `tools/anim_table.json` ; solo, serveur et deux clients, client arrivé après, copie recréée, retour de chunk, changement et retrait d'arme, refus, relecture du registre, commande `LKB.weapon`, suite `lk.equipment` exécutée sur les doublures ; abonnés d'autres mods (LK02-T13) : doublures de comportement du cadre `SWMG` et de `ISRadioWindow` (aucune erreur, arme seule modifiée, solo et deux clients, jamais sur le serveur) et abonné hypothétique qui suppose un joueur (une erreur par pose, affichage intact).
 - VM Kahlua : sans objet (aucune construction propre à Kahlua).
 - En jeu : suite `lk.equipment` (tag `world`, solo) ; serveur dédié de test (`-Filters rst`) : chargement sans erreur Lua, aucune suite LK exécutée.
 

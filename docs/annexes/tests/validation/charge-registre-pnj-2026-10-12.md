@@ -59,11 +59,11 @@ rien : son écriture reste dominée par l'hex et la somme de contrôle.
 - Registre des groupes écrit en fin de journée (`--dump-groups`, encodé par le `RS_Codec` de chaque arbre) :
   **fichiers identiques octet pour octet** avant et après (`cmp`, 43 122 o). Tailles du registre des PNJ identiques
   (23 846 o), sur l'heure comme sur la journée.
-- `tests/test_lk_store.py`, `CodecSortTests` : 200 tables tirées (clés chaînes, entières, flottantes, négatives, non
+- `tests/livingknox/test_lk_store.py`, `CodecSortTests` : 200 tables tirées (clés chaînes, entières, flottantes, négatives, non
   ASCII, tables imbriquées) et le registre des PNJ du banc, octet pour octet contre le comparateur historique ;
   repli sur ce comparateur quand deux clés s'écrivent pareil (deux nombres égaux sur 14 chiffres sous Lua 5.1 ;
   jamais en Kahlua, dont `Double.toString` est exact ; cas simulé au banc).
-- VM Kahlua (`tests/test_kahlua.py`, `KR-RFLUSH`) : 300 tables tirées, mêmes octets dans la VM réelle
+- VM Kahlua (`tests/coreai/test_kahlua.py`, `KR-RFLUSH`) : 300 tables tirées, mêmes octets dans la VM réelle
   (`table.sort` de `stdlib.lua`).
 - Bancs du carnet et de l'échange (`test_protocol`, `test_carnet`, `test_personas*`, `test_notes`…) verts sans
   changement.
@@ -78,13 +78,13 @@ de LK13-T02), hors du périmètre de cette tâche.
 
 ## 5. Garanties vérifiées (bancs) et limites
 
-- `tests/test_lk_store.py` (11 tests) : créations et retraits d'une image écrits une fois à sa fin, rien avant ;
+- `tests/livingknox/test_lk_store.py` (11 tests) : créations et retraits d'une image écrits une fois à sa fin, rien avant ;
   arme posée à la création écrite avec elle ; écriture de fin d'image placée derrière les abonnés inscrits au
   chargement, une par image au plus ; serveur en pause écrit au début de l'image suivante ; `OnSave` et relecture
   (`Store.init`) écrivent ce qui attend ; `flush` idempotent, refusé registre bloqué ; **mort écrite tout de suite**
   (avec le changement en attente) ; relecture de contrôle à la première écriture de la session et sur demande, fichier
   abîmé détecté par `Store.verifyFile` (registre bloqué) ; redémarrage qui relit tout.
-- `tests/test_lk_bodies.py` (55 tests) : inchangé sauf l'aide `spawn` du banc, qui termine l'image après chaque
+- `tests/livingknox/test_lk_bodies.py` (55 tests) : inchangé sauf l'aide `spawn` du banc, qui termine l'image après chaque
   création (une création par image, comme une commande de console).
 - Registre des attitudes (`LK_Hostility`) laissé en écriture immédiate : aucune écriture au banc, une par fait de
   joueur et une par jour de déclin ; le même schéma s'y appliquerait, sans gain mesurable aujourd'hui.

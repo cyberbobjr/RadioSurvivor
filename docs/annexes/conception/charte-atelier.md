@@ -67,7 +67,7 @@ Les textes, icônes et aides vivent dans `i18n/fr.json` et `i18n/en.json` (même
 
 ## Vérifier un écran
 
-- Tests hors jeu : `tests/test_atelier_ui.py` (modules purs, clés de traduction) et `tests/test_atelier_simple.py`
+- Tests hors jeu : `tests/radiosurvivor/test_atelier_ui.py` (modules purs, clés de traduction) et `tests/radiosurvivor/test_atelier_simple.py`
   (identifiants fabriqués, crans, marge, état de l'histoire, types de voix, paquets).
 - Essai automatique : `tools/atelier_smoke.py` crée une voix sans rien taper de technique.
 - Captures du wiki : `tools/atelier_doc_shots.py`, regardées une à une en se mettant à la place d'un adolescent.

@@ -1,7 +1,7 @@
 # Secours en cours : réserves, délai et équipe (E12-T02)
 
 Code : `media/lua/server/RadioSurvivor/RS_Rescue.lua` (section « Secours en cours ») ; référence d'API :
-[docs/specifications-techniques/rescue.md](../../specifications-techniques/rescue.md) ; banc : `tests/test_rescue.py` (classe `RunTests`) ; suite en jeu : `rs.rescue.run`.
+[docs/specifications-techniques/rescue.md](../../specifications-techniques/rescue.md) ; banc : `tests/radiosurvivor/test_rescue.py` (classe `RunTests`) ; suite en jeu : `rs.rescue.run`.
 
 ## Décisions acquises (plan E12)
 
@@ -22,7 +22,7 @@ Code : `media/lua/server/RadioSurvivor/RS_Rescue.lua` (section « Secours en cou
    `SandboxVars` ; absente, non entière ou hors bornes : 3. Lue au lancement de chaque secours ; un secours en cours
    garde ses réserves. Bornes et plafond restent des constantes de `Rescue.RUN` (`MIN_DAYS`, `MAX_DAYS`,
    `MAX_RESERVE_DAYS`). Bancs : `RunTests` (option à 5, absente, hors bornes, secours en cours) et
-   `RunSuiteOptionTests` de `tests/test_rescue.py` ; en jeu : test « a new rescue takes its delay from the RescueDays
+   `RunSuiteOptionTests` de `tests/radiosurvivor/test_rescue.py` ; en jeu : test « a new rescue takes its delay from the RescueDays
    option » de `rs.rescue.run` (option changée en mémoire par `setValue`, remise ensuite), et l'option traduite
    « Jours de réserves d'un groupe à secourir » / « Days of supplies of a group to rescue » visible dans les options
    sandbox (page RadioSurvivor).

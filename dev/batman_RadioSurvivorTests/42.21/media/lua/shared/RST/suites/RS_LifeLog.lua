@@ -5,7 +5,7 @@ logs (one per bound identity, none without one, bounded, no frequency nor coordi
 Tag "server": RS_LifeLog starts with "if isClient() then return end" (authority only). The suite runs one poll of the
 module (what the module itself does every POLL_MS); it changes nothing else. Solo: RST.server("rs.lifelog");
 dedicated server: RST.server("rs.lifelog") from an admin client (the target player is the admin), or the autorun (no
-player: player checks are SKIP). Outside the game: tests/test_lifelog.py.
+player: player checks are SKIP). Outside the game: tests/radiosurvivor/test_lifelog.py.
 ]]
 
 require "RST/RST"

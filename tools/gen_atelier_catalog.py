@@ -5,7 +5,7 @@
 The workshop (bridge/atelier) offers lists instead of free text from this file: mission types a voice may give and
 their parameters, parameter kinds, reward kinds, shared categories, the grammar of a sheet (header and section keys,
 required keys, closed lists of values), the radio levels and the shipped voices. Nothing is restated here: the real
-Lua of the mod is loaded in lupa with the loader of the benches (tests/test_personas.LuaPersona: RS_Persona with
+Lua of the mod is loaded in lupa with the loader of the benches (tests/radiosurvivor/test_personas.LuaPersona: RS_Persona with
 RS_Personas.rules, reward kinds and trade arrival modes registered) and every entry is read from a registry or a
 declaration table:
 - missionTypes: CA_Missions.voiceNames / voiceTemplate (declarations voiceName, voiceText, params), after every
@@ -32,7 +32,7 @@ declaration table:
 items, itemCategories and lootLists are read in the game folder --game (default game_items.DEFAULT_GAME, only read); when it holds no
 item script, those of the current catalog.json are kept and a warning is printed: the catalogue regenerates without
 the game.
-Output: sorted keys, UTF-8, LF, trailing newline (diffs cleanly). tests/test_atelier_catalog.py fails when it is stale.
+Output: sorted keys, UTF-8, LF, trailing newline (diffs cleanly). tests/radiosurvivor/test_atelier_catalog.py fails when it is stale.
 Python 3 standard library + lupa (dev only).
 """
 from __future__ import annotations
@@ -46,8 +46,10 @@ from pathlib import Path
 import lupa.lua51 as lupa
 
 ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT / 'tests'))
-from test_personas import CORE_LUA, LUA, MOD, LuaPersona, lua_items  # noqa: E402  (loader of the lupa benches)
+for _folder in ('commun', 'radiosurvivor'):   # offline test folders (E26: tests/<folder>/)
+    sys.path.insert(0, str(ROOT / 'tests' / _folder))
+from persona_fixtures import CORE_LUA, LUA, MOD, lua_items  # noqa: E402  (tests/commun, E26)
+from test_personas import LuaPersona  # noqa: E402  (loader of the lupa benches)
 import game_items  # noqa: E402  (tools/, next to this file)
 import game_loot  # noqa: E402
 

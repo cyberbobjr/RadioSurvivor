@@ -12,7 +12,7 @@ Tag "server": the authority only (dedicated server or solo); read only, any save
 RST.run({ suite = "rs.freqdebug" }). Dedicated server: RST.server({ suite = "rs.freqdebug" }) from an admin client.
 E01-T16: refusal of a real client with the access level "user" (second client of the MP campaign; SKIP in solo).
 Not checked here: the debug menu button and the window itself (docs/annexes/tests/tests-en-jeu.md, section of E05-T14).
-Outside the game: tests/test_rs_freqdebug.py.
+Outside the game: tests/ensemble/test_rs_freqdebug.py.
 ]]
 
 require "RST/RST"

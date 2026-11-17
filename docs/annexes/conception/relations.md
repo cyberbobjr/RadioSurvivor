@@ -131,7 +131,7 @@ contacts (opération `contacts` du fournisseur), avec ou sans RadioSurvivor.
   `IGUI_RS_Trend*`, `TrustScope`, `NoAgreements`) et accords textuels `npc.agreements` du carnet 0.2 retirés de la
   fiche ; `known.trust` reste lu par la radio de groupe.
 
-Tests : `tests/test_relation_panel.py` (6 tests : deux membres d'un même groupe aux relations différentes pour alice,
+Tests : `tests/livingknox/test_relation_panel.py` (6 tests : deux membres d'un même groupe aux relations différentes pour alice,
 projection propre de bob de la même faction, aucun fait de l'un chez l'autre, accord et portée, rendu anglais réel
 sans clé ni nombre, page du carnet, équipe personnelle et suspension, « inconnu », identifiants inconnus, clés FR) ;
 en jeu : `RST.run({ suite = "lk.notebook.relation", tags = "world" })` (campagne `solo-lk`).
@@ -145,14 +145,14 @@ en jeu : `RST.run({ suite = "lk.notebook.relation", tags = "world" })` (campagne
 
 ## Tests
 
-- Banc lupa `tests/test_relations.py` (10 tests) : une aide puis une trahison motivent deux changements (bout en bout,
+- Banc lupa `tests/livingknox/test_relations.py` (10 tests) : une aide puis une trahison motivent deux changements (bout en bout,
   pont hors ligne `RS_OFFLINE_INTENT=relation`), aucun fait offert ni changement sans fait réel, fait déjà utilisé et
   sens contraire refusés, révision de relation périmée (changement ignoré, réplique dite) ou de fiche périmée (réponse
   refusée), deux PNJ d'un même groupe qui diffèrent, écart borné à ±1, observation vue et mission close citables
   (ouï-dire et retour neutre exclus), purge ; E09-T08 : bout en bout par `reply`, chaque motif de refus (aucune
   liaison, fait non offert, fait inconnu, sens contraire, déjà utilisé, écart à la borne) garde la réplique, laisse la
   relation inchangée et journalise le motif ; un changement valide reste appliqué avec sa réplique.
-- `tests/test_protocol.py` : `scenario_relation_change` (RSV2, prompt, `bounded_reply`, `model_reply`, pont hors ligne).
+- `tests/radiosurvivor/test_protocol.py` : `scenario_relation_change` (RSV2, prompt, `bounded_reply`, `model_reply`, pont hors ligne).
 - En jeu : suite `lk.relation` (`RST.run({ suite = "lk.relation", tags = "world" })`, solo, pont et vrai modèle).
 
 ## Points ouverts

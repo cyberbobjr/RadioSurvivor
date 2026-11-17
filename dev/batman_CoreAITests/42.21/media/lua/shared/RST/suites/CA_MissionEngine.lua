@@ -2,7 +2,7 @@
 ca.missions — pure logic of CoreAI/CA_Missions (server/CoreAI/CA_Missions.lua): creation, offer expiry,
 delay before the next offer, closing (success, failure, death), pruning, projection, item checks.
 Tag "server": CA_Missions starts with "if isClient() then return end" (authority only: dedicated server or solo).
-Run it with RST.server("ca.missions") or the dedicated server autorun; outside the game: tests/test_rs_suites.py.
+Run it with RST.server("ca.missions") or the dedicated server autorun; outside the game: tests/radiosurvivor/test_rs_suites.py.
 
 Everything works on an in-memory state built by each test ({ missions, npcs, characters, outcomes }): no persistent
 state of the mod, no global ModData, no real inventory. The module is required lazily inside the tests (server files

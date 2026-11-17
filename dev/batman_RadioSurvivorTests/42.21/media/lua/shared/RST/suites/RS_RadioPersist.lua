@@ -21,7 +21,7 @@ Run again, .before first removes the lines of an earlier run (prefix MARK). With
 checked alone (noted); solo: SKIP (no reconnection without the launcher).
 Tags "server", "world", "manual": authority only, test saves rstest*, exact names only. Snapshot:
 Zomboid/Lua/batman_CoreAITests/tests/radiotab-persist.txt of the server (RST_Persist).
-Outside the game: tests/test_persist_suites.py.
+Outside the game: tests/ensemble/test_persist_suites.py.
 ]]
 
 require "RST/RST"

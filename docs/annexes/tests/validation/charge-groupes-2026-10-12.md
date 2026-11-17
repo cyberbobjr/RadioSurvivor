@@ -70,8 +70,8 @@ de 47,4 ms lupa, soit environ 130 à 170 ms Kahlua estimés (rapport 2,8 à 3,6)
 
 - Une écriture par image au plus, à la fin de l'image ; rien avant ; serveur en pause écrit à l'image suivante ;
   `OnSave` en solo ; relecture avant `Groups.init` ; arrêt propre sans perte (tous les bancs de redémarrage).
-- Marques idempotentes inchangées : `tests/test_lk_stock.py` (`OffscreenTests`, marque `LKStockOp`),
-  `tests/test_lk_fortify_offscreen.py` (marque `LKFortOp`), `tests/test_lk_homes.py`, `tests/test_lk_traces.py`,
-  `tests/test_lk_trade.py` verts : l'écriture immédiate (`Groups.flush()`) les garde avant le monde ou avant d'effacer
+- Marques idempotentes inchangées : `tests/livingknox/test_lk_stock.py` (`OffscreenTests`, marque `LKStockOp`),
+  `tests/livingknox/test_lk_fortify_offscreen.py` (marque `LKFortOp`), `tests/livingknox/test_lk_homes.py`, `tests/livingknox/test_lk_traces.py`,
+  `tests/livingknox/test_lk_trade.py` verts : l'écriture immédiate (`Groups.flush()`) les garde avant le monde ou avant d'effacer
   les marques.
 - Hex et somme rapides égaux à `RS_Codec` sous lupa (30 chaînes aléatoires) et dans la VM Kahlua (`KR-GFLUSH`).

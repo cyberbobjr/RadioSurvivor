@@ -2,7 +2,7 @@
 -- its [trade] section (arrival=<name>); each mode is one file of server/RadioSurvivor/TradeArrivals/ that calls
 -- Arrivals.register. Adding a mode never touches the trade engine (RS_Trade, RS_TradeRun, RS_TradeExchange). The game
 -- loads every server file, modes included, before the sheets are read (OnLoadRadioScripts), so they are known to
--- RS_Personas.rules (Arrivals.NAMES); the benches require each file of the folder (tests/test_personas.py).
+-- RS_Personas.rules (Arrivals.NAMES); the benches require each file of the folder (tests/radiosurvivor/test_personas.py).
 --
 -- Contract of a mode (signals, texts, sounds and causes required):
 --   signals   set of the signals that call the trader to the landing during the meeting window, among the

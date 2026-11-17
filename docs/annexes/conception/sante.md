@@ -100,8 +100,8 @@ Aucun choix n'est arrêté par cette fiche (tâche d'investigation). Voici la co
 
 ## Tests
 
-- Banc lupa (`tests/harness.py`) : sans objet pour cette fiche ; LK07-T02 devra simuler `OnWeaponHitCharacter` serveur, le plafonnement, le changement de propriétaire (santé périmée envoyée) et une santé > 32,767.
-- VM Kahlua (`tests/test_kahlua.py`) : sans objet.
+- Banc lupa (`tests/commun/harness.py`) : sans objet pour cette fiche ; LK07-T02 devra simuler `OnWeaponHitCharacter` serveur, le plafonnement, le changement de propriétaire (santé périmée envoyée) et une santé > 32,767.
+- VM Kahlua (`tests/coreai/test_kahlua.py`) : sans objet.
 - En jeu : aucun essai pour cette fiche.
 
 ## Points ouverts
@@ -167,7 +167,7 @@ Serveur MP : commande `npcHealth` `{ d = { [npcId] = { r, hp, mx, w } } }` (`w` 
 
 ### Tests
 
-- Banc lupa `tests/test_lk_health.py` (16 tests) : copies serveur et clients invulnérables, référence initialisée ; coup d'un joueur reçu par le serveur (3 → 0,45 retiré), santé vanilla inchangée, même valeur chez A et B, aucun envoi sans changement, rapports du propriétaire jamais refusés ; refus (hors de portée, autre niveau, véhicule, attaquant mort, bombe dans l'inventaire, cadence) ; coup de grâce au couteau au-delà du maximum de l'arme qui tue d'un coup (blessure bornée par la santé restante), même coup hors de portée refusé, valeurs `NaN`, infinie, négative ou non numérique refusées (LK07-T06) ; poussée sans dégâts ; aucune remontée sur 4 changements de propriétaire, `noteHeal` seule hausse et plafonnée ; mort unique décidée par le serveur (un seul `OnZombieDead`, coups suivants ignorés, santé 0 chez A et B, tueur retenu) ; mort du moteur signalée et menée à terme une fois ; retrait puis réincarnation sans remontée ; client reconnecté servi à nouveau ; solo (estimation, aucune portée contrôlée, mort unique) ; suites `lk.health` et `rs.killer` jouées sur les doublures avec la santé de référence ; sources compatibles Kahlua, aucun envoi à tous.
+- Banc lupa `tests/livingknox/test_lk_health.py` (16 tests) : copies serveur et clients invulnérables, référence initialisée ; coup d'un joueur reçu par le serveur (3 → 0,45 retiré), santé vanilla inchangée, même valeur chez A et B, aucun envoi sans changement, rapports du propriétaire jamais refusés ; refus (hors de portée, autre niveau, véhicule, attaquant mort, bombe dans l'inventaire, cadence) ; coup de grâce au couteau au-delà du maximum de l'arme qui tue d'un coup (blessure bornée par la santé restante), même coup hors de portée refusé, valeurs `NaN`, infinie, négative ou non numérique refusées (LK07-T06) ; poussée sans dégâts ; aucune remontée sur 4 changements de propriétaire, `noteHeal` seule hausse et plafonnée ; mort unique décidée par le serveur (un seul `OnZombieDead`, coups suivants ignorés, santé 0 chez A et B, tueur retenu) ; mort du moteur signalée et menée à terme une fois ; retrait puis réincarnation sans remontée ; client reconnecté servi à nouveau ; solo (estimation, aucune portée contrôlée, mort unique) ; suites `lk.health` et `rs.killer` jouées sur les doublures avec la santé de référence ; sources compatibles Kahlua, aucun envoi à tous.
 - Suite en jeu `lk.health` (`dev/.../suites/RST_LKHealth.lua`, tags `world`, `server`) : coup de batte (dégâts 1) qui baisse la référence sans toucher la santé vanilla, pas de remontée 3 s plus tard ; coup mortel (dégâts 100, au-delà du maximum de la batte) qui tue d'un seul coup (LK07-T06), une seule mort décidée, aucune mort du moteur, écouteur appelé une fois. `rs.killer` adaptée : référence abaissée avant le coup mortel ; test du feu : corps éteint, PNJ vivant.
 
 ### Protocole en jeu
@@ -230,7 +230,7 @@ La corvée visible « care » de LK05-T04 (s'agenouiller près d'un blessé, san
 
 ### Tests
 
-- Banc `tests/test_lk_care.py` (15 tests, pile complète des repas réels + `LK_Health` + `LK_Care`, solo) : gestes existants ; objets de soin (`isCanBandage`) ; blessure qui fait saigner (0,5 × fraction), saignement sauvegardé, perte de la première heure entre 17 et 20 % (décroissance), mort par perte de sang décidée une fois sans mort du moteur ; petite blessure qui s'arrête seule ; borne `MAX`, `stopBleeding` qui arrête toute perte ; médecin qui fouille, prend le pansement propre (pas les bandes sales), va au blessé, s'agenouille, saignement arrêté, santé + 0,03 × 4 × 1,5, un seul objet retiré, ôté de la référence, relecture sans perte ni vol, une entrée `care` ; blessé seul sans médecin (× 1) ; médecin blessé qui se soigne d'abord ; stock vide : pénurie une fois, saignement qui continue ; blessé noté après une attaque soigné sans saignement, une fois ; menace après la prise : soin appliqué une fois ; suite `lk.care` jouée sur les doublures ; sources ASCII hors commentaires ; client MP arrêté à la garde.
+- Banc `tests/livingknox/test_lk_care.py` (15 tests, pile complète des repas réels + `LK_Health` + `LK_Care`, solo) : gestes existants ; objets de soin (`isCanBandage`) ; blessure qui fait saigner (0,5 × fraction), saignement sauvegardé, perte de la première heure entre 17 et 20 % (décroissance), mort par perte de sang décidée une fois sans mort du moteur ; petite blessure qui s'arrête seule ; borne `MAX`, `stopBleeding` qui arrête toute perte ; médecin qui fouille, prend le pansement propre (pas les bandes sales), va au blessé, s'agenouille, saignement arrêté, santé + 0,03 × 4 × 1,5, un seul objet retiré, ôté de la référence, relecture sans perte ni vol, une entrée `care` ; blessé seul sans médecin (× 1) ; médecin blessé qui se soigne d'abord ; stock vide : pénurie une fois, saignement qui continue ; blessé noté après une attaque soigné sans saignement, une fois ; menace après la prise : soin appliqué une fois ; suite `lk.care` jouée sur les doublures ; sources ASCII hors commentaires ; client MP arrêté à la garde.
 - Suite en jeu `lk.care` (`dev/.../suites/RST_LKCare.lua`, tags `world`, `server`).
 
 ### Protocole en jeu
@@ -250,7 +250,7 @@ La corvée visible « care » de LK05-T04 (s'agenouiller près d'un blessé, san
 ## Mort unique et cadavre (LK07-T04)
 
 Code : `LK_Health.lua` (`Health.kill`, `causeOf`, `bleedPass`), `LK_Bodies.lua` (`deathCause`, `examine`, `layDown`,
-`isDragged`, `onZombieDead`), `LK_Identity.lua` (`DEATH_CAUSES`). Banc `tests/test_lk_death.py`, suite `lk.death`.
+`isDragged`, `onZombieDead`), `LK_Identity.lua` (`DEATH_CAUSES`). Banc `tests/livingknox/test_lk_death.py`, suite `lk.death`.
 
 ### Une seule mort, un seul chemin
 
@@ -331,13 +331,13 @@ point d'appel de LK12-T02 (`docs/specifications-techniques/api-living-knox.md`, 
 
 ### Tests
 
-- Banc `tests/test_lk_death.py` (11 tests, MP et solo) : mort par coups de joueur (un `OnZombieDead`, un cadavre
+- Banc `tests/livingknox/test_lk_death.py` (11 tests, MP et solo) : mort par coups de joueur (un `OnZombieDead`, un cadavre
   étiqueté, non faux mort, un fait `npcDied` melee / A / batte, coups suivants ignorés) ; perte de sang (cause
   `bleeding`, aucun tueur, ancien attaquant effacé) ; zombie vanilla (cause `zombie`, tueur du moteur = le zombie) ;
   corps mis de côté jamais tué (saignement, appel direct), appel direct unique ; cadavre traîné laissé tranquille puis
   lâché (mort vanilla en plus, aucune mort ni fait Living Knox de plus) ; cadavre relevé (faux mort) et joueur réanimé
   étiqueté remis à terre, PNJ jamais réincarné ; registre relu avec les nouvelles causes ; suite `lk.death` sur
-  doublures ; sources compatibles Kahlua. `tests/test_lk_materialize.py` : `npcDied` avec groupe et membre,
+  doublures ; sources compatibles Kahlua. `tests/livingknox/test_lk_materialize.py` : `npcDied` avec groupe et membre,
   `memberDied` avec cause.
 - Suite en jeu `lk.death` (`dev/.../suites/RST_LKDeath.lua`, tags `world`, `server`) : coups mortels (une mort, un fait,
   un cadavre étiqueté avec vêtements, aucun zombie étiqueté vivant 2 s plus tard) ; perte de sang ; mort directe puis
@@ -362,7 +362,7 @@ point d'appel de LK12-T02 (`docs/specifications-techniques/api-living-knox.md`, 
 ## Butin réel du cadavre (LK07-T05)
 
 Code : `LK_Loot.lua` (autorité), `LK_Ammo.lua` (`setLoaded`, `hasState`, `addReserve`, `unload`), branchement dans
-`Bodies.onZombieDead`. Banc `tests/test_lk_loot.py`, suite `lk.loot`.
+`Bodies.onZombieDead`. Banc `tests/livingknox/test_lk_loot.py`, suite `lk.loot`.
 
 ### Contraintes du moteur
 
@@ -428,7 +428,7 @@ que si le corps n'en porte aucune.
 
 ### Tests
 
-- Banc `tests/test_lk_loot.py` (16 tests depuis LK07-T07, MP et solo) : construction unique d'après le niveau du groupe et le rôle,
+- Banc `tests/livingknox/test_lk_loot.py` (16 tests depuis LK07-T07, MP et solo) : construction unique d'après le niveau du groupe et le rôle,
   rien de plus aux passages suivants ni après relecture de `reanimated.bin` ; cadavre serveur avec le pistolet dans
   le conteneur et accroché, chargeur engagé rendu en objet (contenu identique en solo, arme alors en main) ; témoin
   du fait du moteur (sans `LK_Loot`, l'arme accrochée n'atteint pas les clients) ; arme créée et butin construit à
@@ -501,7 +501,7 @@ que si le corps n'en porte aucune.
 
 Tâche LK07-T10 (2026-10-15). Code : `media/lua/server/LivingKnox/LK_Death.lua` (serveur MP seulement ; appelé par
 `Bodies.onZombieDead` et `Bodies.layDown` via `Bodies.trackCorpse`), `media/lua/client/LivingKnox/LK_DeathClient.lua`
-(client MP). Banc `tests/test_lk_death.py` (`CorpseResendTests`) ; suite `lk.death`, test « killed before any client
+(client MP). Banc `tests/livingknox/test_lk_death.py` (`CorpseResendTests`) ; suite `lk.death`, test « killed before any client
 copy ». Lecture statique et banc : **essai MP à faire**.
 
 - **Cause** : un client ne crée le cadavre d'un zombie que par le paquet de mort, ignoré s'il n'a pas la copie du

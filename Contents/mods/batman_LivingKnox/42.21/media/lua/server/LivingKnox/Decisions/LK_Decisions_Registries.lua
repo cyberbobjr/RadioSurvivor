@@ -87,7 +87,7 @@ end
 -- Fournisseur : { id (unique), order (plus petit d'abord, à égalité par id), fill(ctx, src) } : pose ses champs dans
 -- le contexte ctx d'un membre (Decisions.context) ; src = { gid, g, mid, m, body, players, minute, per } : entrées de
 -- l'évaluation (per : perception du membre, posée par le fournisseur « perception »). Un fournisseur lit seulement les
--- champs posés avant lui (ordre explicite, figé par tests/test_lk_decision_context.py) ; module absent = fournisseur
+-- champs posés avant lui (ordre explicite, figé par tests/livingknox/test_lk_decision_context.py) ; module absent = fournisseur
 -- absent = champ absent. Chaque module pose son champ depuis son propre fichier (Decisions.registerContext) ; ce
 -- registre n'en nomme aucun. Les entrées des extensions (input) passent après tous les fournisseurs.
 -- Bandes d'ordre (fiche docs/annexes/conception/decisions.md, « Contexte d'un membre ») : 10 routines, 20 expédition,

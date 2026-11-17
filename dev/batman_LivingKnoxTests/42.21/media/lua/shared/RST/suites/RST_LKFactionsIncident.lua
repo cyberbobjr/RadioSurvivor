@@ -21,7 +21,7 @@ Tests 2 and 3 (ADR B10 criteria, RST_PeerChecksE09.lua): two close aggressions =
 break, late reply of the leader refused through the real reply path, one change per valid decision (all modes); with
 two clients (dedicated server, SKIP in solo or alone): defence against the author only, innocent member of the same
 faction covered, third player apart. See the comments above the tests.
-Outside the game: tests/test_incidents.py, tests/test_e09_suites.py.
+Outside the game: tests/livingknox/test_incidents.py, tests/ensemble/test_e09_suites.py.
 ]]
 
 require "RST/RST"

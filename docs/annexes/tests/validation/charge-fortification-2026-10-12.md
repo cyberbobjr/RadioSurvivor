@@ -55,10 +55,10 @@ d'environ 10 ms lupa mais **reste au-dessus du budget proposé de 25 ms Kahlua**
 
 ## 4. Garanties vérifiées (bancs)
 
-- `tests/test_lk_fortify_offscreen.py` (17 tests, dont 5 nouveaux `CompactFormTests`) : forme compacte au registre ;
+- `tests/livingknox/test_lk_fortify_offscreen.py` (17 tests, dont 5 nouveaux `CompactFormTests`) : forme compacte au registre ;
   ancienne forme avec écarts en attente convertie puis posée une fois ; application interrompue avant la conversion
   reprise sans double pose (marques `LKFortOp` inchangées) ; heure hors écran sur l'ancienne forme. Rattrapage hors
   écran et pose à l'arrivée : les 12 tests de LK14-T05 inchangés et verts.
-- `tests/test_lk_fortify.py`, `test_lk_walls.py`, `test_lk_repair.py`, `test_lk_barricade.py` verts sans changement.
-- VM Kahlua (`tests/test_kahlua.py`, `KR-FORT`) : mêmes chaînes que sous lupa, nombres entiers concaténés sans `.0`,
+- `tests/livingknox/test_lk_fortify.py`, `test_lk_walls.py`, `test_lk_repair.py`, `test_lk_barricade.py` verts sans changement.
+- VM Kahlua (`tests/coreai/test_kahlua.py`, `KR-FORT`) : mêmes chaînes que sous lupa, nombres entiers concaténés sans `.0`,
   identifiant de boîte négatif sur 31 bits, chaîne mal formée refusée.

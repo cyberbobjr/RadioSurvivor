@@ -14,7 +14,7 @@ Tags "world" (test saves rstest*), solo only, no bridge needed.
 RST.run({ suite = "lk.notebook.relation", tags = "world" }). Cleanup: the attitude pair of the group toward the
 character is restored, the relations of the two test npcs removed, npcs and bindings removed by the fixtures, the
 notebook closed again (or back on its former bookmark).
-Outside the game: tests/test_relation_panel.py.
+Outside the game: tests/livingknox/test_relation_panel.py.
 Look at by eye (campaign report): labels in the player's language, the level and its trend on one line, the group
 line only when it differs, the truce line if the save holds one, the remembered facts (today, a gift / a theft).
 ]]

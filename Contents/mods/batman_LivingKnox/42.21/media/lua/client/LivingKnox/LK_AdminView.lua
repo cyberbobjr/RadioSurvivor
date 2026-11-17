@@ -27,7 +27,7 @@ local Access = require "CoreAI/CA_AdminAccess"
 local View = LivingKnox.AdminView or {}
 LivingKnox.AdminView = View
 
--- Copies des constantes de LK_Admin.lua (comparées par tests/test_lk_admin.py).
+-- Copies des constantes de LK_Admin.lua (comparées par tests/livingknox/test_lk_admin.py).
 View.MODULE = "LivingKnox"
 View.CMD_REQUEST = "adminRequest"
 View.CMD_REPLY = "adminReply"

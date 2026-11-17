@@ -201,7 +201,7 @@ end
 -- Une fonction par sorte technique retenue ; les autres sortes (objective, task, ration, alert, supply, admin hors
 -- foyer, trip, loss, wounded, joined, remains, conflict, illness, raid, revenge, aid, trade, care, defense...) restent
 -- au seul journal technique. Le texte technique n'est lu que pour des formes stables, écrites par le moteur et
--- vérifiées par le banc (tests/test_lk_journal.py).
+-- vérifiées par le banc (tests/livingknox/test_lk_journal.py).
 
 local TECH = {}
 

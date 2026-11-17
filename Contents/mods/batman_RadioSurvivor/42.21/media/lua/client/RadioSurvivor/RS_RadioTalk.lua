@@ -1,7 +1,7 @@
 -- Radio Survivor : parler dans une radio (chemin d'envoi commun au menu « Parler sur … » et au module « Émettre » de
 -- la fenêtre radio, E06-T02), réponses du serveur, et dernières lignes entendues par fréquence.
 -- Le client ne connaît aucune fréquence de voix (E05-T08) : toute phrase dite dans une radio émettrice allumée part au
--- serveur avec la fréquence de la radio ; le serveur trie. Logique sans interface : banc tests/test_radio_module.py.
+-- serveur avec la fréquence de la radio ; le serveur trie. Sans interface : tests/radiosurvivor/test_radio_module.py.
 local Const = require "RadioSurvivor/RadioSurvivor_Const"
 -- Historique radio du carnet (E06-T04) : commandes du serveur et lignes reçues signalées au serveur.
 local History = require "RadioSurvivor/RS_RadioHistory"

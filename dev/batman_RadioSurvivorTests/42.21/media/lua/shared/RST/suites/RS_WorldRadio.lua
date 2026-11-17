@@ -16,7 +16,7 @@ Tags "server" and "world": the authority (solo, or RST.server from an admin clie
 rstest*. MP: autoclient.py --mp --clients 2 --server-suite rs.worldradio --server-tags world.
 Cleanup: radios removed (transmitRemoveItemFromSquare), the requester leaves the car, the car is removed
 (permanentlyRemove), the history lines of the test sentences are removed from the notebook state.
-Outside the game: tests/test_rs_mp_suites.py.
+Outside the game: tests/ensemble/test_rs_mp_suites.py.
 ]]
 
 require "RST/RST"

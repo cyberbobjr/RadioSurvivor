@@ -5,7 +5,7 @@
 | Date | 2026-11-13 (création, acceptation) |
 | Statut | Accepté (utilisateur, 2026-11-13 : « arrange-toi pour que le moteur de test pour les tests offline soit suffisamment mimétique pour que la simulation offline fasse l'essentiel du travail » ; les moyens sont délégués, décisions ci-dessous confirmées par défaut) |
 | Décideur | utilisateur |
-| Portée | bancs hors jeu des trois mods (`tests/harness.py`, `tests/test_*.py`, banc Kahlua `tests/kahlua/`), outils `tools/`, règle de travail de `docs/developpement.md` ; aucun fichier livré aux joueurs |
+| Portée | bancs hors jeu des trois mods (`tests/commun/harness.py`, `tests/<dossier>/test_*.py`, banc Kahlua `tests/commun/kahlua/`), outils `tools/`, règle de travail de `docs/developpement.md` ; aucun fichier livré aux joueurs |
 | Plan associé | [E19 — Banc hors jeu mimétique](../../annexes/plans/E19-banc-mimetique.md) (suivi des tâches dans le plan) |
 | Références | inventaire du 2026-11-13 des défauts vus seulement en jeu (ci-dessous) ; sources de référence 42.22 du poste de l'auteur (Java décompilé, Lua vanilla, index des classes exposées et des fonctions Lua) ; [méthode du plan](../../annexes/plans/README.md) |
 
@@ -28,7 +28,7 @@ alors que les bancs étaient verts.
 | I. Défaut du test en jeu lui-même | 3 | lecture unique trop tôt, joueurs de test qui bouchent un couloir |
 | A. API Java absente, renommée ou de signature différente | 2 | `getGameMode()` devenu objet en 42.22, « expected 1 argument, got 2 » |
 | H. Rendu, animation, son | 2 | bulle non dessinée, animation d'ouverture absente |
-| G. Particularité de la VM Kahlua | 0 | déjà couvert par le banc Kahlua réel (`tests/test_kahlua.py`) |
+| G. Particularité de la VM Kahlua | 0 | déjà couvert par le banc Kahlua réel (`tests/coreai/test_kahlua.py`) |
 
 Constat sur le banc actuel : les doublures Java sont écrites à la main, références Java en commentaire, sans contrôle
 automatique ; les systèmes Lua vanilla (potager) sont réécrits en doublure ; le monde est une carte fictive de cases
@@ -56,7 +56,7 @@ livrer dans le désordre (`pump(order='random')`) mais peu de bancs l'emploient.
 - **D05 — Site réel rejoué.** Un export du site des campagnes (cases, murs, portes et fenêtres avec leur état,
   pièces, conteneurs, lits) est produit une fois par le jeu et chargé par le banc comme monde, avec des cases qui se
   déchargent loin des joueurs. L'export décrit un bâtiment du jeu : il reste **local, jamais versionné** (comme
-  `tests/kahlua/ecj.jar`), et les bancs qui en dépendent sont sautés s'il manque. Vise E. Demande une session de jeu
+  `tests/commun/kahlua/ecj.jar`), et les bancs qui en dépendent sont sautés s'il manque. Vise E. Demande une session de jeu
   libre : dernière étape.
 - **D06 — Réseau en désordre par défaut dans les bancs multijoueurs.** Les bancs serveur + deux clients des suites se
   rejouent avec livraison aléatoire à graines fixes et changement de propriétaire du corps pendant l'action ; la zone

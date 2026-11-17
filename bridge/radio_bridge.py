@@ -1126,7 +1126,7 @@ def workshop_ai(config: dict[str, str] | None,
 
 # --- mémoire des voix (E07-T03) ---------------------------------------------------------------
 
-# Bornes reprises de RadioSurvivor_Const (vérifiées par tests/test_protocol.py) ; un caractère côté serveur compte
+# Bornes reprises de RadioSurvivor_Const (vérifiées par tests/radiosurvivor/test_protocol.py) ; un caractère côté serveur compte
 # ici jusqu'à 4 octets UTF-8.
 MEMORY_CALLER_CHARS = 2000    # faits gardés par voix et par personnage (RadioSurvivor_Const.MEMORY_CALLER_CHARS)
 MEMORY_MAX_FACTS = 50         # faits joints par le serveur (RadioSurvivor_Const.MEMORY_MAX_FACTS)
@@ -1777,7 +1777,7 @@ PARAM_KEY = re.compile(r"^[a-z][a-z0-9_]{0,31}$")
 # pour mark_map et reveal_area),
 # seules proposées au LLM (E07-T07) : description courte en anglais (paramètres, types, bornes, usage, jamais de secret) et exemple
 # d'objet JSON. Une action du catalogue sans exécuteur serait refusée not_available : ni proposée, ni gardée.
-# Bornes reprises de RadioSurvivor_Const.lua (vérifiées par tests/test_protocol.py).
+# Bornes reprises de RadioSurvivor_Const.lua (vérifiées par tests/radiosurvivor/test_protocol.py).
 MEMORY_FACT_CHARS = 200       # RadioSurvivor_Const.MEMORY_FACT_CHARS
 PERSONA_LEVEL_STEP = 2        # RadioSurvivor_Const.PERSONA_LEVEL_STEP
 PERSONA_PLACE_CHARS = 40      # RadioSurvivor_Const.PERSONA_PLACE_CHARS

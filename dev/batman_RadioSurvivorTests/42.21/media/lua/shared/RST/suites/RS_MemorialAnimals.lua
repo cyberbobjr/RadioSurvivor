@@ -14,7 +14,7 @@ Tags "server" and "world": authority only (solo or dedicated server), save named
 Cleanup: fact log put back as it was (RST.FactsBook), animal removed, death listener and radio submit restored, no
 bulletin left in flight. Solo: RST.run({ suite = "rs.memorial.animals", tags = { "server", "world" } }); dedicated
 server, from an admin client: RST.server({ suite = "rs.memorial.animals", tags = "world" }). Outside the game:
-tests/test_rs_e14_e16_suites.py.
+tests/radiosurvivor/test_rs_e14_e16_suites.py.
 ]]
 
 require "RST/RST"

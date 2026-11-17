@@ -8,16 +8,16 @@ __pycache__/
 .env
 *.env
 
-# Banc Kahlua (tests/test_kahlua.py) : ECJ et classes compilées, jamais versionnés
-tests/kahlua/*.jar
-tests/kahlua/*.class
+# Banc Kahlua (tests/coreai/test_kahlua.py) : ECJ et classes compilées, jamais versionnés
+tests/commun/kahlua/*.jar
+tests/commun/kahlua/*.class
 *.class
 
 # Pont LLM : configuration locale (modèle versionné : bridge/.env.example)
 bridge/.env
 
 # Site réel des campagnes exporté par la suite site.export (E19-T08, ADR banc mimétique D05) : jamais versionné
-tests/fixtures/local/
+tests/commun/fixtures/local/
 
 # Lanceur client automatique (E01-T14) : résultats des exécutions
 tools/autoclient/runs/

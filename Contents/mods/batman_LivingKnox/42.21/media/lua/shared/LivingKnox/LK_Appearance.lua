@@ -252,7 +252,7 @@ end
 -- Couleur Java d'un { r, g, b } 0-255. Surcharges ImmutableColor à 4 paramètres : (float x4) et (int x4) ; Kahlua
 -- range la surcharge tout-entière en dernier (MultiLuaJavaInvoker.java:19-30), la version float (0-1) est retenue.
 -- c / 255 en float, relu par getRedInt et l'octet sauvegardé ((int)(r x 255f), ImmutableColor.java:187-209), rend
--- exactement c pour 0..255 (vérifié en float32 par tests/test_lk_appearance.py).
+-- exactement c pour 0..255 (vérifié en float32 par tests/livingknox/test_lk_appearance.py).
 function Appearance.color(c)
     return ImmutableColor.new(c.r / 255, c.g / 255, c.b / 255, 1)
 end

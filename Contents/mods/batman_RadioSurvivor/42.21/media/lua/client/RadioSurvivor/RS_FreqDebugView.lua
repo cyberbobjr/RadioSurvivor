@@ -23,7 +23,7 @@ local Access = require "CoreAI/CA_AdminAccess"
 local FreqView = RS_FreqDebugView or {}
 RS_FreqDebugView = FreqView
 
--- Copies des constantes de RS_FreqDebug.lua (comparées par tests/test_rs_freqdebug.py).
+-- Copies des constantes de RS_FreqDebug.lua (comparées par tests/ensemble/test_rs_freqdebug.py).
 FreqView.MODULE = "RadioSurvivorDebug"
 FreqView.CMD_REQUEST = "freqRequest"
 FreqView.CMD_REPLY = "freqReply"

@@ -7,14 +7,14 @@ Tags "server" (authority only: solo, or RST.server from an admin client of a ded
 only, except the fixture group below. lk.carnet.supply is also tagged "world": asking the offers opens them lazily
 in the group registry (LivingKnox.API.missionOffers writes it), so it only runs on a test save ("rstest*"). No
 delivery, no fiche, no notebook state: the full journey (selection, talk, offer, deliveries, death) is the manual protocol of
-docs/annexes/tests/tests-en-jeu.md and tests/test_carnet.py (LivingKnoxCarnetTests) outside the game.
+docs/annexes/tests/tests-en-jeu.md and tests/coreai/test_carnet.py (LivingKnoxCarnetTests) outside the game.
 Bodies are those loaded near the player: next to a group of the initial population (LK08-T05) they are used as they
 are; otherwise, on a world run (save rstest*: solo test save, or the MP test server), the tests that need a group
 body create one near the player (RST.LKGroup, RST_LKGroupFixture.lua: settlers group, two members, removed at the
 end) instead of a SKIP (E01-T19). Outside a world run, no group near the player is still a SKIP.
 lk.carnet.leader (E10-T02, tags "server" and "world"; own campaign entry: outside the lk.carnet.npc prefix): member,
 death and succession checked through the real reply path of the notebook with replies of the test
-(RST_PeerChecksE09.lua), see the comment above the suite. Outside the game: tests/test_e09_suites.py.
+(RST_PeerChecksE09.lua), see the comment above the suite. Outside the game: tests/ensemble/test_e09_suites.py.
 ]]
 
 require "RST/RST"

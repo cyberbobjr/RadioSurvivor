@@ -1,6 +1,6 @@
 --[[
 rst.selftest — self-test of the RST engine (assertions, waits in steps driven by ticks). Runs in game
-(RST.run("rst")) and outside the game (lupa, tests/test_rst.py; Kahlua VM, tests/test_kahlua.py). Tag "shared": no
+(RST.run("rst")) and outside the game (lupa, tests/coreai/test_rst.py; Kahlua VM, tests/coreai/test_kahlua.py). Tag "shared": no
 game API is used. Deliberate failures live in rst.failures (RST_Failures.lua, opt-in tag "selfcheck").
 ]]
 

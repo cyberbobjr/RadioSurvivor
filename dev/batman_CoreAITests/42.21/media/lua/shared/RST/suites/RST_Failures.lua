@@ -4,7 +4,7 @@ error() and a Java exception, in the test body, in a deferred step, in a waitUnt
 Tags "shared" and "selfcheck": opt-in (RST.lua, "Opt-in suites"), only run when named exactly
 (RST.run("rst.failures"), RST.server("rst.failures"), autorun line "rst.failures") or with tags = "selfcheck";
 never by "rst", nil or the autorun default. The report is FAILED on purpose: each test name gives the expected
-status; the last test must PASS (the engine went on). Checked by tests/test_kahlua.py and tests/test_rst.py.
+status; the last test must PASS (the engine went on). Checked by tests/coreai/test_kahlua.py and tests/coreai/test_rst.py.
 
 Java exceptions, when the class ArrayList is exposed (game, Kahlua bench; outside, under lupa, these tests are SKIP):
     raised to Lua   list:get("x"): the Kahlua invoker finds no overload and raises a RuntimeException ("expected

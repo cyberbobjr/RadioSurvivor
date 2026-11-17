@@ -3,7 +3,7 @@
 - Tâches : LK11-T04 (création), LK11-T09 (bulle dessinée par le mod, phrase du joueur) ; servira E08-T03 (initiatives de parole et réplique de secours sans pont), E08-T04 (conversations entre PNJ), LK11-T02 (sommations), LK05 (routines : repos, faim, alerte), LK07 (blessure)
 - Build : 42.21.0 — Date : 2026-10-11 — Statut : brouillon
 
-Code : choix et envoi `media/lua/server/LivingKnox/LK_Speech.lua` (`LivingKnox.Speech`, autorité seulement), affichage `media/lua/client/LivingKnox/LK_SpeechView.lua` (`LivingKnox.SpeechView`, client MP et solo), catalogue `media/lua/shared/LivingKnox/Data/Speech.lua` (`LivingKnox.SpeechData`, données seules), textes `Translate/EN|FR/IG_UI.json` (clés `IGUI_LK_Speech_<id>`). Tests : `tests/test_lk_speech.py` ; suite en jeu `lk.speech` (`dev/.../shared/RST/suites/RST_LKSpeech.lua`).
+Code : choix et envoi `media/lua/server/LivingKnox/LK_Speech.lua` (`LivingKnox.Speech`, autorité seulement), affichage `media/lua/client/LivingKnox/LK_SpeechView.lua` (`LivingKnox.SpeechView`, client MP et solo), catalogue `media/lua/shared/LivingKnox/Data/Speech.lua` (`LivingKnox.SpeechData`, données seules), textes `Translate/EN|FR/IG_UI.json` (clés `IGUI_LK_Speech_<id>`). Tests : `tests/livingknox/test_lk_speech.py` ; suite en jeu `lk.speech` (`dev/.../shared/RST/suites/RST_LKSpeech.lua`).
 
 ## Problème
 
@@ -113,7 +113,7 @@ Ligne « Dire » de l'onglet Radio (`RS_RadioTalk.send`, RadioSurvivor) : la phr
 du serveur (`accepted`) : `player:Say` en solo, `processSayMessage` sur un client MP (bulle locale du chat « dire »,
 jamais `Say` en plus). Refus : seulement le motif en rouge.
 
-Bancs : `tests/test_carnet.py` (`PlayerSpeechTests`), `tests/test_lk_speech_single_path.py`. Aucun bruit pour les zombies (effet distinct, à l'appelant :
+Bancs : `tests/coreai/test_carnet.py` (`PlayerSpeechTests`), `tests/livingknox/test_lk_speech_single_path.py`. Aucun bruit pour les zombies (effet distinct, à l'appelant :
 ADR B17).
 
 ### Conversation entre membres pendant une pause (I3.8)
@@ -138,17 +138,17 @@ ADR B17).
 
 ## Tests
 
-- Banc lupa (`tests/test_lk_speech.py`, 25 tests ; LK11-T09 : `DrawTests` — dessin à chaque `OnPreUIDraw` au point de la tête, ombre, couleur, caméra et zoom, lignes coupées et empilées, fondu et échéance en temps réel, remplacement, corps retiré, erreur de dessin, réponse du carnet par la même bulle ; dessin chez A et B, rien chez C) : serveur + A et B proches + C dans le rayon du relais mais à 23 cases : A et B reçoivent une commande chacun, C aucune ; livraison répétée de chaque commande ignorée (une seule bulle par client) ; A en anglais, B en français pour la même clé ; rien sur le serveur ; joueur qui entre dans la portée : seulement la réplique suivante ; personne n'entend : rien envoyé, délai non consommé ; client MP sans partie serveur ; texte rédigé avec nom → ligne de chat locale (auteur du serveur, sans bulle de joueur ni bruit) sur le seul client qui connaît le canal « dire », bulle chez les deux ; bark sans ligne de chat, coloré ; corps chargé après la réplique (bulle en attente puis affichée) ou jamais (abandon après 3 s) ; clé paramétrée, clé inconnue ; entrées refusées ; délais par PNJ et par (situation, joueur), dernière réplique évitée ; catalogue (contrôle, traduit en EN et FR, Latin-1, longueurs), choix par bande, type et rôle, poids ; contexte (type, chef, attitude du joueur, départ du type, sans groupe) ; règle d'audition (dehors, même pièce, même étage, dehors/dedans, deux bâtiments, étage, mort, endormi) ; solo par appel direct, sans réseau ; suite `lk.speech` listée ; sources sans caractère non ASCII dans le code.
-- Morceaux de bulle (E17-T13) : `tests/test_lk_speech_pieces.py` (réponse longue lue en phrases entières l'une après
+- Banc lupa (`tests/livingknox/test_lk_speech.py`, 25 tests ; LK11-T09 : `DrawTests` — dessin à chaque `OnPreUIDraw` au point de la tête, ombre, couleur, caméra et zoom, lignes coupées et empilées, fondu et échéance en temps réel, remplacement, corps retiré, erreur de dessin, réponse du carnet par la même bulle ; dessin chez A et B, rien chez C) : serveur + A et B proches + C dans le rayon du relais mais à 23 cases : A et B reçoivent une commande chacun, C aucune ; livraison répétée de chaque commande ignorée (une seule bulle par client) ; A en anglais, B en français pour la même clé ; rien sur le serveur ; joueur qui entre dans la portée : seulement la réplique suivante ; personne n'entend : rien envoyé, délai non consommé ; client MP sans partie serveur ; texte rédigé avec nom → ligne de chat locale (auteur du serveur, sans bulle de joueur ni bruit) sur le seul client qui connaît le canal « dire », bulle chez les deux ; bark sans ligne de chat, coloré ; corps chargé après la réplique (bulle en attente puis affichée) ou jamais (abandon après 3 s) ; clé paramétrée, clé inconnue ; entrées refusées ; délais par PNJ et par (situation, joueur), dernière réplique évitée ; catalogue (contrôle, traduit en EN et FR, Latin-1, longueurs), choix par bande, type et rôle, poids ; contexte (type, chef, attitude du joueur, départ du type, sans groupe) ; règle d'audition (dehors, même pièce, même étage, dehors/dedans, deux bâtiments, étage, mort, endormi) ; solo par appel direct, sans réseau ; suite `lk.speech` listée ; sources sans caractère non ASCII dans le code.
+- Morceaux de bulle (E17-T13) : `tests/livingknox/test_lk_speech_pieces.py` (réponse longue lue en phrases entières l'une après
   l'autre, chacune pendant sa durée ; réponse du carnet par la même découpe ; texte suivant mis en file ; phrase unique
   coupée aux virgules ; file bornée ; corps retiré ; pont : `clean_speech` garde une fin de phrase même courte, coupe
-  dans la limite d'octets, consigne en caractères) et `tests/test_conversations.py`
+  dans la limite d'octets, consigne en caractères) et `tests/livingknox/test_conversations.py`
   (`test_long_line_joined_in_whole_sentences`). En jeu : `RST.run({ suite = "lk.npctalk", tags = "world" })`, test
   E17-T13 (réponse longue demandée au modèle, morceaux mesurés et ordre vérifié par `pieceLog`).
 - VM Kahlua : non couvert (aucune chaîne non ASCII dans le Lua de la tâche ; `CA_TextCut` est vérifié en Kahlua réelle
-  par `tests/test_kahlua.py`).
+  par `tests/coreai/test_kahlua.py`).
 - En jeu, solo : `RST.run({ suite = "lk.speech", tags = "world" })` (bulle posée sur un PNJ créé et **dessinée** au moins une fois à un point de l'écran, doublon ignoré, délai, texte rédigé, PNJ à 30 cases inaudible). MP à la séance finale.
-- Phrase du joueur : `tests/test_carnet.py`, `PlayerSpeechTests` (Radio : solo `Say`, MP `processSayMessage`, jamais sur refus ; Contacts : une fois à `queued`, jamais sur `error`, pas de redite d'une phrase du chat) ; un seul chemin de parole, phrase du chat sans cible : `tests/test_lk_speech_single_path.py`.
+- Phrase du joueur : `tests/coreai/test_carnet.py`, `PlayerSpeechTests` (Radio : solo `Say`, MP `processSayMessage`, jamais sur refus ; Contacts : une fois à `queued`, jamais sur `error`, pas de redite d'une phrase du chat) ; un seul chemin de parole, phrase du chat sans cible : `tests/livingknox/test_lk_speech_single_path.py`.
 
 ### Protocole en jeu
 

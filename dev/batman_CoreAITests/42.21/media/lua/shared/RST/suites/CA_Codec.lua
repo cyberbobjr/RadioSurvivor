@@ -1,7 +1,7 @@
 --[[
 ca.codec — pure logic of CoreAI/CA_Codec (RSV2 format): round trip, types, depth, sorted keys, hex/unhex,
 invalid input, limits. Tag "shared": no game API is used; runs in game (RST.run("ca.codec"), RST.server, dedicated
-server autorun) and outside the game (lupa, tests/test_rs_suites.py) on the real module of batman_CoreAI.
+server autorun) and outside the game (lupa, tests/radiosurvivor/test_rs_suites.py) on the real module of batman_CoreAI.
 
 Strings: in Kahlua a string is a Java String (#s, string.byte count UTF-16 units); under lupa (Lua 5.1) they count
 UTF-8 bytes. CA_Codec converts Lua strings to UTF-8 bytes (C.toUtf8 / C.fromUtf8, E00-T08), so hex forms, length

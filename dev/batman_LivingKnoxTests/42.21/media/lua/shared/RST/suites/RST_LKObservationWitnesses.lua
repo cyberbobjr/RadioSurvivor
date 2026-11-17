@@ -34,7 +34,7 @@ Tags "server" and "world": the authority (solo, or RST.server from an admin clie
 Cleanup: test group removed, test npcs and the corpse removed, contacts and test mission removed. Observations
 written in the fiches of the test npcs stay (fiches pruned later by the notebook), so does the reputation record of the
 mission success (CA_Missions.finish).
-Outside the game: tests/test_rs_mp_suites.py.
+Outside the game: tests/ensemble/test_rs_mp_suites.py.
 ]]
 
 require "RST/RST"

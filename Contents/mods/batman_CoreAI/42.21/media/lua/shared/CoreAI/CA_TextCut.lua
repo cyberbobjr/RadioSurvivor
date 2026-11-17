@@ -12,7 +12,7 @@
 --      surrogate pair in Kahlua).
 -- Each piece is the longest possible in its class. Punctuation read character by character: no word list, no
 -- language rule. Python mirror: bridge/radio_bridge.py cut_pieces (same rules, length in characters; equality
--- checked in the real Kahlua VM by tests/test_kahlua.py).
+-- checked in the real Kahlua VM by tests/coreai/test_kahlua.py).
 local TextCut = {}
 
 -- Kahlua decodes the escape into a single character (knowledge base kahlua-lua.md); Lua 5.1 keeps the bytes.

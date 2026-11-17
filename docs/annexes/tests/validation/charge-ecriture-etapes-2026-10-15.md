@@ -20,7 +20,7 @@ python RadioSurvivor/tools/load_bench.py --minutes 1440 --quiet --dump-groups g.
 python RadioSurvivor/tools/load_bench.py --kahlua --registry g.hex
 ```
 
-Mesure par étape dans la VM Kahlua : banc `KRun` de `tests/kahlua` copié hors dépôt avec une fonction Java
+Mesure par étape dans la VM Kahlua : banc `KRun` de `tests/commun/kahlua` copié hors dépôt avec une fonction Java
 `nanoClock` (`System.nanoTime`, Kahlua n'a pas `os.clock`) ; registre réel du banc en fin de journée (21 561 octets,
 43 122 en hex), 40 tours après 8 tours de chauffe, ancien `RS_Codec` chargé à côté du nouveau. Script de travail
 hors dépôt.
@@ -47,9 +47,9 @@ hors dépôt.
 - Hex par `string.format` de seize octets : 1,1 ms au lieu de 1,6 en Kahlua mais **cinq fois plus lent sous lupa**
   (1,1 contre 0,22 ms) : non retenu (gain faible, banc faussé).
 - **Mêmes octets** : registre des groupes de fin de journée identique octet pour octet avant / après (`cmp`, trois
-  passages) ; `tests/test_lk_store.py` `CodecSortTests` (comparateur historique : 200 tables tirées, 60 grandes
+  passages) ; `tests/livingknox/test_lk_store.py` `CodecSortTests` (comparateur historique : 200 tables tirées, 60 grandes
   tables à clés et chaînes répétées jusqu'à 45 × 30 clés, branche UTF-16 forcée, limite de profondeur, repli à textes
-  égaux) ; VM Kahlua : `KR-RFLUSH` (300 tables) et `KR-GFLUSH` (somme, hex inverse) dans `tests/test_kahlua.py`.
+  égaux) ; VM Kahlua : `KR-RFLUSH` (300 tables) et `KR-GFLUSH` (somme, hex inverse) dans `tests/coreai/test_kahlua.py`.
 
 **Pointes `LKGRP1` de 8 à 11 ms lupa à l'heure** : ce n'est pas l'écriture. Les écritures 5 images après l'heure
 mesurées seules : encodage 5,5-6,2 ms au lieu de 1,2 ms ; avec un `collectgarbage("collect")` juste avant, 1,1-1,2 ms
@@ -96,7 +96,7 @@ une (`Decisions`) sur le troisième.
 | Banc | Comparaison | Résultat |
 |---|---|---|
 | Banc de charge, une journée (`--dump-groups`) | avant / après (trois passages) | registre des groupes **identique à l'octet** |
-| `tests/test_lk_peaks.py`, banc de charge 3 h | relevé dans l'image de la minute / file à trois étapes | registre des groupes, attitudes, registre des PNJ, lignes `fortify:` dans le même ordre, nombre de relevés : identiques |
+| `tests/livingknox/test_lk_peaks.py`, banc de charge 3 h | relevé dans l'image de la minute / file à trois étapes | registre des groupes, attitudes, registre des PNJ, lignes `fortify:` dans le même ordre, nombre de relevés : identiques |
 
 ## 5. Critères
 
@@ -139,7 +139,7 @@ avant la phase 2) ; `Decisions` au plus 2,7 ms hors pointes isolées. Réseau : 
 octets, 2,82 Mo contre 2,76 : gestes envoyés dans plus d'images), total 10 → 13,5 msg/s pour un budget de 40.
 
 **Déterminisme du nouveau code** : deux journées de banc, registre des groupes identique à l'octet (`cmp`) ;
-`tests/test_lk_peaks.py` `DecisionSpreadTests` : deux bancs de 3 h, registres des groupes, attitudes et PNJ
+`tests/livingknox/test_lk_peaks.py` `DecisionSpreadTests` : deux bancs de 3 h, registres des groupes, attitudes et PNJ
 identiques, un membre évalué par image au plus, même nombre de notations.
 
 **Critères** : image la plus lourde du code sous 7 ms lupa (3,8 ms, soit 10 à 25 ms Kahlua selon le rapport 2,5 à

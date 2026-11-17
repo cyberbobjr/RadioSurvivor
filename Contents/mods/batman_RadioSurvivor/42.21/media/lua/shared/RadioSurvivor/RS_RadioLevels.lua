@@ -5,7 +5,7 @@
 -- Seule table des plages de reglage : lue par le lecteur des fiches (RS_Persona), le tirage (RS_Personas) et le
 -- catalogue de l'atelier (tools/gen_atelier_catalog.py, catalog.json radioLevels). Chaque niveau donne la plage de
 -- reglage (kHz, bornes comprises) du poste le plus faible du niveau et les objets du jeu qui l'ont, lus dans
--- media/scripts/generated/items/radio.txt (42.22, MinChannel / MaxChannel ; banc tests/test_radio_levels.py) :
+-- media/scripts/generated/items/radio.txt (42.22, MinChannel / MaxChannel ; banc tests/radiosurvivor/test_radio_levels.py) :
 --   any_talkie  : WalkieTalkie1 (Toys-R-Mine), WalkieTalkieMakeShift                 75-150 MHz
 --   good_talkie : WalkieTalkie2 (ValuTech)                                           50-200 MHz
 --   pro_talkie  : WalkieTalkie3 (Premium Technologies)                               25-300 MHz

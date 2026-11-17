@@ -1,7 +1,7 @@
 # Livre du passeur : stock, offre figée et action `propose_trade`
 
 - Tâche : E13-T02 (table serveur et action `propose_trade`) ; s'appuie sur E13-T01 (table validée [passeur-table.md](../../specifications-techniques/passeur-table.md), décisions du 2026-10-08 et du 2026-10-10), E07-T01 (actions en liste fermée), E13-T05 (journal du dehors, numéro de passage)
-- Code : `media/lua/server/RadioSurvivor/RS_Trade.lua` (autorité) ; barème `media/lua/shared/CoreAI/CA_TradeValues.lua` (inchangé) ; contexte joint par `RadioSurvivor_Server.lua` (champ `trade=`, écrit par `CA_Transport.lua` (mod commun) et `RS_BridgeLanes.lua`) ; pont `bridge/radio_bridge.py` (`trade_context`, `trade_prompt`, `EXECUTABLE_ACTIONS["propose_trade"]`, contrôle de forme dans `bounded_actions`) ; banc `tests/test_rs_trade.py`
+- Code : `media/lua/server/RadioSurvivor/RS_Trade.lua` (autorité) ; barème `media/lua/shared/CoreAI/CA_TradeValues.lua` (inchangé) ; contexte joint par `RadioSurvivor_Server.lua` (champ `trade=`, écrit par `CA_Transport.lua` (mod commun) et `RS_BridgeLanes.lua`) ; pont `bridge/radio_bridge.py` (`trade_context`, `trade_prompt`, `EXECUTABLE_ACTIONS["propose_trade"]`, contrôle de forme dans `bounded_actions`) ; banc `tests/radiosurvivor/test_rs_trade.py`
 - Build : 42.21.0 (Java décompilé **J/** = `<decompiled>\42.21.0\java\zombie\`) — Date : 2026-10-13 — Statut : brouillon, testé hors jeu seulement
 
 ## Problème
@@ -67,7 +67,7 @@ Joint à chaque demande d'une voix dont la fiche autorise `propose_trade` (et à
 
 ## Tests
 
-- Banc `tests/test_rs_trade.py` (23 tests) : catalogue conforme à la table (noms, fourchettes, plafonds, marges) et poids relus dans les scripts vanilla 42.21 ; tirage reproductible et dans les fourchettes sur 400 passages ; exemples de prix de la table ; multiplicateur borné ; offre figée, révision, réserve, remplacement ; refus `not_in_stock`, `over_stock`, `over_weight`, `over_cap`, `bad_margin`, `bad_params` ; tirage aléatoire de 3 000 propositions sur deux passages (aucune offre hors table, prix recalculé, disponible = tiré − pris, jamais négatif) ; marge selon la mémoire, tricherie, `close`, expiration ; livre par personnage et borné ; persistance (encodage RSV2 puis relecture) ; exécuteur jugé par `RS_Actions` ; champ `trade=` relu par le pont, prompt, livre cassé ignoré ; forme de l'action dans le pont ; chaîne complète dans le serveur radio solo (demande avec `trade=`, réponse `propose_trade`, offre figée, demande suivante portant l'offre et le refus).
+- Banc `tests/radiosurvivor/test_rs_trade.py` (23 tests) : catalogue conforme à la table (noms, fourchettes, plafonds, marges) et poids relus dans les scripts vanilla 42.21 ; tirage reproductible et dans les fourchettes sur 400 passages ; exemples de prix de la table ; multiplicateur borné ; offre figée, révision, réserve, remplacement ; refus `not_in_stock`, `over_stock`, `over_weight`, `over_cap`, `bad_margin`, `bad_params` ; tirage aléatoire de 3 000 propositions sur deux passages (aucune offre hors table, prix recalculé, disponible = tiré − pris, jamais négatif) ; marge selon la mémoire, tricherie, `close`, expiration ; livre par personnage et borné ; persistance (encodage RSV2 puis relecture) ; exécuteur jugé par `RS_Actions` ; champ `trade=` relu par le pont, prompt, livre cassé ignoré ; forme de l'action dans le pont ; chaîne complète dans le serveur radio solo (demande avec `trade=`, réponse `propose_trade`, offre figée, demande suivante portant l'offre et le refus).
 - En jeu : rien avant E13-T03 (cible hors jeu).
 
 ## Limites et restes

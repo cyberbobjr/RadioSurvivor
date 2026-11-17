@@ -206,7 +206,7 @@ Le kit de départ ne contient qu'une `Base.NailsBox`. Sans clou libre, la boîte
 
 ### 7.2 Tests
 
-- Banc `tests/test_lk_barricade.py` (12 tests) : geste existant ; plan de la maison de test (deux fenêtres, entrée libre) ; ouvrier qui barricade les deux fenêtres (8 planches, 8 clous, boîte ouverte une fois, marteau gardé, planche abîmée reprise, entrée sans planche, stock relu sans perte ni vol, plus rien ensuite) ; matériaux qui limitent le travail ; sans marteau ou sans poste `builder` : rien ; interruption avant la planche : rien de pris, chantier libéré, debout ; refus de `nailPlank` (entrée, porte ouverte, métal, ouverture absente) sans rien prendre, barricade commencée complétée de son côté ; MP serveur + 2 clients (envois : barricade neuve puis 3 changements d'état par fenêtre, 100 clous envoyés une fois, mêmes vues chez A et B) ; suite listée ; sources sûres pour Kahlua.
+- Banc `tests/livingknox/test_lk_barricade.py` (12 tests) : geste existant ; plan de la maison de test (deux fenêtres, entrée libre) ; ouvrier qui barricade les deux fenêtres (8 planches, 8 clous, boîte ouverte une fois, marteau gardé, planche abîmée reprise, entrée sans planche, stock relu sans perte ni vol, plus rien ensuite) ; matériaux qui limitent le travail ; sans marteau ou sans poste `builder` : rien ; interruption avant la planche : rien de pris, chantier libéré, debout ; refus de `nailPlank` (entrée, porte ouverte, métal, ouverture absente) sans rien prendre, barricade commencée complétée de son côté ; MP serveur + 2 clients (envois : barricade neuve puis 3 changements d'état par fenêtre, 100 clous envoyés une fois, mêmes vues chez A et B) ; suite listée ; sources sûres pour Kahlua.
 - En jeu : `RST.run({ suite = "lk.barricade", tags = "world" })` (solo, dans une maison avec un meuble à conteneur et une ouverture extérieure autre que l'entrée).
 
 ### 7.3 Limites et points ouverts
@@ -239,7 +239,7 @@ Brèche et foyer : la brèche (§6) n'est jamais dans le plan et `buildStep` la 
 
 ### 8.1 Tests
 
-- Banc `tests/test_lk_walls.py` (10 tests) : plan réduit au pourtour (brèche de 3 segments au sud en face de l'entrée, cases intérieure et extérieure des côtés) ; gestes existants ; ouvrier qui monte deux segments (cadre puis mur, santé 490, entité, 8 planches et 12 clous retirés, boîte ouverte une fois, marteau gardé, stock relu sans perte ni vol, plus rien ensuite) ; cadre existant : étape du mur seule, cadre remplacé ; refus sans rien prendre (brèche, hors du foyer, clous manquants, sans marteau) ; poteau d'angle unique au coin sud-est ; palissade (4 rondins, 4 liens, sans outil, aucun poteau) ; MP serveur + 2 clients (envois : cadre neuf, cadre retiré, mur neuf ; 100 clous envoyés une fois ; rien sur les clients) ; suite listée ; source sûre pour Kahlua.
+- Banc `tests/livingknox/test_lk_walls.py` (10 tests) : plan réduit au pourtour (brèche de 3 segments au sud en face de l'entrée, cases intérieure et extérieure des côtés) ; gestes existants ; ouvrier qui monte deux segments (cadre puis mur, santé 490, entité, 8 planches et 12 clous retirés, boîte ouverte une fois, marteau gardé, stock relu sans perte ni vol, plus rien ensuite) ; cadre existant : étape du mur seule, cadre remplacé ; refus sans rien prendre (brèche, hors du foyer, clous manquants, sans marteau) ; poteau d'angle unique au coin sud-est ; palissade (4 rondins, 4 liens, sans outil, aucun poteau) ; MP serveur + 2 clients (envois : cadre neuf, cadre retiré, mur neuf ; 100 clous envoyés une fois ; rien sur les clients) ; suite listée ; source sûre pour Kahlua.
 - En jeu : `RST.run({ suite = "lk.walls", tags = "world" })` (solo, dans une maison avec un meuble à conteneur et un terrain dégagé à 2 cases autour).
 
 ### 8.2 Limites et points ouverts
@@ -269,7 +269,7 @@ Choix pris par défaut (à confirmer) : besoin remonté par le **journal du grou
 
 ### 9.1 Tests
 
-- Banc `tests/test_lk_repair.py` (13 tests) : chantier `repair` d'une barricade complète abîmée, en dernier sans attaque, en tête après la marque (puis barricade entamée), fin de l'urgence après `REPAIR_URGENT_MINUTES` ; barricade saine ou incomplète non réparée ; ouvrier qui répare d'abord après l'attaque (planche saine à l'extérieur, 4 planches, une planche et un clou retirés, planche abîmée rendue, stock relu sans perte ni vol, aucun besoin) ; refus relus avant toute prise (marteau, déjà réparée, métal) ; dernière planche remplacée (barricade recréée) ; planches absentes : besoin `1 Base.Plank` au journal une fois, de nouveau après une autre attaque, effacé au retour des planches ; mur à 200/490 réparé avec 1 planche et 2 clous (marteau et scie gardés) ; sans scie : besoin d'outil, rien pris ; MP : un seul `sendObjectChange(STATE)` et la planche rendue envoyée, un seul `sync` du mur ; suite listée et sûre pour Kahlua.
+- Banc `tests/livingknox/test_lk_repair.py` (13 tests) : chantier `repair` d'une barricade complète abîmée, en dernier sans attaque, en tête après la marque (puis barricade entamée), fin de l'urgence après `REPAIR_URGENT_MINUTES` ; barricade saine ou incomplète non réparée ; ouvrier qui répare d'abord après l'attaque (planche saine à l'extérieur, 4 planches, une planche et un clou retirés, planche abîmée rendue, stock relu sans perte ni vol, aucun besoin) ; refus relus avant toute prise (marteau, déjà réparée, métal) ; dernière planche remplacée (barricade recréée) ; planches absentes : besoin `1 Base.Plank` au journal une fois, de nouveau après une autre attaque, effacé au retour des planches ; mur à 200/490 réparé avec 1 planche et 2 clous (marteau et scie gardés) ; sans scie : besoin d'outil, rien pris ; MP : un seul `sendObjectChange(STATE)` et la planche rendue envoyée, un seul `sync` du mur ; suite listée et sûre pour Kahlua.
 - En jeu : `RST.run({ suite = "lk.repair", tags = "world" })` (solo, dans une maison avec un meuble à conteneur et une ouverture extérieure sans barricade autre que l'entrée).
 
 ### 9.2 Limites et points ouverts
@@ -305,8 +305,8 @@ Choix pris par défaut (à confirmer) : 30 minutes utiles par ouvrier et par heu
 
 ### 10.1 Tests
 
-- Banc `tests/test_lk_fortify_offscreen.py` (12 tests) : relevé (chantiers, outils, tiers ; niveau et chantiers faisables tirés du relevé hors zone) ; rien la nuit, sans ouvrier ou avec des corps ; une heure hors écran barricade les deux fenêtres (8 planches en écarts du stock, 8 clous de la boîte notés), rien posé hors zone, puis à l'arrivée 4 planches par fenêtre dehors, entrée libre, boîte ouverte (92 clous), stock appliqué, aucune marque restante, plan relu = niveau simulé, aucun double aux examens suivants ; budget de temps sur cinq heures (reste gardé) puis cadre et mur posés à l'arrivée ; application interrompue (écriture perdue, mémoire perdue) reprise sans double ; état réel déjà à la cible non reposé ; accroche de `Simulation.step` ; MP serveur + 2 clients (une barricade neuve envoyée par fenêtre, 92 clous envoyés une fois, module absent des clients) ; suite listée et jouée sur doublures ; sources sûres pour Kahlua.
-- Banc `tests/test_lk_fortify_offscreen.py`, classe `CompactFormTests` (LK13-T07, 5 tests) : forme compacte au registre (chaînes, empreinte, au moins deux fois plus petite que l'ancienne forme, relevé inchangé non réécrit) ; empreinte et aller-retour `packFort`/`fortView`, chaîne mal formée refusée ; ancienne forme avec travail en attente convertie au premier examen puis posée une fois à l'arrivée ; ancienne forme après une application interrompue : objets marqués repris, aucun double ; heure hors écran sur l'ancienne forme qui écrit la forme compacte. VM Kahlua : `KR-FORT` (`tests/test_kahlua.py`, mêmes chaînes que sous lupa).
+- Banc `tests/livingknox/test_lk_fortify_offscreen.py` (12 tests) : relevé (chantiers, outils, tiers ; niveau et chantiers faisables tirés du relevé hors zone) ; rien la nuit, sans ouvrier ou avec des corps ; une heure hors écran barricade les deux fenêtres (8 planches en écarts du stock, 8 clous de la boîte notés), rien posé hors zone, puis à l'arrivée 4 planches par fenêtre dehors, entrée libre, boîte ouverte (92 clous), stock appliqué, aucune marque restante, plan relu = niveau simulé, aucun double aux examens suivants ; budget de temps sur cinq heures (reste gardé) puis cadre et mur posés à l'arrivée ; application interrompue (écriture perdue, mémoire perdue) reprise sans double ; état réel déjà à la cible non reposé ; accroche de `Simulation.step` ; MP serveur + 2 clients (une barricade neuve envoyée par fenêtre, 92 clous envoyés une fois, module absent des clients) ; suite listée et jouée sur doublures ; sources sûres pour Kahlua.
+- Banc `tests/livingknox/test_lk_fortify_offscreen.py`, classe `CompactFormTests` (LK13-T07, 5 tests) : forme compacte au registre (chaînes, empreinte, au moins deux fois plus petite que l'ancienne forme, relevé inchangé non réécrit) ; empreinte et aller-retour `packFort`/`fortView`, chaîne mal formée refusée ; ancienne forme avec travail en attente convertie au premier examen puis posée une fois à l'arrivée ; ancienne forme après une application interrompue : objets marqués repris, aucun double ; heure hors écran sur l'ancienne forme qui écrit la forme compacte. VM Kahlua : `KR-FORT` (`tests/coreai/test_kahlua.py`, mêmes chaînes que sous lupa).
 - En jeu : `RST.run({ suite = "lk.fortify_offscreen", tags = "world" })` (solo, dans une maison avec un meuble à conteneur et une ouverture extérieure fermée autre que l'entrée).
 
 ### 10.2 Limites et points ouverts
@@ -400,13 +400,13 @@ par une autre sorte est refusé par une erreur claire ; inscrire de nouveau un `
 - Chargement : le jeu parcourt les sous-dossiers de `media/lua/server` triés par chemin en minuscules
   (`.claude/pz-knowledge/mod-loading.md`) ; `livingknox/fortify/…` passe avant `livingknox/lk_fortify.lua`, et chaque
   fichier de sorte requiert `LivingKnox/LK_Fortify` : le moteur est exécuté une fois, avant les sortes. Les bancs
-  chargent le moteur puis le dossier (`tests/harness.py`, `fortify_files()`), comme `Jobs/` et `Routines/`.
+  chargent le moteur puis le dossier (`tests/commun/harness.py`, `fortify_files()`), comme `Jobs/` et `Routines/`.
 - Lettres gardées (`b`, `w`, `p`) : la forme compacte est inchangée.
 - Limites : le plan garde ses deux sources du relevé (ouvertures → barricades et leurs réparations, pourtour → sorte
   du style du foyer et ses réparations) ; une nouvelle source passe par `spec.plan`. Les primitives de pose (planche,
   étape, réparation, pose hors écran) restent dans `LK_Fortify.lua`, appelées par les fichiers de sorte. Les réglages
   propres à une sorte restent dans `CFG` (`RING_GESTURES`, `REPAIR_MINUTES`, `TIME`), lus par les specs.
-- Banc : `tests/test_lk_fortify_kinds.py` (sorte factice inscrite par le banc seul : planifiée, gardée en forme
+- Banc : `tests/livingknox/test_lk_fortify_kinds.py` (sorte factice inscrite par le banc seul : planifiée, gardée en forme
   compacte, relue, avancée hors écran et posée à l'arrivée ; code dupliqué refusé ; quatre sortes tirées de leurs
   fichiers).
 
@@ -426,7 +426,7 @@ par une autre sorte est refusé par une erreur claire ; inscrire de nouveau un `
 
 ## Tests
 
-- Banc lupa, VM Kahlua : sans objet pour l'investigation ; LK14-T02 : `tests/test_lk_fortify.py` (15 tests : ordre de priorité et entrée libre, matériaux, outils et durées, brèche et segments écartés, aucun chantier hors du foyer, niveau pondéré, plan reproductible dans un autre banc avec un autre ordre d'objets, journal à chaque changement, zone non chargée, grand bâtiment, faisabilité et réservation des matériaux, ouvriers distincts, palissade d'un camp, score de `fortify` selon stock et menaces, entrée du cadre, module absent des clients MP).
+- Banc lupa, VM Kahlua : sans objet pour l'investigation ; LK14-T02 : `tests/livingknox/test_lk_fortify.py` (15 tests : ordre de priorité et entrée libre, matériaux, outils et durées, brèche et segments écartés, aucun chantier hors du foyer, niveau pondéré, plan reproductible dans un autre banc avec un autre ordre d'objets, journal à chaque changement, zone non chargée, grand bâtiment, faisabilité et réservation des matériaux, ouvriers distincts, palissade d'un camp, score de `fortify` selon stock et menaces, entrée du cadre, module absent des clients MP).
 - En jeu : aucun essai fait pour cette fiche. Les points « à mesurer » sont à couvrir par les suites de LK14-T03 à T06.
 
 ## Points ouverts

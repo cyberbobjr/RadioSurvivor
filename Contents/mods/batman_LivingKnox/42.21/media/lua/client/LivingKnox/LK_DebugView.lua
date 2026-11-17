@@ -37,7 +37,7 @@ local Access = require "CoreAI/CA_AdminAccess"
 local DebugView = LivingKnox.DebugView or {}
 LivingKnox.DebugView = DebugView
 
--- Copies des constantes de LK_Admin.lua et LK_Activity.lua (comparées par tests/test_lk_debugview.py).
+-- Copies des constantes de LK_Admin.lua et LK_Activity.lua (comparées par tests/livingknox/test_lk_debugview.py).
 DebugView.MODULE = "LivingKnox"
 DebugView.CMD_REQUEST = "adminRequest"
 DebugView.CMD_REPLY = "adminReply"

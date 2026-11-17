@@ -729,7 +729,7 @@ end
 -- of short names) when given, else the mod whose registered prefix starts its name, any other name the core mod
 -- only. A short name nobody registered counts as an inactive mod. A suite whose mods are not all active is SKIP
 -- without running (same as a refused world suite), so the same campaigns run with each mod alone or both
--- (tests/test_suite_mods.py checks declarations).
+-- (tests/coreai/test_suite_mods.py checks declarations).
 RST.MOD_IDS = RST.MOD_IDS or { core = "batman_CoreAI" }
 RST.MOD_PREFIXES = RST.MOD_PREFIXES or {}
 

@@ -3,8 +3,8 @@ lk.agreements - agreements kept by Living Knox (E18-T20, LK_Agreements) on the t
 with or without the other mods. Tag "server" (solo or dedicated server, authority only). The truce is concluded
 directly (the model's decision is the bridge's part), with a test group id (form checked only, never a group of the
 engine): the player's team is covered by the hook of Living Knox at once, the agreement is kept in the private file of
-Living Knox. Cleanup: the agreement is removed (cancelAgreement). Outside the game: tests/test_agreements.py,
-tests/test_lk_agreements.py.
+Living Knox. Cleanup: the agreement is removed (cancelAgreement). Outside the game: tests/livingknox/test_agreements.py,
+tests/livingknox/test_lk_agreements.py.
 ]]
 
 require "RST/RST"

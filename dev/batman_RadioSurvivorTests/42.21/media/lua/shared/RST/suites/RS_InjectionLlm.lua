@@ -16,7 +16,7 @@ SKIP without a fresh heartbeat of the bridge (bridge not running). The game cann
 one of autoclient.py (--llm fake never obeys an injection: a PASS there proves nothing): run it alone, on demand,
 never in a campaign list:
     python RadioSurvivor/tools/autoclient/autoclient.py --suite rs.injection.llm --tags world --bridge on --llm real
-Outside the game: tests/test_rs_injection_suite.py (simulated server, real bridge prompt, model double).
+Outside the game: tests/radiosurvivor/test_rs_injection_suite.py (simulated server, real bridge prompt, model double).
 ]]
 
 require "RST/RST"

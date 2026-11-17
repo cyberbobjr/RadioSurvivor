@@ -7,7 +7,7 @@ nomme un solitaire d'après son groupe), `shared/CoreAI/CA_NPCProvider.lua` du m
 `server/LivingKnox/LK_Agreements.lua` (identifiants d'équipe et mandats : `server/CoreAI/CA_Teams.lua` du mod commun) (`keepTruces`, `trucesOf`, `dropTruces`, `covered` avec `npcId`),
 `shared/LivingKnox/Data/LK_Type_loners.lua` (type `loners`), `server/LivingKnox/LK_Population.lua` (`dueReliefs` : aucune
 relève d'un type jamais tiré), `bridge/npc_protocol.py` (`leavable`, `leave_prompt`, mode hors ligne). Contrat :
-[protocole-carnet-v2.md](../../specifications-techniques/protocole-carnet-v2.md), « Départ individuel (E10-T04) ». Banc : `tests/test_lk_leave.py` ;
+[protocole-carnet-v2.md](../../specifications-techniques/protocole-carnet-v2.md), « Départ individuel (E10-T04) ». Banc : `tests/livingknox/test_lk_leave.py` ;
 suite en jeu `lk.leave`.
 
 ## Décisions appliquées
@@ -81,8 +81,8 @@ faut que ce soit cohérent ».
   un anneau d'au moins 600 cases de large au-delà de la distance au joueur, à l'échelle d'une ville vanilla (rayons
   600 à 900 dans `Rescue.TOWNS`). Abaisser le minimum sous 600 demanderait de réduire la distance aux bases pour ce
   seul tirage (refuges compris) : écarté.
-- Preuves : banc `tests/test_lk_sites_near.py` (anneau, paliers, carte entière, exclusions, graine, aucune lecture de
-  case) et `tests/test_lk_leave.py` (options passées par `leave`) ; suite en jeu `lk.leave` (distance mesurée,
+- Preuves : banc `tests/livingknox/test_lk_sites_near.py` (anneau, paliers, carte entière, exclusions, graine, aucune lecture de
+  case) et `tests/livingknox/test_lk_leave.py` (options passées par `leave`) ; suite en jeu `lk.leave` (distance mesurée,
   palier affiché).
 
 ## Choix pris sans l'utilisateur (à confirmer)

@@ -3,21 +3,21 @@
     python RadioSurvivor/tests/run_all.py [--mod radiosurvivor|livingknox] [--keep-going] [--only NAME ...]
                                           [--luacheck-baseline N]
 
---mod radiosurvivor: only the checks of Radio Survivor and the common mod (steps that test Living Knox alone are left
-out, luacheck reads batman_CoreAI and batman_RadioSurvivor only). --mod livingknox: the opposite (Living Knox and the
-common mod). Without --mod: every step of the repository.
+Steps are read from the test folders (ADR adr-coreai-separation D09, E26), never from a hand-written list: every
+tests/<folder>/test_<name>.py is the step <name>, folder by folder (coreai, radiosurvivor, livingknox, ensemble), files
+in name order; two files with the same name in two folders stop the script. tests/commun holds the shared doubles,
+harness, benches and fixtures: no step.
+
+--mod radiosurvivor: tests/coreai and tests/radiosurvivor (luacheck reads batman_CoreAI and batman_RadioSurvivor
+only). --mod livingknox: tests/coreai and tests/livingknox (luacheck: batman_CoreAI and batman_LivingKnox). Without
+--mod: the whole repository, tests/ensemble included (tests of both mods together).
 
 Runs, in order, and stops at the first failure (unless --keep-going):
-    protocol, bridge_guards, rs_injection_suite, carnet, mission_retrieve, mission_clear, mission_recover, mission_signal, rs_signal_client_suite, harness, lk_core, lk_essai, lk_bodies, lk_appearance, lk_guard, lk_anim, lk_equipment,
-    lk_directives, lk_num_geo, lk_frame_queue, lk_client_request, lk_obstacles, lk_movement, lk_relay, lk_reports, lk_senses, lk_decisions, lk_needs, lk_routines, lk_chores, lk_alert, lk_health, lk_wound_sources, lk_care, lk_death, lk_loot, lk_weapon_swap, lk_groups, lk_group_types, lk_simulation, lk_materialize, lk_stories, lk_journal, lk_traces, lk_milestone, gen_animsets, check_case, rst, rs_suites, autoclient, persist_suites, rs_state_persist_suite, rst_steps, peer_checks2, lk_places, lk_spawn_area, fake_llm, obs_clear_suites, e09_suites, death_suites, personas, personas_server,
-    notes, radio_module, radio_history, rs_notebook_voices_suite, rs_share_suite, belt_radio, rescue, rescue_visit, rescue_scene, rescue_lost, lk_sites, lk_sites_near, lk_homes, lk_stock, lk_meals, lk_provisions, lk_upkeep, lk_expeditions, lk_food, lk_garden, lk_api, lk_apitest, lk_population, lk_relief, lk_hostility, lk_combat, lk_surrender, lk_zombies, lk_hearing, lk_window_lure, lk_floor_strike, lk_defense, lk_fight_all, lk_speech, lk_encounters, lk_aid, lk_revenge, lk_raids, lk_trade, lk_thresholds, lk_fitness, lk_fortify, lk_barricade, lk_walls, lk_repair, lk_fortify_offscreen, lk_admin, lk_npcsheet, lk_debugview, lk_load, lk_store, lk_spread, lk_peaks, observations, initiatives, conversations, group_radio, text_cut, lk_speech_pieces,
-    factions, lk_contest, lk_leave, facts, bulletin, memorial, rs_e14_e16_suites, rs_mission_clock_suite, lifelog, lastpages_corpse, last_pages, outside_news, rs_trade, rs_trade_run, rs_trade_exchange, reputation, npc_reply
-                       Python / lupa tests
-                       tests/test_<name>.py
+    <name>             tests/<folder>/test_<name>.py, Python / lupa tests of the folders of the scope
     case               tools/check_case.py (case of every path of both mods against the vanilla media folder, LK13-T05);
                        SKIP (not PASS) when the vanilla media folder or the required mod batman_BeltRadio
                        (sibling repository Workshop/BeltRadio) is missing
-    kahlua             tests/test_kahlua.py; SKIP (not PASS) when Java, projectzomboid.jar, stdlib.lua or ECJ is missing
+    kahlua             tests/coreai/test_kahlua.py; SKIP (not PASS) when Java, projectzomboid.jar, stdlib.lua or ECJ is missing
     luacheck-contents  luacheck on Contents; FAIL if the warning count exceeds the baseline of tests/luacheck_baseline.txt
     luacheck-dev       luacheck on dev (development mod), same rule
     plan-check         tools/plan.py check
@@ -45,16 +45,15 @@ BASELINE_FILE = TESTS / 'luacheck_baseline.txt'
 LUACHECK_CONFIG = ROOT / '.luacheckrc'
 TAIL_LINES = 20
 
-PYTHON_TESTS = ['plan', 'pz_api', 'doubles_api', 'mod_calls_api', 'core_mod', 'core_tools', 'core_identity', 'core_bridge', 'core_missions', 'core_notebook', 'core_npc_provider', 'core_mission_views', 'core_map_zones', 'core_notebook_store', 'core_admin_access', 'core_group_facts', 'rs_state', 'lk_mod', 'suite_mods', 'core_history', 'core_reputation', 'lk_personal_relation', 'lk_notebook_provider', 'lk_speech_single_path', 'lk_agreements', 'notebook_lk_removed', 'translations_split', 'mission_rewards', 'voice_delivery', 'lk_mission_rewards', 'rs_e11_voice_npc_suites', 'protocol', 'bridge_guards', 'atelier_server', 'atelier_auth', 'atelier_catalog', 'atelier_ui', 'atelier_log', 'atelier_ai', 'atelier_help', 'atelier_surveys', 'wiki_voice_examples', 'rs_place_survey', 'rs_injection_suite', 'carnet', 'mission_retrieve', 'rs_net_disorder', 'mission_clear', 'mission_recover', 'mission_signal', 'mission_registry', 'rs_signal_client_suite', 'harness', 'lk_core', 'lk_essai', 'lk_bodies', 'lk_appearance', 'lk_guard', 'lk_stand',
-                'lk_anim', 'lk_equipment', 'lk_directives', 'lk_obstacles', 'lk_detour', 'site_replay', 'lk_movement', 'lk_edges', 'lk_relay', 'lk_reports', 'lk_peer_suites', 'lk_senses', 'lk_registry', 'lk_num_geo', 'lk_wounds', 'lk_wound_sources', 'lk_frame_queue', 'lk_client_request', 'lk_passage', 'lk_step_aside', 'lk_stop_place', 'lk_decisions', 'lk_decision_context', 'lk_needs', 'lk_routines', 'lk_chores', 'lk_alert', 'lk_health', 'lk_care', 'lk_death', 'lk_loot', 'lk_weapon_swap', 'lk_groups', 'lk_group_types', 'lk_simulation', 'lk_materialize', 'lk_stories', 'lk_journal', 'lk_traces', 'lk_milestone', 'gen_animsets', 'check_case',
-                'rst', 'rs_suites', 'rs_mp_suites', 'autoclient', 'persist_suites', 'map_persist', 'rs_state_persist_suite', 'rst_steps', 'peer_checks2', 'lk_places', 'lk_spawn_area', 'fake_llm', 'obs_clear_suites', 'e09_suites', 'death_suites', 'personas', 'personas_server', 'radio_levels', 'notes', 'radio_module', 'radio_history', 'rs_notebook_voices_suite', 'rs_share_suite', 'belt_radio',
-                'rescue', 'rescue_visit', 'rescue_scene', 'rescue_lost', 'lk_sites', 'lk_sites_near', 'lk_homes', 'lk_stock', 'lk_meals', 'lk_provisions', 'lk_upkeep', 'lk_expeditions', 'lk_food', 'lk_expedition_kinds', 'lk_vanilla_farming', 'lk_garden', 'lk_api', 'lk_group_facts_feed', 'lk_apitest', 'lk_population', 'lk_relief', 'lk_hostility', 'lk_combat', 'lk_surrender', 'lk_zombies', 'lk_hearing', 'lk_window_lure', 'lk_floor_strike', 'lk_defense', 'lk_fight_all', 'lk_speech', 'lk_encounters', 'lk_aid', 'lk_revenge', 'lk_raids', 'lk_trade', 'lk_thresholds', 'lk_fitness', 'lk_fortify', 'lk_fortify_kinds', 'lk_barricade', 'lk_walls', 'lk_repair', 'lk_fortify_offscreen', 'lk_admin', 'lk_npcsheet', 'lk_debugview', 'lk_load', 'lk_store', 'lk_spread', 'lk_peaks', 'observations', 'initiatives', 'conversations', 'group_radio', 'text_cut', 'lk_speech_pieces', 'factions', 'agreements', 'incidents', 'relations', 'relation_panel', 'lk_contest', 'lk_leave', 'facts', 'bulletin', 'memorial', 'rs_e14_e16_suites', 'lifelog', 'lastpages_corpse', 'last_pages', 'outside_news', 'rs_trade', 'rs_trade_run', 'rs_trade_exchange', 'reputation', 'rs_freqdebug', 'comfort', 'rs_comfort_suite', 'rs_mission_clock_suite', 'voice_bonds', 'npc_reply', 'notebook_visual', 'server_guards', 'kahlua']
 LUACHECK_STEPS = {'luacheck-contents': 'Contents', 'luacheck-dev': 'dev'}
-# ADR adr-coreai-separation D06: Radio Survivor and Living Knox are tested apart. Steps that test Living Knox alone
-# (its engine, NPC talk, groups, factions and their in-game suites); every other step tests Radio Survivor or the
-# common mod and runs in both scopes.
-LK_ONLY = {s for s in PYTHON_TESTS if s.startswith('lk_')} | {
-    'observations', 'initiatives', 'conversations', 'factions', 'agreements', 'incidents', 'relations', 'e09_suites'}
+# ADR adr-coreai-separation D09 (E26): one folder of tests per mod; a scope runs the folders of its mod and of the
+# common mod, the whole repository (no --mod) also runs tests/ensemble (Radio Survivor and Living Knox together).
+TEST_FOLDERS = ('coreai', 'radiosurvivor', 'livingknox', 'ensemble')
+SCOPE_FOLDERS = {
+    'radiosurvivor': ('coreai', 'radiosurvivor'),
+    'livingknox': ('coreai', 'livingknox'),
+    None: TEST_FOLDERS,
+}
 # Folders read by luacheck per scope (under Contents/mods and dev); None = the whole folder.
 MOD_FOLDERS = {
     'radiosurvivor': {'Contents': ['mods/batman_CoreAI', 'mods/batman_RadioSurvivor'],
@@ -62,7 +61,22 @@ MOD_FOLDERS = {
     'livingknox': {'Contents': ['mods/batman_CoreAI', 'mods/batman_LivingKnox'],
                    'dev': ['batman_CoreAITests', 'batman_LivingKnoxTests', 'batman_LivingKnoxTestClothes']},
 }
-STEPS = PYTHON_TESTS + ['case'] + list(LUACHECK_STEPS) + ['plan-check']
+
+
+def discover(folders=TEST_FOLDERS) -> dict[str, Path]:
+    """Python steps read from the folders: step name (file name without test_) -> test file, folder by folder."""
+    tests: dict[str, Path] = {}
+    for folder in folders:
+        for path in sorted((TESTS / folder).glob('test_*.py')):
+            name = path.stem[len('test_'):]
+            if name in tests:
+                raise SystemExit(f'duplicate step name {name}: {tests[name]} and {path}')
+            tests[name] = path
+    return tests
+
+
+PYTHON_TESTS = discover()
+STEPS = list(PYTHON_TESTS) + ['case'] + list(LUACHECK_STEPS) + ['plan-check']
 
 
 class Result:
@@ -80,8 +94,8 @@ def run(command: list[str]) -> tuple[int, str]:
 
 
 def kahlua_missing() -> str | None:
-    """Missing prerequisite of tests/test_kahlua.py, read from the test module itself (same paths, same env vars)."""
-    spec = importlib.util.spec_from_file_location('rs_test_kahlua', TESTS / 'test_kahlua.py')
+    """Missing prerequisite of tests/coreai/test_kahlua.py, read from the test module itself (same paths, same env vars)."""
+    spec = importlib.util.spec_from_file_location('rs_test_kahlua', PYTHON_TESTS['kahlua'])
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module.missing_prerequisites()
@@ -104,7 +118,7 @@ def step_python(name: str) -> Result:
         missing = kahlua_missing()
         if missing:
             return Result(name, 'SKIP', time.monotonic() - started, 'prerequisite missing: ' + missing)
-    command = [sys.executable, str(TESTS / f'test_{name}.py')]
+    command = [sys.executable, str(PYTHON_TESTS[name])]
     code, output = run(command)
     seconds = time.monotonic() - started
     lines = [line.strip() for line in output.splitlines() if line.strip()]
@@ -213,11 +227,8 @@ def main(argv: list[str] | None = None) -> int:
     if hasattr(sys.stdout, 'reconfigure'):
         sys.stdout.reconfigure(encoding='utf-8', errors='replace')
 
-    selected = [s for s in STEPS if not args.only or s in args.only]
-    if args.mod == 'radiosurvivor':
-        selected = [s for s in selected if s not in LK_ONLY]
-    elif args.mod == 'livingknox':
-        selected = [s for s in selected if s in LK_ONLY or s not in PYTHON_TESTS]
+    in_scope = set(discover(SCOPE_FOLDERS[args.mod]))
+    selected = [s for s in STEPS if (s in in_scope or s not in PYTHON_TESTS) and (not args.only or s in args.only)]
     baselines = read_baselines()
     results: list[Result] = []
     stopped = False

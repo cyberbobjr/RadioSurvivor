@@ -142,7 +142,7 @@ la réputation » (`bridge/npc_protocol.py:979`) reste vraie : seul le serveur l
 
 ## 8. Validation prévue
 
-- Banc `lupa` (`tests/test_reputation.py`) : barème, bornes, plafond de gain, niveaux, tendance, idempotence
+- Banc `lupa` (`tests/ensemble/test_reputation.py`) : barème, bornes, plafond de gain, niveaux, tendance, idempotence
   (double événement, rejeu après rechargement d'état), tueur non participant, cas non attribué, purge.
 - Suites en jeu (solo puis campagne MP automatique, E21-T11) : `ca.reputation` : mission réussie → niveau et motif
   visibles chez le seul participant, redémarrage serveur : score conservé, aucun doublon ; `lk.reputation` : deux
@@ -160,7 +160,7 @@ existant).
 Code : `server/RadioSurvivor/RS_Reputation.lua` (en-tête : API publique), `shared/RadioSurvivor/RS_Config.lua`
 (`Reputation`, valeurs de la section 9), points de capture `CA_Missions.finish`, `RS_TradeExchange` (`finish`),
 `RS_Carnet_Server.lua` (`Server.dead`, `Server.npcDied`, `killerCharacter`, instantané, `prune`, `characterDeath`).
-Banc : `tests/test_reputation.py`.
+Banc : `tests/ensemble/test_reputation.py`.
 
 - **Registre** : `S.data.reputation[<personnage>] = {score, revision, trend, signs, reasons, gainDay, gainSum,
   retiredDay}` ; `signs` = sens des trois derniers actes (tendance) ; `reasons` = cinq derniers actes, du plus récent

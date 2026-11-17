@@ -3,7 +3,7 @@
 - Tâches : LK10-T01 (gabarits et combineur) ; LK10-T03 (point d'enrichissement, 2026-10-12) ; servira LK10-T02 (journal), LK10-T04 (traces en jeu), LK08-T05 (création des groupes)
 - Build : 42.21.0 — Date : 2026-10-10 — Statut : brouillon
 
-Code : gabarits `media/lua/shared/LivingKnox/Data/Stories.lua` (`LivingKnox.StoryData`, données seules), combineur `media/lua/server/LivingKnox/LK_Stories.lua` (`LivingKnox.Stories`, autorité seulement). Banc : `tests/test_lk_stories.py` (`--sample` affiche trois histoires par type).
+Code : gabarits `media/lua/shared/LivingKnox/Data/Stories.lua` (`LivingKnox.StoryData`, données seules), combineur `media/lua/server/LivingKnox/LK_Stories.lua` (`LivingKnox.Stories`, autorité seulement). Banc : `tests/livingknox/test_lk_stories.py` (`--sample` affiche trois histoires par type).
 
 ## Problème
 
@@ -84,7 +84,7 @@ Un type ajouté par données (registre `LivingKnox.GroupTypes`, LK08-T02) sans f
 ## Enrichissement par un autre mod (LK10-T03, 2026-10-12)
 
 Code : `LK_API.lua` (`API.story`, `API.enrichStory`, `API.STORY`), contrat dans [api-living-knox.md](../../specifications-techniques/api-living-knox.md), section « Histoires
-enrichies ». Banc : `tests/test_lk_api.py`, classe `StoryEnrichTests`.
+enrichies ». Banc : `tests/livingknox/test_lk_api.py`, classe `StoryEnrichTests`.
 
 - **Point d'entrée passif** : le moteur expose une lecture (`API.story`) et une écriture (`API.enrichStory`) ; il ne
   connaît pas RadioSurvivor et ne l'appelle jamais. Sans lui : aucun texte enregistré, lecture du gabarit, aucune
@@ -114,8 +114,8 @@ inchangé (le consommateur lit `API.story`).
 
 ## Tests
 
-- Banc lupa (`tests/test_lk_stories.py`, 14 tests) : données valides (`checkData`, effectifs minimaux dont 12 origines possibles par type, fragments propres à chaque type, registre LK08-T02 chargé comme en jeu), sources ASCII hors commentaires, textes propres (pas d'U+FFFD, majuscule et point final, appositions en minuscule, forme féminine présente), pire cas du résumé ≤ 600 octets par type et par langue ; cent tirages (graines 1..100) par type avec les règles revérifiées en Python à partir des données (types, exclusions dans les deux sens, conditions, secrets distincts, incohérences nommées), variété (≥ 95 résumés distincts, toutes les origines du type tirées) ; contrôle non complaisant (règle cassée → détectée) ; déterminisme (deux VM, mêmes résultats) ; options et erreurs ; type sans fragment propre ; choix de la langue ; secrets privés retirés par `publicView` (copie profonde, original intact) ; garde `isClient()` sur un client MP.
-- VM Kahlua (`tests/test_kahlua.py`) : non couvert par cette tâche (fichier tenu par une autre tâche en cours) ; à ajouter : longueurs en unités UTF-16 et tirage identique à lupa.
+- Banc lupa (`tests/livingknox/test_lk_stories.py`, 14 tests) : données valides (`checkData`, effectifs minimaux dont 12 origines possibles par type, fragments propres à chaque type, registre LK08-T02 chargé comme en jeu), sources ASCII hors commentaires, textes propres (pas d'U+FFFD, majuscule et point final, appositions en minuscule, forme féminine présente), pire cas du résumé ≤ 600 octets par type et par langue ; cent tirages (graines 1..100) par type avec les règles revérifiées en Python à partir des données (types, exclusions dans les deux sens, conditions, secrets distincts, incohérences nommées), variété (≥ 95 résumés distincts, toutes les origines du type tirées) ; contrôle non complaisant (règle cassée → détectée) ; déterminisme (deux VM, mêmes résultats) ; options et erreurs ; type sans fragment propre ; choix de la langue ; secrets privés retirés par `publicView` (copie profonde, original intact) ; garde `isClient()` sur un client MP.
+- VM Kahlua (`tests/coreai/test_kahlua.py`) : non couvert par cette tâche (fichier tenu par une autre tâche en cours) ; à ajouter : longueurs en unités UTF-16 et tirage identique à lupa.
 - En jeu : sans objet (hors jeu).
 
 ## Points ouverts

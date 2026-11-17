@@ -94,7 +94,7 @@ combat. Une trêve ne change pas l'attitude du groupe (ADR B08).
 - Un membre qui n'est pas incarné n'est pas compté (rien ne vise depuis la simulation abstraite) ; un raid ou une
   vengeance hors écran contre un joueur couvert n'est pas traité ici (E10-T04, LK11-T05 : `covered` passe avant
   `revenge` dans la règle de cible).
-- Non prouvé en jeu ni dans la VM Kahlua : bancs lupa seulement (`tests/test_agreements.py`), suite
+- Non prouvé en jeu ni dans la VM Kahlua : bancs lupa seulement (`tests/livingknox/test_agreements.py`), suite
   `lk.factions.accord` à jouer.
 
 ## Idées reprises

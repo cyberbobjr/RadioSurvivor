@@ -20,7 +20,7 @@ code with the local player only (second-client parts noted). MP: autoclient.py -
 rs.notebook.voices --server-tags world. Cleanup: radio histories of both characters put back as they were (the
 frequency of the voice is emptied first so that the checks start from an unknown voice), listening hours put back,
 walkie-talkie and note taken back, histories sent again to the clients. Outside the game:
-tests/test_rs_notebook_voices_suite.py.
+tests/radiosurvivor/test_rs_notebook_voices_suite.py.
 ]]
 
 require "RST/RST"

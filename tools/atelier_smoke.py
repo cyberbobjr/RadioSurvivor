@@ -78,7 +78,8 @@ ROOT = Path(__file__).resolve().parents[1]
 ATELIER = ROOT / 'bridge' / 'atelier'
 SHIPPED = ROOT / 'Contents/mods/batman_RadioSurvivor/42.21/personas'
 sys.path.insert(0, str(ROOT / 'bridge'))
-sys.path.insert(0, str(ROOT / 'tests'))
+for _folder in ('commun', 'coreai', 'radiosurvivor'):   # offline test folders (E26: tests/<folder>/)
+    sys.path.insert(0, str(ROOT / 'tests' / _folder))
 import atelier_auth  # noqa: E402
 import atelier_server  # noqa: E402
 import game_console  # noqa: E402

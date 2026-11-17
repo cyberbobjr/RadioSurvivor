@@ -19,7 +19,7 @@ What is done (stay next to the two members, in their sight):
       fail without undoing the departure);
     - the same departure asked again on the old composition is refused; the truce of the old group covers the NPC in
       its new group (personal truce); the population never draws the loners type.
-No bridge, no LLM: the model decision is replaced by the direct call (the bridge path is in tests/test_lk_leave.py).
+No bridge, no LLM: the model decision is replaced by the direct call (the bridge path is in tests/livingknox/test_lk_leave.py).
 E01-T16 (E10-T04): on a dedicated server with a second client bound to a notebook character, the departing member
 gets a notebook fiche and a contact of that character (removed at the end); the second client asks its notebook
 snapshot as the notebook does (RST.Steps "carnet.contact", RST_PeerChecks2.lua) and shows the old group name before

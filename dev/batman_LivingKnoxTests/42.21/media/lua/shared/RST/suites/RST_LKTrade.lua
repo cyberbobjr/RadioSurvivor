@@ -22,7 +22,7 @@ What is checked (nominal path):
       inventory, the received items left the reference, a following stock check finds nothing missing (no loss, no
       theft); one "trade" entry in the group log;
     - the same proposal again: refused "gone", nothing moves.
-Outside the game: tests/test_lk_trade.py (the suite also runs there against doubles).
+Outside the game: tests/livingknox/test_lk_trade.py (the suite also runs there against doubles).
 ]]
 
 require "RST/RST"

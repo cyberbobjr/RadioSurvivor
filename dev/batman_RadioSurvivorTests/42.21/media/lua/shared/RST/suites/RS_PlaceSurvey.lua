@@ -13,7 +13,8 @@ Checked here:
   SKIP in solo).
 The survey file is restored to its previous lines at the end (t:defer). Tag "server": the authority runs it. Solo:
 RST.run({ suite = "rs.placesurvey" }). Dedicated server: RST.server({ suite = "rs.placesurvey" }) from an admin client.
-Outside the game: tests/test_rs_place_survey.py (Lua doubles), tests/test_atelier_surveys.py (bridge side).
+Outside the game: tests/radiosurvivor/test_rs_place_survey.py (Lua doubles),
+tests/radiosurvivor/test_atelier_surveys.py (bridge side).
 ]]
 
 require "RST/RST"

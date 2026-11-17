@@ -32,7 +32,7 @@ death.corpse, death.after) and RST_PeerChecksCarnet.lua (carnet.claim, batman_Co
 Solo: SKIP (the only player would die and end the run). Dedicated server with one client: SKIP (no second client).
 With two clients, every check that cannot be made FAILS. Cleanup: B's corpse removed (RemoveCorpseFromMap sent to
 the clients), marked mission removed, witness disarmed. Server console lines: "[RST] death ...".
-Outside the game: tests/test_death_suites.py.
+Outside the game: tests/radiosurvivor/test_death_suites.py.
 ]]
 
 require "RST/RST"

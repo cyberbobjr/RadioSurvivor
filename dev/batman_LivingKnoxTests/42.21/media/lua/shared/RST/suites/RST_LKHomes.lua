@@ -22,7 +22,7 @@ Every object is printed as a note "placed <kind> at x,y,z". E01-T16 (LK08-T04, "
 every connected client reads the squares of the placed objects with the same describer as the authority (world.keys,
 RST_PeerChecks.lua: barricade planks, lamps and their on state, objects drawn with the sprites of the tagged objects,
 crate content) and must find the same keys.
-Outside the game: tests/test_lk_homes.py (the suite also runs there against doubles).
+Outside the game: tests/livingknox/test_lk_homes.py (the suite also runs there against doubles).
 ]]
 
 require "RST/RST"

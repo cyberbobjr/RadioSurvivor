@@ -18,7 +18,7 @@ form, a voice type picked), 13-restore (a changed voice of the mod, "back to the
 voice whose name exists: "import as a new voice"), 15-browser (item browser), 16-ai-personality ("Write it with the AI" with its answer), 17-saved (saved, the
 game reads it again).
 The four example voices of the wiki page 14 are loaded from that page itself (```persona blocks, read by
-tests/test_wiki_voice_examples.py) and photographed under exemples/: 21-opal-where, 22-tibbs-missions,
+tests/radiosurvivor/test_wiki_voice_examples.py) and photographed under exemples/: 21-opal-where, 22-tibbs-missions,
 23-tibbs-rewards, 24-sol-trade, 25-wendell-trade, 26-wendell-where (his fixed frequency and the badge of the radio
 it needs, E24-T01).
 The stub answers "Try the voice" with one fixed line in the language of the page (the fake LLM of tools/fake_llm
@@ -45,7 +45,8 @@ SHIPPED = ROOT / 'Contents/mods/batman_RadioSurvivor/42.21/personas'
 OUT = ROOT / 'docs/images/screenshots/atelier'
 EXAMPLES_DIR = 'exemples'                 # pictures of the example voices of the wiki page 14
 sys.path.insert(0, str(ROOT / 'bridge'))
-sys.path.insert(0, str(ROOT / 'tests'))
+for _folder in ('commun', 'coreai', 'radiosurvivor'):   # offline test folders (E26: tests/<folder>/)
+    sys.path.insert(0, str(ROOT / 'tests' / _folder))
 import atelier_auth  # noqa: E402
 import atelier_server  # noqa: E402
 import game_console  # noqa: E402

@@ -18,8 +18,8 @@ D01, D03, D04). Deux lecteurs :
   et `[note]` sans les lire (le serveur les valide). `load_file` lit les lieux du `_places.txt` du dossier de la
   fiche, comme le serveur.
 
-`tests/test_personas.py` compare les deux lecteurs sur les mêmes fichiers (lupa) ; `tests/test_persona_sections.py`
-couvre ce que seul le serveur valide ; `tests/test_kahlua.py` refait une partie des cas dans la VM Kahlua réelle
+`tests/radiosurvivor/test_personas.py` compare les deux lecteurs sur les mêmes fichiers (lupa) ; `tests/radiosurvivor/test_persona_sections.py`
+couvre ce que seul le serveur valide ; `tests/coreai/test_kahlua.py` refait une partie des cas dans la VM Kahlua réelle
 (accents, BOM, UTF-8 invalide).
 
 État : format et lecteurs (E05-T01) ; chargement et relecture à chaud côté serveur (E05-T02) ; routage par voix,
@@ -144,7 +144,7 @@ Module `media/lua/server/RadioSurvivor/RS_Personas.lua`, côté autorité (serve
   hors de `media/`), lu par `listFilesInModDirectory` et `getModFileReader`. C'est le seul exemplaire des fiches
   livrées dans le dépôt (E05-T10) : le pont le lit aussi pour ses tests et son mode `--test`, par chemin relatif à
   son propre fichier (`bridge/../Contents/mods/batman_RadioSurvivor/42.21/personas`) ou `--personas <dossier>` ;
-  `tests/test_personas_server.py` vérifie que les seize fiches y sont valides.
+  `tests/radiosurvivor/test_personas_server.py` vérifie que les seize fiches y sont valides.
 - **Installation et mise à jour** (E05-T11) : à chaque chargement d'un monde (`OnLoadRadioScripts`), pour chaque fiche
   livrée, et pour le fichier commun des lieux `_places.txt` (E25-T01 : mêmes règles, journaux
   `shared places file '_places.txt'` à la place de `voice 'x'`) :
@@ -161,7 +161,7 @@ Module `media/lua/server/RadioSurvivor/RS_Personas.lua`, côté autorité (serve
   `nom.txt empreinte`, `_places.txt` compris). Sans empreinte mémorisée (installation antérieure à E05-T11, fichier absent ou vidé), elle
   est non modifiée si son empreinte est celle d'une version livrée connue (`RS_Personas.KNOWN_DELIVERED` : versions
   des commits `09d7474`, `24832ea`, `486b21e` et actuelle ; toute nouvelle version livrée y ajoute la sienne,
-  contrôlé par `tests/test_personas_server.py`) ; sinon elle est traitée comme modifiée. Un fichier d'empreintes **abîmé** (en-tête ou
+  contrôlé par `tests/radiosurvivor/test_personas_server.py`) ; sinon elle est traitée comme modifiée. Un fichier d'empreintes **abîmé** (en-tête ou
   ligne illisible) est ignoré prudemment : aucune fiche n'est remplacée, il n'est pas réécrit, un avertissement
   indique de le vider ; les fiches absentes sont copiées quand même. Une fiche de l'admin sans équivalent livré n'est
   jamais touchée.
@@ -208,7 +208,7 @@ et son niveau se déduit de cette fréquence. Code : `RS_Personas.lua`, section 
 La table des niveaux est **la seule** à donner les réglages des radios et les zones :
 `Contents/mods/batman_RadioSurvivor/42.21/media/lua/shared/RadioSurvivor/RS_RadioLevels.lua`. Le lecteur des fiches
 (`RS_Persona.lua`, `bridge/persona_store.py`), le tirage (`RS_Personas.lua`) et le catalogue de l'atelier
-(`tools/gen_atelier_catalog.py`, `radioLevels`) la lisent ; `tests/test_radio_levels.py` la contrôle contre les scripts
+(`tools/gen_atelier_catalog.py`, `radioLevels`) la lisent ; `tests/radiosurvivor/test_radio_levels.py` la contrôle contre les scripts
 des objets radio.
 
 ### Niveaux de radio
@@ -332,7 +332,7 @@ Le serveur décide (`RadioSurvivor_Server.lua`, `onTalk`), le pont exécute (`br
 
 ## Ce qui pourrait révéler une fréquence (E05-T08)
 
-Vérifié statiquement (42.21.0) et par `tests/test_protocol.py` (`scenario_server_sorts`) :
+Vérifié statiquement (42.21.0) et par `tests/radiosurvivor/test_protocol.py` (`scenario_server_sorts`) :
 
 - **Commandes serveur → client** : `accepted` (`text` = la phrase du joueur), `rejected` (`reason`), `done` ; aucune
   ne porte de fréquence. Plus de `frequencies`, plus d'envoi à tous les clients.
@@ -386,7 +386,7 @@ bouton **« Radio Survivor - Fréquences »** du panneau debug vanilla (`ISDebug
   `freqReply` au **seul** demandeur ; en solo, appel direct. Aucun envoi spontané : le serveur ne répond qu'à une
   requête, la fenêtre n'en envoie qu'ouverte (ouverture, « Actualiser ») et ignore une réponse arrivée après sa
   fermeture.
-- **Tests** : banc `tests/test_rs_freqdebug.py` ; suite en jeu `rs.freqdebug` (solo, mode debug :
+- **Tests** : banc `tests/ensemble/test_rs_freqdebug.py` ; suite en jeu `rs.freqdebug` (solo, mode debug :
   `RST.run({ suite = "rs.freqdebug" })` ; serveur : `RST.server({ suite = "rs.freqdebug" })` depuis un client admin) ;
   protocole court dans `docs/annexes/tests/tests-en-jeu.md`.
 

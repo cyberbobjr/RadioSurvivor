@@ -1,7 +1,7 @@
 # Carnet RadioSurvivor 0.2 : implémentation et limites
 
 Cible : **42.21.0**. Le parcours serveur est implémenté ; ses effets sont vérifiés en simulation
-(`tests/test_carnet.py`), pas encore par deux joueurs dans le jeu. Lire [la validation](../tests/carnet-validation-04221.md)
+(`tests/coreai/test_carnet.py`), pas encore par deux joueurs dans le jeu. Lire [la validation](../tests/carnet-validation-04221.md)
 et [le contrat v2](../../specifications-techniques/protocole-carnet-v2.md). Cette version ne publie aucun contenu, ne modifie aucun
 mod Steam ni source vanilla, ne migre pas MilitaryDrop et n'implémente pas rumeurs, négociation,
 campagnes, autonomie de factions ou radio des PNJ. Mise à jour du 2026-10-08 : correctifs `E00-T01`

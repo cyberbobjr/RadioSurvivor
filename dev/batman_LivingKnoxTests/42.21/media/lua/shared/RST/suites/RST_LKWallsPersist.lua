@@ -16,7 +16,7 @@ Played by autoclient.py --mp --phases reconnect,restart --server-campaign mp-per
                                added by the test and the group are removed, the snapshot consumed.
 Tags "world", "server", "manual": authority only, test saves rstest* only, exact names only. Snapshot:
 Zomboid/Lua/batman_CoreAITests/tests/walls-persist.txt of the server (RST_Persist).
-Outside the game: tests/test_persist_suites.py (listing).
+Outside the game: tests/ensemble/test_persist_suites.py (listing).
 ]]
 
 require "RST/RST"

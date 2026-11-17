@@ -1,7 +1,7 @@
 # Chronique du serveur : journal des faits du jour (E14-T01)
 
 Fichier : `media/lua/server/RadioSurvivor/RS_Facts.lua` (autorité seulement : serveur dédié ou solo). Bancs :
-`tests/test_facts.py` (lupa) ; suite en jeu `rs.facts` (`dev/batman_RadioSurvivorTests/.../suites/RS_Facts.lua`).
+`tests/radiosurvivor/test_facts.py` (lupa) ; suite en jeu `rs.facts` (`dev/batman_RadioSurvivorTests/.../suites/RS_Facts.lua`).
 
 Le journal rassemble les faits **confirmés par le serveur** que le bulletin du soir (E14-T02) racontera et dont le
 mémorial (E14-T03) lira les morts. Il ne contient ni coordonnée, ni texte de conversation, ni secret.
@@ -69,7 +69,7 @@ plan dit « quartier ou ville ». La durée de garde sans bulletin (veille compr
 Code : `RS_Facts.bulletin` / `RS_Facts.airBulletin` (même fichier), API radio `RS_RadioServer` exposée par
 `RadioSurvivor_Server.lua` (`frequency`, `submit`, `air`, `date`, `language`), pont `bridge/bulletin.py` et
 `radio_bridge.evening_bulletin`. Contrat : `docs/specifications-techniques/protocole-carnet-v2.md`, « Bulletin du soir ». Bancs :
-`tests/test_bulletin.py` ; suite en jeu `rs.bulletin` (même fichier de suites que `rs.facts`).
+`tests/radiosurvivor/test_bulletin.py` ; suite en jeu `rs.bulletin` (même fichier de suites que `rs.facts`).
 
 - **Heure** : option sandbox `RadioSurvivor.ChronicleHour` (entier 0 à 23, défaut 20 h, dans les heures d'écoute
   19 h - 22 h du Night Owl), lue à chaque sondage. Le jour des faits va de 7 h à 7 h (`Facts.now`) : le bulletin d'un
@@ -103,7 +103,7 @@ Code : `RS_Facts.bulletin` / `RS_Facts.airBulletin` (même fichier), API radio `
 ## Mémorial (E14-T03)
 
 Code : `RS_Facts.split`, `RS_Facts.deathsText`, `RS_Facts.memorialLines` et `RS_Facts.airBulletin` (même fichier).
-Bancs : `tests/test_memorial.py` (et `tests/test_bulletin.py` adapté) ; suite en jeu `rs.facts` (test « memorial »).
+Bancs : `tests/radiosurvivor/test_memorial.py` (et `tests/radiosurvivor/test_bulletin.py` adapté) ; suite en jeu `rs.facts` (test « memorial »).
 
 - **Qui** : chaque fait `death` lu par le bulletin, c'est-à-dire chaque personnage joueur mort depuis le bulletin
   précédent (un fait par personnage et par jour grâce à la clé du journal : une mort signalée deux fois n'est lue

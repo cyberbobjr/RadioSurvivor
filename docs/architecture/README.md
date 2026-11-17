@@ -170,8 +170,8 @@ sont pas publiés avec une sauvegarde à reprendre.
 
 | Outil | Rôle |
 |---|---|
-| `tests/run_all.py` | tous les bancs hors jeu (lupa, VM Kahlua réelle `tests/test_kahlua.py`, luacheck avec base `tests/luacheck_baseline.txt`) |
-| `tests/harness.py` | serveur et deux clients simulés sous lupa (ne valide pas l'API Java réelle) |
+| `tests/run_all.py` | tous les bancs hors jeu (lupa, VM Kahlua réelle `tests/coreai/test_kahlua.py`, luacheck avec base `tests/luacheck_baseline.txt`) |
+| `tests/commun/harness.py` | serveur et deux clients simulés sous lupa (ne valide pas l'API Java réelle) |
 | `dev/batman_CoreAITests` (moteur RST, suites `ca.*`), `dev/batman_LivingKnoxTests` (`lk.*`), `dev/batman_RadioSurvivorTests` (`rs.*`) + `tools/autoclient/autoclient.py` | tests en jeu RST : campagnes `solo-lk` (Living Knox seul), `solo-rs`, `solo` (les deux), `mp` (serveur dédié avec deux clients pilotés) ; résultats dans `Zomboid/Lua/batman_CoreAITests/tests/` ; méthode dans [tests-en-jeu.md](../annexes/tests/tests-en-jeu.md) |
 | `autotest.json` | configuration du lanceur générique `pz-autotest` |
 | `tools/plan.py` | plan d'implémentation : `check`, `suivi`, `next`, `show` ([annexes/plans/](../annexes/plans/README.md)) |

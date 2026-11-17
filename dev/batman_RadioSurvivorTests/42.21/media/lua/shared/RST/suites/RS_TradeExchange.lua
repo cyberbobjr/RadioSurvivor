@@ -19,7 +19,7 @@ python tools/autoclient/autoclient.py --mp --clients 2 --server-suite rs.trade_e
 Changes to the world: none kept. The bag is removed from the floor at the end; the trade state of Gus
 (S.data.trade.traders.gus) is copied before the run and put back after it; the radio lines are captured, never aired;
 the players are moved back (RST.Fixtures.movePlayers).
-Outside the game: tests/test_rs_trade_exchange.py, tests/test_rs_trade_traders.py.
+Outside the game: tests/radiosurvivor/test_rs_trade_exchange.py, tests/radiosurvivor/test_rs_trade_traders.py.
 
 rs.trade_road - the same passage for a trader who comes by road (E20-T11, ADR D08): the first loaded trader whose
 sheet says arrival=road (none named here), at the roadside landing of its sheet; the arrival plays the approach sound
@@ -27,7 +27,7 @@ of the mode (van door) and the exchange its leave sound (van trunk), both read f
 port of RS_TradeRun (the sounds still reach the players through RS_TradeSound). Booking, arrival by road, bag on the
 roadside, players out of sight past the delay of the sheet, exchange. Tags "server" and "world"; campaign:
 python tools/autoclient/autoclient.py --mp --clients 2 --server-suite rs.trade_road --server-tags world --bridge on
---llm fake. Outside the game: tests/test_rs_town_traders.py.
+--llm fake. Outside the game: tests/radiosurvivor/test_rs_town_traders.py.
 ]]
 
 require "RST/RST"

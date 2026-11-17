@@ -807,7 +807,7 @@ end
 --   - ne pas la garder au-delà de l'appel en cours (elle suit les changements suivants, peut sortir du registre) ni la
 --     rendre à un appelant qui ne connaît pas la règle ; recopier les valeurs simples utiles (nombres, chaînes).
 -- Pour les passages fréquents (chaque image) qui lisent quelques champs ; une table à garder ou à modifier :
--- Groups.get (copie). Banc : tests/test_lk_groups.py vérifie qu'aucun appelant n'écrit dans la vue (lecture du code).
+-- Groups.get (copie). Banc : tests/livingknox/test_lk_groups.py vérifie qu'aucun appelant n'écrit dans la vue (lecture du code).
 -- Contrôle à l'exécution (tests, console debug) : Groups.PEEK_CHECK = true. Chaque peek garde alors une copie du
 -- groupe lu (une par groupe et par génération de changements : Groups.stats.marks) ; à la fin de l'image
 -- (Groups.onTick), au début de la suivante (onTickEvenPaused) et sur demande (Groups.checkPeeks()), un groupe qui a

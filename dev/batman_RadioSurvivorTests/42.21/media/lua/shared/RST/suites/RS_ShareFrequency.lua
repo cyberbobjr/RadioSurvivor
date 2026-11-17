@@ -28,7 +28,7 @@ checks start from an unknown voice, then put back and sent again to the clients)
 
 Solo: RST.run({ suite = "rs.actions.share", tags = { "world" } })
 MP: autoclient.py --mp --clients 2 --server-suite rs.actions.share --server-tags world
-Outside the game: tests/test_rs_share_suite.py.
+Outside the game: tests/radiosurvivor/test_rs_share_suite.py.
 ]]
 
 require "RST/RST"

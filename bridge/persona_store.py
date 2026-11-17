@@ -7,7 +7,7 @@
 Format: docs/specifications-techniques/persona-format.md. The server reads the same files with
 Contents/mods/batman_RadioSurvivor/42.21/media/lua/server/RadioSurvivor/RS_Persona.lua, the only full validator (ADR
 D03, E20-T03). This reader takes the head (marks= included), the shared places file and the prompt with the same rules
-and messages ("line N: reason"), checked by tests/test_personas.py; it skips the [mission], [rewards], [category],
+and messages ("line N: reason"), checked by tests/radiosurvivor/test_personas.py; it skips the [mission], [rewards], [category],
 [trade] and [note] sections without reading them. Lines are split like Java's BufferedReader.readLine (the game's getFileReader): "\\r\\n", "\\r"
 or "\\n". Invalid UTF-8 is decoded as U+FFFD, as Java's InputStreamReader does, then refused. Standard library only.
 """
@@ -28,7 +28,7 @@ REPLACEMENT = '�'
 # E22-T13: `remember` is no sheet action any more: every voice has it (radio_bridge.UNIVERSAL_ACTIONS).
 ACTIONS = ('say', 'mark_map', 'reveal_area', 'signal', 'place_cache', 'place_scene', 'start_mission',
            'persona_state', 'propose_trade', 'report_mission', 'share_frequency')
-# Radio needed to hear the voice (E24-T01): ids of RS_RadioLevels.lua, weakest first (tests/test_radio_levels.py checks
+# Radio needed to hear the voice (E24-T01): ids of RS_RadioLevels.lua, weakest first (tests/radiosurvivor/test_radio_levels.py checks
 # they are the same). The server draws a free frequency in the level's zone; the bridge only checks the name.
 RADIOS = ('any_talkie', 'good_talkie', 'pro_talkie', 'tactical', 'military')
 LOCATIONS = ('none', 'fixed', 'rescue')

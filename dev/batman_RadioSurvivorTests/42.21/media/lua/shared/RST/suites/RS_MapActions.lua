@@ -49,7 +49,7 @@ autoclient.py --mp --clients 2 --phases reconnect2,reconnect,restart --server-ca
        and the label at PERSIST exactly once, on a new MapItem (the client really reloaded its world); the symbols
        are removed there (PASS or FAIL) and the snapshot is consumed.
     Tags "server", "world", "manual" (as rs.radiotab): authority only, test saves rstest*, exact names only.
-    Outside the game: tests/test_map_persist.py.
+    Outside the game: tests/radiosurvivor/test_map_persist.py.
 
 Solo: RST.run({ suite = "rs.actions.map", tags = { "world" } })
 ]]

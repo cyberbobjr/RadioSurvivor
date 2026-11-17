@@ -21,8 +21,8 @@ store of the core mod, server/CoreAI/CA_NotebookStore.lua and CA_NotebookPurge.l
 Tags "server", "world", "manual": authority only, test saves rstest* only, exact names only. The forward pass also
 treats the other dead characters of the test world as DROP_DAYS + 1 days older (what the purge does to them anyway).
 Snapshot: Zomboid/Lua/batman_CoreAITests/tests/state-persist.txt of the server (RST_Persist).
-Outside the game: tests/test_rs_state_persist_suite.py (real CA_NotebookStore, CA_NotebookPurge and RST engine, restart
-simulated by a new Lua state on the same files).
+Outside the game: tests/radiosurvivor/test_rs_state_persist_suite.py (real CA_NotebookStore, CA_NotebookPurge and RST engine,
+restart simulated by a new Lua state on the same files).
 ]]
 
 require "RST/RST"

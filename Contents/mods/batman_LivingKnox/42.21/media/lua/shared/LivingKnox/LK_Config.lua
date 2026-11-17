@@ -7,8 +7,8 @@ LivingKnox.Config = Config
 
 Config.NAMESPACE = "LivingKnox"
 -- Options sandbox de la page LivingKnox lues par Config.read et Config.readInt (LK20-T04, ADR simplification D04) :
--- chaque valeur est écrite une seule fois ici, = sandbox-options.txt (vérifié par tests/test_lk_population.py,
--- tests/test_lk_revenge.py). Options entières : { min, max, défaut }, même forme que Config.DANGER.
+-- chaque valeur est écrite une seule fois ici, = sandbox-options.txt (vérifié par tests/livingknox/test_lk_population.py,
+-- tests/livingknox/test_lk_revenge.py). Options entières : { min, max, défaut }, même forme que Config.DANGER.
 Config.INTS = {
     -- Population (LK08-T05, docs/annexes/conception/groupes.md, section « Population »).
     GroupCount = { 3, 5, 4 },
@@ -112,7 +112,7 @@ end
 
 -- Seuils de danger réglables (LK05-T14, fiche docs/annexes/conception/decisions.md, section « Seuils de danger réglables ») :
 -- options sandbox entières LivingKnox.<nom>, en cases (DefenseWithdrawRatio : rapport sans unité). Chaque entrée :
--- { min, max, défaut } = min / max / default de sandbox-options.txt (vérifié par tests/test_lk_thresholds.py).
+-- { min, max, défaut } = min / max / default de sandbox-options.txt (vérifié par tests/livingknox/test_lk_thresholds.py).
 -- Lues à chaque appel (sondage : aucun événement ne suit un changement d'option et SandboxVars reste périmé en solo,
 -- base load-warnings.md). Option absente (sandbox-options.txt non chargé : banc, partie sans la page) ou invalide
 -- (non entière, hors bornes) : valeur de repli du module appelant, celle d'avant LK05-T14 ; ZombieAlertDistance
@@ -142,7 +142,7 @@ Config.dangerWarned = Config.dangerWarned or {}
 
 -- Seuils « blessé » et « apeuré » réglables (LK05-T16, fiche docs/annexes/conception/decisions.md, section « Seuils blessé et
 -- apeuré réglables ») : options sandbox entières LivingKnox.<nom>, lues comme Config.DANGER (Config.danger, même
--- repli). { min, max, défaut } = min / max / default de sandbox-options.txt (vérifié par tests/test_lk_fitness.py).
+-- repli). { min, max, défaut } = min / max / default de sandbox-options.txt (vérifié par tests/livingknox/test_lk_fitness.py).
 -- Une seule notion par option, partout où le moteur l'emploie (LK_Decisions : Decisions.woundRatio, Decisions.fearHigh).
 Config.FITNESS = {
     WoundedHealth = { 10, 90, 50 },          -- % de la santé de naissance : Decisions.CFG.WOUND_RATIO 0,5

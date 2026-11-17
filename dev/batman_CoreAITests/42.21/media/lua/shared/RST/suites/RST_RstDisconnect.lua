@@ -19,7 +19,7 @@ accepted). Base "rst.disconnect" of the phased MP run (autoclient.py --mp --clie
 Tags "server" and "manual" (no "world": nothing in the world is touched): authority only, exact names only. Solo
 or without a second client: SKIP (explicit).
 Snapshot: Zomboid/Lua/batman_CoreAITests/tests/rst-disconnect.txt of the server (RST_Persist).
-Outside the game: tests/test_persist_suites.py (RstDisconnectTests).
+Outside the game: tests/ensemble/test_persist_suites.py (RstDisconnectTests).
 ]]
 
 require "RST/RST"

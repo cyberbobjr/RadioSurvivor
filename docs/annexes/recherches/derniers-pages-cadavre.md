@@ -2,7 +2,7 @@
 
 Investigation pour l'étape E15 (« Les dernières pages ») : **quand** l'inventaire du corps d'un joueur existe côté serveur après sa mort, et **comment** y mettre un objet que tous les clients voient. Le document lui-même (texte, `addPage`, `setLockedBy`) est E15-T03.
 
-- Java décompilé **42.21.0** (`<decompiled>\42.21.0\java`), relu le 2026-10-12. Statut : **confirmé statiquement** ; logique vérifiée au banc (`tests/test_lastpages_corpse.py`, doublures) ; **non mesuré en jeu** (suite `rs.lastpages.corpse` et protocole manuel plus bas).
+- Java décompilé **42.21.0** (`<decompiled>\42.21.0\java`), relu le 2026-10-12. Statut : **confirmé statiquement** ; logique vérifiée au banc (`tests/radiosurvivor/test_lastpages_corpse.py`, doublures) ; **non mesuré en jeu** (suite `rs.lastpages.corpse` et protocole manuel plus bas).
 - Fait générique versé dans la base : `.claude/pz-knowledge/multiplayer.md`, « Mort d'un joueur : inventaire et cadavre côté serveur ».
 
 ## Conclusion

@@ -3,7 +3,7 @@
 Code : `media/lua/server/RadioSurvivor/RS_RescueScene.lua` (nouveau : scène, cache, note, nouvel endroit de la voix,
 mémoire) ; points d'appel ajoutés à `RS_Rescue.lua` (`noteHelpers`, `helpedActive`, `isWorkStore`, `sceneHook`,
 participants par défaut) et à `RS_RescueVisit.lua` (aidants, départ) ; note de cache générique dans `CA_Caches.lua`
-(`makeNote`) ; fiche `personas/whitaker.txt` (règle du secours réussi). Banc : `tests/test_rescue_scene.py` ; suite
+(`makeNote`) ; fiche `personas/whitaker.txt` (règle du secours réussi). Banc : `tests/radiosurvivor/test_rescue_scene.py` ; suite
 en jeu : `rs.rescue.saved`. Décisions acquises : celles d'E12, d'E12-T02 ([secours.md](secours.md)) et d'E12-T03
 ([secours-livraison.md](secours-livraison.md)) ; note de travail §05 (« À temps : les survivants laissent une cache
 et une note, puis partent. Ils restent une voix du réseau, depuis un nouvel endroit, et se souviennent de qui les a

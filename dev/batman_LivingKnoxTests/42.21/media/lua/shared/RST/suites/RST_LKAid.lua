@@ -19,7 +19,7 @@ What is checked (nominal path):
       from the reference, a following stock check finds nothing missing (no loss, no theft); group log entry "aid";
     - second request (any kind) within the period: refused "again", nothing taken;
     - period cleared, medical targets raised above the stock: request "care" refused "short", nothing taken.
-Outside the game: tests/test_lk_aid.py (the suite also runs there against doubles).
+Outside the game: tests/livingknox/test_lk_aid.py (the suite also runs there against doubles).
 ]]
 
 require "RST/RST"

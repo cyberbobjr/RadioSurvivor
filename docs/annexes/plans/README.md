@@ -63,10 +63,10 @@ Une dépendance est **utilisable** dès qu'elle est `testé hors jeu`. Les valid
 2. **Décision requise** (`à décider`) : poser les questions listées dans la tâche, **une à la fois, avec trois options fermées et une réponse libre**, en recommandant l'une d'elles. Ne rien coder. Après la réponse : écrire la décision dans le fichier d'étape (section Décisions, avec la date), passer la tâche à `à faire`, puis continuer.
 3. Passer la tâche à `en cours`. Relire `.claude/pz-knowledge/README.md` puis chercher les mots-clés de la tâche dans la base. Lire les fichiers cités et le code vanilla ou Bandits concerné (lecture seule du Workshop Steam).
 4. Coder **uniquement** le périmètre de la tâche. Une découverte qui demande plus de travail devient une nouvelle tâche (numéro suivant), pas une extension silencieuse.
-5. Tests : écrire ou mettre à jour les tests `lupa` (`tests/test_carnet.py`, `tests/test_protocol.py`, ou un nouveau fichier), puis lancer :
+5. Tests : écrire ou mettre à jour les tests `lupa` (`tests/coreai/test_carnet.py`, `tests/radiosurvivor/test_protocol.py`, ou un nouveau fichier), puis lancer :
    ```powershell
-   python RadioSurvivor/tests/test_protocol.py
-   python RadioSurvivor/tests/test_carnet.py
+   python RadioSurvivor/tests/radiosurvivor/test_protocol.py
+   python RadioSurvivor/tests/coreai/test_carnet.py
    luacheck RadioSurvivor/Contents --config RadioSurvivor/.luacheckrc
    python RadioSurvivor/tools/plan.py check
    ```

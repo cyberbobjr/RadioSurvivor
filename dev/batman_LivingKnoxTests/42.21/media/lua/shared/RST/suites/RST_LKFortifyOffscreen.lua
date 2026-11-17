@@ -24,7 +24,7 @@ What is checked (nominal path):
 Every phase prints "[LKF] measure ..." lines. Cleanup (t:defer): planks added by the test removed from the barricade
 (removePlank, sent to the clients), hammer removed, planks and nails removed down to their counts before the
 test (the stock may use the house ones first), stock reference erased, test group removed.
-Outside the game: tests/test_lk_fortify_offscreen.py (doubles).
+Outside the game: tests/livingknox/test_lk_fortify_offscreen.py (doubles).
 ]]
 
 require "RST/RST"

@@ -10,7 +10,7 @@ nothing): no notebook state, no ModData of the notebook, no reward item. The req
 player's position. Cleanup: the player goes back, the extra card is taken back, the body is removed from its square.
 E01-T16 (E11-T05): the other connected players are moved with the player (F.movePlayers); every client sees the
 body with the card, then without it once the player took it (world.keys around the body square).
-Outside the game: tests/test_mission_retrieve.py (metagrid, cell and corpse doubles).
+Outside the game: tests/radiosurvivor/test_mission_retrieve.py (metagrid, cell and corpse doubles).
 ]]
 
 require "RST/RST"

@@ -3,7 +3,7 @@
 - Tâche : E08-T06 (décision Q1 du 2026-10-10 : option A, radio du groupe)
 - Build : 42.21.0 — Date : 2026-10-13 — Statut : brouillon (banc hors jeu seulement)
 
-Code : `media/lua/server/RadioSurvivor/RS_GroupRadio.lua` (autorité) ; voix engendrées `RS_Personas.setGenerated` ; routage dans `RadioSurvivor_Server.lua` (`onTalk`, `hasPending`, `onTickEvenPaused`) ; file et réponse dans `CA_NotebookServer.lua` et le moteur de parole du fournisseur (`reply` délègue les demandes radio) ; fournisseur `Provider.radios` (`CA_NPCProvider.lua`, implémenté par `LK_NotebookProvider.lua`) ; types au format 2 (`LK_GroupTypes.lua`, [groupes.md](groupes.md) « Format 2 »). Tests : `tests/test_group_radio.py` ; suite en jeu `rs.groupradio` (`dev/.../shared/RST/suites/RS_GroupRadio.lua`).
+Code : `media/lua/server/RadioSurvivor/RS_GroupRadio.lua` (autorité) ; voix engendrées `RS_Personas.setGenerated` ; routage dans `RadioSurvivor_Server.lua` (`onTalk`, `hasPending`, `onTickEvenPaused`) ; file et réponse dans `CA_NotebookServer.lua` et le moteur de parole du fournisseur (`reply` délègue les demandes radio) ; fournisseur `Provider.radios` (`CA_NPCProvider.lua`, implémenté par `LK_NotebookProvider.lua`) ; types au format 2 (`LK_GroupTypes.lua`, [groupes.md](groupes.md) « Format 2 »). Tests : `tests/ensemble/test_group_radio.py` ; suite en jeu `rs.groupradio` (`dev/.../shared/RST/suites/RS_GroupRadio.lua`).
 
 ## Règle
 
@@ -16,7 +16,7 @@ Code : `media/lua/server/RadioSurvivor/RS_GroupRadio.lua` (autorité) ; voix eng
 
 ## Pillards équipés (E08-T10, 2026-10-15)
 
-Décision de l'utilisateur du 2026-10-14 (E08-T06) : colons **et** pillards ont une radio. `LK_Type_raiders.lua` passe au format 2 avec `homeRadio = true`, sans autre changement : mêmes règles que ci-dessus (voix `grp_<n>`, plage 75,0-149,8 MHz, aucune décision par radio, règle de l'inconnu, masquage des nombres, `CallLanguage`, identité de carnet exigée). Le poste est au camp (`g.home`) : un groupe de pillards sans foyer (créé sans `home`) n'est pas équipé ; tous ses membres au loin (raid, expédition) : pas de voix jusqu'au retour. Les neutres restent sans radio (format 1). Bancs : `tests/test_group_radio.py` (types, camp de pillards = voix et chef qui répond, neutres sans voix, colons inchangés, réplique sans lieu, décision refusée, silence décimé ou dispersé, test en jeu rejoué sur le banc) ; en jeu : `rs.groupradio`, « a raiders camp is a voice, a neutrals group is none (E08-T10) » (groupes de test créés à 400 cases du joueur, sans corps, retirés ensuite).
+Décision de l'utilisateur du 2026-10-14 (E08-T06) : colons **et** pillards ont une radio. `LK_Type_raiders.lua` passe au format 2 avec `homeRadio = true`, sans autre changement : mêmes règles que ci-dessus (voix `grp_<n>`, plage 75,0-149,8 MHz, aucune décision par radio, règle de l'inconnu, masquage des nombres, `CallLanguage`, identité de carnet exigée). Le poste est au camp (`g.home`) : un groupe de pillards sans foyer (créé sans `home`) n'est pas équipé ; tous ses membres au loin (raid, expédition) : pas de voix jusqu'au retour. Les neutres restent sans radio (format 1). Bancs : `tests/ensemble/test_group_radio.py` (types, camp de pillards = voix et chef qui répond, neutres sans voix, colons inchangés, réplique sans lieu, décision refusée, silence décimé ou dispersé, test en jeu rejoué sur le banc) ; en jeu : `rs.groupradio`, « a raiders camp is a voice, a neutrals group is none (E08-T10) » (groupes de test créés à 400 cases du joueur, sans corps, retirés ensuite).
 
 ## Découpe des répliques (E17-T12, 2026-10-13)
 
@@ -40,8 +40,8 @@ la longueur actuelle (140 en jeu, 100 au pont), le plus long possible, coupé :
 
 Ponctuation lue caractère par caractère, aucune liste de mots ni règle de langue. Longueur : `string.len`, en unités
 UTF-16 dans le jeu (base `kahlua-lua.md`), en caractères au pont ; même découpe des deux côtés vérifiée dans la VM
-Kahlua réelle (`tests/test_kahlua.py`). « M. Dupont » compte comme une fin de phrase (point suivi d'un espace) :
-limite admise, sans liste d'abréviations. Bancs : `tests/test_text_cut.py` ; en jeu : `rs.groupradio`.
+Kahlua réelle (`tests/coreai/test_kahlua.py`). « M. Dupont » compte comme une fin de phrase (point suivi d'un espace) :
+limite admise, sans liste d'abréviations. Bancs : `tests/coreai/test_text_cut.py` ; en jeu : `rs.groupradio`.
 
 ## Décisions à confirmer (prises la nuit du 2026-10-13, utilisateur absent)
 

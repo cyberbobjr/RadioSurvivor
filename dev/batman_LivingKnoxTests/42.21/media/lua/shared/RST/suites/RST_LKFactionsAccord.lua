@@ -18,7 +18,7 @@ Test 2 (all modes): two conclusions built on one revision, only the first applie
 clients; SKIP in solo or with one client): a member without mandate gets no offer and concludes nothing, then two
 negotiators of one faction speak to the leader at once: one agreement (RST_PeerChecksE09.lua, replies of the test
 read by the real notebook reply path, no bridge needed).
-Outside the game: tests/test_agreements.py, tests/test_e09_suites.py.
+Outside the game: tests/livingknox/test_agreements.py, tests/ensemble/test_e09_suites.py.
 ]]
 
 require "RST/RST"

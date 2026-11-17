@@ -11,7 +11,7 @@ serveur"; server/RadioSurvivor/RS_Memory.lua, private state RS_State). Base "rs.
                               the test caller is removed from the memory of walt and the snapshot consumed.
 Run again, .before first removes the test caller of an earlier run. Tags "server", "world", "manual": authority only,
 test saves rstest*, exact names only. Snapshot: Zomboid/Lua/batman_CoreAITests/tests/memory-persist.txt of the server
-(RST_Persist). Outside the game: tests/test_persist_suites.py (listing and campaign plan).
+(RST_Persist). Outside the game: tests/ensemble/test_persist_suites.py (listing and campaign plan).
 ]]
 
 require "RST/RST"

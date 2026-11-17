@@ -21,7 +21,7 @@ What is checked (nominal path):
     - announce: "scouts saw the base" entry in the group log, then the scouts back home;
     - attack: team of 2 or more members of a "raid" role, not the leader, one member left home; bodies at SPAWN_MIN
       squares or more from every living player; return and end "done".
-Outside the game: tests/test_lk_raids.py (the suite also runs there against doubles).
+Outside the game: tests/livingknox/test_lk_raids.py (the suite also runs there against doubles).
 ]]
 
 require "RST/RST"

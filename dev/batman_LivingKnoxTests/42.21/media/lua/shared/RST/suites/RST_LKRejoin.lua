@@ -21,7 +21,7 @@ reconnect2 among the phases). Solo or a single client: SKIP.
     SKIP when the trip ended before client 2 left (lengthen TRIP, or an obstacle stopped it) or when the body never
     left client 2.
 Tags "world", "server", "manual": authority only, test saves rstest* only, exact names only. Figures: "[LKJ] measure"
-lines. Outside the game: tests/test_persist_suites.py (listing).
+lines. Outside the game: tests/ensemble/test_persist_suites.py (listing).
 ]]
 
 require "RST/RST"

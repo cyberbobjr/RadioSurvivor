@@ -85,7 +85,7 @@ La réserve d'E08-T02 (« aucun déclencheur du monde branché (E08-T03, T04) »
   - État : `à faire`
   - Cible : `MP`
   - Dépend de : E08-T02, E17-T03, LK12-T02
-  - Fichiers : `RS_Carnet_Server.lua` (abonnements) ; `RS_Observations.lua` (aucun changement de modèle) ; `RS_LivingKnox.lua` (fournisseur) ; `tests/test_observations.py`
+  - Fichiers : `RS_Carnet_Server.lua` (abonnements) ; `RS_Observations.lua` (aucun changement de modèle) ; `RS_LivingKnox.lua` (fournisseur) ; `tests/livingknox/test_observations.py`
   - Faire : enregistrer par `Obs.record` les faits `player_return` (personnage déjà connu d'une fiche qui revient à portée d'audition après au moins un jour de jeu d'absence), `mission_done` (clôture d'une mission par `RS_Missions`, chez le PNJ demandeur), `group_death` (événement « membre mort » de LK12-T02 : fiches des membres incarnés qui voient la scène par `Provider.near`, et, pour une mort hors écran, fiches des membres présents au foyer, la simulation abstraite n'ayant pas de perception plus fine), `assault_seen` (fait `hit`, `shot` ou `kill` enregistré par `LK_Hostility.record` avec `witnessed = true`, chez les fiches des témoins). Seulement des fiches existantes (règle « fiches créées au contact ») ; sujet = identité de personnage du carnet ou fiche, lieu en maille `Obs.area`.
   - Accepté si : chaque fait apparaît une fois par témoin admissible, jamais chez un PNJ qui n'a pu le voir ; aucune coordonnée exacte ; aucune fiche créée par un déclencheur.
   - Tests : banc `lupa` (fausse API Living Knox conforme, deux clients) ; suite en jeu solo (retour d'un joueur, mort d'un membre devant un autre).
@@ -96,7 +96,7 @@ La réserve d'E08-T02 (« aucun déclencheur du monde branché (E08-T03, T04) »
   - État : `à faire`
   - Cible : `solo`
   - Dépend de : E08-T07
-  - Fichiers : `RS_Carnet_Server.lua` (ou `RS_WorldEvents.lua`, server) ; `tests/test_observations.py`
+  - Fichiers : `RS_Carnet_Server.lua` (ou `RS_WorldEvents.lua`, server) ; `tests/livingknox/test_observations.py`
   - Faire : sondage à `EveryHours` sur l'autorité : orage (`getIsThunderStorming`, base `api-42-21.md`), fin du réseau électrique (passage de `hasGridPower` à faux, base `power-and-lights.md`), passage d'hélicoptère ; un fait par épisode (clé `fait|sujet|jour|lieu` existante, sujet `storm`, `power`, `helicopter`), enregistré pour les fiches suivies de PNJ dont le groupe n'est pas en expédition ; aucun travail proportionnel à la population (64 fiches au plus).
   - Accepté si : un orage donne une seule observation par fiche ; aucune observation sur un serveur vide en pause (`EveryHours` ne part pas).
   - Tests : banc `lupa` ; protocole solo (orage forcé par la console, courant coupé par `ElecShutModifier`).

@@ -32,7 +32,7 @@ local BAT = "Base.BaseballBat"
 local SMALL, LETHAL = 1.0, 100.0
 local MAX_HITS = 20
 local KNIFE = "Base.HuntingKnife"
-local FINISH = 900.0         -- value of a finishing blow sent by a client (tests/test_lk_health.py)
+local FINISH = 900.0         -- value of a finishing blow sent by a client (tests/livingknox/test_lk_health.py)
 
 local function H() return LivingKnox and LivingKnox.Health end
 
