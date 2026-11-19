@@ -1,6 +1,6 @@
 # Setting up the Radio Survivor bridge on a server
 
-Guide for the administrator of a Project Zomboid 42.21 server (dedicated or hosted from the game, Windows or Linux).
+Guide for the administrator of a Project Zomboid 42.22 server (dedicated or hosted from the game, Windows or Linux).
 Version française : [07-installation-du-pont.md](../fr/07-installation-du-pont.md).
 
 The radio voices (Walt and the others) and the notebook dialogues are written by a language model (LLM). The game

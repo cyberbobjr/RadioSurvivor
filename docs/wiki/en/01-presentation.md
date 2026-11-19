@@ -4,7 +4,7 @@
 
 Radio Survivor brings other survivors into Knox County, July 1993: **voices on the radio**, a **field notebook** that
 keeps track of everyone you meet, and **Living Knox**, groups of human survivors who live, fight and fortify their
-homes. Singleplayer and multiplayer, Project Zomboid **Build 42.21**.
+homes. Singleplayer and multiplayer, Project Zomboid **Build 42.22**.
 
 It is one Workshop item with **three mods**: **Radio Survivor** (`batman_RadioSurvivor`: the radio and its voices),
 **Living Knox** (`batman_LivingKnox`: the NPC groups) and **Core AI** (`batman_CoreAI`: what the

@@ -3,7 +3,7 @@
 [Version française](README_fr.md)
 
 **Voices on the radio and very much alive survivors in Knox County.**
-Mods for Project Zomboid **Build 42.21**, singleplayer and multiplayer (dedicated servers included).
+Mods for Project Zomboid **Build 42.22**, singleplayer and multiplayer (dedicated servers included).
 One Workshop item, **three mods**: Radio Survivor (`batman_RadioSurvivor`, 0.3.0), Living Knox (`batman_LivingKnox`,
 0.1.0) and their shared core (`batman_CoreAI`, 0.1.0). Test build.
 
@@ -131,7 +131,7 @@ The notebook comes with either mod; the radio tab needs Radio Survivor, the NPCs
 
 | Item | Where | Note |
 |---|---|---|
-| Project Zomboid **42.21** | — | Build 41 is not supported. |
+| Project Zomboid **42.22** | — | Build 41 is not supported. |
 | **Belt Walkie-Talkie** (`batman_BeltRadio`) | Workshop 3817018338 | Required by Radio Survivor (walkie-talkie on the belt, shared transmit rule). |
 | **TooltipLib** (`TooltipLib`) | Workshop 3694097672 | Required by Belt Walkie-Talkie. |
 | **Signal Smoke** (`batman_SignalSmoke`) | Workshop 3811010882 | Required by the three mods (smoke grenades and flares for missions, the smuggler and rescues). |

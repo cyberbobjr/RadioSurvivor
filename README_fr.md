@@ -3,7 +3,7 @@
 [English](README.md)
 
 **Des voix à la radio et des survivants bien vivants dans le comté de Knox.**
-Mods pour Project Zomboid **Build 42.21**, solo et multijoueur (serveur dédié compris).
+Mods pour Project Zomboid **Build 42.22**, solo et multijoueur (serveur dédié compris).
 Un objet Workshop, **trois mods** : Radio Survivor (`batman_RadioSurvivor`, 0.3.0), Living Knox (`batman_LivingKnox`,
 0.1.0) et leur socle commun (`batman_CoreAI`, 0.1.0). Version de test.
 
@@ -133,7 +133,7 @@ Le carnet vient avec l'un ou l'autre mod ; l'onglet Radio demande Radio Survivor
 
 | Élément | Où | Remarque |
 |---|---|---|
-| Project Zomboid **42.21** | — | Build 41 non prise en charge. |
+| Project Zomboid **42.22** | — | Build 41 non prise en charge. |
 | **Belt Walkie-Talkie** (`batman_BeltRadio`) | Workshop 3817018338 | Requis par Radio Survivor (talkie à la ceinture, règle d'émission commune). |
 | **TooltipLib** (`TooltipLib`) | Workshop 3694097672 | Requis par Belt Walkie-Talkie. |
 | **Signal Smoke** (`batman_SignalSmoke`) | Workshop 3811010882 | Requis par les trois mods (fumigènes et fusées des missions, du passeur et des secours). |

@@ -2,7 +2,7 @@
 
 # Radio Survivor
 
-Radio Survivor est un projet Project Zomboid **Build 42.21**, solo et multijoueur, publié comme **un seul objet
+Radio Survivor est un projet Project Zomboid **Build 42.22**, solo et multijoueur, publié comme **un seul objet
 Workshop contenant trois mods**. Comté de Knox, juillet 1993 : des voix répondent à la radio, et des groupes de
 survivants humains vivent, se battent et se fortifient dans le comté.
 

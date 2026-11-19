@@ -1,6 +1,6 @@
 [h1]Radio Survivor[/h1]
 
-[b]Build 42.21 · Solo et multijoueur · VERSION DE TEST[/b]
+[b]Build 42.22 · Solo et multijoueur · VERSION DE TEST[/b]
 
 Comté de Knox, juillet 1993. Vous n'êtes plus seul : des voix répondent à la radio, et des groupes de survivants vivent, se battent et se fortifient dans le comté. Les personnages de la radio et les PNJ sont joués par une IA, grâce à un petit programme que vous lancez vous-même, [b]le pont[/b] (voir plus bas). Sans lui, le jeu reste entièrement jouable ; les voix et les PNJ restent simplement muets.
 

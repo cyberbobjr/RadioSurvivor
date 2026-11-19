@@ -1,6 +1,6 @@
 # Installer le pont de Radio Survivor sur un serveur
 
-Guide pour l'administrateur d'un serveur Project Zomboid 42.21 (dédié ou hébergé depuis le jeu, Windows ou Linux).
+Guide pour l'administrateur d'un serveur Project Zomboid 42.22 (dédié ou hébergé depuis le jeu, Windows ou Linux).
 English version: [07-bridge-server-setup.md](../en/07-bridge-server-setup.md).
 
 Les voix radio (Walt et les autres) et les dialogues du carnet sont écrits par un modèle de langage (LLM). Le jeu ne

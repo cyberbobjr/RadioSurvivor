@@ -5,7 +5,7 @@
 Radio Survivor fait entrer d'autres survivants dans le comté de Knox, juillet 1993 : des **voix à la radio**, un
 **carnet de terrain** qui garde la trace de tous ceux que vous rencontrez, et **Living Knox**, des groupes de
 survivants humains qui vivent, se battent et fortifient leur foyer. Solo et multijoueur, Project Zomboid
-**Build 42.21**.
+**Build 42.22**.
 
 C'est un seul objet Workshop avec **trois mods** : **Radio Survivor** (`batman_RadioSurvivor` : la radio et ses
 voix), **Living Knox** (`batman_LivingKnox` : les groupes de PNJ) et **Core AI**
